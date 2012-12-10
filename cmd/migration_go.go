@@ -44,7 +44,7 @@ func directionStr(direction bool) string {
 //
 func runGoMigration(txn *sql.Tx, conf *DBConf, path string, version int, direction bool) (int, error) {
 
-    // everything gets written to a temp file, and zapped afterwards
+	// everything gets written to a temp file, and zapped afterwards
 	d, e := ioutil.TempDir("", "goose")
 	if e != nil {
 		log.Fatal(e)
