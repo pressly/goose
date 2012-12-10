@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"database/sql"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -22,7 +21,7 @@ const (
 )
 
 type TemplateData struct {
-	Versions  []string
+	Version   string
 	DBDriver  string
 	DBOpen    string
 	Direction string
@@ -42,7 +41,7 @@ func directionStr(direction bool) string {
 // original .go migration, and execute it via `go run` along
 // with a main() of our own creation.
 //
-func runGoMigration(txn *sql.Tx, conf *DBConf, path string, version int, direction bool) (int, error) {
+func runGoMigration(conf *DBConf, path string, version int, direction bool) (int, error) {
 
 	// everything gets written to a temp file, and zapped afterwards
 	d, e := ioutil.TempDir("", "goose")
@@ -52,7 +51,7 @@ func runGoMigration(txn *sql.Tx, conf *DBConf, path string, version int, directi
 	defer os.RemoveAll(d)
 
 	td := &TemplateData{
-		Versions:  []string{fmt.Sprintf("%d", version)},
+		Version:   fmt.Sprintf("%d", version),
 		DBDriver:  conf.Driver,
 		DBOpen:    conf.OpenStr,
 		Direction: directionStr(direction),
@@ -187,19 +186,18 @@ func main() {
 	if err != nil {
 		log.Fatal("failed to open DB:", err)
 	}
-{{range .Versions}}
+	defer db.Close()
 
-	// ----- migration {{ . }} -----
 	txn, err := db.Begin()
 	if err != nil {
 		log.Fatal("db.Begin:", err)
 	}
 
-	migration_{{ . }}_{{$.Direction}}(txn)
+	migration_{{ .Version }}_{{ .Direction }}(txn)
 
 	e := txn.Commit()
 	if e != nil {
 		log.Fatal("Commit() failed:", e)
-	}{{end}}
+	}
 }
 `))

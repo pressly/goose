@@ -100,11 +100,6 @@ func runMigrations(conf *DBConf, target int) {
 
 	for _, v := range migrations.Versions {
 
-		txn, err := db.Begin()
-		if err != nil {
-			log.Fatal("db.Begin:", err)
-		}
-
 		var numStatements int
 		var e error
 
@@ -112,42 +107,17 @@ func runMigrations(conf *DBConf, target int) {
 
 		switch path.Ext(filepath) {
 		case ".go":
-			numStatements, e = runGoMigration(txn, conf, filepath, v, migrations.Direction)
+			numStatements, e = runGoMigration(conf, filepath, v, migrations.Direction)
 		case ".sql":
-			numStatements, e = runSQLMigration(txn, filepath, v, migrations.Direction)
+			numStatements, e = runSQLMigration(db, filepath, v, migrations.Direction)
 		}
 
 		if e != nil {
-			txn.Rollback()
-			fmt.Printf("FAIL %s (%v), quitting migration.", path.Base(filepath), e)
-			os.Exit(1)
-		}
-
-		if e = finalizeMigration(txn, migrations, v); e != nil {
-			fmt.Printf("error finalizing migration %s, quitting. (%v)", path.Base(filepath), e)
-			os.Exit(1)
+			log.Fatalf("FAIL %v, quitting migration", e)
 		}
 
 		fmt.Printf("OK   %s (%d statements)\n", path.Base(filepath), numStatements)
 	}
-}
-
-// Update the version table for the given migration,
-// and finalize the transaction.
-func finalizeMigration(txn *sql.Tx, mm *MigrationMap, v int) error {
-
-	if mm.Direction == false {
-		v--
-	}
-
-	// XXX: drop goose_db_version table on some minimum version number?
-	versionStmt := fmt.Sprintf("INSERT INTO goose_db_version (version_id) VALUES (%d);", v)
-	if _, err := txn.Exec(versionStmt); err != nil {
-		txn.Rollback()
-		return err
-	}
-
-	return txn.Commit()
 }
 
 // collect all the valid looking migration scripts in the 

@@ -2,8 +2,10 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"io/ioutil"
 	"log"
+	"path"
 	"strings"
 )
 
@@ -15,9 +17,15 @@ import (
 //
 // All statements following an Up or Down directive are grouped together
 // until another direction directive is found.
-func runSQLMigration(txn *sql.Tx, path string, v int, direction bool) (count int, err error) {
+func runSQLMigration(db *sql.DB, script string, v int, direction bool) (count int, err error) {
 
-	f, err := ioutil.ReadFile(path)
+	txn, err := db.Begin()
+	if err != nil {
+		log.Fatal("db.Begin:", err)
+	}
+	defer db.Close()
+
+	f, err := ioutil.ReadFile(script)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -46,12 +54,35 @@ func runSQLMigration(txn *sql.Tx, path string, v int, direction bool) (count int
 		}
 
 		if _, err = txn.Exec(query); err != nil {
-			log.Println("error executing query:\n", query)
+			txn.Rollback()
+			log.Fatalf("FAIL %s (%v), quitting migration.", path.Base(script), err)
 			return count, err
 		}
 
 		count++
 	}
 
+	if err = finalizeMigration(txn, direction, v); err != nil {
+		log.Fatalf("error finalizing migration %s, quitting. (%v)", path.Base(script), err)
+	}
+
 	return count, nil
+}
+
+// Update the version table for the given migration,
+// and finalize the transaction.
+func finalizeMigration(txn *sql.Tx, direction bool, v int) error {
+
+	if direction == false {
+		v--
+	}
+
+	// XXX: drop goose_db_version table on some minimum version number?
+	versionStmt := fmt.Sprintf("INSERT INTO goose_db_version (version_id) VALUES (%d);", v)
+	if _, err := txn.Exec(versionStmt); err != nil {
+		txn.Rollback()
+		return err
+	}
+
+	return txn.Commit()
 }
