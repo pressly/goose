@@ -40,7 +40,7 @@ var targetVersion = flag.Int("target", -1, "which DB version to target (defaults
 func main() {
 	flag.Parse()
 
-	conf, err := dbConfFromFile(path.Join(*dbFolder, "dbconf.yaml"), *dbConfName)
+	conf, err := dbConfFromFile(path.Join(*dbFolder, "dbconf.yml"), *dbConfName)
 	if err != nil {
 		log.Fatal(err)
 	}
