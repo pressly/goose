@@ -21,7 +21,7 @@ const (
 )
 
 type TemplateData struct {
-	Version   string
+	Version   int
 	DBDriver  string
 	DBOpen    string
 	Direction string
@@ -43,7 +43,7 @@ func directionStr(direction bool) string {
 //
 func runGoMigration(conf *DBConf, path string, version int, direction bool) (int, error) {
 
-	// everything gets written to a temp file, and zapped afterwards
+	// everything gets written to a temp dir, and zapped afterwards
 	d, e := ioutil.TempDir("", "goose")
 	if e != nil {
 		log.Fatal(e)
@@ -51,7 +51,7 @@ func runGoMigration(conf *DBConf, path string, version int, direction bool) (int
 	defer os.RemoveAll(d)
 
 	td := &TemplateData{
-		Version:   fmt.Sprintf("%d", version),
+		Version:   version,
 		DBDriver:  conf.Driver,
 		DBOpen:    conf.OpenStr,
 		Direction: directionStr(direction),
@@ -179,6 +179,7 @@ import (
 	"database/sql"
 	_ "github.com/bmizerany/pq"
 	"log"
+	"fmt"
 )
 
 func main() {
@@ -195,9 +196,21 @@ func main() {
 
 	migration_{{ .Version }}_{{ .Direction }}(txn)
 
-	e := txn.Commit()
-	if e != nil {
-		log.Fatal("Commit() failed:", e)
+	v := {{ .Version }}
+	if "{{ .Direction }}" == "Down" {
+		v--
+	}
+
+	// XXX: drop goose_db_version table on some minimum version number?
+	versionStmt := fmt.Sprintf("INSERT INTO goose_db_version (version_id) VALUES (%d);", v)
+	if _, err = txn.Exec(versionStmt); err != nil {
+		txn.Rollback()
+		log.Fatal("failed to write version: ", err)
+	}
+
+	err = txn.Commit()
+	if err != nil {
+		log.Fatal("Commit() failed:", err)
 	}
 }
 `))
