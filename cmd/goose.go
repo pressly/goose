@@ -113,7 +113,7 @@ func runMigrations(conf *DBConf, target int) {
 
 		switch path.Ext(filepath) {
 		case ".go":
-			numStatements, e = runGoMigration(txn, filepath, v, migrations.Direction)
+			numStatements, e = runGoMigration(txn, conf, filepath, v, migrations.Direction)
 		case ".sql":
 			numStatements, e = runSQLMigration(txn, filepath, v, migrations.Direction)
 		}
@@ -288,10 +288,6 @@ func ensureDBVersion(db *sql.DB) (int, error) {
 	return 0, txn.Commit()
 }
 
-func runGoMigration(txn *sql.Tx, path string, version int, direction bool) (int, error) {
-	panic("go migrations not implemented")
-}
-
 // Run a migration specified in raw SQL.
 //
 // Sections of the script can be annotated with a special comment,
@@ -331,7 +327,7 @@ func runSQLMigration(txn *sql.Tx, path string, v int, direction bool) (count int
 		}
 
 		if _, err = txn.Exec(query); err != nil {
-			log.Println("error executing query:\n", query, "\n")
+			log.Println("error executing query:\n", query)
 			return count, err
 		}
 
