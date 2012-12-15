@@ -205,6 +205,7 @@ func (m *MigrationMap) Sort(direction bool) {
 	for _, v := range m.Versions {
 		cur := m.Migrations[v]
 		cur.Previous = previousV
+		m.Migrations[v] = cur
 
 		// if a migration exists at prev, its next is now v
 		if prev, ok := m.Migrations[previousV]; ok {
