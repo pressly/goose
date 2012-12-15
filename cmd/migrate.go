@@ -31,20 +31,20 @@ type MigrationMap struct {
 	Direction  bool              // sort direction: true -> Up, false -> Down
 }
 
-func runMigrations(conf *DBConf, target int) {
+func runMigrations(conf *DBConf, migrationsDir string, target int) {
 
 	db, err := sql.Open(conf.Driver, conf.OpenStr)
 	if err != nil {
 		log.Fatal("couldn't open DB:", err)
 	}
-    defer db.Close()
+	defer db.Close()
 
 	current, e := ensureDBVersion(db)
 	if e != nil {
 		log.Fatal("couldn't get/set DB version")
 	}
 
-	mm, err := collectMigrations(path.Join(*dbFolder, "migrations"), current, target)
+	mm, err := collectMigrations(migrationsDir, current, target)
 	if err != nil {
 		log.Fatal(err)
 	}

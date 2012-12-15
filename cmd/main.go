@@ -27,7 +27,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	runMigrations(conf, *targetVersion)
+	runMigrations(conf, path.Join(*dbFolder, "migrations"), *targetVersion)
 }
 
 // extract configuration details from the given file
