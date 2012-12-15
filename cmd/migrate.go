@@ -38,23 +38,23 @@ func runMigrations(conf *DBConf, target int) {
 		log.Fatal("couldn't open DB:", err)
 	}
 
-	currentVersion, e := ensureDBVersion(db)
+	current, e := ensureDBVersion(db)
 	if e != nil {
 		log.Fatal("couldn't get/set DB version")
 	}
 
-	mm, err := collectMigrations(path.Join(*dbFolder, "migrations"), currentVersion)
+	mm, err := collectMigrations(path.Join(*dbFolder, "migrations"), current, target)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	if len(mm.Versions) == 0 {
-		fmt.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
+		fmt.Printf("goose: no migrations to run. current version: %d\n", current)
 		return
 	}
 
 	fmt.Printf("goose: migrating db configuration '%v', current version: %d, target: %d\n",
-		conf.Name, currentVersion, *targetVersion)
+		conf.Name, mm.Versions[0], mm.Versions[len(mm.Versions)-1])
 
 	for _, v := range mm.Versions {
 
@@ -80,7 +80,7 @@ func runMigrations(conf *DBConf, target int) {
 
 // collect all the valid looking migration scripts in the 
 // migrations folder, and key them by version
-func collectMigrations(dirpath string, currentVersion int) (mm *MigrationMap, err error) {
+func collectMigrations(dirpath string, current, target int) (mm *MigrationMap, err error) {
 
 	dir, err := os.Open(dirpath)
 	if err != nil {
@@ -96,13 +96,18 @@ func collectMigrations(dirpath string, currentVersion int) (mm *MigrationMap, er
 		Migrations: make(map[int]Migration),
 	}
 
+	// if target is the default -1,
+	// we need to find the most recent possible version to target
+	if target < 0 {
+		target = mostRecentVersionAvailable(names)
+	}
+
 	// extract the numeric component of each migration,
 	// filter out any uninteresting files,
 	// and ensure we only have one file per migration version.
 	for _, name := range names {
 
-		ext := path.Ext(name)
-		if ext != ".go" && ext != ".sql" {
+		if ext := path.Ext(name); ext != ".go" && ext != ".sql" {
 			continue
 		}
 
@@ -116,16 +121,41 @@ func collectMigrations(dirpath string, currentVersion int) (mm *MigrationMap, er
 				v, mm.Versions[v], path.Join(dirpath, name))
 		}
 
-		if versionFilter(v, currentVersion, *targetVersion) {
+		if versionFilter(v, current, target) {
 			mm.Append(v, path.Join(dirpath, name))
 		}
 	}
 
 	if len(mm.Versions) > 0 {
-		mm.Sort(currentVersion)
+		mm.Sort(current < target)
 	}
 
 	return mm, nil
+}
+
+// helper to identify the most recent possible version
+// within a folder of migration scripts
+func mostRecentVersionAvailable(names []string) int {
+
+	mostRecent := -1
+
+	for _, name := range names {
+
+		if ext := path.Ext(name); ext != ".go" && ext != ".sql" {
+			continue
+		}
+
+		v, e := numericComponent(name)
+		if e != nil {
+			continue
+		}
+
+		if v > mostRecent {
+			mostRecent = v
+		}
+	}
+
+	return mostRecent
 }
 
 func versionFilter(v, current, target int) bool {
@@ -155,16 +185,11 @@ func (m *MigrationMap) Append(v int, source string) {
 	}
 }
 
-func (m *MigrationMap) Sort(currentVersion int) {
+func (m *MigrationMap) Sort(direction bool) {
 	sort.Ints(m.Versions)
 
-	// side effect - default to max version?
-	if *targetVersion < 0 {
-		*targetVersion = m.Versions[len(m.Versions)-1]
-	}
-
 	// set direction, and reverse order if need be
-	m.Direction = currentVersion < *targetVersion
+	m.Direction = direction
 	if m.Direction == false {
 		for i, j := 0, len(m.Versions)-1; i < j; i, j = i+1, j-1 {
 			m.Versions[i], m.Versions[j] = m.Versions[j], m.Versions[i]
