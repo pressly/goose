@@ -9,6 +9,12 @@ import (
 	"path"
 )
 
+type DBConf struct {
+	Name    string
+	Driver  string
+	OpenStr string
+}
+
 var dbFolder = flag.String("db", "db", "folder containing db info")
 var dbConfName = flag.String("config", "development", "which DB configuration to use")
 var targetVersion = flag.Int("target", -1, "which DB version to target (defaults to latest version)")

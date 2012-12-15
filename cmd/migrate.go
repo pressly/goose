@@ -14,12 +14,6 @@ import (
 	"time"
 )
 
-type DBConf struct {
-	Name    string
-	Driver  string
-	OpenStr string
-}
-
 type DBVersion struct {
 	VersionId int
 	TStamp    time.Time
