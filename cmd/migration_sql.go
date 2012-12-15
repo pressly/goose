@@ -23,7 +23,6 @@ func runSQLMigration(db *sql.DB, script string, v int, direction bool) (count in
 	if err != nil {
 		log.Fatal("db.Begin:", err)
 	}
-	defer db.Close()
 
 	f, err := ioutil.ReadFile(script)
 	if err != nil {

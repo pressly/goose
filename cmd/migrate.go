@@ -37,6 +37,7 @@ func runMigrations(conf *DBConf, target int) {
 	if err != nil {
 		log.Fatal("couldn't open DB:", err)
 	}
+    defer db.Close()
 
 	current, e := ensureDBVersion(db)
 	if e != nil {
