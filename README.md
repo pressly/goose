@@ -6,9 +6,8 @@ You can manage your database's evolution by creating incremental SQL or Go scrip
 
 # Install
 
-    $ go get bitbucket.org/liamstask/goose
-    $ go build -o bin/goose bitbucket.org/liamstask/goose/cmd
-    
+    $ go install bitbucket.org/liamstask/goose
+
 # Usage
 
 goose expects you to maintain a folder (typically called "db"), which contains the following:
