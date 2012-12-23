@@ -3,53 +3,39 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/kylelemons/go-gypsy/yaml"
-	"log"
-	"path"
+	"os"
+	"strings"
 )
 
-type DBConf struct {
-	Name    string
-	Driver  string
-	OpenStr string
+var commands = []*Command{
+	upCmd,
 }
-
-var dbFolder = flag.String("db", "db", "folder containing db info")
-var dbConfName = flag.String("config", "development", "which DB configuration to use")
-var targetVersion = flag.Int("target", -1, "which DB version to target (defaults to latest version)")
 
 func main() {
+
+	// XXX: create a flag.Usage that dumps all commands
 	flag.Parse()
 
-	conf, err := dbConfFromFile(path.Join(*dbFolder, "dbconf.yml"), *dbConfName)
-	if err != nil {
-		log.Fatal(err)
+	args := flag.Args()
+	if len(args) == 0 {
+		flag.Usage()
+		return
 	}
 
-	runMigrations(conf, path.Join(*dbFolder, "migrations"), *targetVersion)
-}
-
-// extract configuration details from the given file
-func dbConfFromFile(path, envtype string) (*DBConf, error) {
-
-	f, err := yaml.ReadFile(path)
-	if err != nil {
-		return nil, err
+	var cmd *Command
+	name := args[0]
+	for _, c := range commands {
+		if strings.HasPrefix(c.Name, name) {
+			cmd = c
+			break
+		}
 	}
 
-	drv, derr := f.Get(fmt.Sprintf("%s.driver", envtype))
-	if derr != nil {
-		return nil, derr
+	if cmd == nil {
+		fmt.Printf("error: unknown command %q\n", name)
+		flag.Usage()
+		os.Exit(1)
 	}
 
-	open, oerr := f.Get(fmt.Sprintf("%s.open", envtype))
-	if oerr != nil {
-		return nil, oerr
-	}
-
-	return &DBConf{
-		Name:    envtype,
-		Driver:  drv,
-		OpenStr: open,
-	}, nil
+	cmd.Exec(args[1:])
 }

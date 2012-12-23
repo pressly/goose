@@ -41,7 +41,7 @@ func runMigrations(conf *DBConf, migrationsDir string, target int) {
 
 	current, e := ensureDBVersion(db)
 	if e != nil {
-		log.Fatal("couldn't get/set DB version")
+		log.Fatalf("couldn't get DB version: %v", e)
 	}
 
 	mm, err := collectMigrations(migrationsDir, current, target)
@@ -97,12 +97,6 @@ func collectMigrations(dirpath string, current, target int) (mm *MigrationMap, e
 		Migrations: make(map[int]Migration),
 	}
 
-	// if target is the default -1,
-	// we need to find the most recent possible version to target
-	if target < 0 {
-		target = mostRecentVersionAvailable(names)
-	}
-
 	// extract the numeric component of each migration,
 	// filter out any uninteresting files,
 	// and ensure we only have one file per migration version.
@@ -132,31 +126,6 @@ func collectMigrations(dirpath string, current, target int) (mm *MigrationMap, e
 	}
 
 	return mm, nil
-}
-
-// helper to identify the most recent possible version
-// within a folder of migration scripts
-func mostRecentVersionAvailable(names []string) int {
-
-	mostRecent := -1
-
-	for _, name := range names {
-
-		if ext := path.Ext(name); ext != ".go" && ext != ".sql" {
-			continue
-		}
-
-		v, e := numericComponent(name)
-		if e != nil {
-			continue
-		}
-
-		if v > mostRecent {
-			mostRecent = v
-		}
-	}
-
-	return mostRecent
 }
 
 func versionFilter(v, current, target int) bool {
