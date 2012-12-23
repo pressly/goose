@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 )
 
 var upCmd = &Command{
@@ -32,33 +33,18 @@ func upRun(cmd *Command, args ...string) {
 // within a folder of migration scripts
 func mostRecentVersionAvailable(dirpath string) int {
 
-	dir, err := os.Open(dirpath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	names, err := dir.Readdirnames(0)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	mostRecent := -1
 
-	for _, name := range names {
+	filepath.Walk(dirpath, func(name string, info os.FileInfo, err error) error {
 
-		if ext := path.Ext(name); ext != ".go" && ext != ".sql" {
-			continue
+		if v, e := numericComponent(name); e == nil {
+			if v > mostRecent {
+				mostRecent = v
+			}
 		}
 
-		v, e := numericComponent(name)
-		if e != nil {
-			continue
-		}
-
-		if v > mostRecent {
-			mostRecent = v
-		}
-	}
+		return nil
+	})
 
 	return mostRecent
 }

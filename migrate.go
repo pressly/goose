@@ -190,12 +190,19 @@ func (m *MigrationMap) Sort(direction bool) {
 //  XXX_descriptivename.ext
 // where XXX specifies the version number
 // and ext specifies the type of migration
-func numericComponent(path string) (int, error) {
-	idx := strings.Index(path, "_")
+func numericComponent(name string) (int, error) {
+
+	base := path.Base(name)
+
+	if ext := path.Ext(base); ext != ".go" && ext != ".sql" {
+		return 0, errors.New("not a recognized migration file type")
+	}
+
+	idx := strings.Index(base, "_")
 	if idx < 0 {
 		return 0, errors.New("no separator found")
 	}
-	return strconv.Atoi(path[:idx])
+	return strconv.Atoi(base[:idx])
 }
 
 // retrieve the current version for this DB.
