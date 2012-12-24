@@ -9,6 +9,7 @@ import (
 
 var commands = []*Command{
 	upCmd,
+	downCmd,
 }
 
 func main() {
