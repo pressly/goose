@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"os"
-	"path"
 	"path/filepath"
 )
 
@@ -14,19 +13,15 @@ var upCmd = &Command{
 	Help:    `up extended help here...`,
 }
 
-var dbFolder = upCmd.Flag.String("db", "db", "folder containing db info")
-var dbConfName = upCmd.Flag.String("config", "development", "which DB configuration to use")
-
 func upRun(cmd *Command, args ...string) {
 
-	conf, err := dbConfFromFile(path.Join(*dbFolder, "dbconf.yml"), *dbConfName)
+	conf, err := MakeDBConf()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	folder := path.Join(*dbFolder, "migrations")
-	target := mostRecentVersionAvailable(folder)
-	runMigrations(conf, folder, target)
+	target := mostRecentVersionAvailable(conf.MigrationsDir)
+	runMigrations(conf, conf.MigrationsDir, target)
 }
 
 // helper to identify the most recent possible version

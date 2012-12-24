@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
-    "text/template"
+	"text/template"
 )
 
 var commands = []*Command{
@@ -15,7 +15,7 @@ var commands = []*Command{
 
 func main() {
 
-    flag.Usage = usage
+	flag.Usage = usage
 	flag.Parse()
 
 	args := flag.Args()
@@ -47,7 +47,7 @@ func usage() {
 }
 
 var usageTmpl = template.Must(template.New("usage").Parse(
-`goose is a database migration management system for Go projects.
+	`goose is a database migration management system for Go projects.
 
 Usage:
     goose <subcommand> [options]

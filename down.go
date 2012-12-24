@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path"
 	"path/filepath"
 )
 
@@ -16,19 +15,15 @@ var downCmd = &Command{
 	Help:    `down extended help here...`,
 }
 
-var downDBFolder = downCmd.Flag.String("db", "db", "folder containing db info")
-var downDBConfName = downCmd.Flag.String("config", "development", "which DB configuration to use")
-
 func downRun(cmd *Command, args ...string) {
 
-	conf, err := dbConfFromFile(path.Join(*downDBFolder, "dbconf.yml"), *downDBConfName)
+	conf, err := MakeDBConf()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	current := getDBVersion(conf)
-	folder := path.Join(*downDBFolder, "migrations")
-	previous, earliest := getPreviousVersion(folder, current)
+	previous, earliest := getPreviousVersion(conf.MigrationsDir, current)
 
 	if current == 0 {
 		fmt.Println("db is empty, can't go down.")
@@ -41,7 +36,7 @@ func downRun(cmd *Command, args ...string) {
 		previous = 0
 	}
 
-	runMigrations(conf, folder, previous)
+	runMigrations(conf, conf.MigrationsDir, previous)
 }
 
 func getDBVersion(conf *DBConf) int {
