@@ -55,8 +55,8 @@ func runMigrations(conf *DBConf, migrationsDir string, target int) {
 		return
 	}
 
-	fmt.Printf("goose: migrating db configuration '%v', current version: %d, target: %d\n",
-		conf.Name, current, target)
+	fmt.Printf("goose: migrating db environment '%v', current version: %d, target: %d\n",
+		conf.Env, current, target)
 
 	for _, v := range mm.Versions {
 

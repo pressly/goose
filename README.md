@@ -17,7 +17,7 @@ goose expects you to maintain a folder (typically called "db"), which contains t
 * a dbconf.yml file that describes the database configurations you'd like to use
 * a folder called "migrations" which contains .sql and/or .go scripts that implement your migrations
 
-You may use the `--db` option to specify an alternate location for the folder containing your config and migrations.
+You may use the `-path` option to specify an alternate location for the folder containing your config and migrations.
 
 
 # Migrations
@@ -65,7 +65,7 @@ A sample Go migration looks like:
 
 A transaction is provided, rather than the DB instance directly, since goose also needs to record the schema version within the same transaction. Each migration should run as a single transaction to ensure DB integrity, so it's good practice anyway.
 
-## Database Configurations
+## Database Environments
 
 A sample dbconf.yml looks like
 
@@ -73,6 +73,6 @@ A sample dbconf.yml looks like
     	driver: postgres
     	open: user=liam dbname=tester sslmode=disable
 
-Here, `development` specifies the name of the configuration, and the `driver` and `open` elements are passed directly to database/sql to access the specified database.
+Here, `development` specifies the name of the environment, and the `driver` and `open` elements are passed directly to database/sql to access the specified database.
 
-You may include as many configurations as you like, and you can use the `--config` command line option to specify which one to use. goose defaults to using a configuration called `development`.
+You may include as many configurations as you like, and you can use the `-env` command line option to specify which one to use. goose defaults to using a configuration called `development`.
