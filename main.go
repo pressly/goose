@@ -11,6 +11,7 @@ import (
 var commands = []*Command{
 	upCmd,
 	downCmd,
+	pendingCmd,
 }
 
 func main() {
