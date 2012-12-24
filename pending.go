@@ -41,6 +41,8 @@ func collectPendingMigrations(dirpath string, current int) []string {
 
 	var pendingScripts []string
 
+	// XXX: would be much better to query the DB for applied versions.
+
 	filepath.Walk(dirpath, func(name string, info os.FileInfo, err error) error {
 
 		if v, e := numericComponent(name); e == nil {
