@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+    "text/template"
 )
 
 var commands = []*Command{
@@ -14,11 +15,11 @@ var commands = []*Command{
 
 func main() {
 
-	// XXX: create a flag.Usage that dumps all commands
+    flag.Usage = usage
 	flag.Parse()
 
 	args := flag.Args()
-	if len(args) == 0 {
+	if len(args) == 0 || args[0] == "-h" {
 		flag.Usage()
 		return
 	}
@@ -40,3 +41,17 @@ func main() {
 
 	cmd.Exec(args[1:])
 }
+
+func usage() {
+	usageTmpl.Execute(os.Stdout, commands)
+}
+
+var usageTmpl = template.Must(template.New("usage").Parse(
+`goose is a database migration management system for Go projects.
+
+Usage:
+    goose <subcommand> [options]
+
+Commands:{{range .}}
+    {{.Name | printf "%-10s"}} {{.Summary}}{{end}}
+`))
