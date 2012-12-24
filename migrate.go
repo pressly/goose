@@ -189,7 +189,13 @@ func numericComponent(name string) (int, error) {
 	if idx < 0 {
 		return 0, errors.New("no separator found")
 	}
-	return strconv.Atoi(base[:idx])
+
+	n, e := strconv.Atoi(base[:idx])
+	if e == nil && n == 0 {
+		return 0, errors.New("0 is not a valid migration ID")
+	}
+
+	return n, e
 }
 
 // retrieve the current version for this DB.
