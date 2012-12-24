@@ -29,7 +29,7 @@ func pendingRun(cmd *Command, args ...string) {
 	if len(pendingScripts) == 0 {
 		fmt.Printf("goose: no pending migrations. you're up to date at version %v\n", current)
 	} else {
-		fmt.Printf("goose: %v pending migrations:\n", len(pendingScripts))
+		fmt.Printf("goose: %v pending migration(s):\n", len(pendingScripts))
 		for _, s := range pendingScripts {
 			fmt.Printf("    %v\n", s)
 		}
