@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -83,16 +84,6 @@ func runMigrations(conf *DBConf, migrationsDir string, target int) {
 // migrations folder, and key them by version
 func collectMigrations(dirpath string, current, target int) (mm *MigrationMap, err error) {
 
-	dir, err := os.Open(dirpath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	names, err := dir.Readdirnames(0)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	mm = &MigrationMap{
 		Migrations: make(map[int]Migration),
 	}
@@ -100,26 +91,22 @@ func collectMigrations(dirpath string, current, target int) (mm *MigrationMap, e
 	// extract the numeric component of each migration,
 	// filter out any uninteresting files,
 	// and ensure we only have one file per migration version.
-	for _, name := range names {
+	filepath.Walk(dirpath, func(name string, info os.FileInfo, err error) error {
 
-		if ext := path.Ext(name); ext != ".go" && ext != ".sql" {
-			continue
+		if v, e := numericComponent(name); e == nil {
+
+			if _, ok := mm.Migrations[v]; ok {
+				log.Fatalf("more than one file specifies the migration for version %d (%s and %s)",
+					v, mm.Versions[v], path.Join(dirpath, name))
+			}
+
+			if versionFilter(v, current, target) {
+				mm.Append(v, name)
+			}
 		}
 
-		v, e := numericComponent(name)
-		if e != nil {
-			continue
-		}
-
-		if _, ok := mm.Migrations[v]; ok {
-			log.Fatalf("more than one file specifies the migration for version %d (%s and %s)",
-				v, mm.Versions[v], path.Join(dirpath, name))
-		}
-
-		if versionFilter(v, current, target) {
-			mm.Append(v, path.Join(dirpath, name))
-		}
-	}
+		return nil
+	})
 
 	if len(mm.Versions) > 0 {
 		mm.Sort(current < target)
