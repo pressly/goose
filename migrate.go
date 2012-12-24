@@ -232,3 +232,21 @@ func ensureDBVersion(db *sql.DB) (int, error) {
 
 	return 0, txn.Commit()
 }
+
+// wrapper for ensureDBVersion for callers that don't already have
+// their own DB instance
+func getDBVersion(conf *DBConf) int {
+
+	db, err := sql.Open(conf.Driver, conf.OpenStr)
+	if err != nil {
+		log.Fatal("couldn't open DB:", err)
+	}
+	defer db.Close()
+
+	version, err := ensureDBVersion(db)
+	if err != nil {
+		log.Fatalf("couldn't get DB version: %v", err)
+	}
+
+	return version
+}
