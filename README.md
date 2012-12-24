@@ -75,4 +75,4 @@ A sample dbconf.yml looks like
 
 Here, `development` specifies the name of the environment, and the `driver` and `open` elements are passed directly to database/sql to access the specified database.
 
-You may include as many configurations as you like, and you can use the `-env` command line option to specify which one to use. goose defaults to using a configuration called `development`.
+You may include as many environments as you like, and you can use the `-env` command line option to specify which one to use. goose defaults to using an environment called `development`.
