@@ -56,7 +56,7 @@ func runMigrations(conf *DBConf, migrationsDir string, target int) {
 	}
 
 	fmt.Printf("goose: migrating db configuration '%v', current version: %d, target: %d\n",
-		conf.Name, mm.Versions[0], mm.Versions[len(mm.Versions)-1])
+		conf.Name, current, target)
 
 	for _, v := range mm.Versions {
 
@@ -127,7 +127,7 @@ func versionFilter(v, current, target int) bool {
 	}
 
 	if target < current {
-		return v <= current && v >= target
+		return v <= current && v > target
 	}
 
 	return false
