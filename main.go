@@ -51,7 +51,7 @@ var usageTmpl = template.Must(template.New("usage").Parse(
 	`goose is a database migration management system for Go projects.
 
 Usage:
-    goose <subcommand> [options]
+    goose [options] <subcommand> [subcommand options]
 
 Commands:{{range .}}
     {{.Name | printf "%-10s"}} {{.Summary}}{{end}}
