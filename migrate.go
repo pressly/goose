@@ -55,6 +55,8 @@ func runMigrations(conf *DBConf, migrationsDir string, target int) {
 		return
 	}
 
+	mm.Sort(current < target)
+
 	fmt.Printf("goose: migrating db environment '%v', current version: %d, target: %d\n",
 		conf.Env, current, target)
 
@@ -107,10 +109,6 @@ func collectMigrations(dirpath string, current, target int) (mm *MigrationMap, e
 
 		return nil
 	})
-
-	if len(mm.Versions) > 0 {
-		mm.Sort(current < target)
-	}
 
 	return mm, nil
 }
