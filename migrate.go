@@ -18,6 +18,7 @@ import (
 type DBVersion struct {
 	VersionId int
 	TStamp    time.Time
+	IsApplied bool // was this a result of up() or down()
 }
 
 type Migration struct {
@@ -200,35 +201,72 @@ func numericComponent(name string) (int, error) {
 // Create and initialize the DB version table if it doesn't exist.
 func ensureDBVersion(db *sql.DB) (int, error) {
 
-	dbversion := int(0)
-	row := db.QueryRow("SELECT version_id from goose_db_version ORDER BY tstamp DESC LIMIT 1;")
-
-	if err := row.Scan(&dbversion); err == nil {
-		return dbversion, nil
+	rows, err := db.Query("SELECT version_id, is_applied from goose_db_version ORDER BY tstamp DESC;")
+	if err != nil {
+		// XXX: cross platform method to detect failure reason
+		// for now, assume it was because the table didn't exist, and try to create it
+		return 0, createVersionTable(db)
 	}
 
-	// if we failed, assume that the table didn't exist, and try to create it
+	// The most recent record for each migration specifies
+	// whether it has been applied or rolled back.
+	// The first version we find that has been applied is the current version.
+
+	toSkip := make([]int, 0)
+
+	for rows.Next() {
+		var row DBVersion
+		if err = rows.Scan(&row.VersionId, &row.IsApplied); err != nil {
+			log.Fatal("error scanning rows:", err)
+		}
+
+		// have we already marked this version to be skipped?
+		skip := false
+		for _, v := range toSkip {
+			if v == row.VersionId {
+				skip = true
+				break
+			}
+		}
+
+		// if version has been applied and not marked to be skipped, we're done
+		if row.IsApplied && !skip {
+			return row.VersionId, nil
+		}
+
+		// version is either not applied, or we've already seen a more
+		// recent version of it that was not applied.
+		if !skip {
+			toSkip = append(toSkip, row.VersionId)
+		}
+	}
+
+	panic("failure in ensureDBVersion()")
+}
+
+func createVersionTable(db *sql.DB) error {
 	txn, err := db.Begin()
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	// create the table and insert an initial value of 0
 	create := `CREATE TABLE goose_db_version (
                 version_id int NOT NULL,
+                is_applied boolean NOT NULL,
                 tstamp timestamp NULL default now(),
                 PRIMARY KEY(tstamp)
               );`
-	insert := "INSERT INTO goose_db_version (version_id) VALUES (0);"
+	insert := "INSERT INTO goose_db_version (version_id, is_applied) VALUES (0, true);"
 
 	for _, str := range []string{create, insert} {
 		if _, err := txn.Exec(str); err != nil {
 			txn.Rollback()
-			return 0, err
+			return err
 		}
 	}
 
-	return 0, txn.Commit()
+	return txn.Commit()
 }
 
 // wrapper for ensureDBVersion for callers that don't already have

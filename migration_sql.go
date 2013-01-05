@@ -72,12 +72,8 @@ func runSQLMigration(db *sql.DB, script string, v int, direction bool) (count in
 // and finalize the transaction.
 func finalizeMigration(txn *sql.Tx, direction bool, v int) error {
 
-	if direction == false {
-		v--
-	}
-
 	// XXX: drop goose_db_version table on some minimum version number?
-	versionStmt := fmt.Sprintf("INSERT INTO goose_db_version (version_id) VALUES (%d);", v)
+	versionStmt := fmt.Sprintf("INSERT INTO goose_db_version (version_id, is_applied) VALUES (%d, %t);", v, direction)
 	if _, err := txn.Exec(versionStmt); err != nil {
 		txn.Rollback()
 		return err

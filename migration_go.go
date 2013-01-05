@@ -196,13 +196,9 @@ func main() {
 
 	migration_{{ .Version }}_{{ .Direction }}(txn)
 
-	v := {{ .Version }}
-	if "{{ .Direction }}" == "Down" {
-		v--
-	}
-
 	// XXX: drop goose_db_version table on some minimum version number?
-	versionStmt := fmt.Sprintf("INSERT INTO goose_db_version (version_id) VALUES (%d);", v)
+    isApplied := "{{ .Direction }}" == "Up"
+	versionStmt := fmt.Sprintf("INSERT INTO goose_db_version (version_id, is_applied) VALUES (%d, %t);", {{ .Version }}, isApplied)
 	if _, err = txn.Exec(versionStmt); err != nil {
 		txn.Rollback()
 		log.Fatal("failed to write version: ", err)
