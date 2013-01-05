@@ -197,8 +197,8 @@ func numericComponent(name string) (int64, error) {
 	}
 
 	n, e := strconv.ParseInt(base[:idx], 10, 64)
-	if e == nil && n == 0 {
-		return 0, errors.New("0 is not a valid migration ID")
+	if e == nil && n <= 0 {
+		return 0, errors.New("migration IDs must be greater than zero")
 	}
 
 	return n, e
