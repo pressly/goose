@@ -41,7 +41,7 @@ func directionStr(direction bool) string {
 // original .go migration, and execute it via `go run` along
 // with a main() of our own creation.
 //
-func runGoMigration(conf *DBConf, path string, version int64, direction bool) (int, error) {
+func runGoMigration(conf *DBConf, path string, version int64, direction bool) error {
 
 	// everything gets written to a temp dir, and zapped afterwards
 	d, e := ioutil.TempDir("", "goose")
@@ -73,7 +73,7 @@ func runGoMigration(conf *DBConf, path string, version int64, direction bool) (i
 		log.Fatal("`go run` failed: ", e)
 	}
 
-	return 0, nil
+	return nil
 }
 
 //

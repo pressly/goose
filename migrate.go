@@ -70,23 +70,22 @@ func runMigrations(conf *DBConf, migrationsDir string, target int64) {
 
 	for _, v := range mm.Versions {
 
-		var numStatements int
 		var e error
 
 		filepath := mm.Migrations[v].Source
 
 		switch path.Ext(filepath) {
 		case ".go":
-			numStatements, e = runGoMigration(conf, filepath, v, mm.Direction)
+			e = runGoMigration(conf, filepath, v, mm.Direction)
 		case ".sql":
-			numStatements, e = runSQLMigration(db, filepath, v, mm.Direction)
+			e = runSQLMigration(db, filepath, v, mm.Direction)
 		}
 
 		if e != nil {
 			log.Fatalf("FAIL %v, quitting migration", e)
 		}
 
-		fmt.Printf("OK   %s (%d statements)\n", path.Base(filepath), numStatements)
+		fmt.Println("OK   ", path.Base(filepath))
 	}
 }
 

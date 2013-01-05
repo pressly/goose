@@ -17,7 +17,7 @@ import (
 //
 // All statements following an Up or Down directive are grouped together
 // until another direction directive is found.
-func runSQLMigration(db *sql.DB, script string, v int64, direction bool) (count int, err error) {
+func runSQLMigration(db *sql.DB, script string, v int64, direction bool) error {
 
 	txn, err := db.Begin()
 	if err != nil {
@@ -32,7 +32,6 @@ func runSQLMigration(db *sql.DB, script string, v int64, direction bool) (count 
 	// ensure we don't apply a query until we're sure it's going
 	// in the direction we're interested in
 	directionIsActive := false
-	count = 0
 
 	// find each statement, checking annotations for up/down direction
 	// and execute each of them in the current transaction
@@ -55,17 +54,15 @@ func runSQLMigration(db *sql.DB, script string, v int64, direction bool) (count 
 		if _, err = txn.Exec(query); err != nil {
 			txn.Rollback()
 			log.Fatalf("FAIL %s (%v), quitting migration.", path.Base(script), err)
-			return count, err
+			return err
 		}
-
-		count++
 	}
 
 	if err = finalizeMigration(txn, direction, v); err != nil {
 		log.Fatalf("error finalizing migration %s, quitting. (%v)", path.Base(script), err)
 	}
 
-	return count, nil
+	return nil
 }
 
 // Update the version table for the given migration,
