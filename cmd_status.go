@@ -50,7 +50,7 @@ func statusRun(cmd *Command, args ...string) {
 }
 
 func printMigrationStatus(db *sql.DB, version int, script string) {
-	var row DBVersion
+	var row MigrationRecord
 	q := fmt.Sprintf("SELECT tstamp, is_applied FROM goose_db_version WHERE version_id=%d ORDER BY tstamp DESC LIMIT 1", version)
 	e := db.QueryRow(q).Scan(&row.TStamp, &row.IsApplied)
 

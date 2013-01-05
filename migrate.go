@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-type DBVersion struct {
+type MigrationRecord struct {
 	VersionId int
 	TStamp    time.Time
 	IsApplied bool // was this a result of up() or down()
@@ -215,7 +215,7 @@ func ensureDBVersion(db *sql.DB) (int, error) {
 	toSkip := make([]int, 0)
 
 	for rows.Next() {
-		var row DBVersion
+		var row MigrationRecord
 		if err = rows.Scan(&row.VersionId, &row.IsApplied); err != nil {
 			log.Fatal("error scanning rows:", err)
 		}
