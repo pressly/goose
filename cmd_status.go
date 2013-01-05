@@ -41,6 +41,11 @@ func statusRun(cmd *Command, args ...string) {
 	}
 	defer db.Close()
 
+	// must ensure that the version table exists if we're running on a pristine DB
+	if _, e := ensureDBVersion(db); e != nil {
+		log.Fatal(e)
+	}
+
 	fmt.Printf("goose: status for environment '%v'\n", conf.Env)
 	fmt.Println("    Applied At                  Migration")
 	fmt.Println("    =======================================")
