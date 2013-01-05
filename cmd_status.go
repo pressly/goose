@@ -28,8 +28,8 @@ func statusRun(cmd *Command, args ...string) {
 	}
 
 	// collect all migrations
-	min := 0
-	max := (1 << 31) - 1
+	min := int64(0)
+	max := int64((1 << 63) - 1)
 	mm, e := collectMigrations(conf.MigrationsDir, min, max)
 	if e != nil {
 		log.Fatal(e)
@@ -54,7 +54,7 @@ func statusRun(cmd *Command, args ...string) {
 	}
 }
 
-func printMigrationStatus(db *sql.DB, version int, script string) {
+func printMigrationStatus(db *sql.DB, version int64, script string) {
 	var row MigrationRecord
 	q := fmt.Sprintf("SELECT tstamp, is_applied FROM goose_db_version WHERE version_id=%d ORDER BY tstamp DESC LIMIT 1", version)
 	e := db.QueryRow(q).Scan(&row.TStamp, &row.IsApplied)

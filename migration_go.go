@@ -21,7 +21,7 @@ const (
 )
 
 type TemplateData struct {
-	Version   int
+	Version   int64
 	DBDriver  string
 	DBOpen    string
 	Direction string
@@ -41,7 +41,7 @@ func directionStr(direction bool) string {
 // original .go migration, and execute it via `go run` along
 // with a main() of our own creation.
 //
-func runGoMigration(conf *DBConf, path string, version int, direction bool) (int, error) {
+func runGoMigration(conf *DBConf, path string, version int64, direction bool) (int, error) {
 
 	// everything gets written to a temp dir, and zapped afterwards
 	d, e := ioutil.TempDir("", "goose")
@@ -83,7 +83,7 @@ func runGoMigration(conf *DBConf, path string, version int, direction bool) (int
 //  * namespace the Up() and Down() funcs so we can compile several
 //    .go migrations into the same binary for execution
 //
-func writeSubstituted(inpath, outpath string, version int) error {
+func writeSubstituted(inpath, outpath string, version int64) error {
 
 	fin, e := os.Open(inpath)
 	if e != nil {

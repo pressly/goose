@@ -26,9 +26,9 @@ func upRun(cmd *Command, args ...string) {
 
 // helper to identify the most recent possible version
 // within a folder of migration scripts
-func mostRecentVersionAvailable(dirpath string) int {
+func mostRecentVersionAvailable(dirpath string) int64 {
 
-	mostRecent := -1
+	mostRecent := int64(-1)
 
 	filepath.Walk(dirpath, func(name string, info os.FileInfo, err error) error {
 

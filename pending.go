@@ -37,7 +37,7 @@ func pendingRun(cmd *Command, args ...string) {
 }
 
 // collect all migrations that specify a version later than our current version
-func collectPendingMigrations(dirpath string, current int) []string {
+func collectPendingMigrations(dirpath string, current int64) []string {
 
 	var pendingScripts []string
 

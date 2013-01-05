@@ -38,7 +38,7 @@ func downRun(cmd *Command, args ...string) {
 	runMigrations(conf, conf.MigrationsDir, previous)
 }
 
-func getPreviousVersion(dirpath string, version int) (previous, earliest int) {
+func getPreviousVersion(dirpath string, version int64) (previous, earliest int64) {
 
 	previous = -1
 	earliest = (1 << 31) - 1

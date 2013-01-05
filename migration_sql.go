@@ -17,7 +17,7 @@ import (
 //
 // All statements following an Up or Down directive are grouped together
 // until another direction directive is found.
-func runSQLMigration(db *sql.DB, script string, v int, direction bool) (count int, err error) {
+func runSQLMigration(db *sql.DB, script string, v int64, direction bool) (count int, err error) {
 
 	txn, err := db.Begin()
 	if err != nil {
@@ -70,7 +70,7 @@ func runSQLMigration(db *sql.DB, script string, v int, direction bool) (count in
 
 // Update the version table for the given migration,
 // and finalize the transaction.
-func finalizeMigration(txn *sql.Tx, direction bool, v int) error {
+func finalizeMigration(txn *sql.Tx, direction bool, v int64) error {
 
 	// XXX: drop goose_db_version table on some minimum version number?
 	versionStmt := fmt.Sprintf("INSERT INTO goose_db_version (version_id, is_applied) VALUES (%d, %t);", v, direction)

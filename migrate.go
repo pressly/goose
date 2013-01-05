@@ -16,24 +16,31 @@ import (
 )
 
 type MigrationRecord struct {
-	VersionId int
+	VersionId int64
 	TStamp    time.Time
 	IsApplied bool // was this a result of up() or down()
 }
 
 type Migration struct {
-	Next     int    // next version, or -1 if none
-	Previous int    // previous version, -1 if none
+	Next     int64  // next version, or -1 if none
+	Previous int64  // previous version, -1 if none
 	Source   string // .go or .sql script
 }
 
+type MigrationVersions []int64
+
+// helpers so we can use pkg sort
+func (s MigrationVersions) Len() int           { return len(s) }
+func (s MigrationVersions) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s MigrationVersions) Less(i, j int) bool { return s[i] < s[j] }
+
 type MigrationMap struct {
-	Versions   []int             // sorted slice of version keys
-	Migrations map[int]Migration // sources (.sql or .go) keyed by version
-	Direction  bool              // sort direction: true -> Up, false -> Down
+	Versions   MigrationVersions   // sorted slice of version keys
+	Migrations map[int64]Migration // sources (.sql or .go) keyed by version
+	Direction  bool                // sort direction: true -> Up, false -> Down
 }
 
-func runMigrations(conf *DBConf, migrationsDir string, target int) {
+func runMigrations(conf *DBConf, migrationsDir string, target int64) {
 
 	db, err := sql.Open(conf.Driver, conf.OpenStr)
 	if err != nil {
@@ -85,10 +92,10 @@ func runMigrations(conf *DBConf, migrationsDir string, target int) {
 
 // collect all the valid looking migration scripts in the 
 // migrations folder, and key them by version
-func collectMigrations(dirpath string, current, target int) (mm *MigrationMap, err error) {
+func collectMigrations(dirpath string, current, target int64) (mm *MigrationMap, err error) {
 
 	mm = &MigrationMap{
-		Migrations: make(map[int]Migration),
+		Migrations: make(map[int64]Migration),
 	}
 
 	// extract the numeric component of each migration,
@@ -114,7 +121,7 @@ func collectMigrations(dirpath string, current, target int) (mm *MigrationMap, e
 	return mm, nil
 }
 
-func versionFilter(v, current, target int) bool {
+func versionFilter(v, current, target int64) bool {
 
 	// special case - default target value
 	if target < 0 {
@@ -132,7 +139,7 @@ func versionFilter(v, current, target int) bool {
 	return false
 }
 
-func (m *MigrationMap) Append(v int, source string) {
+func (m *MigrationMap) Append(v int64, source string) {
 	m.Versions = append(m.Versions, v)
 	m.Migrations[v] = Migration{
 		Next:     -1,
@@ -142,7 +149,7 @@ func (m *MigrationMap) Append(v int, source string) {
 }
 
 func (m *MigrationMap) Sort(direction bool) {
-	sort.Ints(m.Versions)
+	sort.Sort(m.Versions)
 
 	// set direction, and reverse order if need be
 	m.Direction = direction
@@ -156,7 +163,7 @@ func (m *MigrationMap) Sort(direction bool) {
 	// populate next and previous for each migration
 	//
 	// work around http://code.google.com/p/go/issues/detail?id=3117
-	previousV := -1
+	previousV := int64(-1)
 	for _, v := range m.Versions {
 		cur := m.Migrations[v]
 		cur.Previous = previousV
@@ -176,7 +183,7 @@ func (m *MigrationMap) Sort(direction bool) {
 //  XXX_descriptivename.ext
 // where XXX specifies the version number
 // and ext specifies the type of migration
-func numericComponent(name string) (int, error) {
+func numericComponent(name string) (int64, error) {
 
 	base := path.Base(name)
 
@@ -189,7 +196,7 @@ func numericComponent(name string) (int, error) {
 		return 0, errors.New("no separator found")
 	}
 
-	n, e := strconv.Atoi(base[:idx])
+	n, e := strconv.ParseInt(base[:idx], 10, 64)
 	if e == nil && n == 0 {
 		return 0, errors.New("0 is not a valid migration ID")
 	}
@@ -199,7 +206,7 @@ func numericComponent(name string) (int, error) {
 
 // retrieve the current version for this DB.
 // Create and initialize the DB version table if it doesn't exist.
-func ensureDBVersion(db *sql.DB) (int, error) {
+func ensureDBVersion(db *sql.DB) (int64, error) {
 
 	rows, err := db.Query("SELECT version_id, is_applied from goose_db_version ORDER BY tstamp DESC;")
 	if err != nil {
@@ -212,7 +219,7 @@ func ensureDBVersion(db *sql.DB) (int, error) {
 	// whether it has been applied or rolled back.
 	// The first version we find that has been applied is the current version.
 
-	toSkip := make([]int, 0)
+	toSkip := make([]int64, 0)
 
 	for rows.Next() {
 		var row MigrationRecord
@@ -252,7 +259,7 @@ func createVersionTable(db *sql.DB) error {
 
 	// create the table and insert an initial value of 0
 	create := `CREATE TABLE goose_db_version (
-                version_id int NOT NULL,
+                version_id bigint NOT NULL,
                 is_applied boolean NOT NULL,
                 tstamp timestamp NULL default now(),
                 PRIMARY KEY(tstamp)
@@ -271,7 +278,7 @@ func createVersionTable(db *sql.DB) error {
 
 // wrapper for ensureDBVersion for callers that don't already have
 // their own DB instance
-func getDBVersion(conf *DBConf) int {
+func getDBVersion(conf *DBConf) int64 {
 
 	db, err := sql.Open(conf.Driver, conf.OpenStr)
 	if err != nil {
