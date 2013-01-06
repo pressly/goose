@@ -73,7 +73,7 @@ A sample SQL migration looks like:
         title text,
         body text,
         PRIMARY KEY(id)
-        );
+    );
 
     -- +goose Down
     DROP TABLE post;
