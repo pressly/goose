@@ -12,6 +12,7 @@ var commands = []*Command{
 	upCmd,
 	downCmd,
 	statusCmd,
+	createCmd,
 }
 
 func main() {
