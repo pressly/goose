@@ -56,7 +56,7 @@ func runGoMigration(conf *DBConf, path string, version int64, direction bool) er
 		DBOpen:    conf.OpenStr,
 		Direction: directionStr(direction),
 	}
-	main, e := writeTemplateToFile(filepath.Join(d, "goose_main.go"), td)
+	main, e := writeTemplateToFile(filepath.Join(d, "goose_main.go"), goMigrationTmpl, td)
 	if e != nil {
 		log.Fatal(e)
 	}
@@ -152,27 +152,12 @@ func writeSubstituted(inpath, outpath string, version int64) error {
 	return nil
 }
 
-func writeTemplateToFile(path string, data *TemplateData) (string, error) {
-	f, e := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
-	if e != nil {
-		return "", e
-	}
-	defer f.Close()
-
-	e = tmpl.Execute(f, data)
-	if e != nil {
-		return "", e
-	}
-
-	return f.Name(), nil
-}
-
 //
 // template for the main entry point to a go-based migration.
 // this gets linked against the substituted versions of the user-supplied
 // scripts in order to execute a migration via `go run`
 //
-var tmpl = template.Must(template.New("driver").Parse(`
+var goMigrationTmpl = template.Must(template.New("driver").Parse(`
 package main
 
 import (
