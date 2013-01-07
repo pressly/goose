@@ -1,37 +1,21 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"text/template"
-)
-
-const (
-	UpDecl      = "func Up(txn *sql.Tx) {"
-	UpDeclFmt   = "func migration_%d_Up(txn *sql.Tx) {\n"
-	DownDecl    = "func Down(txn *sql.Tx) {"
-	DownDeclFmt = "func migration_%d_Down(txn *sql.Tx) {\n"
 )
 
 type TemplateData struct {
 	Version   int64
 	DBDriver  string
 	DBOpen    string
-	Direction string
-}
-
-func directionStr(direction bool) string {
-	if direction {
-		return "Up"
-	}
-	return "Down"
+	Direction bool
+	Func      string
 }
 
 //
@@ -50,11 +34,17 @@ func runGoMigration(conf *DBConf, path string, version int64, direction bool) er
 	}
 	defer os.RemoveAll(d)
 
+	directionStr := "Down"
+	if direction {
+		directionStr = "Up"
+	}
+
 	td := &TemplateData{
 		Version:   version,
 		DBDriver:  conf.Driver,
 		DBOpen:    conf.OpenStr,
-		Direction: directionStr(direction),
+		Direction: direction,
+		Func:      fmt.Sprintf("%v_%v", directionStr, version),
 	}
 	main, e := writeTemplateToFile(filepath.Join(d, "goose_main.go"), goMigrationTmpl, td)
 	if e != nil {
@@ -62,7 +52,7 @@ func runGoMigration(conf *DBConf, path string, version int64, direction bool) er
 	}
 
 	outpath := filepath.Join(d, filepath.Base(path))
-	if e = writeSubstituted(path, outpath, version); e != nil {
+	if _, e = copyFile(outpath, path); e != nil {
 		log.Fatal(e)
 	}
 
@@ -71,82 +61,6 @@ func runGoMigration(conf *DBConf, path string, version int64, direction bool) er
 	cmd.Stderr = os.Stderr
 	if e = cmd.Run(); e != nil {
 		log.Fatal("`go run` failed: ", e)
-	}
-
-	return nil
-}
-
-//
-// a little cheesy, but do a simple text substitution on the contents of the
-// migration script. this has 2 motivations:
-//  * rewrite the package to 'main' so that we can run as part of `go run`
-//  * namespace the Up() and Down() funcs so we can compile several
-//    .go migrations into the same binary for execution
-//
-func writeSubstituted(inpath, outpath string, version int64) error {
-
-	fin, e := os.Open(inpath)
-	if e != nil {
-		return e
-	}
-	defer fin.Close()
-
-	fout, e := os.OpenFile(outpath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
-	if e != nil {
-		return e
-	}
-	defer fout.Close()
-
-	rw := bufio.NewReadWriter(bufio.NewReader(fin), bufio.NewWriter(fout))
-
-	for {
-		// XXX: could optimize the case in which we've already found
-		// everything we're looking for, and just copy the rest in bulk
-
-		line, _, e := rw.ReadLine()
-		// XXX: handle isPrefix from ReadLine()
-
-		if e != nil {
-			if e != io.EOF {
-				log.Fatal("failed to read from migration script:", e)
-			}
-
-			rw.Flush()
-			break
-		}
-
-		lineStr := string(line)
-
-		if strings.HasPrefix(lineStr, "package migration_") {
-			if _, e := rw.WriteString("package main\n"); e != nil {
-				return e
-			}
-			continue
-		}
-
-		if lineStr == UpDecl {
-			up := fmt.Sprintf(UpDeclFmt, version)
-			if _, e := rw.WriteString(up); e != nil {
-				return e
-			}
-			continue
-		}
-
-		if lineStr == DownDecl {
-			down := fmt.Sprintf(DownDeclFmt, version)
-			if _, e := rw.WriteString(down); e != nil {
-				return e
-			}
-			continue
-		}
-
-		// default case
-		if _, e := rw.Write(line); e != nil {
-			return e
-		}
-		if _, e := rw.WriteRune('\n'); e != nil {
-			return e
-		}
 	}
 
 	return nil
@@ -179,11 +93,11 @@ func main() {
 		log.Fatal("db.Begin:", err)
 	}
 
-	migration_{{ .Version }}_{{ .Direction }}(txn)
+	{{ .Func }}(txn)
 
 	// XXX: drop goose_db_version table on some minimum version number?
-    isApplied := "{{ .Direction }}" == "Up"
-	versionStmt := fmt.Sprintf("INSERT INTO goose_db_version (version_id, is_applied) VALUES (%d, %t);", {{ .Version }}, isApplied)
+	versionFmt := "INSERT INTO goose_db_version (version_id, is_applied) VALUES (%v, %t);"
+	versionStmt := fmt.Sprintf(versionFmt, int64({{ .Version }}), {{ .Direction }})
 	if _, err = txn.Exec(versionStmt); err != nil {
 		txn.Rollback()
 		log.Fatal("failed to write version: ", err)

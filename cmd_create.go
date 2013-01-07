@@ -64,20 +64,19 @@ func init() {
 }
 
 var goMigrationScaffoldTmpl = template.Must(template.New("driver").Parse(`
-package migration_{{ . }}
+package main
 
 import (
 	"database/sql"
-	"fmt"
 )
 
 // Up is executed when this migration is applied
-func Up(txn *sql.Tx) {
+func Up_{{ . }}(txn *sql.Tx) {
 
 }
 
 // Down is executed when this migration is rolled back
-func Down(txn *sql.Tx) {
+func Down_{{ . }}(txn *sql.Tx) {
 
 }
 `))
