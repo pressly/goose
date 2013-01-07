@@ -49,8 +49,8 @@ func statusRun(cmd *Command, args ...string) {
 	fmt.Printf("goose: status for environment '%v'\n", conf.Env)
 	fmt.Println("    Applied At                  Migration")
 	fmt.Println("    =======================================")
-	for _, v := range mm.Versions {
-		printMigrationStatus(db, v, path.Base(mm.Migrations[v].Source))
+	for _, m := range mm.Migrations {
+		printMigrationStatus(db, m.Version, path.Base(m.Source))
 	}
 }
 
