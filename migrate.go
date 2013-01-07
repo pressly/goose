@@ -120,11 +120,6 @@ func collectMigrations(dirpath string, current, target int64) (mm *MigrationMap,
 
 func versionFilter(v, current, target int64) bool {
 
-	// special case - default target value
-	if target < 0 {
-		return v > current
-	}
-
 	if target > current {
 		return v > current && v <= target
 	}
