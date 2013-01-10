@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"path"
 	"path/filepath"
 	"text/template"
@@ -37,6 +38,10 @@ func createRun(cmd *Command, args ...string) {
 
 	timestamp := time.Now().Format("20060102150405")
 	filename := fmt.Sprintf("%v_%v.%v", timestamp, args[0], migrationType)
+	err = os.MkdirAll(conf.MigrationsDir, 0777)
+	if err != nil {
+		log.Fatal(err)
+	}
 	fpath := path.Join(conf.MigrationsDir, filename)
 
 	var tmpl *template.Template
