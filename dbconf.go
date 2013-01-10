@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/kylelemons/go-gypsy/yaml"
+	"os"
 	"path"
 )
 
@@ -37,6 +38,7 @@ func MakeDBConf() (*DBConf, error) {
 	if oerr != nil {
 		return nil, oerr
 	}
+	open = os.ExpandEnv(open)
 
 	return &DBConf{
 		MigrationsDir: path.Join(*dbPath, "migrations"),
