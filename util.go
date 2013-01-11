@@ -9,7 +9,7 @@ import (
 // common routines
 
 func writeTemplateToFile(path string, t *template.Template, data interface{}) (string, error) {
-	f, e := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	f, e := os.Create(path)
 	if e != nil {
 		return "", e
 	}
