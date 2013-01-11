@@ -3,7 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/bmizerany/pq"
 	"github.com/kylelemons/go-gypsy/yaml"
+	"os"
 	"path"
 )
 
@@ -36,6 +38,16 @@ func MakeDBConf() (*DBConf, error) {
 	open, oerr := f.Get(fmt.Sprintf("%s.open", *dbEnv))
 	if oerr != nil {
 		return nil, oerr
+	}
+	open = os.ExpandEnv(open)
+
+	// Automatically parse postgres urls
+	if drv == "postgres" {
+		parsed_open, parse_err := pq.ParseURL(open)
+		// Assumption: If we can parse the URL, we should
+		if parse_err == nil && parsed_open != "" {
+			open = parsed_open
+		}
 	}
 
 	return &DBConf{
