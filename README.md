@@ -130,19 +130,23 @@ goose will expand environment variables in the `open` element. For an example, s
 
 ## Using goose with Heroku
 
-goose plays nicely with Heroku. These instructions assume that you're using [Keith Rarick's Heroku Go buildpack](https://github.com/kr/heroku-buildpack-go). First, make sure that Heroku builds the goose executable during deployment by adding an (unused) import to your app:
+These instructions assume that you're using [Keith Rarick's Heroku Go buildpack](https://github.com/kr/heroku-buildpack-go). First, add a file to your project called (e.g.) `install_goose.go` to trigger building of the goose executable during deployment, with these contents:
+
+    // use build constraints to work around http://code.google.com/p/go/issues/detail?id=4210
+    // +build heroku
+    package main
 
     import _ "bitbucket.org/liamstask/goose"
 
 [Set up your Heroku database(s) as usual.](https://devcenter.heroku.com/articles/heroku-postgresql)
 
-Then make use of environment variable expansion in your `dbconf.yml`, such as:
+Then make use of environment variable expansion in your `dbconf.yml`:
 
     production:
         driver: postgres
         open: $DATABASE_URL
 
-To run migrations in production, use `heroku run`, e.g.:
+To run goose in production, use `heroku run`:
 
     heroku run goose -env production up
 
