@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	_ "github.com/bmizerany/pq"
+	_ "github.com/ziutek/mymysql/godrv"
 	"log"
 	"os"
 	"path"
