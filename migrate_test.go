@@ -6,9 +6,7 @@ import (
 
 func TestMigrationMapSortUp(t *testing.T) {
 
-	mm := &MigrationMap{
-		Migrations: make(map[int]Migration),
-	}
+	mm := &MigrationMap{}
 
 	// insert in any order
 	mm.Append(20120000, "test")
@@ -18,16 +16,14 @@ func TestMigrationMapSortUp(t *testing.T) {
 
 	mm.Sort(true) // sort Upwards
 
-	sorted := []int{20120000, 20127000, 20128000, 20129000}
+	sorted := []int64{20120000, 20127000, 20128000, 20129000}
 
 	validateMigrationMapIsSorted(t, mm, sorted)
 }
 
 func TestMigrationMapSortDown(t *testing.T) {
 
-	mm := &MigrationMap{
-		Migrations: make(map[int]Migration),
-	}
+	mm := &MigrationMap{}
 
 	// insert in any order
 	mm.Append(20120000, "test")
@@ -37,37 +33,39 @@ func TestMigrationMapSortDown(t *testing.T) {
 
 	mm.Sort(false) // sort Downwards
 
-	sorted := []int{20129000, 20128000, 20127000, 20120000}
+	sorted := []int64{20129000, 20128000, 20127000, 20120000}
 
 	validateMigrationMapIsSorted(t, mm, sorted)
 }
 
-func validateMigrationMapIsSorted(t *testing.T, mm *MigrationMap, sorted []int) {
+func validateMigrationMapIsSorted(t *testing.T, mm *MigrationMap, sorted []int64) {
 
-	for i, v := range mm.Versions {
-		if sorted[i] != v {
+	for i, m := range mm.Migrations {
+		if sorted[i] != m.Version {
 			t.Error("incorrect sorted version")
 		}
 
-		var next, prev int
+		var next, prev int64
 
 		if i == 0 {
 			prev = -1
-			next = mm.Versions[i+1]
-		} else if i == len(mm.Versions)-1 {
-			prev = mm.Versions[i-1]
+			next = mm.Migrations[i+1].Version
+		} else if i == len(mm.Migrations)-1 {
+			prev = mm.Migrations[i-1].Version
 			next = -1
 		} else {
-			prev = mm.Versions[i-1]
-			next = mm.Versions[i+1]
+			prev = mm.Migrations[i-1].Version
+			next = mm.Migrations[i+1].Version
 		}
 
-		if mm.Migrations[v].Next != next {
-			t.Errorf("mismatched Next. v: %v, got %v, wanted %v\n", v, mm.Migrations[v].Next, next)
+		if m.Next != next {
+			t.Errorf("mismatched Next. v: %v, got %v, wanted %v\n", m, m.Next, next)
 		}
 
-		if mm.Migrations[v].Previous != prev {
-			t.Errorf("mismatched Previous v: %v, got %v, wanted %v\n", v, mm.Migrations[v].Previous, prev)
+		if m.Previous != prev {
+			t.Errorf("mismatched Previous v: %v, got %v, wanted %v\n", m, m.Previous, prev)
 		}
 	}
+
+	t.Log(mm.Migrations)
 }
