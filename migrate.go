@@ -160,7 +160,7 @@ func (mm *MigrationMap) Sort(direction bool) {
 			prev = mm.Migrations[i-1].Version
 			mm.Migrations[i-1].Next = m.Version
 		}
-		m.Previous = prev
+		mm.Migrations[i].Previous = prev
 	}
 }
 
