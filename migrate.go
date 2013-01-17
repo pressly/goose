@@ -193,7 +193,7 @@ func numericComponent(name string) (int64, error) {
 // Create and initialize the DB version table if it doesn't exist.
 func ensureDBVersion(db *sql.DB) (int64, error) {
 
-	rows, err := db.Query("SELECT version_id, is_applied from goose_db_version ORDER BY tstamp DESC;")
+	rows, err := db.Query("SELECT version_id, is_applied from goose_db_version ORDER BY id DESC;")
 	if err != nil {
 		// XXX: cross platform method to detect failure reason
 		// for now, assume it was because the table didn't exist, and try to create it
@@ -244,10 +244,12 @@ func createVersionTable(db *sql.DB) error {
 
 	// create the table and insert an initial value of 0
 	create := `CREATE TABLE goose_db_version (
+                id int unsigned NOT NULL AUTO_INCREMENT,
                 version_id bigint NOT NULL,
                 is_applied boolean NOT NULL,
                 tstamp timestamp NULL default now(),
-                PRIMARY KEY(tstamp)
+                PRIMARY KEY(id),
+                UNIQUE KEY id_tstamp (id, tstamp)
               );`
 	insert := "INSERT INTO goose_db_version (version_id, is_applied) VALUES (0, true);"
 
