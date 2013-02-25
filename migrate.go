@@ -8,7 +8,6 @@ import (
 	_ "github.com/ziutek/mymysql/godrv"
 	"log"
 	"os"
-	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -73,7 +72,7 @@ func runMigrations(conf *DBConf, migrationsDir string, target int64) {
 
 		var e error
 
-		switch path.Ext(m.Source) {
+		switch filepath.Ext(m.Source) {
 		case ".go":
 			e = runGoMigration(conf, m.Source, m.Version, mm.Direction)
 		case ".sql":
@@ -84,7 +83,7 @@ func runMigrations(conf *DBConf, migrationsDir string, target int64) {
 			log.Fatalf("FAIL %v, quitting migration", e)
 		}
 
-		fmt.Println("OK   ", path.Base(m.Source))
+		fmt.Println("OK   ", filepath.Base(m.Source))
 	}
 }
 
@@ -104,7 +103,7 @@ func collectMigrations(dirpath string, current, target int64) (mm *MigrationMap,
 			for _, m := range mm.Migrations {
 				if v == m.Version {
 					log.Fatalf("more than one file specifies the migration for version %d (%s and %s)",
-						v, m.Source, path.Join(dirpath, name))
+						v, m.Source, filepath.Join(dirpath, name))
 				}
 			}
 
@@ -170,9 +169,9 @@ func (mm *MigrationMap) Sort(direction bool) {
 // and ext specifies the type of migration
 func numericComponent(name string) (int64, error) {
 
-	base := path.Base(name)
+	base := filepath.Base(name)
 
-	if ext := path.Ext(base); ext != ".go" && ext != ".sql" {
+	if ext := filepath.Ext(base); ext != ".go" && ext != ".sql" {
 		return 0, errors.New("not a recognized migration file type")
 	}
 

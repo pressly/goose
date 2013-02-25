@@ -6,7 +6,7 @@ import (
 	"github.com/bmizerany/pq"
 	"github.com/kylelemons/go-gypsy/yaml"
 	"os"
-	"path"
+	"path/filepath"
 )
 
 // global options. available to any subcommands.
@@ -23,7 +23,7 @@ type DBConf struct {
 // extract configuration details from the given file
 func MakeDBConf() (*DBConf, error) {
 
-	cfgFile := path.Join(*dbPath, "dbconf.yml")
+	cfgFile := filepath.Join(*dbPath, "dbconf.yml")
 
 	f, err := yaml.ReadFile(cfgFile)
 	if err != nil {
@@ -51,7 +51,7 @@ func MakeDBConf() (*DBConf, error) {
 	}
 
 	return &DBConf{
-		MigrationsDir: path.Join(*dbPath, "migrations"),
+		MigrationsDir: filepath.Join(*dbPath, "migrations"),
 		Env:           *dbEnv,
 		Driver:        drv,
 		OpenStr:       open,

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path"
 	"path/filepath"
 	"text/template"
 	"time"
@@ -42,7 +41,7 @@ func createRun(cmd *Command, args ...string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fpath := path.Join(conf.MigrationsDir, filename)
+	fpath := filepath.Join(conf.MigrationsDir, filename)
 
 	var tmpl *template.Template
 	if migrationType == "sql" {

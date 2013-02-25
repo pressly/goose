@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"path"
+	"path/filepath"
 	"time"
 )
 
@@ -50,7 +50,7 @@ func statusRun(cmd *Command, args ...string) {
 	fmt.Println("    Applied At                  Migration")
 	fmt.Println("    =======================================")
 	for _, m := range mm.Migrations {
-		printMigrationStatus(db, m.Version, path.Base(m.Source))
+		printMigrationStatus(db, m.Version, filepath.Base(m.Source))
 	}
 }
 

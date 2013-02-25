@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -53,13 +53,13 @@ func runSQLMigration(db *sql.DB, script string, v int64, direction bool) error {
 
 		if _, err = txn.Exec(query); err != nil {
 			txn.Rollback()
-			log.Fatalf("FAIL %s (%v), quitting migration.", path.Base(script), err)
+			log.Fatalf("FAIL %s (%v), quitting migration.", filepath.Base(script), err)
 			return err
 		}
 	}
 
 	if err = finalizeMigration(txn, direction, v); err != nil {
-		log.Fatalf("error finalizing migration %s, quitting. (%v)", path.Base(script), err)
+		log.Fatalf("error finalizing migration %s, quitting. (%v)", filepath.Base(script), err)
 	}
 
 	return nil
