@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"os"
 )
 
 // shamelessly snagged from the go tool
@@ -24,11 +23,5 @@ func (c *Command) Exec(args []string) {
 		// helpFunc(c, c.Name)
 	}
 	c.Flag.Parse(args)
-	defer func() {
-		if r := recover(); r != nil {
-			panic(r)
-		}
-		os.Exit(1)
-	}()
 	c.Run(c, c.Flag.Args()...)
 }
