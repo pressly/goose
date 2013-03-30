@@ -20,22 +20,27 @@ type DBConf struct {
 	OpenStr       string
 }
 
-// extract configuration details from the given file
+// default helper - makes a DBConf from the dbPath and dbEnv flags
 func MakeDBConf() (*DBConf, error) {
+	return makeDBConfDetails(*dbPath, *dbEnv)
+}
 
-	cfgFile := filepath.Join(*dbPath, "dbconf.yml")
+// extract configuration details from the given file
+func makeDBConfDetails(p, env string) (*DBConf, error) {
+
+	cfgFile := filepath.Join(p, "dbconf.yml")
 
 	f, err := yaml.ReadFile(cfgFile)
 	if err != nil {
 		return nil, err
 	}
 
-	drv, derr := f.Get(fmt.Sprintf("%s.driver", *dbEnv))
+	drv, derr := f.Get(fmt.Sprintf("%s.driver", env))
 	if derr != nil {
 		return nil, derr
 	}
 
-	open, oerr := f.Get(fmt.Sprintf("%s.open", *dbEnv))
+	open, oerr := f.Get(fmt.Sprintf("%s.open", env))
 	if oerr != nil {
 		return nil, oerr
 	}
@@ -51,8 +56,8 @@ func MakeDBConf() (*DBConf, error) {
 	}
 
 	return &DBConf{
-		MigrationsDir: filepath.Join(*dbPath, "migrations"),
-		Env:           *dbEnv,
+		MigrationsDir: filepath.Join(p, "migrations"),
+		Env:           env,
 		Driver:        drv,
 		OpenStr:       open,
 	}, nil
