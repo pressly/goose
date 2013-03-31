@@ -42,7 +42,7 @@ func statusRun(cmd *Command, args ...string) {
 	defer db.Close()
 
 	// must ensure that the version table exists if we're running on a pristine DB
-	if _, e := ensureDBVersion(db); e != nil {
+	if _, e := ensureDBVersion(conf, db); e != nil {
 		log.Fatal(e)
 	}
 

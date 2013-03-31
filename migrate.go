@@ -48,7 +48,7 @@ func runMigrations(conf *DBConf, migrationsDir string, target int64) {
 	}
 	defer db.Close()
 
-	current, e := ensureDBVersion(db)
+	current, e := ensureDBVersion(conf, db)
 	if e != nil {
 		log.Fatalf("couldn't get DB version: %v", e)
 	}
@@ -190,13 +190,13 @@ func numericComponent(name string) (int64, error) {
 
 // retrieve the current version for this DB.
 // Create and initialize the DB version table if it doesn't exist.
-func ensureDBVersion(db *sql.DB) (int64, error) {
+func ensureDBVersion(conf *DBConf, db *sql.DB) (int64, error) {
 
 	rows, err := db.Query("SELECT version_id, is_applied from goose_db_version ORDER BY id DESC;")
 	if err != nil {
 		// XXX: cross platform method to detect failure reason
 		// for now, assume it was because the table didn't exist, and try to create it
-		return 0, createVersionTable(db)
+		return 0, createVersionTable(conf, db)
 	}
 
 	// The most recent record for each migration specifies
@@ -235,7 +235,9 @@ func ensureDBVersion(db *sql.DB) (int64, error) {
 	panic("failure in ensureDBVersion()")
 }
 
-func createVersionTable(db *sql.DB) error {
+// Create the goose_db_version table
+// and insert the initial 0 value into it
+func createVersionTable(conf *DBConf, db *sql.DB) error {
 	txn, err := db.Begin()
 	if err != nil {
 		return err
@@ -271,7 +273,7 @@ func getDBVersion(conf *DBConf) int64 {
 	}
 	defer db.Close()
 
-	version, err := ensureDBVersion(db)
+	version, err := ensureDBVersion(conf, db)
 	if err != nil {
 		log.Fatalf("couldn't get DB version: %v", err)
 	}
