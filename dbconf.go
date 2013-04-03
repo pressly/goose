@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/bmizerany/pq"
+	"github.com/lib/pq"
 	"github.com/kylelemons/go-gypsy/yaml"
 	"os"
 	"path/filepath"
