@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	_ "github.com/bmizerany/pq"
+	_ "github.com/lib/pq"
 	_ "github.com/ziutek/mymysql/godrv"
 	"log"
 	"os"
