@@ -127,6 +127,17 @@ You may include as many environments as you like, and you can use the `-env` com
 
 goose will expand environment variables in the `open` element. For an example, see the Heroku section below.
 
+## Other Drivers
+goose knows about some common SQL drivers, but it can still be used to run Go-based migrations with any driver supported by database/sql. 
+
+To run Go-based migrations with another driver, specify its import path, as shown below.
+
+    customdriver:
+        driver: custom
+        open: custom open string
+        import: github.com/custom/driver
+
+NOTE: Because migrations written in SQL are executed directly by the goose binary, only drivers compiled into goose may be used for these migrations.
 
 ## Using goose with Heroku
 

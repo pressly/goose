@@ -10,3 +10,8 @@ development:
 production:
     driver: postgres
     open: user=liam dbname=tester sslmode=verify-full
+
+customimport:
+    driver: customdriver
+    open: customdriver open
+    import: github.com/custom/driver

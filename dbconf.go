@@ -65,7 +65,10 @@ func makeDBConfDetails(p, env string) (*DBConf, error) {
 
 	d := NewDBDriver(drv, open)
 
-	// XXX: allow an import entry to override DBDriver.Import
+	// allow the configuration to override the Import for this driver
+	if imprt, err := f.Get(fmt.Sprintf("%s.import", env)); err == nil {
+		d.Import = imprt
+	}
 
 	if !d.IsValid() {
 		return nil, errors.New(fmt.Sprintf("Invalid DBConf: %v", d))

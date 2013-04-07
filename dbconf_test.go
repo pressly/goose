@@ -21,3 +21,17 @@ func TestBasics(t *testing.T) {
 		}
 	}
 }
+
+func TestImportOverride(t *testing.T) {
+
+	dbconf, err := makeDBConfDetails("db-sample", "customimport")
+	if err != nil {
+		t.Error("couldn't create DBConf")
+	}
+
+	got := dbconf.Driver.Import
+	want := "github.com/custom/driver"
+	if got != want {
+		t.Errorf("bad custom import. want %v got %v", got, want)
+	}
+}
