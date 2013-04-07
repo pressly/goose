@@ -65,14 +65,15 @@ func runSQLMigration(db *sql.DB, script string, v int64, direction bool) error {
 		}
 	}
 
-	if err = finalizeMigration(txn, direction, v); err != nil {
-		log.Fatalf("error finalizing migration %s, quitting. (%v)", filepath.Base(script), err)
-	}
-
 	if upSections == 0 && downSections == 0 {
-		log.Printf(`WARNING: no Up/Down annotations found in %s, so no statements were executed.
+		txn.Rollback()
+		log.Fatalf(`ERROR: no Up/Down annotations found in %s, so no statements were executed.
 			See https://bitbucket.org/liamstask/goose/overview for details.`,
 			filepath.Base(script))
+	}
+
+	if err = finalizeMigration(txn, direction, v); err != nil {
+		log.Fatalf("error finalizing migration %s, quitting. (%v)", filepath.Base(script), err)
 	}
 
 	return nil
