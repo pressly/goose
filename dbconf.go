@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/kylelemons/go-gypsy/yaml"
@@ -13,11 +14,18 @@ import (
 var dbPath = flag.String("path", "db", "folder containing db info")
 var dbEnv = flag.String("env", "development", "which DB environment to use")
 
+// DBDriver encapsulates the info needed to work with
+// a specific database driver
+type DBDriver struct {
+	Name    string
+	OpenStr string
+	Import  string
+}
+
 type DBConf struct {
 	MigrationsDir string
 	Env           string
-	Driver        string
-	OpenStr       string
+	Driver        DBDriver
 }
 
 // default helper - makes a DBConf from the dbPath and dbEnv flags
@@ -55,10 +63,47 @@ func makeDBConfDetails(p, env string) (*DBConf, error) {
 		}
 	}
 
+	d := NewDBDriver(drv, open)
+
+	// XXX: allow an import entry to override DBDriver.Import
+
+	if !d.IsValid() {
+		return nil, errors.New(fmt.Sprintf("Invalid DBConf: %v", d))
+	}
+
 	return &DBConf{
 		MigrationsDir: filepath.Join(p, "migrations"),
 		Env:           env,
-		Driver:        drv,
-		OpenStr:       open,
+		Driver:        d,
 	}, nil
+}
+
+// Create a new DBDriver and populate driver specific
+// fields for drivers that we know about.
+// Further customization may be done in NewDBConf
+func NewDBDriver(name, open string) DBDriver {
+
+	d := DBDriver{
+		Name:    name,
+		OpenStr: open,
+	}
+
+	switch name {
+	case "postgres":
+		d.Import = "github.com/lib/pq"
+
+	case "mymysql":
+		d.Import = "github.com/ziutek/mymysql/godrv"
+	}
+
+	return d
+}
+
+// ensure we have enough info about this driver
+func (drv *DBDriver) IsValid() bool {
+	if len(drv.Import) == 0 {
+		return false
+	}
+
+	return true
 }

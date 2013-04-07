@@ -35,7 +35,7 @@ func statusRun(cmd *Command, args ...string) {
 		log.Fatal(e)
 	}
 
-	db, e := sql.Open(conf.Driver, conf.OpenStr)
+	db, e := sql.Open(conf.Driver.Name, conf.Driver.OpenStr)
 	if e != nil {
 		log.Fatal("couldn't open DB:", e)
 	}

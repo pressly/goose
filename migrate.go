@@ -42,7 +42,7 @@ type MigrationMap struct {
 
 func runMigrations(conf *DBConf, migrationsDir string, target int64) {
 
-	db, err := sql.Open(conf.Driver, conf.OpenStr)
+	db, err := sql.Open(conf.Driver.Name, conf.Driver.OpenStr)
 	if err != nil {
 		log.Fatal("couldn't open DB:", err)
 	}
@@ -267,7 +267,7 @@ func createVersionTable(conf *DBConf, db *sql.DB) error {
 // their own DB instance
 func getDBVersion(conf *DBConf) int64 {
 
-	db, err := sql.Open(conf.Driver, conf.OpenStr)
+	db, err := sql.Open(conf.Driver.Name, conf.Driver.OpenStr)
 	if err != nil {
 		log.Fatal("couldn't open DB:", err)
 	}

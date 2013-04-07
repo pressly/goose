@@ -12,8 +12,7 @@ import (
 
 type TemplateData struct {
 	Version   int64
-	DBDriver  string
-	DBOpen    string
+	Driver    DBDriver
 	Direction bool
 	Func      string
 }
@@ -41,8 +40,7 @@ func runGoMigration(conf *DBConf, path string, version int64, direction bool) er
 
 	td := &TemplateData{
 		Version:   version,
-		DBDriver:  conf.Driver,
-		DBOpen:    conf.OpenStr,
+		Driver:    conf.Driver,
 		Direction: direction,
 		Func:      fmt.Sprintf("%v_%v", directionStr, version),
 	}
@@ -76,13 +74,13 @@ package main
 
 import (
 	"database/sql"
-	_ "github.com/lib/pq"
+	_ "{{.Driver.Import}}"
 	"log"
 	"fmt"
 )
 
 func main() {
-	db, err := sql.Open("{{.DBDriver}}", "{{.DBOpen}}")
+	db, err := sql.Open("{{.Driver.Name}}", "{{.Driver.OpenStr}}")
 	if err != nil {
 		log.Fatal("failed to open DB:", err)
 	}

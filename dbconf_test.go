@@ -12,7 +12,7 @@ func TestBasics(t *testing.T) {
 		t.Error("couldn't create DBConf")
 	}
 
-	got := []string{dbconf.MigrationsDir, dbconf.Env, dbconf.Driver, dbconf.OpenStr}
+	got := []string{dbconf.MigrationsDir, dbconf.Env, dbconf.Driver.Name, dbconf.Driver.OpenStr}
 	want := []string{"db-sample/migrations", "test", "postgres", "user=liam dbname=tester sslmode=disable"}
 
 	for i, s := range got {
