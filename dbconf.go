@@ -29,12 +29,12 @@ type DBConf struct {
 }
 
 // default helper - makes a DBConf from the dbPath and dbEnv flags
-func MakeDBConf() (*DBConf, error) {
-	return makeDBConfDetails(*dbPath, *dbEnv)
+func NewDBConf() (*DBConf, error) {
+	return newDBConfDetails(*dbPath, *dbEnv)
 }
 
 // extract configuration details from the given file
-func makeDBConfDetails(p, env string) (*DBConf, error) {
+func newDBConfDetails(p, env string) (*DBConf, error) {
 
 	cfgFile := filepath.Join(p, "dbconf.yml")
 

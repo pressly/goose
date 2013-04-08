@@ -16,7 +16,7 @@ var downCmd = &Command{
 
 func downRun(cmd *Command, args ...string) {
 
-	conf, err := MakeDBConf()
+	conf, err := NewDBConf()
 	if err != nil {
 		log.Fatal(err)
 	}

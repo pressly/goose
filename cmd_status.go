@@ -22,7 +22,7 @@ type StatusData struct {
 
 func statusRun(cmd *Command, args ...string) {
 
-	conf, err := MakeDBConf()
+	conf, err := NewDBConf()
 	if err != nil {
 		log.Fatal(err)
 	}

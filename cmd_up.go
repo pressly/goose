@@ -15,7 +15,7 @@ var upCmd = &Command{
 
 func upRun(cmd *Command, args ...string) {
 
-	conf, err := MakeDBConf()
+	conf, err := NewDBConf()
 	if err != nil {
 		log.Fatal(err)
 	}
