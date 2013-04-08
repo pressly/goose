@@ -20,6 +20,7 @@ type DBDriver struct {
 	Name    string
 	OpenStr string
 	Import  string
+	Dialect SqlDialect
 }
 
 type DBConf struct {
@@ -70,6 +71,11 @@ func newDBConfDetails(p, env string) (*DBConf, error) {
 		d.Import = imprt
 	}
 
+	// allow the configuration to override the Dialect for this driver
+	if dialect, err := f.Get(fmt.Sprintf("%s.dialect", env)); err == nil {
+		d.Dialect = DialectByName(dialect)
+	}
+
 	if !d.IsValid() {
 		return nil, errors.New(fmt.Sprintf("Invalid DBConf: %v", d))
 	}
@@ -94,9 +100,11 @@ func NewDBDriver(name, open string) DBDriver {
 	switch name {
 	case "postgres":
 		d.Import = "github.com/lib/pq"
+		d.Dialect = &PostgresDialect{}
 
 	case "mymysql":
 		d.Import = "github.com/ziutek/mymysql/godrv"
+		d.Dialect = &MySqlDialect{}
 	}
 
 	return d
@@ -105,6 +113,10 @@ func NewDBDriver(name, open string) DBDriver {
 // ensure we have enough info about this driver
 func (drv *DBDriver) IsValid() bool {
 	if len(drv.Import) == 0 {
+		return false
+	}
+
+	if drv.Dialect == nil {
 		return false
 	}
 

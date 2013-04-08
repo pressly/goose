@@ -9,7 +9,7 @@ func TestBasics(t *testing.T) {
 
 	dbconf, err := newDBConfDetails("db-sample", "test")
 	if err != nil {
-		t.Error("couldn't create DBConf")
+		t.Fatal(err)
 	}
 
 	got := []string{dbconf.MigrationsDir, dbconf.Env, dbconf.Driver.Name, dbconf.Driver.OpenStr}
@@ -26,7 +26,7 @@ func TestImportOverride(t *testing.T) {
 
 	dbconf, err := newDBConfDetails("db-sample", "customimport")
 	if err != nil {
-		t.Error("couldn't create DBConf")
+		t.Fatal(err)
 	}
 
 	got := dbconf.Driver.Import

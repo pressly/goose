@@ -15,6 +15,8 @@ import (
 	"time"
 )
 
+var ErrTableDoesNotExist = errors.New("table does not exist")
+
 type MigrationRecord struct {
 	VersionId int64
 	TStamp    time.Time
@@ -192,11 +194,14 @@ func numericComponent(name string) (int64, error) {
 // Create and initialize the DB version table if it doesn't exist.
 func ensureDBVersion(conf *DBConf, db *sql.DB) (int64, error) {
 
-	rows, err := db.Query("SELECT version_id, is_applied from goose_db_version ORDER BY id DESC;")
+	rows, err := conf.Driver.Dialect.dbVersionQuery(db)
 	if err != nil {
-		// XXX: cross platform method to detect failure reason
-		// for now, assume it was because the table didn't exist, and try to create it
-		return 0, createVersionTable(conf, db)
+
+		if err == ErrTableDoesNotExist {
+			return 0, createVersionTable(conf, db)
+		}
+
+		return 0, err
 	}
 
 	// The most recent record for each migration specifies
@@ -243,17 +248,8 @@ func createVersionTable(conf *DBConf, db *sql.DB) error {
 		return err
 	}
 
-	// create the table and insert an initial value of 0
-	create := `CREATE TABLE goose_db_version (
-                id serial NOT NULL,
-                version_id bigint NOT NULL,
-                is_applied boolean NOT NULL,
-                tstamp timestamp NULL default now(),
-                PRIMARY KEY(id)
-              );`
-	insert := "INSERT INTO goose_db_version (version_id, is_applied) VALUES (0, true);"
-
-	for _, str := range []string{create, insert} {
+	d := conf.Driver.Dialect
+	for _, str := range []string{d.createVersionTableSql(), d.insertVersionSql()} {
 		if _, err := txn.Exec(str); err != nil {
 			txn.Rollback()
 			return err
