@@ -41,7 +41,7 @@ func downRun(cmd *Command, args ...string) {
 func getPreviousVersion(dirpath string, version int64) (previous, earliest int64) {
 
 	previous = -1
-	earliest = (1 << 31) - 1
+	earliest = (1 << 63) - 1
 
 	filepath.Walk(dirpath, func(name string, info os.FileInfo, err error) error {
 
@@ -49,7 +49,6 @@ func getPreviousVersion(dirpath string, version int64) (previous, earliest int64
 			if v > previous && v < version {
 				previous = v
 			}
-
 			if v < earliest {
 				earliest = v
 			}
