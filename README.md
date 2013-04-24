@@ -41,6 +41,16 @@ Roll back a single migration from the current version.
     $ goose: migrating db environment 'development', current version: 3, target: 2
     $ OK    003_and_again.go
 
+## redo
+
+Roll back the most recently applied migration, then run it again.
+
+    $ goose redo
+    $ goose: migrating db environment 'development', current version: 3, target: 2
+    $ OK    003_and_again.go
+    $ goose: migrating db environment 'development', current version: 2, target: 3
+    $ OK    003_and_again.go
+
 ## status
 
 Print the status of all migrations:
