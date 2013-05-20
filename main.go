@@ -45,15 +45,21 @@ func main() {
 }
 
 func usage() {
+	fmt.Print(usagePrefix)
+	flag.PrintDefaults()
 	usageTmpl.Execute(os.Stdout, commands)
 }
 
-var usageTmpl = template.Must(template.New("usage").Parse(
-	`goose is a database migration management system for Go projects.
+var usagePrefix = `
+goose is a database migration management system for Go projects.
 
 Usage:
     goose [options] <subcommand> [subcommand options]
 
+Options:
+`
+var usageTmpl = template.Must(template.New("usage").Parse(
+	`
 Commands:{{range .}}
     {{.Name | printf "%-10s"}} {{.Summary}}{{end}}
 `))
