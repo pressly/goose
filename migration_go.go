@@ -76,7 +76,6 @@ import (
 	"database/sql"
 	_ "{{.Driver.Import}}"
 	"log"
-	"fmt"
 )
 
 func main() {
@@ -94,9 +93,8 @@ func main() {
 	{{ .Func }}(txn)
 
 	// XXX: drop goose_db_version table on some minimum version number?
-	versionFmt := "INSERT INTO goose_db_version (version_id, is_applied) VALUES (%v, %t);"
-	versionStmt := fmt.Sprintf(versionFmt, int64({{ .Version }}), {{ .Direction }})
-	if _, err = txn.Exec(versionStmt); err != nil {
+	stmt := "INSERT INTO goose_db_version (version_id, is_applied) VALUES ($1, $2);"
+	if _, err = txn.Exec(stmt, {{ .Version }}, {{ .Direction }}); err != nil {
 		txn.Rollback()
 		log.Fatal("failed to write version: ", err)
 	}

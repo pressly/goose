@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"path/filepath"
@@ -84,8 +83,8 @@ func runSQLMigration(db *sql.DB, script string, v int64, direction bool) error {
 func finalizeMigration(txn *sql.Tx, direction bool, v int64) error {
 
 	// XXX: drop goose_db_version table on some minimum version number?
-	versionStmt := fmt.Sprintf("INSERT INTO goose_db_version (version_id, is_applied) VALUES (%d, %t);", v, direction)
-	if _, err := txn.Exec(versionStmt); err != nil {
+	stmt := "INSERT INTO goose_db_version (version_id, is_applied) VALUES ($1, $2)"
+	if _, err := txn.Exec(stmt, v, direction); err != nil {
 		txn.Rollback()
 		return err
 	}
