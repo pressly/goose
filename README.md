@@ -176,3 +176,13 @@ To run goose in production, use `heroku run`:
 
     heroku run goose -env production up
 
+# Contributors
+
+Thank you!
+
+* Josh Bleecher Snyder (josharian)
+* Abigail Walthall (ghthor)
+* Daniel Heath (danielrheath)
+* Chris Baynes (chris_baynes)
+* Michael Gerow (gerow)
+* Vytautas Šaltenis (rtfb)
