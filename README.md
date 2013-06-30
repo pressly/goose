@@ -96,22 +96,24 @@ Notice the annotations in the comments. Any statements following `-- +goose Up` 
 A sample Go migration looks like:
 
     :::go
-    package migration_003
+    package main
 
     import (
         "database/sql"
         "fmt"
     )
 
-    func Up(txn *sql.Tx) {
-        fmt.Println("Hello from migration_003 Up!")
+    func Up_20130106222315(txn *sql.Tx) {
+        fmt.Println("Hello from migration 20130106222315 Up!")
     }
 
-    func Down(txn *sql.Tx) {
-        fmt.Println("Hello from migration_003 Down!")
+    func Down_20130106222315(txn *sql.Tx) {
+        fmt.Println("Hello from migration 20130106222315 Down!")
     }
 
-`Up()` will be executed as part of a forward migration, and `Down()` will be executed as part of a rollback.
+`Up_20130106222315()` will be executed as part of a forward migration, and `Down_20130106222315()` will be executed as part of a rollback.
+
+The numeric portion of the function name (20130106222315) must be the leading portion of migration's filename, such as `20130106222315_descriptive_name.go`. `goose create` does this by default.
 
 A transaction is provided, rather than the DB instance directly, since goose also needs to record the schema version within the same transaction. Each migration should run as a single transaction to ensure DB integrity, so it's good practice anyway.
 
