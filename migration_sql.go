@@ -16,7 +16,7 @@ import (
 //
 // All statements following an Up or Down directive are grouped together
 // until another direction directive is found.
-func runSQLMigration(db *sql.DB, script string, v int64, direction bool) error {
+func runSQLMigration(conf *DBConf, db *sql.DB, script string, v int64, direction bool) error {
 
 	txn, err := db.Begin()
 	if err != nil {
@@ -71,7 +71,7 @@ func runSQLMigration(db *sql.DB, script string, v int64, direction bool) error {
 			filepath.Base(script))
 	}
 
-	if err = finalizeMigration(txn, direction, v); err != nil {
+	if err = finalizeMigration(conf, txn, direction, v); err != nil {
 		log.Fatalf("error finalizing migration %s, quitting. (%v)", filepath.Base(script), err)
 	}
 
@@ -80,11 +80,11 @@ func runSQLMigration(db *sql.DB, script string, v int64, direction bool) error {
 
 // Update the version table for the given migration,
 // and finalize the transaction.
-func finalizeMigration(txn *sql.Tx, direction bool, v int64) error {
+func finalizeMigration(conf *DBConf, txn *sql.Tx, direction bool, v int64) error {
 
 	// XXX: drop goose_db_version table on some minimum version number?
-	stmt := "INSERT INTO goose_db_version (version_id, is_applied) VALUES ($1, $2)"
-	if _, err := txn.Exec(stmt, v, direction); err != nil {
+	d := conf.Driver.Dialect
+	if _, err := txn.Exec(d.insertVersionSql(), v, direction); err != nil {
 		txn.Rollback()
 		return err
 	}

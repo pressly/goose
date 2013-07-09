@@ -37,11 +37,11 @@ func (pg *PostgresDialect) createVersionTableSql() string {
                 is_applied boolean NOT NULL,
                 tstamp timestamp NULL default now(),
                 PRIMARY KEY(id)
-              );`
+            );`
 }
 
 func (pg *PostgresDialect) insertVersionSql() string {
-	return "INSERT INTO goose_db_version (version_id, is_applied) VALUES (0, true);"
+	return "INSERT INTO goose_db_version (version_id, is_applied) VALUES ($1, $2);"
 }
 
 func (pg *PostgresDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
@@ -70,11 +70,11 @@ func (m *MySqlDialect) createVersionTableSql() string {
                 is_applied boolean NOT NULL,
                 tstamp timestamp NULL default now(),
                 PRIMARY KEY(id)
-              );`
+            );`
 }
 
 func (m *MySqlDialect) insertVersionSql() string {
-	return "INSERT INTO goose_db_version (version_id, is_applied) VALUES (0, true);"
+	return "INSERT INTO goose_db_version (version_id, is_applied) VALUES (?, ?);"
 }
 
 func (m *MySqlDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {

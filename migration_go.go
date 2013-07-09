@@ -11,10 +11,11 @@ import (
 )
 
 type TemplateData struct {
-	Version   int64
-	Driver    DBDriver
-	Direction bool
-	Func      string
+	Version    int64
+	Driver     DBDriver
+	Direction  bool
+	Func       string
+	InsertStmt string
 }
 
 //
@@ -39,10 +40,11 @@ func runGoMigration(conf *DBConf, path string, version int64, direction bool) er
 	}
 
 	td := &TemplateData{
-		Version:   version,
-		Driver:    conf.Driver,
-		Direction: direction,
-		Func:      fmt.Sprintf("%v_%v", directionStr, version),
+		Version:    version,
+		Driver:     conf.Driver,
+		Direction:  direction,
+		Func:       fmt.Sprintf("%v_%v", directionStr, version),
+		InsertStmt: conf.Driver.Dialect.insertVersionSql(),
 	}
 	main, e := writeTemplateToFile(filepath.Join(d, "goose_main.go"), goMigrationTmpl, td)
 	if e != nil {
@@ -93,7 +95,7 @@ func main() {
 	{{ .Func }}(txn)
 
 	// XXX: drop goose_db_version table on some minimum version number?
-	stmt := "INSERT INTO goose_db_version (version_id, is_applied) VALUES ($1, $2);"
+	stmt := "{{ .InsertStmt }}"
 	if _, err = txn.Exec(stmt, {{ .Version }}, {{ .Direction }}); err != nil {
 		txn.Rollback()
 		log.Fatal("failed to write version: ", err)

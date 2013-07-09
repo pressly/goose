@@ -78,7 +78,7 @@ func runMigrations(conf *DBConf, migrationsDir string, target int64) {
 		case ".go":
 			e = runGoMigration(conf, m.Source, m.Version, mm.Direction)
 		case ".sql":
-			e = runSQLMigration(db, m.Source, m.Version, mm.Direction)
+			e = runSQLMigration(conf, db, m.Source, m.Version, mm.Direction)
 		}
 
 		if e != nil {
@@ -89,7 +89,7 @@ func runMigrations(conf *DBConf, migrationsDir string, target int64) {
 	}
 }
 
-// collect all the valid looking migration scripts in the 
+// collect all the valid looking migration scripts in the
 // migrations folder, and key them by version
 func collectMigrations(dirpath string, current, target int64) (mm *MigrationMap, err error) {
 
@@ -249,11 +249,17 @@ func createVersionTable(conf *DBConf, db *sql.DB) error {
 	}
 
 	d := conf.Driver.Dialect
-	for _, str := range []string{d.createVersionTableSql(), d.insertVersionSql()} {
-		if _, err := txn.Exec(str); err != nil {
-			txn.Rollback()
-			return err
-		}
+
+	if _, err := txn.Exec(d.createVersionTableSql()); err != nil {
+		txn.Rollback()
+		return err
+	}
+
+	version := 0
+	applied := true
+	if _, err := txn.Exec(d.insertVersionSql(), version, applied); err != nil {
+		txn.Rollback()
+		return err
 	}
 
 	return txn.Commit()
