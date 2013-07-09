@@ -32,6 +32,6 @@ func TestImportOverride(t *testing.T) {
 	got := dbconf.Driver.Import
 	want := "github.com/custom/driver"
 	if got != want {
-		t.Errorf("bad custom import. want %v got %v", got, want)
+		t.Errorf("bad custom import. got %v want %v", got, want)
 	}
 }
