@@ -112,13 +112,5 @@ func NewDBDriver(name, open string) DBDriver {
 
 // ensure we have enough info about this driver
 func (drv *DBDriver) IsValid() bool {
-	if len(drv.Import) == 0 {
-		return false
-	}
-
-	if drv.Dialect == nil {
-		return false
-	}
-
-	return true
+	return len(drv.Import) > 0 && drv.Dialect != nil
 }
