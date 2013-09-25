@@ -196,13 +196,12 @@ func ensureDBVersion(conf *DBConf, db *sql.DB) (int64, error) {
 
 	rows, err := conf.Driver.Dialect.dbVersionQuery(db)
 	if err != nil {
-
 		if err == ErrTableDoesNotExist {
 			return 0, createVersionTable(conf, db)
 		}
-
 		return 0, err
 	}
+	defer rows.Close()
 
 	// The most recent record for each migration specifies
 	// whether it has been applied or rolled back.
