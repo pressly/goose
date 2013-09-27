@@ -214,3 +214,5 @@ Thank you!
 * Chris Baynes (chris_baynes)
 * Michael Gerow (gerow)
 * Vytautas Šaltenis (rtfb)
+* James Cooper (coopernurse)
+* Gyepi Sam (gyepisam)
