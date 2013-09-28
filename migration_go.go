@@ -96,7 +96,7 @@ func main() {
 
 	// XXX: drop goose_db_version table on some minimum version number?
 	stmt := "{{ .InsertStmt }}"
-	if _, err = txn.Exec(stmt, {{ .Version }}, {{ .Direction }}); err != nil {
+	if _, err = txn.Exec(stmt, int64({{ .Version }}), {{ .Direction }}); err != nil {
 		txn.Rollback()
 		log.Fatal("failed to write version: ", err)
 	}
