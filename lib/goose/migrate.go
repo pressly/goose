@@ -308,16 +308,16 @@ func GetPreviousDBVersion(dirpath string, version int64) (previous, earliest int
 
 // helper to identify the most recent possible version
 // within a folder of migration scripts
-func GetMostRecentDBVersion(dirpath string) int64 {
+func GetMostRecentDBVersion(dirpath string) (version int64, err error) {
 
-	mostRecent := int64(-1)
+	version = -1
 
-	filepath.Walk(dirpath, func(name string, info os.FileInfo, err error) error {
+	filepath.Walk(dirpath, func(name string, info os.FileInfo, walkerr error) error {
 
 		if !info.IsDir() {
 			if v, e := NumericComponent(name); e == nil {
-				if v > mostRecent {
-					mostRecent = v
+				if v > version {
+					version = v
 				}
 			}
 		}
@@ -325,5 +325,9 @@ func GetMostRecentDBVersion(dirpath string) int64 {
 		return nil
 	})
 
-	return mostRecent
+	if version == -1 {
+		err = errors.New("no valid version found")
+	}
+
+	return
 }

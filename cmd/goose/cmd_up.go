@@ -19,7 +19,11 @@ func upRun(cmd *Command, args ...string) {
 		log.Fatal(err)
 	}
 
-	target := goose.GetMostRecentDBVersion(conf.MigrationsDir)
+	target, err := goose.GetMostRecentDBVersion(conf.MigrationsDir)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	goose.RunMigrations(conf, conf.MigrationsDir, target)
 }
 
