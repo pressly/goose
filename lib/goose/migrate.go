@@ -45,27 +45,27 @@ type MigrationMap struct {
 	Direction  bool           // sort direction: true -> Up, false -> Down
 }
 
-func RunMigrations(conf *DBConf, migrationsDir string, target int64) {
+func RunMigrations(conf *DBConf, migrationsDir string, target int64) (err error) {
 
 	db, err := sql.Open(conf.Driver.Name, conf.Driver.OpenStr)
 	if err != nil {
-		log.Fatal("couldn't open DB:", err)
+		return err
 	}
 	defer db.Close()
 
-	current, e := EnsureDBVersion(conf, db)
-	if e != nil {
-		log.Fatalf("couldn't get DB version: %v", e)
+	current, err := EnsureDBVersion(conf, db)
+	if err != nil {
+		return err
 	}
 
 	mm, err := CollectMigrations(migrationsDir, current, target)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	if len(mm.Migrations) == 0 {
 		fmt.Printf("goose: no migrations to run. current version: %d\n", current)
-		return
+		return nil
 	}
 
 	mm.Sort(current < target)
@@ -75,21 +75,21 @@ func RunMigrations(conf *DBConf, migrationsDir string, target int64) {
 
 	for _, m := range mm.Migrations {
 
-		var e error
-
 		switch filepath.Ext(m.Source) {
 		case ".go":
-			e = runGoMigration(conf, m.Source, m.Version, mm.Direction)
+			err = runGoMigration(conf, m.Source, m.Version, mm.Direction)
 		case ".sql":
-			e = runSQLMigration(conf, db, m.Source, m.Version, mm.Direction)
+			err = runSQLMigration(conf, db, m.Source, m.Version, mm.Direction)
 		}
 
-		if e != nil {
-			log.Fatalf("FAIL %v, quitting migration", e)
+		if err != nil {
+			return errors.New(fmt.Sprintf("FAIL %v, quitting migration", err))
 		}
 
 		fmt.Println("OK   ", filepath.Base(m.Source))
 	}
+
+	return nil
 }
 
 // collect all the valid looking migration scripts in the

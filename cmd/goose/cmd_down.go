@@ -29,7 +29,9 @@ func downRun(cmd *Command, args ...string) {
 		log.Fatal(err)
 	}
 
-	goose.RunMigrations(conf, conf.MigrationsDir, previous)
+	if err = goose.RunMigrations(conf, conf.MigrationsDir, previous); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func init() {

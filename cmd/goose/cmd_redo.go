@@ -28,8 +28,13 @@ func redoRun(cmd *Command, args ...string) {
 		log.Fatal(err)
 	}
 
-	goose.RunMigrations(conf, conf.MigrationsDir, previous)
-	goose.RunMigrations(conf, conf.MigrationsDir, current)
+	if err := goose.RunMigrations(conf, conf.MigrationsDir, previous); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := goose.RunMigrations(conf, conf.MigrationsDir, current); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func init() {
