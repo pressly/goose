@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"text/template"
 	"time"
 )
 
@@ -37,24 +36,13 @@ func createRun(cmd *Command, args ...string) {
 		log.Fatal(err)
 	}
 
-	timestamp := time.Now().Format("20060102150405")
-	filename := fmt.Sprintf("%v_%v.%v", timestamp, args[0], migrationType)
-	err = os.MkdirAll(conf.MigrationsDir, 0777)
-	if err != nil {
+	if err = os.MkdirAll(conf.MigrationsDir, 0777); err != nil {
 		log.Fatal(err)
 	}
-	fpath := filepath.Join(conf.MigrationsDir, filename)
 
-	var tmpl *template.Template
-	if migrationType == "sql" {
-		tmpl = sqlMigrationScaffoldTmpl
-	} else {
-		tmpl = goMigrationScaffoldTmpl
-	}
-
-	n, e := goose.WriteTemplateToFile(fpath, tmpl, timestamp)
-	if e != nil {
-		log.Fatal(e)
+	n, err := goose.CreateMigration(args[0], migrationType, conf.MigrationsDir, time.Now())
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	a, e := filepath.Abs(n)
@@ -64,31 +52,3 @@ func createRun(cmd *Command, args ...string) {
 
 	fmt.Println("goose: created", a)
 }
-
-var goMigrationScaffoldTmpl = template.Must(template.New("driver").Parse(`
-package main
-
-import (
-	"database/sql"
-)
-
-// Up is executed when this migration is applied
-func Up_{{ . }}(txn *sql.Tx) {
-
-}
-
-// Down is executed when this migration is rolled back
-func Down_{{ . }}(txn *sql.Tx) {
-
-}
-`))
-
-var sqlMigrationScaffoldTmpl = template.Must(template.New("driver").Parse(`
--- +goose Up
--- SQL in section 'Up' is executed when this migration is applied
-
-
--- +goose Down
--- SQL section 'Down' is executed when this migration is rolled back
-
-`))

@@ -46,7 +46,7 @@ func runGoMigration(conf *DBConf, path string, version int64, direction bool) er
 		Func:       fmt.Sprintf("%v_%v", directionStr, version),
 		InsertStmt: conf.Driver.Dialect.insertVersionSql(),
 	}
-	main, e := WriteTemplateToFile(filepath.Join(d, "goose_main.go"), goMigrationTmpl, td)
+	main, e := writeTemplateToFile(filepath.Join(d, "goose_main.go"), goMigrationDriverTemplate, td)
 	if e != nil {
 		log.Fatal(e)
 	}
@@ -71,7 +71,7 @@ func runGoMigration(conf *DBConf, path string, version int64, direction bool) er
 // this gets linked against the substituted versions of the user-supplied
 // scripts in order to execute a migration via `go run`
 //
-var goMigrationTmpl = template.Must(template.New("driver").Parse(`
+var goMigrationDriverTemplate = template.Must(template.New("goose.go-driver").Parse(`
 package main
 
 import (

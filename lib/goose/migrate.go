@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 )
 
@@ -345,3 +346,50 @@ func GetMostRecentDBVersion(dirpath string) (version int64, err error) {
 
 	return
 }
+
+func CreateMigration(name, migrationType, dir string, t time.Time) (path string, err error) {
+
+	timestamp := t.Format("20060102150405")
+	filename := fmt.Sprintf("%v_%v.%v", timestamp, name, migrationType)
+
+	fpath := filepath.Join(dir, filename)
+
+	var tmpl *template.Template
+	if migrationType == "sql" {
+		tmpl = sqlMigrationTemplate
+	} else {
+		tmpl = goMigrationTemplate
+	}
+
+	path, err = writeTemplateToFile(fpath, tmpl, timestamp)
+
+	return
+}
+
+var goMigrationTemplate = template.Must(template.New("goose.go-migration").Parse(`
+package main
+
+import (
+	"database/sql"
+)
+
+// Up is executed when this migration is applied
+func Up_{{ . }}(txn *sql.Tx) {
+
+}
+
+// Down is executed when this migration is rolled back
+func Down_{{ . }}(txn *sql.Tx) {
+
+}
+`))
+
+var sqlMigrationTemplate = template.Must(template.New("goose.sql-migration").Parse(`
+-- +goose Up
+-- SQL in section 'Up' is executed when this migration is applied
+
+
+-- +goose Down
+-- SQL section 'Down' is executed when this migration is rolled back
+
+`))

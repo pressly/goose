@@ -8,10 +8,7 @@ import (
 
 // common routines
 
-func WriteTemplateToFile(path string, t *template.Template, data interface{}) (string, error) {
-
-	// XXX: would prefer to not export this
-
+func writeTemplateToFile(path string, t *template.Template, data interface{}) (string, error) {
 	f, e := os.Create(path)
 	if e != nil {
 		return "", e
