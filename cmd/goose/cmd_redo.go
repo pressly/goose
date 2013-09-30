@@ -10,6 +10,7 @@ var redoCmd = &Command{
 	Usage:   "",
 	Summary: "Re-run the latest migration",
 	Help:    `redo extended help here...`,
+	Run:     redoRun,
 }
 
 func redoRun(cmd *Command, args ...string) {
@@ -35,8 +36,4 @@ func redoRun(cmd *Command, args ...string) {
 	if err := goose.RunMigrations(conf, conf.MigrationsDir, current); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func init() {
-	redoCmd.Run = redoRun
 }

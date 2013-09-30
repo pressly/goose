@@ -10,6 +10,7 @@ var upCmd = &Command{
 	Usage:   "",
 	Summary: "Migrate the DB to the most recent version available",
 	Help:    `up extended help here...`,
+	Run:     upRun,
 }
 
 func upRun(cmd *Command, args ...string) {
@@ -27,8 +28,4 @@ func upRun(cmd *Command, args ...string) {
 	if err := goose.RunMigrations(conf, conf.MigrationsDir, target); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func init() {
-	upCmd.Run = upRun
 }

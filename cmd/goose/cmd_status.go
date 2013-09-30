@@ -14,6 +14,7 @@ var statusCmd = &Command{
 	Usage:   "",
 	Summary: "dump the migration status for the current DB",
 	Help:    `status extended help here...`,
+	Run:     statusRun,
 }
 
 type StatusData struct {
@@ -73,8 +74,4 @@ func printMigrationStatus(db *sql.DB, version int64, script string) {
 	}
 
 	fmt.Printf("    %-24s -- %v\n", appliedAt, script)
-}
-
-func init() {
-	statusCmd.Run = statusRun
 }

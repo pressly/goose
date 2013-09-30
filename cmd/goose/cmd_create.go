@@ -15,6 +15,7 @@ var createCmd = &Command{
 	Usage:   "",
 	Summary: "Create the scaffolding for a new migration",
 	Help:    `create extended help here...`,
+	Run:     createRun,
 }
 
 func createRun(cmd *Command, args ...string) {
@@ -62,10 +63,6 @@ func createRun(cmd *Command, args ...string) {
 	}
 
 	fmt.Println("goose: created", a)
-}
-
-func init() {
-	createCmd.Run = createRun
 }
 
 var goMigrationScaffoldTmpl = template.Must(template.New("driver").Parse(`

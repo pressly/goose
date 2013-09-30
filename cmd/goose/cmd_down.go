@@ -10,6 +10,7 @@ var downCmd = &Command{
 	Usage:   "",
 	Summary: "Roll back the version by 1",
 	Help:    `down extended help here...`,
+	Run:     downRun,
 }
 
 func downRun(cmd *Command, args ...string) {
@@ -32,8 +33,4 @@ func downRun(cmd *Command, args ...string) {
 	if err = goose.RunMigrations(conf, conf.MigrationsDir, previous); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func init() {
-	downCmd.Run = downRun
 }
