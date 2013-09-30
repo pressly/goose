@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bitbucket.org/liamstask/goose/lib/goose"
 	"fmt"
 	"log"
 	"os"
@@ -30,7 +31,7 @@ func createRun(cmd *Command, args ...string) {
 		}
 	}
 
-	conf, err := NewDBConf()
+	conf, err := goose.NewDBConf(*flagPath, *flagEnv)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -50,7 +51,7 @@ func createRun(cmd *Command, args ...string) {
 		tmpl = goMigrationScaffoldTmpl
 	}
 
-	n, e := writeTemplateToFile(fpath, tmpl, timestamp)
+	n, e := goose.WriteTemplateToFile(fpath, tmpl, timestamp)
 	if e != nil {
 		log.Fatal(e)
 	}

@@ -1,9 +1,8 @@
 package main
 
 import (
+	"bitbucket.org/liamstask/goose/lib/goose"
 	"log"
-	"os"
-	"path/filepath"
 )
 
 var upCmd = &Command{
@@ -15,33 +14,13 @@ var upCmd = &Command{
 
 func upRun(cmd *Command, args ...string) {
 
-	conf, err := NewDBConf()
+	conf, err := goose.NewDBConf(*flagPath, *flagEnv)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	target := mostRecentVersionAvailable(conf.MigrationsDir)
-	runMigrations(conf, conf.MigrationsDir, target)
-}
-
-// helper to identify the most recent possible version
-// within a folder of migration scripts
-func mostRecentVersionAvailable(dirpath string) int64 {
-
-	mostRecent := int64(-1)
-
-	filepath.Walk(dirpath, func(name string, info os.FileInfo, err error) error {
-
-		if v, e := numericComponent(name); e == nil {
-			if v > mostRecent {
-				mostRecent = v
-			}
-		}
-
-		return nil
-	})
-
-	return mostRecent
+	target := goose.GetMostRecentDBVersion(conf.MigrationsDir)
+	goose.RunMigrations(conf, conf.MigrationsDir, target)
 }
 
 func init() {

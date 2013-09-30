@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bitbucket.org/liamstask/goose/lib/goose"
 	"database/sql"
 	"fmt"
 	"log"
@@ -22,7 +23,7 @@ type StatusData struct {
 
 func statusRun(cmd *Command, args ...string) {
 
-	conf, err := NewDBConf()
+	conf, err := goose.NewDBConf(*flagPath, *flagEnv)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -30,7 +31,7 @@ func statusRun(cmd *Command, args ...string) {
 	// collect all migrations
 	min := int64(0)
 	max := int64((1 << 63) - 1)
-	mm, e := collectMigrations(conf.MigrationsDir, min, max)
+	mm, e := goose.CollectMigrations(conf.MigrationsDir, min, max)
 	if e != nil {
 		log.Fatal(e)
 	}
@@ -42,7 +43,7 @@ func statusRun(cmd *Command, args ...string) {
 	defer db.Close()
 
 	// must ensure that the version table exists if we're running on a pristine DB
-	if _, e := ensureDBVersion(conf, db); e != nil {
+	if _, e := goose.EnsureDBVersion(conf, db); e != nil {
 		log.Fatal(e)
 	}
 
@@ -55,7 +56,7 @@ func statusRun(cmd *Command, args ...string) {
 }
 
 func printMigrationStatus(db *sql.DB, version int64, script string) {
-	var row MigrationRecord
+	var row goose.MigrationRecord
 	q := fmt.Sprintf("SELECT tstamp, is_applied FROM goose_db_version WHERE version_id=%d ORDER BY tstamp DESC LIMIT 1", version)
 	e := db.QueryRow(q).Scan(&row.TStamp, &row.IsApplied)
 

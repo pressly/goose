@@ -1,4 +1,4 @@
-package main
+package goose
 
 import (
 	"database/sql"
@@ -42,7 +42,7 @@ type MigrationMap struct {
 	Direction  bool           // sort direction: true -> Up, false -> Down
 }
 
-func runMigrations(conf *DBConf, migrationsDir string, target int64) {
+func RunMigrations(conf *DBConf, migrationsDir string, target int64) {
 
 	db, err := sql.Open(conf.Driver.Name, conf.Driver.OpenStr)
 	if err != nil {
@@ -50,12 +50,12 @@ func runMigrations(conf *DBConf, migrationsDir string, target int64) {
 	}
 	defer db.Close()
 
-	current, e := ensureDBVersion(conf, db)
+	current, e := EnsureDBVersion(conf, db)
 	if e != nil {
 		log.Fatalf("couldn't get DB version: %v", e)
 	}
 
-	mm, err := collectMigrations(migrationsDir, current, target)
+	mm, err := CollectMigrations(migrationsDir, current, target)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -91,7 +91,7 @@ func runMigrations(conf *DBConf, migrationsDir string, target int64) {
 
 // collect all the valid looking migration scripts in the
 // migrations folder, and key them by version
-func collectMigrations(dirpath string, current, target int64) (mm *MigrationMap, err error) {
+func CollectMigrations(dirpath string, current, target int64) (mm *MigrationMap, err error) {
 
 	mm = &MigrationMap{}
 
@@ -100,7 +100,7 @@ func collectMigrations(dirpath string, current, target int64) (mm *MigrationMap,
 	// and ensure we only have one file per migration version.
 	filepath.Walk(dirpath, func(name string, info os.FileInfo, err error) error {
 
-		if v, e := numericComponent(name); e == nil {
+		if v, e := NumericComponent(name); e == nil {
 
 			for _, m := range mm.Migrations {
 				if v == m.Version {
@@ -169,7 +169,7 @@ func (mm *MigrationMap) Sort(direction bool) {
 //  XXX_descriptivename.ext
 // where XXX specifies the version number
 // and ext specifies the type of migration
-func numericComponent(name string) (int64, error) {
+func NumericComponent(name string) (int64, error) {
 
 	base := filepath.Base(name)
 
@@ -192,7 +192,7 @@ func numericComponent(name string) (int64, error) {
 
 // retrieve the current version for this DB.
 // Create and initialize the DB version table if it doesn't exist.
-func ensureDBVersion(conf *DBConf, db *sql.DB) (int64, error) {
+func EnsureDBVersion(conf *DBConf, db *sql.DB) (int64, error) {
 
 	rows, err := conf.Driver.Dialect.dbVersionQuery(db)
 	if err != nil {
@@ -236,7 +236,7 @@ func ensureDBVersion(conf *DBConf, db *sql.DB) (int64, error) {
 		}
 	}
 
-	panic("failure in ensureDBVersion()")
+	panic("failure in EnsureDBVersion()")
 }
 
 // Create the goose_db_version table
@@ -264,9 +264,9 @@ func createVersionTable(conf *DBConf, db *sql.DB) error {
 	return txn.Commit()
 }
 
-// wrapper for ensureDBVersion for callers that don't already have
+// wrapper for EnsureDBVersion for callers that don't already have
 // their own DB instance
-func getDBVersion(conf *DBConf) int64 {
+func GetDBVersion(conf *DBConf) int64 {
 
 	db, err := sql.Open(conf.Driver.Name, conf.Driver.OpenStr)
 	if err != nil {
@@ -274,10 +274,56 @@ func getDBVersion(conf *DBConf) int64 {
 	}
 	defer db.Close()
 
-	version, err := ensureDBVersion(conf, db)
+	version, err := EnsureDBVersion(conf, db)
 	if err != nil {
 		log.Fatalf("couldn't get DB version: %v", err)
 	}
 
 	return version
+}
+
+func GetPreviousDBVersion(dirpath string, version int64) (previous, earliest int64) {
+
+	previous = -1
+	earliest = (1 << 63) - 1
+
+	filepath.Walk(dirpath, func(name string, info os.FileInfo, err error) error {
+
+		if !info.IsDir() {
+			if v, e := NumericComponent(name); e == nil {
+				if v > previous && v < version {
+					previous = v
+				}
+				if v < earliest {
+					earliest = v
+				}
+			}
+		}
+
+		return nil
+	})
+
+	return previous, earliest
+}
+
+// helper to identify the most recent possible version
+// within a folder of migration scripts
+func GetMostRecentDBVersion(dirpath string) int64 {
+
+	mostRecent := int64(-1)
+
+	filepath.Walk(dirpath, func(name string, info os.FileInfo, err error) error {
+
+		if !info.IsDir() {
+			if v, e := NumericComponent(name); e == nil {
+				if v > mostRecent {
+					mostRecent = v
+				}
+			}
+		}
+
+		return nil
+	})
+
+	return mostRecent
 }

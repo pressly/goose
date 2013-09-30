@@ -1,18 +1,13 @@
-package main
+package goose
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"github.com/kylelemons/go-gypsy/yaml"
 	"github.com/lib/pq"
 	"os"
 	"path/filepath"
 )
-
-// global options. available to any subcommands.
-var dbPath = flag.String("path", "db", "folder containing db info")
-var dbEnv = flag.String("env", "development", "which DB environment to use")
 
 // DBDriver encapsulates the info needed to work with
 // a specific database driver
@@ -29,13 +24,8 @@ type DBConf struct {
 	Driver        DBDriver
 }
 
-// default helper - makes a DBConf from the dbPath and dbEnv flags
-func NewDBConf() (*DBConf, error) {
-	return newDBConfDetails(*dbPath, *dbEnv)
-}
-
 // extract configuration details from the given file
-func newDBConfDetails(p, env string) (*DBConf, error) {
+func NewDBConf(p, env string) (*DBConf, error) {
 
 	cfgFile := filepath.Join(p, "dbconf.yml")
 

@@ -1,4 +1,4 @@
-package main
+package goose
 
 import (
 	"io"
@@ -8,7 +8,10 @@ import (
 
 // common routines
 
-func writeTemplateToFile(path string, t *template.Template, data interface{}) (string, error) {
+func WriteTemplateToFile(path string, t *template.Template, data interface{}) (string, error) {
+
+	// XXX: would prefer to not export this
+
 	f, e := os.Create(path)
 	if e != nil {
 		return "", e

@@ -8,6 +8,10 @@ import (
 	"text/template"
 )
 
+// global options. available to any subcommands.
+var flagPath = flag.String("path", "db", "folder containing db info")
+var flagEnv = flag.String("env", "development", "which DB environment to use")
+
 var commands = []*Command{
 	upCmd,
 	downCmd,

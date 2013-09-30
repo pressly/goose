@@ -1,6 +1,9 @@
 package main
 
-import "log"
+import (
+	"bitbucket.org/liamstask/goose/lib/goose"
+	"log"
+)
 
 var redoCmd = &Command{
 	Name:    "redo",
@@ -10,20 +13,20 @@ var redoCmd = &Command{
 }
 
 func redoRun(cmd *Command, args ...string) {
-	conf, err := NewDBConf()
+	conf, err := goose.NewDBConf(*flagPath, *flagEnv)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	target := getDBVersion(conf)
-	_, earliest := getPreviousVersion(conf.MigrationsDir, target)
+	target := goose.GetDBVersion(conf)
+	_, earliest := goose.GetPreviousDBVersion(conf.MigrationsDir, target)
 
 	downRun(cmd, args...)
 	if target == 0 {
 		log.Printf("Updating from %s to %s\n", target, earliest)
 		target = earliest
 	}
-	runMigrations(conf, conf.MigrationsDir, target)
+	goose.RunMigrations(conf, conf.MigrationsDir, target)
 }
 
 func init() {

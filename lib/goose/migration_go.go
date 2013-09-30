@@ -1,4 +1,4 @@
-package main
+package goose
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 	"text/template"
 )
 
-type TemplateData struct {
+type templateData struct {
 	Version    int64
 	Driver     DBDriver
 	Direction  bool
@@ -39,14 +39,14 @@ func runGoMigration(conf *DBConf, path string, version int64, direction bool) er
 		directionStr = "Up"
 	}
 
-	td := &TemplateData{
+	td := &templateData{
 		Version:    version,
 		Driver:     conf.Driver,
 		Direction:  direction,
 		Func:       fmt.Sprintf("%v_%v", directionStr, version),
 		InsertStmt: conf.Driver.Dialect.insertVersionSql(),
 	}
-	main, e := writeTemplateToFile(filepath.Join(d, "goose_main.go"), goMigrationTmpl, td)
+	main, e := WriteTemplateToFile(filepath.Join(d, "goose_main.go"), goMigrationTmpl, td)
 	if e != nil {
 		log.Fatal(e)
 	}

@@ -1,10 +1,9 @@
 package main
 
 import (
+	"bitbucket.org/liamstask/goose/lib/goose"
 	"fmt"
 	"log"
-	"os"
-	"path/filepath"
 )
 
 var downCmd = &Command{
@@ -16,18 +15,18 @@ var downCmd = &Command{
 
 func downRun(cmd *Command, args ...string) {
 
-	conf, err := NewDBConf()
+	conf, err := goose.NewDBConf(*flagPath, *flagEnv)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	current := getDBVersion(conf)
-	previous, earliest := getPreviousVersion(conf.MigrationsDir, current)
-
+	current := goose.GetDBVersion(conf)
 	if current == 0 {
 		fmt.Println("db is empty, can't go down.")
 		return
 	}
+
+	previous, earliest := goose.GetPreviousDBVersion(conf.MigrationsDir, current)
 
 	// if we're at the earliest version, indicate that the
 	// only available step is to roll back to an empty database
@@ -35,29 +34,7 @@ func downRun(cmd *Command, args ...string) {
 		previous = 0
 	}
 
-	runMigrations(conf, conf.MigrationsDir, previous)
-}
-
-func getPreviousVersion(dirpath string, version int64) (previous, earliest int64) {
-
-	previous = -1
-	earliest = (1 << 63) - 1
-
-	filepath.Walk(dirpath, func(name string, info os.FileInfo, err error) error {
-
-		if v, e := numericComponent(name); e == nil {
-			if v > previous && v < version {
-				previous = v
-			}
-			if v < earliest {
-				earliest = v
-			}
-		}
-
-		return nil
-	})
-
-	return previous, earliest
+	goose.RunMigrations(conf, conf.MigrationsDir, previous)
 }
 
 func init() {
