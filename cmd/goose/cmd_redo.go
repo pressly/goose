@@ -18,19 +18,18 @@ func redoRun(cmd *Command, args ...string) {
 		log.Fatal(err)
 	}
 
-	target, err := goose.GetDBVersion(conf)
+	current, err := goose.GetDBVersion(conf)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	_, earliest := goose.GetPreviousDBVersion(conf.MigrationsDir, target)
-
-	downRun(cmd, args...)
-	if target == 0 {
-		log.Printf("Updating from %s to %s\n", target, earliest)
-		target = earliest
+	previous, err := goose.GetPreviousDBVersion(conf.MigrationsDir, current)
+	if err != nil {
+		log.Fatal(err)
 	}
-	goose.RunMigrations(conf, conf.MigrationsDir, target)
+
+	goose.RunMigrations(conf, conf.MigrationsDir, previous)
+	goose.RunMigrations(conf, conf.MigrationsDir, current)
 }
 
 func init() {

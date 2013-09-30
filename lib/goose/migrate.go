@@ -15,7 +15,10 @@ import (
 	"time"
 )
 
-var ErrTableDoesNotExist = errors.New("table does not exist")
+var (
+	ErrTableDoesNotExist = errors.New("table does not exist")
+	ErrNoPreviousVersion = errors.New("no previous version found")
+)
 
 type MigrationRecord struct {
 	VersionId int64
@@ -282,20 +285,20 @@ func GetDBVersion(conf *DBConf) (version int64, err error) {
 	return version, nil
 }
 
-func GetPreviousDBVersion(dirpath string, version int64) (previous, earliest int64) {
+func GetPreviousDBVersion(dirpath string, version int64) (previous int64, err error) {
 
 	previous = -1
-	earliest = (1 << 63) - 1
+	sawGivenVersion := false
 
-	filepath.Walk(dirpath, func(name string, info os.FileInfo, err error) error {
+	filepath.Walk(dirpath, func(name string, info os.FileInfo, walkerr error) error {
 
 		if !info.IsDir() {
 			if v, e := NumericComponent(name); e == nil {
 				if v > previous && v < version {
 					previous = v
 				}
-				if v < earliest {
-					earliest = v
+				if v == version {
+					sawGivenVersion = true
 				}
 			}
 		}
@@ -303,7 +306,18 @@ func GetPreviousDBVersion(dirpath string, version int64) (previous, earliest int
 		return nil
 	})
 
-	return previous, earliest
+	if previous == -1 {
+		if sawGivenVersion {
+			// the given version is (likely) valid but we didn't find
+			// anything before it.
+			// 'previous' must reflect that no migrations have been applied.
+			previous = 0
+		} else {
+			err = ErrNoPreviousVersion
+		}
+	}
+
+	return
 }
 
 // helper to identify the most recent possible version
