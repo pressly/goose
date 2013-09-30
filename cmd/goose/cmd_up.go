@@ -15,7 +15,7 @@ var upCmd = &Command{
 
 func upRun(cmd *Command, args ...string) {
 
-	conf, err := goose.NewDBConf(*flagPath, *flagEnv)
+	conf, err := dbConfFromFlags()
 	if err != nil {
 		log.Fatal(err)
 	}
