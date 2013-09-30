@@ -18,7 +18,11 @@ func redoRun(cmd *Command, args ...string) {
 		log.Fatal(err)
 	}
 
-	target := goose.GetDBVersion(conf)
+	target, err := goose.GetDBVersion(conf)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	_, earliest := goose.GetPreviousDBVersion(conf.MigrationsDir, target)
 
 	downRun(cmd, args...)

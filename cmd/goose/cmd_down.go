@@ -20,7 +20,11 @@ func downRun(cmd *Command, args ...string) {
 		log.Fatal(err)
 	}
 
-	current := goose.GetDBVersion(conf)
+	current, err := goose.GetDBVersion(conf)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	if current == 0 {
 		fmt.Println("db is empty, can't go down.")
 		return

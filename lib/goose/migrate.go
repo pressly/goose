@@ -266,20 +266,20 @@ func createVersionTable(conf *DBConf, db *sql.DB) error {
 
 // wrapper for EnsureDBVersion for callers that don't already have
 // their own DB instance
-func GetDBVersion(conf *DBConf) int64 {
+func GetDBVersion(conf *DBConf) (version int64, err error) {
 
 	db, err := sql.Open(conf.Driver.Name, conf.Driver.OpenStr)
 	if err != nil {
-		log.Fatal("couldn't open DB:", err)
+		return -1, err
 	}
 	defer db.Close()
 
-	version, err := EnsureDBVersion(conf, db)
+	version, err = EnsureDBVersion(conf, db)
 	if err != nil {
-		log.Fatalf("couldn't get DB version: %v", err)
+		return -1, err
 	}
 
-	return version
+	return version, nil
 }
 
 func GetPreviousDBVersion(dirpath string, version int64) (previous, earliest int64) {
