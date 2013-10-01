@@ -349,6 +349,10 @@ func GetMostRecentDBVersion(dirpath string) (version int64, err error) {
 
 func CreateMigration(name, migrationType, dir string, t time.Time) (path string, err error) {
 
+	if migrationType != "go" && migrationType != "sql" {
+		return "", errors.New("migration type must be 'go' or 'sql'")
+	}
+
 	timestamp := t.Format("20060102150405")
 	filename := fmt.Sprintf("%v_%v.%v", timestamp, name, migrationType)
 
