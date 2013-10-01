@@ -31,19 +31,18 @@ type Migration struct {
 	Version  int64
 	Next     int64  // next version, or -1 if none
 	Previous int64  // previous version, -1 if none
-	Source   string // .go or .sql script
+	Source   string // path to .go or .sql script
 }
 
-type MigrationSlice []Migration
+type migrationSorter []*Migration
 
 // helpers so we can use pkg sort
-func (s MigrationSlice) Len() int           { return len(s) }
-func (s MigrationSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
-func (s MigrationSlice) Less(i, j int) bool { return s[i].Version < s[j].Version }
+func (ms migrationSorter) Len() int           { return len(ms) }
+func (ms migrationSorter) Swap(i, j int)      { ms[i], ms[j] = ms[j], ms[i] }
+func (ms migrationSorter) Less(i, j int) bool { return ms[i].Version < ms[j].Version }
 
-type MigrationMap struct {
-	Migrations MigrationSlice // migrations, sorted according to Direction
-	Direction  bool           // sort direction: true -> Up, false -> Down
+func newMigration(v int64, src string) *Migration {
+	return &Migration{v, -1, -1, src}
 }
 
 func RunMigrations(conf *DBConf, migrationsDir string, target int64) (err error) {
@@ -59,28 +58,30 @@ func RunMigrations(conf *DBConf, migrationsDir string, target int64) (err error)
 		return err
 	}
 
-	mm, err := CollectMigrations(migrationsDir, current, target)
+	migrations, err := CollectMigrations(migrationsDir, current, target)
 	if err != nil {
 		return err
 	}
 
-	if len(mm.Migrations) == 0 {
+	if len(migrations) == 0 {
 		fmt.Printf("goose: no migrations to run. current version: %d\n", current)
 		return nil
 	}
 
-	mm.Sort(current < target)
+	ms := migrationSorter(migrations)
+	direction := current < target
+	ms.Sort(direction)
 
 	fmt.Printf("goose: migrating db environment '%v', current version: %d, target: %d\n",
 		conf.Env, current, target)
 
-	for _, m := range mm.Migrations {
+	for _, m := range ms {
 
 		switch filepath.Ext(m.Source) {
 		case ".go":
-			err = runGoMigration(conf, m.Source, m.Version, mm.Direction)
+			err = runGoMigration(conf, m.Source, m.Version, direction)
 		case ".sql":
-			err = runSQLMigration(conf, db, m.Source, m.Version, mm.Direction)
+			err = runSQLMigration(conf, db, m.Source, m.Version, direction)
 		}
 
 		if err != nil {
@@ -95,9 +96,7 @@ func RunMigrations(conf *DBConf, migrationsDir string, target int64) (err error)
 
 // collect all the valid looking migration scripts in the
 // migrations folder, and key them by version
-func CollectMigrations(dirpath string, current, target int64) (mm *MigrationMap, err error) {
-
-	mm = &MigrationMap{}
+func CollectMigrations(dirpath string, current, target int64) (m []*Migration, err error) {
 
 	// extract the numeric component of each migration,
 	// filter out any uninteresting files,
@@ -106,22 +105,22 @@ func CollectMigrations(dirpath string, current, target int64) (mm *MigrationMap,
 
 		if v, e := NumericComponent(name); e == nil {
 
-			for _, m := range mm.Migrations {
-				if v == m.Version {
+			for _, g := range m {
+				if v == g.Version {
 					log.Fatalf("more than one file specifies the migration for version %d (%s and %s)",
-						v, m.Source, filepath.Join(dirpath, name))
+						v, g.Source, filepath.Join(dirpath, name))
 				}
 			}
 
 			if versionFilter(v, current, target) {
-				mm.Append(v, name)
+				m = append(m, newMigration(v, name))
 			}
 		}
 
 		return nil
 	})
 
-	return mm, nil
+	return m, nil
 }
 
 func versionFilter(v, current, target int64) bool {
@@ -137,35 +136,25 @@ func versionFilter(v, current, target int64) bool {
 	return false
 }
 
-func (mm *MigrationMap) Append(v int64, source string) {
-	mm.Migrations = append(mm.Migrations, Migration{
-		Version:  v,
-		Next:     -1,
-		Previous: -1,
-		Source:   source,
-	})
-}
+func (ms migrationSorter) Sort(direction bool) {
+	sort.Sort(ms)
 
-func (mm *MigrationMap) Sort(direction bool) {
-	sort.Sort(mm.Migrations)
-
-	// set direction, and reverse order if need be
-	mm.Direction = direction
-	if mm.Direction == false {
-		for i, j := 0, len(mm.Migrations)-1; i < j; i, j = i+1, j-1 {
-			mm.Migrations[i], mm.Migrations[j] = mm.Migrations[j], mm.Migrations[i]
+	// reverse order if needed
+	if direction == false {
+		for i, j := 0, len(ms)-1; i < j; i, j = i+1, j-1 {
+			ms[i], ms[j] = ms[j], ms[i]
 		}
 	}
 
 	// now that we're sorted in the appropriate direction,
 	// populate next and previous for each migration
-	for i, m := range mm.Migrations {
+	for i, m := range ms {
 		prev := int64(-1)
 		if i > 0 {
-			prev = mm.Migrations[i-1].Version
-			mm.Migrations[i-1].Next = m.Version
+			prev = ms[i-1].Version
+			ms[i-1].Next = m.Version
 		}
-		mm.Migrations[i].Previous = prev
+		ms[i].Previous = prev
 	}
 }
 

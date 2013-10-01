@@ -32,7 +32,7 @@ func statusRun(cmd *Command, args ...string) {
 	// collect all migrations
 	min := int64(0)
 	max := int64((1 << 63) - 1)
-	mm, e := goose.CollectMigrations(conf.MigrationsDir, min, max)
+	migrations, e := goose.CollectMigrations(conf.MigrationsDir, min, max)
 	if e != nil {
 		log.Fatal(e)
 	}
@@ -51,7 +51,7 @@ func statusRun(cmd *Command, args ...string) {
 	fmt.Printf("goose: status for environment '%v'\n", conf.Env)
 	fmt.Println("    Applied At                  Migration")
 	fmt.Println("    =======================================")
-	for _, m := range mm.Migrations {
+	for _, m := range migrations {
 		printMigrationStatus(db, m.Version, filepath.Base(m.Source))
 	}
 }
