@@ -54,7 +54,7 @@ func NewDBConf(p, env string) (*DBConf, error) {
 		}
 	}
 
-	d := NewDBDriver(drv, open)
+	d := newDBDriver(drv, open)
 
 	// allow the configuration to override the Import for this driver
 	if imprt, err := f.Get(fmt.Sprintf("%s.import", env)); err == nil {
@@ -80,7 +80,7 @@ func NewDBConf(p, env string) (*DBConf, error) {
 // Create a new DBDriver and populate driver specific
 // fields for drivers that we know about.
 // Further customization may be done in NewDBConf
-func NewDBDriver(name, open string) DBDriver {
+func newDBDriver(name, open string) DBDriver {
 
 	d := DBDriver{
 		Name:    name,
