@@ -91,7 +91,7 @@ func splitSQLStatements(r io.Reader, direction bool) (stmts []string) {
 		}
 
 		if _, err := buf.WriteString(line + "\n"); err != nil {
-			log.Fatalf("io err", err)
+			log.Fatalf("io err: %v", err)
 		}
 
 		if !ignoreSemicolons && (statementEnded || endsWithSemicolon(line)) {
@@ -102,7 +102,7 @@ func splitSQLStatements(r io.Reader, direction bool) (stmts []string) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Fatalf("scanning migration:", err)
+		log.Fatalf("scanning migration: %v", err)
 	}
 
 	// diagnose likely migration script errors
