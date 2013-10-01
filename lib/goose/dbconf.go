@@ -63,7 +63,7 @@ func NewDBConf(p, env string) (*DBConf, error) {
 
 	// allow the configuration to override the Dialect for this driver
 	if dialect, err := f.Get(fmt.Sprintf("%s.dialect", env)); err == nil {
-		d.Dialect = DialectByName(dialect)
+		d.Dialect = dialectByName(dialect)
 	}
 
 	if !d.IsValid() {

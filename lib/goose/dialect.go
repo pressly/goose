@@ -13,7 +13,7 @@ type SqlDialect interface {
 }
 
 // drivers that we don't know about can ask for a dialect by name
-func DialectByName(d string) SqlDialect {
+func dialectByName(d string) SqlDialect {
 	switch d {
 	case "postgres":
 		return &PostgresDialect{}
