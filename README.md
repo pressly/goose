@@ -196,7 +196,7 @@ These instructions assume that you're using [Keith Rarick's Heroku Go buildpack]
     // +build heroku
     package main
 
-    import _ "bitbucket.org/liamstask/goose"
+    import _ "bitbucket.org/liamstask/goose/cmd/goose"
 
 [Set up your Heroku database(s) as usual.](https://devcenter.heroku.com/articles/heroku-postgresql)
 
