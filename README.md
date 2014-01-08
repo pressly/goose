@@ -29,6 +29,11 @@ Create a new migration script.
 
 Edit the newly created script to define the behavior of your migration.
 
+You can also create an SQL migration:
+
+    $ goose create AddSomeColumns sql
+    $ goose: created db/migrations/20130106093224_AddSomeColumns.sql
+
 ## up
 
 Apply all available migrations.
