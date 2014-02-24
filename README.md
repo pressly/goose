@@ -181,7 +181,7 @@ goose will expand environment variables in the `open` element. For an example, s
 ## Other Drivers
 goose knows about some common SQL drivers, but it can still be used to run Go-based migrations with any driver supported by database/sql. An import path and known dialect are required.
 
-Currently, available dialects are: "postgres" or "mysql"
+Currently, available dialects are: "postgres", "mysql", or "sqlite3"
 
 To run Go-based migrations with another driver, specify its import path and dialect, as shown below.
 
