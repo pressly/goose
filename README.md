@@ -152,7 +152,7 @@ A sample Go migration looks like:
 
 `Up_20130106222315()` will be executed as part of a forward migration, and `Down_20130106222315()` will be executed as part of a rollback.
 
-The numeric portion of the function name (20130106222315) must be the leading portion of migration's filename, such as `20130106222315_descriptive_name.go`. `goose create` does this by default.
+The numeric portion of the function name (`20130106222315`) must be the leading portion of migration's filename, such as `20130106222315_descriptive_name.go`. `goose create` does this by default.
 
 A transaction is provided, rather than the DB instance directly, since goose also needs to record the schema version within the same transaction. Each migration should run as a single transaction to ensure DB integrity, so it's good practice anyway.
 
@@ -161,12 +161,12 @@ A transaction is provided, rather than the DB instance directly, since goose als
 
 goose expects you to maintain a folder (typically called "db"), which contains the following:
 
-* a dbconf.yml file that describes the database configurations you'd like to use
-* a folder called "migrations" which contains .sql and/or .go scripts that implement your migrations
+* a `dbconf.yml` file that describes the database configurations you'd like to use
+* a folder called "migrations" which contains `.sql` and/or `.go` scripts that implement your migrations
 
 You may use the `-path` option to specify an alternate location for the folder containing your config and migrations.
 
-A sample dbconf.yml looks like
+A sample `dbconf.yml` looks like
 
     development:
         driver: postgres
@@ -179,7 +179,7 @@ You may include as many environments as you like, and you can use the `-env` com
 goose will expand environment variables in the `open` element. For an example, see the Heroku section below.
 
 ## Other Drivers
-goose knows about some common SQL drivers, but it can still be used to run Go-based migrations with any driver supported by database/sql. An import path and known dialect are required.
+goose knows about some common SQL drivers, but it can still be used to run Go-based migrations with any driver supported by `database/sql`. An import path and known dialect are required.
 
 Currently, available dialects are: "postgres", "mysql", or "sqlite3"
 
