@@ -74,6 +74,13 @@ Print the status of all migrations:
     $   Sun Jan  6 11:25:03 2013 -- 002_next.sql
     $   Pending                  -- 003_and_again.go
 
+## version
+
+Print the current version of the database:
+
+    $ goose version
+    $ 002
+
 
 `goose -h` provides more detailed info on each command.
 
