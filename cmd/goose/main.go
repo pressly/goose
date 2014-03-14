@@ -24,6 +24,7 @@ var commands = []*Command{
 	redoCmd,
 	statusCmd,
 	createCmd,
+	dbVersionCmd,
 }
 
 func main() {
