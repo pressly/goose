@@ -104,7 +104,7 @@ func (m *Sqlite3Dialect) createVersionTableSql() string {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 version_id INTEGER NOT NULL,
                 is_applied INTEGER NOT NULL,
-                tstamp TEXT DEFAULT (datetime('now'))
+                tstamp TIMESTAMP DEFAULT (datetime('now'))
             );`
 }
 
