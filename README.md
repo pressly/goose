@@ -44,6 +44,16 @@ Apply all available migrations.
     $ OK    002_next.sql
     $ OK    003_and_again.go
 
+## -pgschema up
+
+Apply all available migrations to a specific postgres-schema
+
+    $ goose -pgschema=my_schema_name up
+    $ goose: migrating db environment 'development', current version: 0, target: 3
+    $ OK    001_basics.sql
+    $ OK    002_next.sql
+    $ OK    003_and_again.go
+
 ## down
 
 Roll back a single migration from the current version.

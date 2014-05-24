@@ -86,6 +86,13 @@ func main() {
 		log.Fatal("failed to open DB:", err)
 	}
 	defer db.Close()
+	
+	if conf.Driver.Name == "postgres" {
+		_, err := db.Exec("SET search_path TO " + conf.PgSchema)
+		if err != nil {
+			log.Fatal("SET search_path:", err)
+		}
+	}
 
 	txn, err := db.Begin()
 	if err != nil {

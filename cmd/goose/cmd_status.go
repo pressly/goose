@@ -43,6 +43,13 @@ func statusRun(cmd *Command, args ...string) {
 	}
 	defer db.Close()
 
+	if conf.Driver.Name == "postgres" {
+		_, err := db.Exec("SET search_path TO " + conf.PgSchema)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	// must ensure that the version table exists if we're running on a pristine DB
 	if _, e := goose.EnsureDBVersion(conf, db); e != nil {
 		log.Fatal(e)

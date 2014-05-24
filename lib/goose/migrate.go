@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	_ "github.com/lib/pq"
-	_ "github.com/ziutek/mymysql/godrv"
 	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/ziutek/mymysql/godrv"
 	"log"
 	"os"
 	"path/filepath"
@@ -53,6 +53,13 @@ func RunMigrations(conf *DBConf, migrationsDir string, target int64) (err error)
 		return err
 	}
 	defer db.Close()
+
+	if conf.Driver.Name == "postgres" {
+		_, err := db.Exec("SET search_path TO " + conf.PgSchema)
+		if err != nil {
+			return err
+		}
+	}
 
 	current, err := EnsureDBVersion(conf, db)
 	if err != nil {
@@ -267,6 +274,13 @@ func GetDBVersion(conf *DBConf) (version int64, err error) {
 		return -1, err
 	}
 	defer db.Close()
+
+	if conf.Driver.Name == "postgres" {
+		_, err := db.Exec("SET search_path TO " + conf.PgSchema)
+		if err != nil {
+			return -1, err
+		}
+	}
 
 	version, err = EnsureDBVersion(conf, db)
 	if err != nil {
