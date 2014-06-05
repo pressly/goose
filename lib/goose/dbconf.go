@@ -1,12 +1,14 @@
 package goose
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/kylelemons/go-gypsy/yaml"
-	"github.com/lib/pq"
 	"os"
 	"path/filepath"
+
+	"github.com/kylelemons/go-gypsy/yaml"
+	"github.com/lib/pq"
 )
 
 // DBDriver encapsulates the info needed to work with
@@ -109,4 +111,24 @@ func newDBDriver(name, open string) DBDriver {
 // ensure we have enough info about this driver
 func (drv *DBDriver) IsValid() bool {
 	return len(drv.Import) > 0 && drv.Dialect != nil
+}
+
+// OpenDBFromDBConf wraps database/sql.DB.Open() and configures
+// the newly opened DB based on the given DBConf.
+//
+// Callers must Close() the returned DB.
+func OpenDBFromDBConf(conf *DBConf) (*sql.DB, error) {
+	db, err := sql.Open(conf.Driver.Name, conf.Driver.OpenStr)
+	if err != nil {
+		return nil, err
+	}
+
+	// if a postgres schema has been specified, apply it
+	if conf.Driver.Name == "postgres" && conf.PgSchema != "" {
+		if _, err := db.Exec("SET search_path TO " + conf.PgSchema); err != nil {
+			return nil, err
+		}
+	}
+
+	return db, nil
 }
