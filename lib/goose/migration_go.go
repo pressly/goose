@@ -1,6 +1,8 @@
 package goose
 
 import (
+	"bytes"
+	"encoding/gob"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -12,10 +14,17 @@ import (
 
 type templateData struct {
 	Version    int64
-	Driver     DBDriver
+	Import     string
+	Conf       string // gob encoded DBConf
 	Direction  bool
 	Func       string
 	InsertStmt string
+}
+
+func init() {
+	gob.Register(PostgresDialect{})
+	gob.Register(MySqlDialect{})
+	gob.Register(Sqlite3Dialect{})
 }
 
 //
@@ -39,9 +48,25 @@ func runGoMigration(conf *DBConf, path string, version int64, direction bool) er
 		directionStr = "Up"
 	}
 
+	var bb bytes.Buffer
+	if err := gob.NewEncoder(&bb).Encode(conf); err != nil {
+		return err
+	}
+
+	// XXX: there must be a better way of making this byte array
+	// available to the generated code...
+	// but for now, print an array literal of the gob bytes
+	var sb bytes.Buffer
+	sb.WriteString("[]byte{ ")
+	for _, b := range bb.Bytes() {
+		sb.WriteString(fmt.Sprintf("0x%02x, ", b))
+	}
+	sb.WriteString("}")
+
 	td := &templateData{
 		Version:    version,
-		Driver:     conf.Driver,
+		Import:     conf.Driver.Import,
+		Conf:       sb.String(),
 		Direction:  direction,
 		Func:       fmt.Sprintf("%v_%v", directionStr, version),
 		InsertStmt: conf.Driver.Dialect.insertVersionSql(),
@@ -75,24 +100,27 @@ var goMigrationDriverTemplate = template.Must(template.New("goose.go-driver").Pa
 package main
 
 import (
-	"database/sql"
-	_ "{{.Driver.Import}}"
 	"log"
+	"bytes"
+	"encoding/gob"
+
+	_ "{{.Import}}"
+	"bitbucket.org/liamstask/goose/lib/goose"
 )
 
 func main() {
-	db, err := sql.Open("{{.Driver.Name}}", "{{.Driver.OpenStr}}")
+
+	var conf goose.DBConf
+	buf := bytes.NewBuffer({{ .Conf }})
+	if err := gob.NewDecoder(buf).Decode(&conf); err != nil {
+		log.Fatal("gob.Decode - ", err)
+	}
+
+	db, err := goose.OpenDBFromDBConf(&conf)
 	if err != nil {
 		log.Fatal("failed to open DB:", err)
 	}
 	defer db.Close()
-	
-	if conf.Driver.Name == "postgres" {
-		_, err := db.Exec("SET search_path TO " + conf.PgSchema)
-		if err != nil {
-			log.Fatal("SET search_path:", err)
-		}
-	}
 
 	txn, err := db.Begin()
 	if err != nil {
