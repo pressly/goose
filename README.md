@@ -44,9 +44,9 @@ Apply all available migrations.
     $ OK    002_next.sql
     $ OK    003_and_again.go
 
-## -pgschema up
+### option: pgschema
 
-Apply all available migrations to a specific postgres-schema
+Use the `pgschema` flag with the `up` command specify a postgres schema.
 
     $ goose -pgschema=my_schema_name up
     $ goose: migrating db environment 'development', current version: 0, target: 3
@@ -249,3 +249,5 @@ Thank you!
 * runner_mei
 * John Luebs (jkl1337)
 * Luke Hutton (lukehutton)
+* Kevin Gorjan (kevingorjan)
+* Brendan Fosberry (Fozz)
