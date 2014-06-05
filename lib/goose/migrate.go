@@ -360,6 +360,20 @@ func CreateMigration(name, migrationType, dir string, t time.Time) (path string,
 	return
 }
 
+// Update the version table for the given migration,
+// and finalize the transaction.
+func FinalizeMigration(conf *DBConf, txn *sql.Tx, direction bool, v int64) error {
+
+	// XXX: drop goose_db_version table on some minimum version number?
+	stmt := conf.Driver.Dialect.insertVersionSql()
+	if _, err := txn.Exec(stmt, v, direction); err != nil {
+		txn.Rollback()
+		return err
+	}
+
+	return txn.Commit()
+}
+
 var goMigrationTemplate = template.Must(template.New("goose.go-migration").Parse(`
 package main
 

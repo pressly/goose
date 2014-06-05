@@ -148,23 +148,9 @@ func runSQLMigration(conf *DBConf, db *sql.DB, script string, v int64, direction
 		}
 	}
 
-	if err = finalizeMigration(conf, txn, direction, v); err != nil {
+	if err = FinalizeMigration(conf, txn, direction, v); err != nil {
 		log.Fatalf("error finalizing migration %s, quitting. (%v)", filepath.Base(script), err)
 	}
 
 	return nil
-}
-
-// Update the version table for the given migration,
-// and finalize the transaction.
-func finalizeMigration(conf *DBConf, txn *sql.Tx, direction bool, v int64) error {
-
-	// XXX: drop goose_db_version table on some minimum version number?
-	d := conf.Driver.Dialect
-	if _, err := txn.Exec(d.insertVersionSql(), v, direction); err != nil {
-		txn.Rollback()
-		return err
-	}
-
-	return txn.Commit()
 }
