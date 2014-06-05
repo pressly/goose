@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	_ "github.com/lib/pq"
-	_ "github.com/ziutek/mymysql/godrv"
 	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/ziutek/mymysql/godrv"
 	"log"
 	"os"
 	"path/filepath"
@@ -318,6 +318,9 @@ func GetMostRecentDBVersion(dirpath string) (version int64, err error) {
 	version = -1
 
 	filepath.Walk(dirpath, func(name string, info os.FileInfo, walkerr error) error {
+		if walkerr != nil {
+			return walkerr
+		}
 
 		if !info.IsDir() {
 			if v, e := NumericComponent(name); e == nil {
