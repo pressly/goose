@@ -48,18 +48,11 @@ func newMigration(v int64, src string) *Migration {
 
 func RunMigrations(conf *DBConf, migrationsDir string, target int64) (err error) {
 
-	db, err := sql.Open(conf.Driver.Name, conf.Driver.OpenStr)
+	db, err := OpenDBFromDBConf(conf)
 	if err != nil {
 		return err
 	}
 	defer db.Close()
-
-	if conf.Driver.Name == "postgres" {
-		_, err := db.Exec("SET search_path TO " + conf.PgSchema)
-		if err != nil {
-			return err
-		}
-	}
 
 	current, err := EnsureDBVersion(conf, db)
 	if err != nil {
@@ -269,18 +262,11 @@ func createVersionTable(conf *DBConf, db *sql.DB) error {
 // their own DB instance
 func GetDBVersion(conf *DBConf) (version int64, err error) {
 
-	db, err := sql.Open(conf.Driver.Name, conf.Driver.OpenStr)
+	db, err := OpenDBFromDBConf(conf)
 	if err != nil {
 		return -1, err
 	}
 	defer db.Close()
-
-	if conf.Driver.Name == "postgres" {
-		_, err := db.Exec("SET search_path TO " + conf.PgSchema)
-		if err != nil {
-			return -1, err
-		}
-	}
 
 	version, err = EnsureDBVersion(conf, db)
 	if err != nil {
