@@ -138,13 +138,12 @@ func versionFilter(v, current, target int64) bool {
 }
 
 func (ms migrationSorter) Sort(direction bool) {
-	sort.Sort(ms)
 
-	// reverse order if needed
-	if direction == false {
-		for i, j := 0, len(ms)-1; i < j; i, j = i+1, j-1 {
-			ms[i], ms[j] = ms[j], ms[i]
-		}
+	// sort ascending or descending by version
+	if direction {
+		sort.Sort(ms)
+	} else {
+		sort.Sort(sort.Reverse(ms))
 	}
 
 	// now that we're sorted in the appropriate direction,
@@ -218,16 +217,17 @@ func EnsureDBVersion(conf *DBConf, db *sql.DB) (int64, error) {
 			}
 		}
 
-		// if version has been applied and not marked to be skipped, we're done
-		if row.IsApplied && !skip {
+		if skip {
+			continue
+		}
+
+		// if version has been applied we're done
+		if row.IsApplied {
 			return row.VersionId, nil
 		}
 
-		// version is either not applied, or we've already seen a more
-		// recent version of it that was not applied.
-		if !skip {
-			toSkip = append(toSkip, row.VersionId)
-		}
+		// latest version of migration has not been applied.
+		toSkip = append(toSkip, row.VersionId)
 	}
 
 	panic("failure in EnsureDBVersion()")

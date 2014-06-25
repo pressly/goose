@@ -13,6 +13,8 @@ import (
 
 const sqlCmdPrefix = "-- +goose "
 
+// Checks the line to see if the line has a statement-ending semicolon
+// or if the line contains a double-dash comment.
 func endsWithSemicolon(line string) bool {
 
 	prev := ""
@@ -94,7 +96,10 @@ func splitSQLStatements(r io.Reader, direction bool) (stmts []string) {
 			log.Fatalf("io err: %v", err)
 		}
 
-		if !ignoreSemicolons && (statementEnded || endsWithSemicolon(line)) {
+		// Wrap up the two supported cases: 1) basic with semicolon; 2) psql statement
+		// Lines that end with semicolon that are in a statement block
+		// do not conclude statement.
+		if (!ignoreSemicolons && endsWithSemicolon(line)) || statementEnded {
 			statementEnded = false
 			stmts = append(stmts, buf.String())
 			buf.Reset()
@@ -126,30 +131,33 @@ func splitSQLStatements(r io.Reader, direction bool) (stmts []string) {
 //
 // All statements following an Up or Down directive are grouped together
 // until another direction directive is found.
-func runSQLMigration(conf *DBConf, db *sql.DB, script string, v int64, direction bool) error {
+func runSQLMigration(conf *DBConf, db *sql.DB, scriptFile string, v int64, direction bool) error {
 
 	txn, err := db.Begin()
 	if err != nil {
 		log.Fatal("db.Begin:", err)
 	}
 
-	f, err := os.Open(script)
+	f, err := os.Open(scriptFile)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// find each statement, checking annotations for up/down direction
-	// and execute each of them in the current transaction
+	// and execute each of them in the current transaction.
+	// Commits the transaction if successfully applied each statement and
+	// records the version into the version table or returns an error and
+	// rolls back the transaction.
 	for _, query := range splitSQLStatements(f, direction) {
 		if _, err = txn.Exec(query); err != nil {
 			txn.Rollback()
-			log.Fatalf("FAIL %s (%v), quitting migration.", filepath.Base(script), err)
+			log.Fatalf("FAIL %s (%v), quitting migration.", filepath.Base(scriptFile), err)
 			return err
 		}
 	}
 
 	if err = FinalizeMigration(conf, txn, direction, v); err != nil {
-		log.Fatalf("error finalizing migration %s, quitting. (%v)", filepath.Base(script), err)
+		log.Fatalf("error finalizing migration %s, quitting. (%v)", filepath.Base(scriptFile), err)
 	}
 
 	return nil
