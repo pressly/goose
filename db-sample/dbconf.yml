@@ -16,3 +16,7 @@ customimport:
     open: customdriver open
     import: github.com/custom/driver
     dialect: mysql
+
+environment_variable_config:
+    driver: $DB_DRIVER
+    open: $DATABASE_URL

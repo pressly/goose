@@ -41,6 +41,7 @@ func NewDBConf(p, env string, pgschema string) (*DBConf, error) {
 	if err != nil {
 		return nil, err
 	}
+	drv = os.ExpandEnv(drv)
 
 	open, err := f.Get(fmt.Sprintf("%s.open", env))
 	if err != nil {
