@@ -103,17 +103,18 @@ goose supports migrations written in SQL or in Go - see the `goose create` comma
 
 A sample SQL migration looks like:
 
-    :::sql
-    -- +goose Up
-    CREATE TABLE post (
-        id int NOT NULL,
-        title text,
-        body text,
-        PRIMARY KEY(id)
-    );
+```sql
+-- +goose Up
+CREATE TABLE post (
+    id int NOT NULL,
+    title text,
+    body text,
+    PRIMARY KEY(id)
+);
 
-    -- +goose Down
-    DROP TABLE post;
+-- +goose Down
+DROP TABLE post;
+```
 
 Notice the annotations in the comments. Any statements following `-- +goose Up` will be executed as part of a forward migration, and any statements following `-- +goose Down` will be executed as part of a rollback.
 
@@ -121,50 +122,52 @@ By default, SQL statements are delimited by semicolons - in fact, query statemen
 
 More complex statements (PL/pgSQL) that have semicolons within them must be annotated with `-- +goose StatementBegin` and `-- +goose StatementEnd` to be properly recognized. For example:
 
-    :::sql
-    -- +goose Up
-    -- +goose StatementBegin
-    CREATE OR REPLACE FUNCTION histories_partition_creation( DATE, DATE )
-    returns void AS $$
-    DECLARE
-      create_query text;
-    BEGIN
-      FOR create_query IN SELECT
-          'CREATE TABLE IF NOT EXISTS histories_'
-          || TO_CHAR( d, 'YYYY_MM' )
-          || ' ( CHECK( created_at >= timestamp '''
-          || TO_CHAR( d, 'YYYY-MM-DD 00:00:00' )
-          || ''' AND created_at < timestamp '''
-          || TO_CHAR( d + INTERVAL '1 month', 'YYYY-MM-DD 00:00:00' )
-          || ''' ) ) inherits ( histories );'
-        FROM generate_series( $1, $2, '1 month' ) AS d
-      LOOP
-        EXECUTE create_query;
-      END LOOP;  -- LOOP END
-    END;         -- FUNCTION END
-    $$
-    language plpgsql;
-    -- +goose StatementEnd
+```sql
+-- +goose Up
+-- +goose StatementBegin
+CREATE OR REPLACE FUNCTION histories_partition_creation( DATE, DATE )
+returns void AS $$
+DECLARE
+  create_query text;
+BEGIN
+  FOR create_query IN SELECT
+      'CREATE TABLE IF NOT EXISTS histories_'
+      || TO_CHAR( d, 'YYYY_MM' )
+      || ' ( CHECK( created_at >= timestamp '''
+      || TO_CHAR( d, 'YYYY-MM-DD 00:00:00' )
+      || ''' AND created_at < timestamp '''
+      || TO_CHAR( d + INTERVAL '1 month', 'YYYY-MM-DD 00:00:00' )
+      || ''' ) ) inherits ( histories );'
+    FROM generate_series( $1, $2, '1 month' ) AS d
+  LOOP
+    EXECUTE create_query;
+  END LOOP;  -- LOOP END
+END;         -- FUNCTION END
+$$
+language plpgsql;
+-- +goose StatementEnd
+```
 
 ## Go Migrations
 
 A sample Go migration looks like:
 
-    :::go
-    package main
+```go
+package main
 
-    import (
-        "database/sql"
-        "fmt"
-    )
+import (
+    "database/sql"
+    "fmt"
+)
 
-    func Up_20130106222315(txn *sql.Tx) {
-        fmt.Println("Hello from migration 20130106222315 Up!")
-    }
+func Up_20130106222315(txn *sql.Tx) {
+    fmt.Println("Hello from migration 20130106222315 Up!")
+}
 
-    func Down_20130106222315(txn *sql.Tx) {
-        fmt.Println("Hello from migration 20130106222315 Down!")
-    }
+func Down_20130106222315(txn *sql.Tx) {
+    fmt.Println("Hello from migration 20130106222315 Down!")
+}
+```
 
 `Up_20130106222315()` will be executed as part of a forward migration, and `Down_20130106222315()` will be executed as part of a rollback.
 
@@ -184,9 +187,11 @@ You may use the `-path` option to specify an alternate location for the folder c
 
 A sample `dbconf.yml` looks like
 
-    development:
-        driver: postgres
-        open: user=liam dbname=tester sslmode=disable
+```yml
+development:
+    driver: postgres
+    open: user=liam dbname=tester sslmode=disable
+```
 
 Here, `development` specifies the name of the environment, and the `driver` and `open` elements are passed directly to database/sql to access the specified database.
 
@@ -201,11 +206,13 @@ Currently, available dialects are: "postgres", "mysql", or "sqlite3"
 
 To run Go-based migrations with another driver, specify its import path and dialect, as shown below.
 
-    customdriver:
-        driver: custom
-        open: custom open string
-        import: github.com/custom/driver
-        dialect: mysql
+```yml
+customdriver:
+    driver: custom
+    open: custom open string
+    import: github.com/custom/driver
+    dialect: mysql
+```
 
 NOTE: Because migrations written in SQL are executed directly by the goose binary, only drivers compiled into goose may be used for these migrations.
 
@@ -213,21 +220,25 @@ NOTE: Because migrations written in SQL are executed directly by the goose binar
 
 These instructions assume that you're using [Keith Rarick's Heroku Go buildpack](https://github.com/kr/heroku-buildpack-go). First, add a file to your project called (e.g.) `install_goose.go` to trigger building of the goose executable during deployment, with these contents:
 
-    // use build constraints to work around http://code.google.com/p/go/issues/detail?id=4210
-    // +build heroku
+```go
+// use build constraints to work around http://code.google.com/p/go/issues/detail?id=4210
+// +build heroku
 
-    // note: need at least one blank line after build constraint
-    package main
+// note: need at least one blank line after build constraint
+package main
 
-    import _ "bitbucket.org/liamstask/goose/cmd/goose"
+import _ "bitbucket.org/liamstask/goose/cmd/goose"
+```
 
 [Set up your Heroku database(s) as usual.](https://devcenter.heroku.com/articles/heroku-postgresql)
 
 Then make use of environment variable expansion in your `dbconf.yml`:
 
-    production:
-        driver: postgres
-        open: $DATABASE_URL
+```yml
+production:
+    driver: postgres
+    open: $DATABASE_URL
+```
 
 To run goose in production, use `heroku run`:
 
