@@ -115,6 +115,10 @@ func splitSQLStatements(r io.Reader, direction bool) (stmts []string) {
 		log.Println("WARNING: saw '-- +goose StatementBegin' with no matching '-- +goose StatementEnd'")
 	}
 
+	if bufferRemaining := strings.TrimSpace(buf.String()); len(bufferRemaining) > 0 {
+		log.Printf("WARNING: Unexpected unfinished SQL query: %s. Missing a semicolon?\n", bufferRemaining)
+	}
+
 	if upSections == 0 && downSections == 0 {
 		log.Fatalf(`ERROR: no Up/Down annotations found, so no statements were executed.
 			See https://bitbucket.org/liamstask/goose/overview for details.`)
