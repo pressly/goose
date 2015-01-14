@@ -4,9 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
-	_ "github.com/ziutek/mymysql/godrv"
 	"log"
 	"os"
 	"path/filepath"
@@ -15,6 +12,11 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
+	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/ziutek/mymysql/godrv"
 )
 
 var (
