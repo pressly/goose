@@ -12,7 +12,7 @@ You can manage your database's evolution by creating incremental SQL or Go scrip
 
 This will install the `goose` binary to your `$GOPATH/bin` directory.
 
-You can also build goose into your own applications by importing `bitbucket.org/liamstask/goose/lib/goose`. Documentation is available at [godoc.org](http://godoc.org/bitbucket.org/liamstask/goose/lib/goose).
+You can also build goose into your own applications by importing `github.com/pressly/goose`. Documentation is available at [godoc.org](http://godoc.org/github.com/pressly/goose).
 
 NOTE: the API is still new, and may undergo some changes.
 

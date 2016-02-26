@@ -1,8 +1,9 @@
 package main
 
 import (
-	"bitbucket.org/liamstask/goose/lib/goose"
 	"log"
+
+	"github.com/pressly/goose"
 )
 
 var upCmd = &Command{
