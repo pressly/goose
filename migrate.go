@@ -12,11 +12,6 @@ import (
 	"strings"
 	"text/template"
 	"time"
-
-	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
-	_ "github.com/ziutek/mymysql/godrv"
 )
 
 var (
@@ -48,25 +43,13 @@ func newMigration(v int64, src string) *Migration {
 	return &Migration{v, -1, -1, src}
 }
 
-func RunMigrations(conf *DBConf, migrationsDir string, target int64) (err error) {
-
-	db, err := OpenDBFromDBConf(conf)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	return RunMigrationsOnDb(conf, migrationsDir, target, db)
-}
-
-// Runs migration on a specific database instance.
-func RunMigrationsOnDb(conf *DBConf, migrationsDir string, target int64, db *sql.DB) (err error) {
-	current, err := EnsureDBVersion(conf, db)
+func RunMigrations(db *sql.DB, dir string, target int64) (err error) {
+	current, err := EnsureDBVersion(db)
 	if err != nil {
 		return err
 	}
 
-	migrations, err := CollectMigrations(migrationsDir, current, target)
+	migrations, err := CollectMigrations(dir, current, target)
 	if err != nil {
 		return err
 	}
@@ -80,16 +63,15 @@ func RunMigrationsOnDb(conf *DBConf, migrationsDir string, target int64, db *sql
 	direction := current < target
 	ms.Sort(direction)
 
-	fmt.Printf("goose: migrating db environment '%v', current version: %d, target: %d\n",
-		conf.Env, current, target)
+	fmt.Printf("goose: migrating db environment '%v', current version: %d, target: %d\n", current, target)
 
 	for _, m := range ms {
 
 		switch filepath.Ext(m.Source) {
-		case ".go":
-			err = runGoMigration(conf, m.Source, m.Version, direction)
+		// case ".go":
+		// 	err = runGoMigration(m.Source, m.Version, direction)
 		case ".sql":
-			err = runSQLMigration(conf, db, m.Source, m.Version, direction)
+			err = runSQLMigration(db, m.Source, m.Version, direction)
 		}
 
 		if err != nil {
@@ -192,12 +174,12 @@ func NumericComponent(name string) (int64, error) {
 
 // retrieve the current version for this DB.
 // Create and initialize the DB version table if it doesn't exist.
-func EnsureDBVersion(conf *DBConf, db *sql.DB) (int64, error) {
+func EnsureDBVersion(db *sql.DB) (int64, error) {
 
-	rows, err := conf.Driver.Dialect.dbVersionQuery(db)
+	rows, err := dialectByName("postgres").dbVersionQuery(db)
 	if err != nil {
 		if err == ErrTableDoesNotExist {
-			return 0, createVersionTable(conf, db)
+			return 0, createVersionTable(db)
 		}
 		return 0, err
 	}
@@ -242,13 +224,13 @@ func EnsureDBVersion(conf *DBConf, db *sql.DB) (int64, error) {
 
 // Create the goose_db_version table
 // and insert the initial 0 value into it
-func createVersionTable(conf *DBConf, db *sql.DB) error {
+func createVersionTable(db *sql.DB) error {
 	txn, err := db.Begin()
 	if err != nil {
 		return err
 	}
 
-	d := conf.Driver.Dialect
+	d := dialectByName("postgres")
 
 	if _, err := txn.Exec(d.createVersionTableSql()); err != nil {
 		txn.Rollback()
@@ -267,15 +249,8 @@ func createVersionTable(conf *DBConf, db *sql.DB) error {
 
 // wrapper for EnsureDBVersion for callers that don't already have
 // their own DB instance
-func GetDBVersion(conf *DBConf) (version int64, err error) {
-
-	db, err := OpenDBFromDBConf(conf)
-	if err != nil {
-		return -1, err
-	}
-	defer db.Close()
-
-	version, err = EnsureDBVersion(conf, db)
+func GetDBVersion(db *sql.DB) (int64, error) {
+	version, err := EnsureDBVersion(db)
 	if err != nil {
 		return -1, err
 	}
@@ -372,10 +347,10 @@ func CreateMigration(name, migrationType, dir string, t time.Time) (path string,
 
 // Update the version table for the given migration,
 // and finalize the transaction.
-func FinalizeMigration(conf *DBConf, txn *sql.Tx, direction bool, v int64) error {
+func FinalizeMigration(txn *sql.Tx, direction bool, v int64) error {
 
 	// XXX: drop goose_db_version table on some minimum version number?
-	stmt := conf.Driver.Dialect.insertVersionSql()
+	stmt := dialectByName("postgres").insertVersionSql()
 	if _, err := txn.Exec(stmt, v, direction); err != nil {
 		txn.Rollback()
 		return err

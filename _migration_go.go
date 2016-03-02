@@ -34,7 +34,7 @@ func init() {
 // original .go migration, and execute it via `go run` along
 // with a main() of our own creation.
 //
-func runGoMigration(conf *DBConf, path string, version int64, direction bool) error {
+func runGoMigration(path string, version int64, direction bool) error {
 
 	// everything gets written to a temp dir, and zapped afterwards
 	d, e := ioutil.TempDir("", "goose")
