@@ -6,15 +6,15 @@ Goose is a database migration tool. Manage your database's evolution by creating
 
 This is a fork of https://bitbucket.org/liamstask/goose with following differences:
 - No config files
-- Meant to be imported by your application, so you can run complex Go migrations with your own DB driver
+- Meant to be imported by your application, so you can run complex Go migration functions with your own DB driver
 - Standalone goose binary can only run SQL files -- we dropped building .go files in favor of the above
 
-# TODO
-- [ ] Move lib/goose to top level directory
-- [ ] Remove all config files
-- [ ] Functionality of the commands should be part of the API
-- [ ] Make
-- [ ] Update & finish README
+# Goals
+- [x] Move lib/goose to top level directory
+- [x] Remove all config files
+- [x] Commands should be part of the API
+- [x] Update & finish README
+- [ ] Registry for Go migration functions
 
 # Install
 
@@ -26,7 +26,13 @@ This will install the `goose` binary to your `$GOPATH/bin` directory.
 
 # Usage
 
-goose provides several commands to help manage your database schema.
+`goose [OPTIONS] DRIVER DBSTRING COMMAND`
+
+Examples:
+
+    $ goose postgres "user=postgres dbname=postgres sslmode=disable" up
+    $ goose mysql "user:password@/dbname" down
+    $ goose sqlite3 ./foo.db status
 
 ## create
 
