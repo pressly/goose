@@ -1,0 +1,16 @@
+sudo: false
+language: go
+go:
+- 1.6
+- tip
+
+install:
+- go get github.com/go-sql-driver/mysql
+- go get github.com/lib/pq
+- go get github.com/mattn/go-sqlite3
+- go get github.com/ziutek/mymysql/godrv
+
+script:
+- go test
+- go run ./cmd/goose/main.go sqlite3 foo.db up
+
