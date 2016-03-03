@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -17,6 +18,7 @@ import (
 var (
 	ErrTableDoesNotExist = errors.New("table does not exist")
 	ErrNoPreviousVersion = errors.New("no previous version found")
+	goMigrations         []*Migration
 )
 
 type MigrationRecord struct {
@@ -27,9 +29,11 @@ type MigrationRecord struct {
 
 type Migration struct {
 	Version  int64
-	Next     int64  // next version, or -1 if none
-	Previous int64  // previous version, -1 if none
-	Source   string // path to .go or .sql script
+	Next     int64               // next version, or -1 if none
+	Previous int64               // previous version, -1 if none
+	Source   string              // path to .sql script
+	Up       func(*sql.Tx) error // Up go migration function
+	Down     func(*sql.Tx) error // Down go migration function
 }
 
 type migrationSorter []*Migration
@@ -39,8 +43,12 @@ func (ms migrationSorter) Len() int           { return len(ms) }
 func (ms migrationSorter) Swap(i, j int)      { ms[i], ms[j] = ms[j], ms[i] }
 func (ms migrationSorter) Less(i, j int) bool { return ms[i].Version < ms[j].Version }
 
-func newMigration(v int64, src string) *Migration {
-	return &Migration{v, -1, -1, src}
+func AddMigration(up func(*sql.Tx) error, down func(*sql.Tx) error) {
+	_, filename, _, _ := runtime.Caller(1)
+	v, _ := NumericComponent(filename)
+	migration := &Migration{Version: v, Next: -1, Previous: -1, Up: up, Down: down, Source: filename}
+
+	goMigrations = append(goMigrations, migration)
 }
 
 func RunMigrations(db *sql.DB, dir string, target int64) (err error) {
@@ -69,13 +77,33 @@ func RunMigrations(db *sql.DB, dir string, target int64) (err error) {
 
 		switch filepath.Ext(m.Source) {
 		case ".sql":
-		default:
-			continue
-		}
+			if err = runSQLMigration(db, m.Source, m.Version, direction); err != nil {
+				return errors.New(fmt.Sprintf("FAIL %v, quitting migration", err))
+			}
 
-		err = runSQLMigration(db, m.Source, m.Version, direction)
-		if err != nil {
-			return errors.New(fmt.Sprintf("FAIL %v, quitting migration", err))
+		case ".go":
+			fn := m.Up
+			if !direction {
+				fn = m.Down
+			}
+			if fn == nil {
+				continue
+			}
+
+			tx, err := db.Begin()
+			if err != nil {
+				log.Fatal("db.Begin: ", err)
+			}
+
+			if err := fn(tx); err != nil {
+				tx.Rollback()
+				log.Fatalf("FAIL %s (%v), quitting migration.", filepath.Base(m.Source), err)
+				return err
+			}
+
+			if err = FinalizeMigration(tx, direction, m.Version); err != nil {
+				log.Fatalf("error finalizing migration %s, quitting. (%v)", filepath.Base(m.Source), err)
+			}
 		}
 
 		fmt.Println("OK   ", filepath.Base(m.Source))
@@ -85,30 +113,37 @@ func RunMigrations(db *sql.DB, dir string, target int64) (err error) {
 }
 
 // collect all the valid looking migration scripts in the
-// migrations folder, and key them by version
+// migrations folder and go func registry, and key them by version
 func CollectMigrations(dirpath string, current, target int64) (m []*Migration, err error) {
 
 	// extract the numeric component of each migration,
 	// filter out any uninteresting files,
 	// and ensure we only have one file per migration version.
-	filepath.Walk(dirpath, func(name string, info os.FileInfo, err error) error {
+	sqlMigrations, err := filepath.Glob(dirpath + "/*.sql")
+	if err != nil {
+		return nil, err
+	}
 
-		if v, e := NumericComponent(name); e == nil {
-
-			for _, g := range m {
-				if v == g.Version {
-					log.Fatalf("more than one file specifies the migration for version %d (%s and %s)",
-						v, g.Source, filepath.Join(dirpath, name))
-				}
-			}
-
-			if versionFilter(v, current, target) {
-				m = append(m, newMigration(v, name))
-			}
+	for _, file := range sqlMigrations {
+		v, err := NumericComponent(file)
+		if err != nil {
+			return nil, err
 		}
+		if versionFilter(v, current, target) {
+			migration := &Migration{Version: v, Next: -1, Previous: -1, Source: file}
+			m = append(m, migration)
+		}
+	}
 
-		return nil
-	})
+	for _, migration := range goMigrations {
+		v, err := NumericComponent(migration.Source)
+		if err != nil {
+			return nil, err
+		}
+		if versionFilter(v, current, target) {
+			m = append(m, migration)
+		}
+	}
 
 	return m, nil
 }
@@ -341,16 +376,16 @@ func CreateMigration(name, migrationType, dir string, t time.Time) (path string,
 
 // Update the version table for the given migration,
 // and finalize the transaction.
-func FinalizeMigration(txn *sql.Tx, direction bool, v int64) error {
+func FinalizeMigration(tx *sql.Tx, direction bool, v int64) error {
 
 	// XXX: drop goose_db_version table on some minimum version number?
 	stmt := GetDialect().insertVersionSql()
-	if _, err := txn.Exec(stmt, v, direction); err != nil {
-		txn.Rollback()
+	if _, err := tx.Exec(stmt, v, direction); err != nil {
+		tx.Rollback()
 		return err
 	}
 
-	return txn.Commit()
+	return tx.Commit()
 }
 
 var sqlMigrationTemplate = template.Must(template.New("goose.sql-migration").Parse(`

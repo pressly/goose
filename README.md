@@ -4,17 +4,12 @@ Goose is a database migration tool. Manage your database's evolution by creating
 
 [![GoDoc Widget]][GoDoc] [![Travis Widget]][Travis]
 
-This is a fork of https://bitbucket.org/liamstask/goose with following differences:
-- No config files
-- Meant to be imported by your application, so you can run complex Go migration functions with your own DB driver
-- Standalone goose binary can only run SQL files -- we dropped building .go files in favor of the above
+### Goals of this fork
 
-# Goals
-- [x] Move lib/goose to top level directory
-- [x] Remove all config files
-- [x] Commands should be part of the API
-- [x] Update & finish README
-- [ ] Registry for Go migration functions
+This is a fork of https://bitbucket.org/liamstask/goose with the following changes:
+- No config files
+- Default binary can migrate SQL files only, we dropped building .go files on-the-fly
+- Import goose pkg to run complex Go migrations with your own `*sql.DB` connection (no pkg dependency hell anymore)
 
 # Install
 
@@ -22,17 +17,27 @@ This is a fork of https://bitbucket.org/liamstask/goose with following differenc
 
 This will install the `goose` binary to your `$GOPATH/bin` directory.
 
-*Note: A standalone goose binary can only run pure SQL migrations. To run complex Go migrations, you have to import this pkg and register functions.*
-
 # Usage
 
-`goose [OPTIONS] DRIVER DBSTRING COMMAND`
+```
+Usage: goose [OPTIONS] DRIVER DBSTRING COMMAND
 
 Examples:
+    goose postgres "user=postgres dbname=postgres sslmode=disable" up
+    goose mysql "user:password@/dbname" down
+    goose sqlite3 ./foo.db status
 
-    $ goose postgres "user=postgres dbname=postgres sslmode=disable" up
-    $ goose mysql "user:password@/dbname" down
-    $ goose sqlite3 ./foo.db status
+Options:
+  -dir string
+    	directory with migration files (default ".")
+
+Commands:
+    up         Migrate the DB to the most recent version available
+    down       Roll back the version by 1
+    redo       Re-run the latest migration
+    status     Dump the migration status for the current DB
+    dbversion  Print the current version of the database
+```
 
 ## create
 
@@ -53,16 +58,6 @@ You can also create an SQL migration:
 Apply all available migrations.
 
     $ goose up
-    $ goose: migrating db environment 'development', current version: 0, target: 3
-    $ OK    001_basics.sql
-    $ OK    002_next.sql
-    $ OK    003_and_again.go
-
-### option: pgschema
-
-Use the `pgschema` flag with the `up` command specify a postgres schema.
-
-    $ goose -pgschema=my_schema_name up
     $ goose: migrating db environment 'development', current version: 0, target: 3
     $ OK    001_basics.sql
     $ OK    002_next.sql
@@ -104,10 +99,6 @@ Print the current version of the database:
 
     $ goose dbversion
     $ goose: dbversion 002
-
-
-`goose -h` provides more detailed info on each command.
-
 
 # Migrations
 
@@ -164,30 +155,39 @@ language plpgsql;
 
 ## Go Migrations
 
-A sample Go migration looks like:
+Import `github.com/pressly/goose` from your own project (see [example](./example/migrations-go/cmd/main.go)), register migration functions and run goose command (ie. `goose.Up(db *sql.DB, dir string)`).
+
+A [sample Go migration 00002_users_add_email.go file](./example/migrations-go/00002_users_add_email.go) looks like:
 
 ```go
-package main
+package migrations
 
 import (
-    "database/sql"
-    "fmt"
+	"database/sql"
+
+	"github.com/pressly/goose"
 )
 
-func Up_20130106222315(txn *sql.Tx) {
-    fmt.Println("Hello from migration 20130106222315 Up!")
+func init() {
+	goose.AddMigration(Up, Down)
 }
 
-func Down_20130106222315(txn *sql.Tx) {
-    fmt.Println("Hello from migration 20130106222315 Down!")
+func Up(tx *sql.Tx) error {
+	_, err := tx.Query("ALTER TABLE users ADD COLUMN email text DEFAULT '' NOT NULL;")
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func Down(tx *sql.Tx) error {
+	_, err := tx.Query("ALTER TABLE users DROP COLUMN email;")
+	if err != nil {
+		return err
+	}
+	return nil
 }
 ```
-
-`Up_20130106222315()` will be executed as part of a forward migration, and `Down_20130106222315()` will be executed as part of a rollback.
-
-The numeric portion of the function name (`20130106222315`) must be the leading portion of migration's filename, such as `20130106222315_descriptive_name.go`. `goose create` does this by default.
-
-A transaction is provided, rather than the DB instance directly, since goose also needs to record the schema version within the same transaction. Each migration should run as a single transaction to ensure DB integrity, so it's good practice anyway.
 
 ## License
 
