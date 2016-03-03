@@ -1,79 +1,90 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	"fmt"
+	"log"
 	"os"
-	"strings"
-	"text/template"
 
-	"github.com/pressly/goose/lib/goose"
+	"github.com/pressly/goose"
+
+	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
+	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/ziutek/mymysql/godrv"
 )
 
-// global options. available to any subcommands.
-var flagPath = flag.String("path", "db", "folder containing db info")
-var flagEnv = flag.String("env", "development", "which DB environment to use")
-var flagPgSchema = flag.String("pgschema", "", "which postgres-schema to migrate (default = none)")
-
-// helper to create a DBConf from the given flags
-func dbConfFromFlags() (dbconf *goose.DBConf, err error) {
-	return goose.NewDBConf(*flagPath, *flagEnv, *flagPgSchema)
-}
-
-var commands = []*Command{
-	upCmd,
-	downCmd,
-	redoCmd,
-	statusCmd,
-	createCmd,
-	dbVersionCmd,
-}
+var (
+	flags = flag.NewFlagSet("goose", flag.ExitOnError)
+	dir   = flags.String("dir", ".", "directory with migration files")
+)
 
 func main() {
+	flags.Usage = usage
+	flags.Parse(os.Args[1:])
 
-	flag.Usage = usage
-	flag.Parse()
-
-	args := flag.Args()
-	if len(args) == 0 || args[0] == "-h" {
-		flag.Usage()
+	args := flags.Args()
+	if len(args) != 3 {
+		flags.Usage()
 		return
 	}
 
-	var cmd *Command
-	name := args[0]
-	for _, c := range commands {
-		if strings.HasPrefix(c.Name, name) {
-			cmd = c
-			break
+	if args[0] == "-h" || args[0] == "--help" {
+		flags.Usage()
+		return
+	}
+
+	driver, dbstring, command := args[0], args[1], args[2]
+
+	switch driver {
+	case "postgres", "mysql", "sqlite3":
+		if err := goose.SetDialect(driver); err != nil {
+			log.Fatal(err)
 		}
+	default:
+		log.Fatalf("%q driver not supported\n", driver)
 	}
 
-	if cmd == nil {
-		fmt.Printf("error: unknown command %q\n", name)
-		flag.Usage()
-		os.Exit(1)
+	switch dbstring {
+	case "":
+		log.Fatalf("-dbstring=%q not supported\n", dbstring)
+	default:
 	}
 
-	cmd.Exec(args[1:])
+	db, err := sql.Open(driver, dbstring)
+	if err != nil {
+		log.Fatalf("-dbstring=%q: %v\n", dbstring, err)
+	}
+
+	if err := goose.Run(command, db, *dir); err != nil {
+		log.Fatalf("goose run: %v", err)
+	}
 }
 
 func usage() {
 	fmt.Print(usagePrefix)
-	flag.PrintDefaults()
-	usageTmpl.Execute(os.Stdout, commands)
+	flags.PrintDefaults()
+	fmt.Print(usageCommands)
 }
 
-var usagePrefix = `
-goose is a database migration management system for Go projects.
+var (
+	usagePrefix = `Usage: goose [OPTIONS] DRIVER DBSTRING COMMAND
 
-Usage:
-    goose [options] <subcommand> [subcommand options]
+Examples:
+    goose postgres "user=postgres dbname=postgres sslmode=disable" up
+    goose mysql "user:password@/dbname" down
+    goose sqlite3 ./foo.db status
 
 Options:
 `
-var usageTmpl = template.Must(template.New("usage").Parse(
-	`
-Commands:{{range .}}
-    {{.Name | printf "%-10s"}} {{.Summary}}{{end}}
-`))
+
+	usageCommands = `
+Commands:
+    up         Migrate the DB to the most recent version available
+    down       Roll back the version by 1
+    redo       Re-run the latest migration
+    status     Dump the migration status for the current DB
+    dbversion  Print the current version of the database
+`
+)

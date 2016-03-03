@@ -63,17 +63,17 @@ func RunMigrations(db *sql.DB, dir string, target int64) (err error) {
 	direction := current < target
 	ms.Sort(direction)
 
-	fmt.Printf("goose: migrating db environment '%v', current version: %d, target: %d\n", current, target)
+	fmt.Printf("goose: migrating db, current version: %d, target: %d\n", current, target)
 
 	for _, m := range ms {
 
 		switch filepath.Ext(m.Source) {
-		// case ".go":
-		// 	err = runGoMigration(m.Source, m.Version, direction)
 		case ".sql":
-			err = runSQLMigration(db, m.Source, m.Version, direction)
+		default:
+			continue
 		}
 
+		err = runSQLMigration(db, m.Source, m.Version, direction)
 		if err != nil {
 			return errors.New(fmt.Sprintf("FAIL %v, quitting migration", err))
 		}
@@ -176,7 +176,7 @@ func NumericComponent(name string) (int64, error) {
 // Create and initialize the DB version table if it doesn't exist.
 func EnsureDBVersion(db *sql.DB) (int64, error) {
 
-	rows, err := dialectByName("postgres").dbVersionQuery(db)
+	rows, err := GetDialect().dbVersionQuery(db)
 	if err != nil {
 		if err == ErrTableDoesNotExist {
 			return 0, createVersionTable(db)
@@ -230,7 +230,7 @@ func createVersionTable(db *sql.DB) error {
 		return err
 	}
 
-	d := dialectByName("postgres")
+	d := GetDialect()
 
 	if _, err := txn.Exec(d.createVersionTableSql()); err != nil {
 		txn.Rollback()
@@ -332,13 +332,7 @@ func CreateMigration(name, migrationType, dir string, t time.Time) (path string,
 	filename := fmt.Sprintf("%v_%v.%v", timestamp, name, migrationType)
 
 	fpath := filepath.Join(dir, filename)
-
-	var tmpl *template.Template
-	if migrationType == "sql" {
-		tmpl = sqlMigrationTemplate
-	} else {
-		tmpl = goMigrationTemplate
-	}
+	tmpl := sqlMigrationTemplate
 
 	path, err = writeTemplateToFile(fpath, tmpl, timestamp)
 
@@ -350,7 +344,7 @@ func CreateMigration(name, migrationType, dir string, t time.Time) (path string,
 func FinalizeMigration(txn *sql.Tx, direction bool, v int64) error {
 
 	// XXX: drop goose_db_version table on some minimum version number?
-	stmt := dialectByName("postgres").insertVersionSql()
+	stmt := GetDialect().insertVersionSql()
 	if _, err := txn.Exec(stmt, v, direction); err != nil {
 		txn.Rollback()
 		return err
@@ -358,24 +352,6 @@ func FinalizeMigration(txn *sql.Tx, direction bool, v int64) error {
 
 	return txn.Commit()
 }
-
-var goMigrationTemplate = template.Must(template.New("goose.go-migration").Parse(`
-package main
-
-import (
-	"database/sql"
-)
-
-// Up is executed when this migration is applied
-func Up_{{ . }}(txn *sql.Tx) {
-
-}
-
-// Down is executed when this migration is rolled back
-func Down_{{ . }}(txn *sql.Tx) {
-
-}
-`))
 
 var sqlMigrationTemplate = template.Must(template.New("goose.sql-migration").Parse(`
 -- +goose Up
