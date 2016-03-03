@@ -1,11 +1,11 @@
-
 -- +goose Up
-CREATE TABLE post (
+CREATE TABLE fancier_post (
     id int NOT NULL,
     title text,
     body text,
+    created_on timestamp without time zone,
     PRIMARY KEY(id)
 );
 
 -- +goose Down
-DROP TABLE post;
+DROP TABLE fancier_post;

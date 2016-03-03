@@ -2,6 +2,8 @@ package goose
 
 import (
 	"database/sql"
+	"fmt"
+
 	"github.com/mattn/go-sqlite3"
 )
 
@@ -13,15 +15,22 @@ type SqlDialect interface {
 	dbVersionQuery(db *sql.DB) (*sql.Rows, error)
 }
 
-// drivers that we don't know about can ask for a dialect by name
-func dialectByName(d string) SqlDialect {
+var dialect SqlDialect = &PostgresDialect{}
+
+func GetDialect() SqlDialect {
+	return dialect
+}
+
+func SetDialect(d string) error {
 	switch d {
 	case "postgres":
-		return &PostgresDialect{}
+		dialect = &PostgresDialect{}
 	case "mysql":
-		return &MySqlDialect{}
+		dialect = &MySqlDialect{}
 	case "sqlite3":
-		return &Sqlite3Dialect{}
+		dialect = &Sqlite3Dialect{}
+	default:
+		return fmt.Errorf("%q: unknown dialect", d)
 	}
 
 	return nil

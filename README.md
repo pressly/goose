@@ -1,24 +1,38 @@
 # goose
 
-goose is a database migration tool.
+Goose is a database migration tool. Manage your database's evolution by creating incremental SQL files or Go functions.
 
-You can manage your database's evolution by creating incremental SQL or Go scripts.
+[![GoDoc Widget]][GoDoc] [![Travis Widget]][Travis]
 
-[![Build Status](https://drone.io/bitbucket.org/liamstask/goose/status.png)](https://drone.io/bitbucket.org/liamstask/goose/latest)
+This is a fork of https://bitbucket.org/liamstask/goose with following differences:
+- No config files
+- Meant to be imported by your application, so you can run complex Go migration functions with your own DB driver
+- Standalone goose binary can only run SQL files -- we dropped building .go files in favor of the above
+
+# Goals
+- [x] Move lib/goose to top level directory
+- [x] Remove all config files
+- [x] Commands should be part of the API
+- [x] Update & finish README
+- [ ] Registry for Go migration functions
 
 # Install
 
-    $ go get bitbucket.org/liamstask/goose/cmd/goose
+    $ go get -u github.com/pressly/cmd/goose
 
 This will install the `goose` binary to your `$GOPATH/bin` directory.
 
-You can also build goose into your own applications by importing `bitbucket.org/liamstask/goose/lib/goose`. Documentation is available at [godoc.org](http://godoc.org/bitbucket.org/liamstask/goose/lib/goose).
-
-NOTE: the API is still new, and may undergo some changes.
+*Note: A standalone goose binary can only run pure SQL migrations. To run complex Go migrations, you have to import this pkg and register functions.*
 
 # Usage
 
-goose provides several commands to help manage your database schema.
+`goose [OPTIONS] DRIVER DBSTRING COMMAND`
+
+Examples:
+
+    $ goose postgres "user=postgres dbname=postgres sslmode=disable" up
+    $ goose mysql "user:password@/dbname" down
+    $ goose sqlite3 ./foo.db status
 
 ## create
 
@@ -175,91 +189,11 @@ The numeric portion of the function name (`20130106222315`) must be the leading 
 
 A transaction is provided, rather than the DB instance directly, since goose also needs to record the schema version within the same transaction. Each migration should run as a single transaction to ensure DB integrity, so it's good practice anyway.
 
+## License
 
-# Configuration
+Licensed under [MIT License](./LICENSE)
 
-goose expects you to maintain a folder (typically called "db"), which contains the following:
-
-* a `dbconf.yml` file that describes the database configurations you'd like to use
-* a folder called "migrations" which contains `.sql` and/or `.go` scripts that implement your migrations
-
-You may use the `-path` option to specify an alternate location for the folder containing your config and migrations.
-
-A sample `dbconf.yml` looks like
-
-```yml
-development:
-    driver: postgres
-    open: user=liam dbname=tester sslmode=disable
-```
-
-Here, `development` specifies the name of the environment, and the `driver` and `open` elements are passed directly to database/sql to access the specified database.
-
-You may include as many environments as you like, and you can use the `-env` command line option to specify which one to use. goose defaults to using an environment called `development`.
-
-goose will expand environment variables in the `open` element. For an example, see the Heroku section below.
-
-## Other Drivers
-goose knows about some common SQL drivers, but it can still be used to run Go-based migrations with any driver supported by `database/sql`. An import path and known dialect are required.
-
-Currently, available dialects are: "postgres", "mysql", or "sqlite3"
-
-To run Go-based migrations with another driver, specify its import path and dialect, as shown below.
-
-```yml
-customdriver:
-    driver: custom
-    open: custom open string
-    import: github.com/custom/driver
-    dialect: mysql
-```
-
-NOTE: Because migrations written in SQL are executed directly by the goose binary, only drivers compiled into goose may be used for these migrations.
-
-## Using goose with Heroku
-
-These instructions assume that you're using [Keith Rarick's Heroku Go buildpack](https://github.com/kr/heroku-buildpack-go). First, add a file to your project called (e.g.) `install_goose.go` to trigger building of the goose executable during deployment, with these contents:
-
-```go
-// use build constraints to work around http://code.google.com/p/go/issues/detail?id=4210
-// +build heroku
-
-// note: need at least one blank line after build constraint
-package main
-
-import _ "bitbucket.org/liamstask/goose/cmd/goose"
-```
-
-[Set up your Heroku database(s) as usual.](https://devcenter.heroku.com/articles/heroku-postgresql)
-
-Then make use of environment variable expansion in your `dbconf.yml`:
-
-```yml
-production:
-    driver: postgres
-    open: $DATABASE_URL
-```
-
-To run goose in production, use `heroku run`:
-
-    heroku run goose -env production up
-
-# Contributors
-
-Thank you!
-
-* Josh Bleecher Snyder (josharian)
-* Abigail Walthall (ghthor)
-* Daniel Heath (danielrheath)
-* Chris Baynes (chris_baynes)
-* Michael Gerow (gerow)
-* Vytautas Šaltenis (rtfb)
-* James Cooper (coopernurse)
-* Gyepi Sam (gyepisam)
-* Matt Sherman (clipperhouse)
-* runner_mei
-* John Luebs (jkl1337)
-* Luke Hutton (lukehutton)
-* Kevin Gorjan (kevingorjan)
-* Brendan Fosberry (Fozz)
-* Nate Guerin (gusennan)
+[GoDoc]: https://godoc.org/github.com/pressly/goose
+[GoDoc Widget]: https://godoc.org/github.com/pressly/goose?status.svg
+[Travis]: https://travis-ci.org/pressly/goose
+[Travis Widget]: https://travis-ci.org/pressly/goose.svg?branch=master
