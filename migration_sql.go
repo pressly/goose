@@ -137,7 +137,7 @@ func splitSQLStatements(r io.Reader, direction bool) (stmts []string) {
 // until another direction directive is found.
 func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) error {
 
-	txn, err := db.Begin()
+	tx, err := db.Begin()
 	if err != nil {
 		log.Fatal("db.Begin:", err)
 	}
@@ -153,14 +153,14 @@ func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) err
 	// records the version into the version table or returns an error and
 	// rolls back the transaction.
 	for _, query := range splitSQLStatements(f, direction) {
-		if _, err = txn.Exec(query); err != nil {
-			txn.Rollback()
+		if _, err = tx.Exec(query); err != nil {
+			tx.Rollback()
 			log.Fatalf("FAIL %s (%v), quitting migration.", filepath.Base(scriptFile), err)
 			return err
 		}
 	}
 
-	if err = FinalizeMigration(txn, direction, v); err != nil {
+	if err = FinalizeMigration(tx, direction, v); err != nil {
 		log.Fatalf("error finalizing migration %s, quitting. (%v)", filepath.Base(scriptFile), err)
 	}
 

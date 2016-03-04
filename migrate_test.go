@@ -4,6 +4,10 @@ import (
 	"testing"
 )
 
+func newMigration(v int64, src string) *Migration {
+	return &Migration{Version: v, Previous: -1, Next: -1, Source: src}
+}
+
 func TestMigrationMapSortUp(t *testing.T) {
 
 	ms := migrationSorter{}

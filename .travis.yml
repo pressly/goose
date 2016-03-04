@@ -12,5 +12,11 @@ install:
 
 script:
 - go test
-- go run ./cmd/goose/main.go sqlite3 foo.db up
-
+- go run ./cmd/goose/main.go -dir=example/migrations sqlite3 sql.db up
+- go run ./cmd/goose/main.go -dir=example/migrations sqlite3 sql.db version
+- go run ./cmd/goose/main.go -dir=example/migrations sqlite3 sql.db down
+- go run ./cmd/goose/main.go -dir=example/migrations sqlite3 sql.db status
+- go run ./example/migrations-go/cmd/main.go -dir=example/migrations-go sqlite3 go.db up
+- go run ./example/migrations-go/cmd/main.go -dir=example/migrations-go sqlite3 go.db version
+- go run ./example/migrations-go/cmd/main.go -dir=example/migrations-go sqlite3 go.db down
+- go run ./example/migrations-go/cmd/main.go -dir=example/migrations-go sqlite3 go.db status
