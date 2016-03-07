@@ -16,7 +16,6 @@ import (
 )
 
 var (
-	ErrTableDoesNotExist = errors.New("table does not exist")
 	ErrNoPreviousVersion = errors.New("no previous version found")
 	goMigrations         []*Migration
 )
@@ -213,10 +212,7 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 
 	rows, err := GetDialect().dbVersionQuery(db)
 	if err != nil {
-		if err == ErrTableDoesNotExist {
-			return 0, createVersionTable(db)
-		}
-		return 0, err
+		return 0, createVersionTable(db)
 	}
 	defer rows.Close()
 
