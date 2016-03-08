@@ -18,7 +18,7 @@ func Status(db *sql.DB, dir string) error {
 	}
 
 	ms := migrationSorter(migrations)
-	ms.Sort(0)
+	ms.Sort(true)
 
 	// must ensure that the version table exists if we're running on a pristine DB
 	if _, err := EnsureDBVersion(db); err != nil {
