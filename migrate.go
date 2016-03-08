@@ -81,23 +81,21 @@ func RunMigrations(db *sql.DB, dir string, target int64) (err error) {
 			}
 
 		case ".go":
-			fn := m.Up
-			if !direction {
-				fn = m.Down
-			}
-			if fn == nil {
-				continue
-			}
-
 			tx, err := db.Begin()
 			if err != nil {
 				log.Fatal("db.Begin: ", err)
 			}
 
-			if err := fn(tx); err != nil {
-				tx.Rollback()
-				log.Fatalf("FAIL %s (%v), quitting migration.", filepath.Base(m.Source), err)
-				return err
+			fn := m.Up
+			if !direction {
+				fn = m.Down
+			}
+			if fn != nil {
+				if err := fn(tx); err != nil {
+					tx.Rollback()
+					log.Fatalf("FAIL %s (%v), quitting migration.", filepath.Base(m.Source), err)
+					return err
+				}
 			}
 
 			if err = FinalizeMigration(tx, direction, m.Version); err != nil {
