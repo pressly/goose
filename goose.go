@@ -11,6 +11,10 @@ func Run(command string, db *sql.DB, dir string) error {
 		if err := Up(db, dir); err != nil {
 			return err
 		}
+	case "up-by-one":
+		if err := UpByOne(db, dir); err != nil {
+			return err
+		}
 	case "down":
 		if err := Down(db, dir); err != nil {
 			return err

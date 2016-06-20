@@ -17,6 +17,7 @@ import (
 
 var (
 	ErrNoPreviousVersion = errors.New("no previous version found")
+	ErrNoNextVersion     = errors.New("no next version found")
 	goMigrations         []*Migration
 )
 
@@ -54,6 +55,11 @@ func RunMigrations(db *sql.DB, dir string, target int64) (err error) {
 	current, err := EnsureDBVersion(db)
 	if err != nil {
 		return err
+	}
+
+	if current == target {
+		fmt.Printf("goose: no migrations to run. current version: %d. target version: %d\n", current, target)
+		return nil
 	}
 
 	migrations, err := CollectMigrations(dir, current, target)
@@ -317,6 +323,31 @@ func GetPreviousDBVersion(dirpath string, version int64) (previous int64, err er
 		} else {
 			err = ErrNoPreviousVersion
 		}
+	}
+
+	return
+}
+
+func GetNextDBVersion(dirpath string, version int64) (next int64, err error) {
+
+	next = 9223372036854775807 // max(int64)
+
+	filepath.Walk(dirpath, func(name string, info os.FileInfo, walkerr error) error {
+
+		if !info.IsDir() {
+			if v, e := NumericComponent(name); e == nil {
+				if v < next && v > version {
+					next = v
+				}
+			}
+		}
+
+		return nil
+	})
+
+	if next == 9223372036854775807 {
+		next = version
+		err = ErrNoNextVersion
 	}
 
 	return

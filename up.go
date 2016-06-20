@@ -15,3 +15,17 @@ func Up(db *sql.DB, dir string) error {
 	}
 	return nil
 }
+
+func UpByOne(db *sql.DB, dir string) error {
+	current, err := GetDBVersion(db)
+	if err != nil {
+		return err
+	}
+
+	next, _ := GetNextDBVersion(dir, current)
+	if err = RunMigrations(db, dir, next); err != nil {
+		return err
+	}
+
+	return nil
+}
