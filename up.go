@@ -2,6 +2,7 @@ package goose
 
 import (
 	"database/sql"
+	"fmt"
 )
 
 func Up(db *sql.DB, dir string) error {
@@ -22,7 +23,14 @@ func UpByOne(db *sql.DB, dir string) error {
 		return err
 	}
 
-	next, _ := GetNextDBVersion(dir, current)
+	next, err := GetNextDBVersion(dir, current)
+	if err != nil {
+		if err == ErrNoNextVersion {
+			fmt.Printf("goose: no migrations to run. current version: %d\n", current)
+		}
+		return err
+	}
+
 	if err = RunMigrations(db, dir, next); err != nil {
 		return err
 	}
