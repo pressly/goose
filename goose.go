@@ -5,10 +5,7 @@ import (
 	"fmt"
 )
 
-func Run(command string, db *sql.DB, args ...string) error {
-	dir := args[0]
-	additional := args[0:]
-
+func Run(command string, db *sql.DB, dir string, args ...string) error {
 	switch command {
 	case "up":
 		if err := Up(db, dir); err != nil {
@@ -19,7 +16,7 @@ func Run(command string, db *sql.DB, args ...string) error {
 			return err
 		}
 	case "create":
-		if err := Create(db, additional[0], additional[1], dir); err != nil {
+		if err := Create(db, args[0], args[1], dir); err != nil {
 			return err
 		}
 	case "down":

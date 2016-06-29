@@ -57,12 +57,12 @@ func main() {
 		log.Fatalf("-dbstring=%q: %v\n", dbstring, err)
 	}
 
-	arguments := []string{*dir}
+	arguments := []string{}
 	if len(args) > 3 {
 		arguments = append(arguments, args[3:]...)
 	}
 
-	if err := goose.Run(command, db, arguments...); err != nil {
+	if err := goose.Run(command, db, *dir, arguments...); err != nil {
 		log.Fatalf("goose run: %v", err)
 	}
 }
