@@ -43,20 +43,6 @@ Commands:
     dbversion  Print the current version of the database
 ```
 
-## create
-
-Create a new Go migration.
-
-    $ goose create AddSomeColumns
-    $ goose: created db/migrations/20130106093224_AddSomeColumns.go
-
-Edit the newly created script to define the behavior of your migration.
-
-You can also create an SQL migration:
-
-    $ goose create AddSomeColumns sql
-    $ goose: created db/migrations/20130106093224_AddSomeColumns.sql
-
 ## up
 
 Apply all available migrations.
@@ -106,7 +92,7 @@ Print the current version of the database:
 
 # Migrations
 
-goose supports migrations written in SQL or in Go - see the `goose create` command above for details on how to generate them.
+goose supports migrations written in SQL or in Go.
 
 ## SQL Migrations
 
