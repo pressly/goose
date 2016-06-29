@@ -92,6 +92,6 @@ Commands:
     redo       Re-run the latest migration
     status     Dump the migration status for the current DB
     dbversion  Print the current version of the database
-	create     Creates a blank migration template
+    create     Creates a blank migration template
 `
 )

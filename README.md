@@ -41,7 +41,21 @@ Commands:
     redo       Re-run the latest migration
     status     Dump the migration status for the current DB
     dbversion  Print the current version of the database
+    create     Creates a blank migration template
 ```
+## create
+
+Create a new Go migration.
+
+    $ goose create AddSomeColumns
+    $ goose: created db/migrations/20130106093224_AddSomeColumns.go
+
+Edit the newly created script to define the behavior of your migration.
+
+You can also create an SQL migration:
+
+    $ goose create AddSomeColumns sql
+    $ goose: created db/migrations/20130106093224_AddSomeColumns.sql
 
 ## up
 
