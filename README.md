@@ -17,7 +17,7 @@ This is a fork of https://bitbucket.org/liamstask/goose with the following chang
 
 # Install
 
-    $ go get -u github.com/pressly/cmd/goose
+    $ go get -u github.com/pressly/goose/cmd/goose
 
 This will install the `goose` binary to your `$GOPATH/bin` directory.
 
