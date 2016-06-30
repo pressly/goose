@@ -393,6 +393,9 @@ func CreateMigration(name, migrationType, dir string, t time.Time) (path string,
 
 	fpath := filepath.Join(dir, filename)
 	tmpl := sqlMigrationTemplate
+	if migrationType == "go" {
+		tmpl = goSqlMigrationTemplate
+	}
 
 	path, err = writeTemplateToFile(fpath, tmpl, timestamp)
 
@@ -421,4 +424,25 @@ var sqlMigrationTemplate = template.Must(template.New("goose.sql-migration").Par
 -- +goose Down
 -- SQL section 'Down' is executed when this migration is rolled back
 
+`))
+var goSqlMigrationTemplate = template.Must(template.New("goose.go-migration").Parse(`
+package migration
+
+import (
+    "database/sql"
+
+    "github.com/pressly/goose"
+)
+
+func init() {
+    goose.AddMigration(Up_{{.}}, Down_{{.}})
+}
+
+func Up_{{.}}(tx *sql.Tx) error {
+    return nil
+}
+
+func Down_{{.}}(tx *sql.Tx) error {
+    return nil
+}
 `))

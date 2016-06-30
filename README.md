@@ -41,8 +41,8 @@ Commands:
     redo       Re-run the latest migration
     status     Dump the migration status for the current DB
     dbversion  Print the current version of the database
+    create     Creates a blank migration template
 ```
-
 ## create
 
 Create a new Go migration.
@@ -106,7 +106,7 @@ Print the current version of the database:
 
 # Migrations
 
-goose supports migrations written in SQL or in Go - see the `goose create` command above for details on how to generate them.
+goose supports migrations written in SQL or in Go.
 
 ## SQL Migrations
 

@@ -25,7 +25,7 @@ func main() {
 	flags.Parse(os.Args[1:])
 
 	args := flags.Args()
-	if len(args) != 3 {
+	if len(args) < 3 {
 		flags.Usage()
 		return
 	}
@@ -57,7 +57,12 @@ func main() {
 		log.Fatalf("-dbstring=%q: %v\n", dbstring, err)
 	}
 
-	if err := goose.Run(command, db, *dir); err != nil {
+	arguments := []string{}
+	if len(args) > 3 {
+		arguments = append(arguments, args[3:]...)
+	}
+
+	if err := goose.Run(command, db, *dir, arguments...); err != nil {
 		log.Fatalf("goose run: %v", err)
 	}
 }
@@ -75,6 +80,7 @@ Examples:
     goose postgres "user=postgres dbname=postgres sslmode=disable" up
     goose mysql "user:password@/dbname" down
     goose sqlite3 ./foo.db status
+    goose postgres "user=postgres dbname=postgres sslmode=disable" create init sql
 
 Options:
 `
@@ -86,5 +92,6 @@ Commands:
     redo       Re-run the latest migration
     status     Dump the migration status for the current DB
     dbversion  Print the current version of the database
+    create     Creates a blank migration template
 `
 )
