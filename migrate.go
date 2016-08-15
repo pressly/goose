@@ -39,9 +39,14 @@ type Migration struct {
 type migrationSorter []*Migration
 
 // helpers so we can use pkg sort
-func (ms migrationSorter) Len() int           { return len(ms) }
-func (ms migrationSorter) Swap(i, j int)      { ms[i], ms[j] = ms[j], ms[i] }
-func (ms migrationSorter) Less(i, j int) bool { return ms[i].Version < ms[j].Version }
+func (ms migrationSorter) Len() int      { return len(ms) }
+func (ms migrationSorter) Swap(i, j int) { ms[i], ms[j] = ms[j], ms[i] }
+func (ms migrationSorter) Less(i, j int) bool {
+	if ms[i].Version == ms[j].Version {
+		panic(fmt.Sprintf("goose: duplicate version %v detected", ms[i].Version))
+	}
+	return ms[i].Version < ms[j].Version
+}
 
 func AddMigration(up func(*sql.Tx) error, down func(*sql.Tx) error) {
 	_, filename, _, _ := runtime.Caller(1)
