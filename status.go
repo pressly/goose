@@ -10,9 +10,7 @@ import (
 
 func Status(db *sql.DB, dir string) error {
 	// collect all migrations
-	min := int64(0)
-	max := int64((1 << 63) - 1)
-	migrations, err := CollectMigrations(dir, min, max)
+	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}

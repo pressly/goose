@@ -3,9 +3,33 @@ package goose
 import (
 	"database/sql"
 	"fmt"
+	"sync"
 )
 
+var (
+	duplicateCheckOnce sync.Once
+	minVersion         = int64(0)
+	maxVersion         = int64((1 << 63) - 1)
+)
+
+func checkVersionDuplicates(dir string) error {
+	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+	if err != nil {
+		return err
+	}
+
+	// Try sorting all migrations, so we get panic on any duplicates.
+	ms := migrationSorter(migrations)
+	ms.Sort(true)
+	ms.Sort(false)
+	return nil
+}
+
 func Run(command string, db *sql.DB, dir string, args ...string) error {
+	if err := checkVersionDuplicates(dir); err != nil {
+		return err
+	}
+
 	switch command {
 	case "up":
 		if err := Up(db, dir); err != nil {
