@@ -1,9 +1,6 @@
 package goose
 
-import (
-	"database/sql"
-	"fmt"
-)
+import "database/sql"
 
 func Down(db *sql.DB, dir string) error {
 	current, err := GetDBVersion(db)
@@ -11,15 +8,14 @@ func Down(db *sql.DB, dir string) error {
 		return err
 	}
 
-	previous, err := GetPreviousDBVersion(dir, current)
+	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
-		if err != nil {
-			if err == ErrNoPreviousVersion {
-				fmt.Printf("goose: no migrations to run. current version: %d\n", current)
-			}
-			return err
-		}
+		return err
+	}
+	migrations.Sort(false) // descending, Next will be Previous
 
+	previous, err := migrations.Next(current)
+	if err != nil {
 		return err
 	}
 

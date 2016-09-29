@@ -6,7 +6,13 @@ import (
 )
 
 func Up(db *sql.DB, dir string) error {
-	target, err := GetMostRecentDBVersion(dir)
+	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+	if err != nil {
+		return err
+	}
+	migrations.Sort(true)
+
+	target, err := migrations.Last()
 	if err != nil {
 		return err
 	}
@@ -18,12 +24,18 @@ func Up(db *sql.DB, dir string) error {
 }
 
 func UpByOne(db *sql.DB, dir string) error {
+	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+	if err != nil {
+		return err
+	}
+	migrations.Sort(true)
+
 	current, err := GetDBVersion(db)
 	if err != nil {
 		return err
 	}
 
-	next, err := GetNextDBVersion(dir, current)
+	next, err := migrations.Next(current)
 	if err != nil {
 		if err == ErrNoNextVersion {
 			fmt.Printf("goose: no migrations to run. current version: %d\n", current)
