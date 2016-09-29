@@ -14,9 +14,7 @@ func Status(db *sql.DB, dir string) error {
 	if err != nil {
 		return err
 	}
-
-	ms := migrationSorter(migrations)
-	ms.Sort(true)
+	migrations.Sort(true)
 
 	// must ensure that the version table exists if we're running on a pristine DB
 	if _, err := EnsureDBVersion(db); err != nil {
@@ -26,8 +24,8 @@ func Status(db *sql.DB, dir string) error {
 	fmt.Println("goose: status")
 	fmt.Println("    Applied At                  Migration")
 	fmt.Println("    =======================================")
-	for _, m := range ms {
-		printMigrationStatus(db, m.Version, filepath.Base(m.Source))
+	for _, migration := range migrations {
+		printMigrationStatus(db, migration.Version, filepath.Base(migration.Source))
 	}
 
 	return nil

@@ -18,10 +18,9 @@ func checkVersionDuplicates(dir string) error {
 		return err
 	}
 
-	// Try sorting all migrations, so we get panic on any duplicates.
-	ms := migrationSorter(migrations)
-	ms.Sort(true)
-	ms.Sort(false)
+	// try both directions
+	migrations.Sort(false)
+	migrations.Sort(true)
 	return nil
 }
 

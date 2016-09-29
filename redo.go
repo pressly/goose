@@ -10,7 +10,13 @@ func Redo(db *sql.DB, dir string) error {
 		return err
 	}
 
-	previous, err := GetPreviousDBVersion(dir, current)
+	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+	if err != nil {
+		return err
+	}
+	migrations.Sort(false) // descending, Next will be Previous
+
+	previous, err := migrations.Next(current)
 	if err != nil {
 		return err
 	}

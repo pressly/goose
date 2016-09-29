@@ -10,7 +10,7 @@ func newMigration(v int64, src string) *Migration {
 
 func TestMigrationMapSortUp(t *testing.T) {
 
-	ms := migrationSorter{}
+	ms := Migrations{}
 
 	// insert in any order
 	ms = append(ms, newMigration(20120000, "test"))
@@ -27,7 +27,7 @@ func TestMigrationMapSortUp(t *testing.T) {
 
 func TestMigrationMapSortDown(t *testing.T) {
 
-	ms := migrationSorter{}
+	ms := Migrations{}
 
 	// insert in any order
 	ms = append(ms, newMigration(20120000, "test"))
@@ -42,7 +42,7 @@ func TestMigrationMapSortDown(t *testing.T) {
 	validateMigrationSort(t, ms, sorted)
 }
 
-func validateMigrationSort(t *testing.T, ms migrationSorter, sorted []int64) {
+func validateMigrationSort(t *testing.T, ms Migrations, sorted []int64) {
 
 	for i, m := range ms {
 		if sorted[i] != m.Version {
