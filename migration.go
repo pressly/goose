@@ -40,11 +40,6 @@ func (m *Migration) Down(db *sql.DB) error {
 }
 
 func (m *Migration) run(db *sql.DB, direction bool) error {
-	current, err := EnsureDBVersion(db)
-	if err != nil {
-		return err
-	}
-
 	switch filepath.Ext(m.Source) {
 	case ".sql":
 		if err = runSQLMigration(db, m.Source, m.Version, direction); err != nil {
