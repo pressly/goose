@@ -6,44 +6,53 @@ import (
 )
 
 func Up(db *sql.DB, dir string) error {
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
-	if err != nil {
-		return err
-	}
-	migrations.Sort(true)
-
-	target, err := migrations.Last()
+	migrations, err := collectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
 
-	if err := RunMigrations(db, dir, target); err != nil {
-		return err
+	for {
+		current, err := GetDBVersion(db)
+		if err != nil {
+			return err
+		}
+
+		next, err := migrations.Next(current)
+		if err != nil {
+			if err == ErrNoNextVersion {
+				fmt.Printf("goose: no migrations to run. current version: %d\n", current)
+			}
+			return err
+		}
+
+		if err = next.Up(db); err != nil {
+			return err
+		}
 	}
+
 	return nil
 }
 
 func UpByOne(db *sql.DB, dir string) error {
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
-	if err != nil {
-		return err
-	}
-	migrations.Sort(true)
-
-	current, err := GetDBVersion(db)
+	migrations, err := collectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
 
-	next, err := migrations.Next(current)
+	currentVersion, err := GetDBVersion(db)
+	if err != nil {
+		return err
+	}
+
+	next, err := migrations.Next(currentVersion)
 	if err != nil {
 		if err == ErrNoNextVersion {
-			fmt.Printf("goose: no migrations to run. current version: %d\n", current)
+			fmt.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
 		}
 		return err
 	}
 
-	if err = RunMigrations(db, dir, next); err != nil {
+	if err = next.Up(db); err != nil {
 		return err
 	}
 
