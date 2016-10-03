@@ -5,27 +5,31 @@ import (
 )
 
 func Redo(db *sql.DB, dir string) error {
-	current, err := GetDBVersion(db)
+	currentVersion, err := GetDBVersion(db)
 	if err != nil {
 		return err
 	}
 
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
-	if err != nil {
-		return err
-	}
-	migrations.Sort(false) // descending, Next will be Previous
-
-	previous, err := migrations.Next(current)
+	migrations, err := collectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
 
-	if err := RunMigrations(db, dir, previous); err != nil {
+	current, err := migrations.Current(currentVersion)
+	if err != nil {
 		return err
 	}
 
-	if err := RunMigrations(db, dir, current); err != nil {
+	previous, err := migrations.Next(currentVersion)
+	if err != nil {
+		return err
+	}
+
+	if err := previous.Up(db); err != nil {
+		return err
+	}
+
+	if err := current.Up(db); err != nil {
 		return err
 	}
 

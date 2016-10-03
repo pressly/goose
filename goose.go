@@ -12,23 +12,7 @@ var (
 	maxVersion         = int64((1 << 63) - 1)
 )
 
-func checkVersionDuplicates(dir string) error {
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
-	if err != nil {
-		return err
-	}
-
-	// try both directions
-	migrations.Sort(false)
-	migrations.Sort(true)
-	return nil
-}
-
 func Run(command string, db *sql.DB, dir string, args ...string) error {
-	if err := checkVersionDuplicates(dir); err != nil {
-		return err
-	}
-
 	switch command {
 	case "up":
 		if err := Up(db, dir); err != nil {

@@ -10,18 +10,16 @@ import (
 
 func Status(db *sql.DB, dir string) error {
 	// collect all migrations
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+	migrations, err := collectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
-	migrations.Sort(true)
 
 	// must ensure that the version table exists if we're running on a pristine DB
 	if _, err := EnsureDBVersion(db); err != nil {
 		return err
 	}
 
-	fmt.Println("goose: status")
 	fmt.Println("    Applied At                  Migration")
 	fmt.Println("    =======================================")
 	for _, migration := range migrations {
