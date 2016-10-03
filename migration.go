@@ -42,7 +42,7 @@ func (m *Migration) Down(db *sql.DB) error {
 func (m *Migration) run(db *sql.DB, direction bool) error {
 	switch filepath.Ext(m.Source) {
 	case ".sql":
-		if err = runSQLMigration(db, m.Source, m.Version, direction); err != nil {
+		if err := runSQLMigration(db, m.Source, m.Version, direction); err != nil {
 			return errors.New(fmt.Sprintf("FAIL %v, quitting migration", err))
 		}
 
