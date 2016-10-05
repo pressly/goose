@@ -47,14 +47,14 @@ Commands:
 
 Create a new Go migration.
 
-    $ goose create AddSomeColumns
+    $ goose mysql "user:pass@host/db_name" create AddSomeColumns
     $ goose: created db/migrations/20130106093224_AddSomeColumns.go
 
 Edit the newly created script to define the behavior of your migration.
 
 You can also create an SQL migration:
 
-    $ goose create AddSomeColumns sql
+    $ goose mysql "user:pass@host/db_name" create AddSomeColumns sql
     $ goose: created db/migrations/20130106093224_AddSomeColumns.sql
 
 ## up
