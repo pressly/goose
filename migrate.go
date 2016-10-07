@@ -109,6 +109,12 @@ func collectMigrations(dirpath string, current, target int64) (Migrations, error
 		}
 	}
 
+	migrations = sortAndConnectMigrations(migrations)
+
+	return migrations, nil
+}
+
+func sortAndConnectMigrations(migrations Migrations) Migrations {
 	sort.Sort(migrations)
 
 	// now that we're sorted in the appropriate direction,
@@ -122,7 +128,7 @@ func collectMigrations(dirpath string, current, target int64) (Migrations, error
 		migrations[i].Previous = prev
 	}
 
-	return migrations, nil
+	return migrations
 }
 
 func versionFilter(v, current, target int64) bool {

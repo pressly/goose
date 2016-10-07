@@ -8,7 +8,7 @@ func newMigration(v int64, src string) *Migration {
 	return &Migration{Version: v, Previous: -1, Next: -1, Source: src}
 }
 
-func TestMigrationMapSortUp(t *testing.T) {
+func TestMigrationSort(t *testing.T) {
 
 	ms := Migrations{}
 
@@ -18,26 +18,9 @@ func TestMigrationMapSortUp(t *testing.T) {
 	ms = append(ms, newMigration(20129000, "test"))
 	ms = append(ms, newMigration(20127000, "test"))
 
-	ms.Sort(true) // sort Upwards
+	ms = sortAndConnectMigrations(ms)
 
 	sorted := []int64{20120000, 20127000, 20128000, 20129000}
-
-	validateMigrationSort(t, ms, sorted)
-}
-
-func TestMigrationMapSortDown(t *testing.T) {
-
-	ms := Migrations{}
-
-	// insert in any order
-	ms = append(ms, newMigration(20120000, "test"))
-	ms = append(ms, newMigration(20128000, "test"))
-	ms = append(ms, newMigration(20129000, "test"))
-	ms = append(ms, newMigration(20127000, "test"))
-
-	ms.Sort(false) // sort Downwards
-
-	sorted := []int64{20129000, 20128000, 20127000, 20120000}
 
 	validateMigrationSort(t, ms, sorted)
 }
