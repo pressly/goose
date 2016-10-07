@@ -21,6 +21,7 @@ func Up(db *sql.DB, dir string) error {
 		if err != nil {
 			if err == ErrNoNextVersion {
 				fmt.Printf("goose: no migrations to run. current version: %d\n", current)
+				return nil
 			}
 			return err
 		}
