@@ -25,6 +25,14 @@ func main() {
 	flags.Parse(os.Args[1:])
 
 	args := flags.Args()
+
+	if len(args) > 1 && args[0] == "create" {
+		if err := goose.Run("create", nil, *dir, args[1:]...); err != nil {
+			log.Fatalf("goose run: %v", err)
+		}
+		return
+	}
+
 	if len(args) < 3 {
 		flags.Usage()
 		return
