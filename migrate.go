@@ -14,7 +14,7 @@ var (
 	ErrNoCurrentVersion = errors.New("no current version found")
 	ErrNoNextVersion    = errors.New("no next version found")
 
-	MaxVersion = 9223372036854775807 // max(int64)
+	MaxVersion int64 = 9223372036854775807 // max(int64)
 
 	goMigrations []*Migration
 )
