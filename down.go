@@ -5,13 +5,13 @@ import (
 	"fmt"
 )
 
-func Down(db *sql.DB, dir string) error {
+func (g *Goose) Down(db *sql.DB, dir string) error {
 	currentVersion, err := GetDBVersion(db)
 	if err != nil {
 		return err
 	}
 
-	migrations, err := collectMigrations(dir, minVersion, maxVersion)
+	migrations, err := g.collectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}

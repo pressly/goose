@@ -5,8 +5,8 @@ import (
 	"fmt"
 )
 
-func Up(db *sql.DB, dir string) error {
-	migrations, err := collectMigrations(dir, minVersion, maxVersion)
+func (g *Goose) Up(db *sql.DB, dir string) error {
+	migrations, err := g.collectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
@@ -34,8 +34,8 @@ func Up(db *sql.DB, dir string) error {
 	return nil
 }
 
-func UpByOne(db *sql.DB, dir string) error {
-	migrations, err := collectMigrations(dir, minVersion, maxVersion)
+func (g *Goose) UpByOne(db *sql.DB, dir string) error {
+	migrations, err := g.collectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}

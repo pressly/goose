@@ -14,9 +14,7 @@ var (
 	ErrNoCurrentVersion = errors.New("no current version found")
 	ErrNoNextVersion    = errors.New("no next version found")
 
-	MaxVersion int64 = 9223372036854775807 // max(int64)
-
-	goMigrations []*Migration
+	globalGoose = &Goose{}
 )
 
 type Migrations []*Migration
@@ -67,17 +65,30 @@ func (ms Migrations) String() string {
 	return str
 }
 
-func AddMigration(up func(*sql.Tx) error, down func(*sql.Tx) error) {
+// AddMigration adds a new go migration to the goose struct.
+func (g *Goose) AddMigration(up func(*sql.Tx) error, down func(*sql.Tx) error) {
 	_, filename, _, _ := runtime.Caller(1)
 	v, _ := NumericComponent(filename)
 	migration := &Migration{Version: v, Next: -1, Previous: -1, UpFn: up, DownFn: down, Source: filename}
 
-	goMigrations = append(goMigrations, migration)
+	g.Migrations = append(g.Migrations, migration)
+}
+
+// AddMigration exists for legacy support of the package global use of Goose.
+// Calling the AddMigration method on a Goose struct is the preferred method.
+func AddMigration(up func(*sql.Tx) error, down func(*sql.Tx) error) {
+	// We can't just use globalGoose.AddMigration here because we need to
+	// correctly record the caller.
+	_, filename, _, _ := runtime.Caller(1)
+	v, _ := NumericComponent(filename)
+	migration := &Migration{Version: v, Next: -1, Previous: -1, UpFn: up, DownFn: down, Source: filename}
+
+	globalGoose.Migrations = append(globalGoose.Migrations, migration)
 }
 
 // collect all the valid looking migration scripts in the
 // migrations folder and go func registry, and key them by version
-func collectMigrations(dirpath string, current, target int64) (Migrations, error) {
+func (g *Goose) collectMigrations(dirpath string, current, target int64) (Migrations, error) {
 	var migrations Migrations
 
 	// extract the numeric component of each migration,
@@ -99,7 +110,7 @@ func collectMigrations(dirpath string, current, target int64) (Migrations, error
 		}
 	}
 
-	for _, migration := range goMigrations {
+	for _, migration := range g.Migrations {
 		v, err := NumericComponent(migration.Source)
 		if err != nil {
 			return nil, err

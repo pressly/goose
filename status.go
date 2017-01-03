@@ -8,9 +8,9 @@ import (
 	"time"
 )
 
-func Status(db *sql.DB, dir string) error {
+func (g *Goose) Status(db *sql.DB, dir string) error {
 	// collect all migrations
-	migrations, err := collectMigrations(dir, minVersion, maxVersion)
+	migrations, err := g.collectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
