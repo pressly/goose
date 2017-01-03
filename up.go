@@ -6,6 +6,7 @@ import (
 )
 
 func (g *Goose) Up(db *sql.DB, dir string) error {
+	fmt.Println("up")
 	migrations, err := g.collectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
@@ -14,6 +15,7 @@ func (g *Goose) Up(db *sql.DB, dir string) error {
 	for {
 		current, err := GetDBVersion(db)
 		if err != nil {
+			fmt.Println("err getting version: ", err)
 			return err
 		}
 
@@ -27,6 +29,7 @@ func (g *Goose) Up(db *sql.DB, dir string) error {
 		}
 
 		if err = next.Up(db); err != nil {
+			fmt.Println("err running: ", err)
 			return err
 		}
 	}
