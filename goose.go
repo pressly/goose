@@ -6,13 +6,15 @@ import (
 )
 
 var (
-	goose      = Goose{}
+	goose      = Client{}
 	minVersion = int64(0)
 	maxVersion = int64((1 << 63) - 1)
 )
 
-type Goose struct {
+type Client struct {
+	TableName  string
 	Migrations Migrations
+	Dialect    SqlDialect
 }
 
 func Run(command string, db *sql.DB, dir string, args ...string) error {
@@ -50,7 +52,7 @@ func Run(command string, db *sql.DB, dir string, args ...string) error {
 			return err
 		}
 	case "version":
-		if err := Version(db, dir); err != nil {
+		if err := globalGoose.Version(db, dir); err != nil {
 			return err
 		}
 	default:

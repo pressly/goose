@@ -8,15 +8,15 @@ import (
 	"time"
 )
 
-func (g *Goose) Status(db *sql.DB, dir string) error {
+func (c *Client) Status(db *sql.DB, dir string) error {
 	// collect all migrations
-	migrations, err := g.collectMigrations(dir, minVersion, maxVersion)
+	migrations, err := c.collectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
 
 	// must ensure that the version table exists if we're running on a pristine DB
-	if _, err := EnsureDBVersion(db); err != nil {
+	if _, err := c.EnsureDBVersion(db); err != nil {
 		return err
 	}
 

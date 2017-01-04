@@ -5,17 +5,15 @@ import (
 	"fmt"
 )
 
-func (g *Goose) Up(db *sql.DB, dir string) error {
-	fmt.Println("up")
-	migrations, err := g.collectMigrations(dir, minVersion, maxVersion)
+func (c *Client) Up(db *sql.DB, dir string) error {
+	migrations, err := c.collectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
 
 	for {
-		current, err := GetDBVersion(db)
+		current, err := c.GetDBVersion(db)
 		if err != nil {
-			fmt.Println("err getting version: ", err)
 			return err
 		}
 
@@ -28,8 +26,7 @@ func (g *Goose) Up(db *sql.DB, dir string) error {
 			return err
 		}
 
-		if err = next.Up(db); err != nil {
-			fmt.Println("err running: ", err)
+		if err = c.runMigration(db, next, migrateUp); err != nil {
 			return err
 		}
 	}
@@ -37,13 +34,13 @@ func (g *Goose) Up(db *sql.DB, dir string) error {
 	return nil
 }
 
-func (g *Goose) UpByOne(db *sql.DB, dir string) error {
-	migrations, err := g.collectMigrations(dir, minVersion, maxVersion)
+func (c *Client) UpByOne(db *sql.DB, dir string) error {
+	migrations, err := c.collectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
 
-	currentVersion, err := GetDBVersion(db)
+	currentVersion, err := c.GetDBVersion(db)
 	if err != nil {
 		return err
 	}
@@ -56,7 +53,7 @@ func (g *Goose) UpByOne(db *sql.DB, dir string) error {
 		return err
 	}
 
-	if err = next.Up(db); err != nil {
+	if err = c.runMigration(db, next, migrateUp); err != nil {
 		return err
 	}
 

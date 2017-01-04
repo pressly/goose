@@ -4,13 +4,13 @@ import (
 	"database/sql"
 )
 
-func (g *Goose) Redo(db *sql.DB, dir string) error {
-	currentVersion, err := GetDBVersion(db)
+func (c *Client) Redo(db *sql.DB, dir string) error {
+	currentVersion, err := c.GetDBVersion(db)
 	if err != nil {
 		return err
 	}
 
-	migrations, err := g.collectMigrations(dir, minVersion, maxVersion)
+	migrations, err := c.collectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
@@ -25,11 +25,11 @@ func (g *Goose) Redo(db *sql.DB, dir string) error {
 		return err
 	}
 
-	if err := previous.Up(db); err != nil {
+	if err := c.runMigration(db, previous, migrateUp); err != nil {
 		return err
 	}
 
-	if err := current.Up(db); err != nil {
+	if err := c.runMigration(db, current, migrateUp); err != nil {
 		return err
 	}
 
