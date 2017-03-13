@@ -6,14 +6,18 @@ Goose is a database migration tool. Manage your database's evolution by creating
 
 ### Goals of this fork
 
-This is a fork of https://bitbucket.org/liamstask/goose with the following changes:
+github.com/pressly/goose is a fork of bitbucket.org/liamstask/goose with the following changes:
 - No config files
-- Default goose binary can migrate SQL files only
-- We dropped building .go files on-the-fly in favor of the below
-- Import `github.com/pressly/goose` package
-    - To run complex Go migrations with your own `*sql.DB` connection via `*sql.Tx` transactions
-    - The pkg doesn't register any SQL drivers anymore (no `panic()` driver conflicts with your codebase!)
-    - The pkg doesn't have any vendor dependencies anymore
+- [Default goose binary](./cmd/goose/main.go) can migrate SQL files only
+- Go migrations:
+    - We dropped building Go migrations on-the-fly from .go source files
+    - Instead, you can create your own goose binary, import `github.com/pressly/goose`
+      package and run complex Go migrations with your own `*sql.DB` connection
+    - Each Go migration function is called with `*sql.Tx` argument - within its own transaction
+- The goose pkg is decoupled from the default binary:
+    - goose pkg doesn't register any SQL drivers anymore
+      (no driver `panic()` conflict within your codebase!)
+    - goose pkg doesn't have any vendor dependencies anymore
 
 # Install
 
