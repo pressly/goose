@@ -163,9 +163,12 @@ language plpgsql;
 
 ## Go Migrations
 
-Import `github.com/pressly/goose` from your own project (see [example](./example/migrations-go/cmd/main.go)), register migration functions and run goose command (ie. `goose.Up(db *sql.DB, dir string)`).
+1. Create your own goose binary, see [example](./example/migrations-go/cmd/main.go)
+2. Import `github.com/pressly/goose`
+3. Register your migration functions
+4. Run goose command, ie. `goose.Up(db *sql.DB, dir string)`
 
-A [sample Go migration 00002_users_add_email.go file](./example/migrations-go/00002_users_add_email.go) looks like:
+A [sample Go migration 00002_users_add_email.go file](./example/migrations-go/00002_rename_root.go) looks like:
 
 ```go
 package migrations
@@ -181,7 +184,7 @@ func init() {
 }
 
 func Up(tx *sql.Tx) error {
-	_, err := tx.Query("ALTER TABLE users ADD COLUMN email text DEFAULT '' NOT NULL;")
+	_, err := tx.Exec("UPDATE users SET username='admin' WHERE username='root';")
 	if err != nil {
 		return err
 	}
@@ -189,7 +192,7 @@ func Up(tx *sql.Tx) error {
 }
 
 func Down(tx *sql.Tx) error {
-	_, err := tx.Query("ALTER TABLE users DROP COLUMN email;")
+	_, err := tx.Exec("UPDATE users SET username='root' WHERE username='admin';")
 	if err != nil {
 		return err
 	}
