@@ -5,13 +5,13 @@ import (
 	"fmt"
 )
 
-func Down(db *sql.DB, dir string) error {
-	currentVersion, err := GetDBVersion(db)
+func (c *Client) Down(db *sql.DB, dir string) error {
+	currentVersion, err := c.GetDBVersion(db)
 	if err != nil {
 		return err
 	}
 
-	migrations, err := collectMigrations(dir, minVersion, maxVersion)
+	migrations, err := c.collectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
@@ -21,5 +21,5 @@ func Down(db *sql.DB, dir string) error {
 		return fmt.Errorf("no migration %v", currentVersion)
 	}
 
-	return current.Down(db)
+	return c.runMigration(db, current, migrateDown)
 }

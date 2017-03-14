@@ -5,8 +5,8 @@ import (
 	"fmt"
 )
 
-func Version(db *sql.DB, dir string) error {
-	current, err := GetDBVersion(db)
+func (c *Client) Version(db *sql.DB, dir string) error {
+	current, err := c.GetDBVersion(db)
 	if err != nil {
 		return err
 	}

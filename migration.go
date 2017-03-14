@@ -27,22 +27,21 @@ type Migration struct {
 	DownFn   func(*sql.Tx) error // Down go migration function
 }
 
+type migrateDirection bool
+
+const (
+	migrateUp   = true
+	migrateDown = !migrateUp
+)
+
 func (m *Migration) String() string {
 	return fmt.Sprintf(m.Source)
 }
 
-func (m *Migration) Up(db *sql.DB) error {
-	return m.run(db, true)
-}
-
-func (m *Migration) Down(db *sql.DB) error {
-	return m.run(db, false)
-}
-
-func (m *Migration) run(db *sql.DB, direction bool) error {
+func (c *Client) runMigration(db *sql.DB, m *Migration, direction bool) error {
 	switch filepath.Ext(m.Source) {
 	case ".sql":
-		if err := runSQLMigration(db, m.Source, m.Version, direction); err != nil {
+		if err := c.runSQLMigration(db, m.Source, m.Version, direction); err != nil {
 			return errors.New(fmt.Sprintf("FAIL %v, quitting migration", err))
 		}
 
@@ -64,7 +63,7 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 			}
 		}
 
-		if err = FinalizeMigration(tx, direction, m.Version); err != nil {
+		if err = c.FinalizeMigration(tx, direction, m.Version); err != nil {
 			log.Fatalf("error finalizing migration %s, quitting. (%v)", filepath.Base(m.Source), err)
 		}
 	}
@@ -121,10 +120,10 @@ func CreateMigration(name, migrationType, dir string, t time.Time) (path string,
 
 // Update the version table for the given migration,
 // and finalize the transaction.
-func FinalizeMigration(tx *sql.Tx, direction bool, v int64) error {
+func (c *Client) FinalizeMigration(tx *sql.Tx, direction bool, v int64) error {
 
 	// XXX: drop goose_db_version table on some minimum version number?
-	stmt := GetDialect().insertVersionSql()
+	stmt := c.GetDialect().insertVersionSql(c.TableName)
 	if _, err := tx.Exec(stmt, v, direction); err != nil {
 		tx.Rollback()
 		return err

@@ -3,23 +3,28 @@ package goose
 import (
 	"database/sql"
 	"fmt"
-	"sync"
 )
 
 var (
-	duplicateCheckOnce sync.Once
-	minVersion         = int64(0)
-	maxVersion         = int64((1 << 63) - 1)
+	goose      = Client{}
+	minVersion = int64(0)
+	maxVersion = int64((1 << 63) - 1)
 )
+
+type Client struct {
+	TableName  string
+	Migrations Migrations
+	Dialect    SqlDialect
+}
 
 func Run(command string, db *sql.DB, dir string, args ...string) error {
 	switch command {
 	case "up":
-		if err := Up(db, dir); err != nil {
+		if err := globalGoose.Up(db, dir); err != nil {
 			return err
 		}
 	case "up-by-one":
-		if err := UpByOne(db, dir); err != nil {
+		if err := globalGoose.UpByOne(db, dir); err != nil {
 			return err
 		}
 	case "create":
@@ -35,19 +40,19 @@ func Run(command string, db *sql.DB, dir string, args ...string) error {
 			return err
 		}
 	case "down":
-		if err := Down(db, dir); err != nil {
+		if err := globalGoose.Down(db, dir); err != nil {
 			return err
 		}
 	case "redo":
-		if err := Redo(db, dir); err != nil {
+		if err := globalGoose.Redo(db, dir); err != nil {
 			return err
 		}
 	case "status":
-		if err := Status(db, dir); err != nil {
+		if err := globalGoose.Status(db, dir); err != nil {
 			return err
 		}
 	case "version":
-		if err := Version(db, dir); err != nil {
+		if err := globalGoose.Version(db, dir); err != nil {
 			return err
 		}
 	default:

@@ -8,30 +8,36 @@ import (
 // SqlDialect abstracts the details of specific SQL dialects
 // for goose's few SQL specific statements
 type SqlDialect interface {
-	createVersionTableSql() string // sql string to create the goose_db_version table
-	insertVersionSql() string      // sql string to insert the initial version table row
-	dbVersionQuery(db *sql.DB) (*sql.Rows, error)
+	createVersionTableSql(name string) string // sql string to create the goose_db_version table
+	insertVersionSql(name string) string      // sql string to insert the initial version table row
+	dbVersionQuery(db *sql.DB, name string) (*sql.Rows, error)
 }
 
-var dialect SqlDialect = &PostgresDialect{}
+func (c *Client) GetDialect() SqlDialect {
+	return c.Dialect
+}
 
 func GetDialect() SqlDialect {
-	return dialect
+	return globalGoose.GetDialect()
 }
 
-func SetDialect(d string) error {
+func (c *Client) SetDialect(d string) error {
 	switch d {
 	case "postgres":
-		dialect = &PostgresDialect{}
+		c.Dialect = &PostgresDialect{}
 	case "mysql":
-		dialect = &MySqlDialect{}
+		c.Dialect = &MySqlDialect{}
 	case "sqlite3":
-		dialect = &Sqlite3Dialect{}
+		c.Dialect = &Sqlite3Dialect{}
 	default:
 		return fmt.Errorf("%q: unknown dialect", d)
 	}
 
 	return nil
+}
+
+func SetDialect(d string) error {
+	return globalGoose.SetDialect(d)
 }
 
 ////////////////////////////
@@ -40,8 +46,8 @@ func SetDialect(d string) error {
 
 type PostgresDialect struct{}
 
-func (pg PostgresDialect) createVersionTableSql() string {
-	return `CREATE TABLE goose_db_version (
+func (pg PostgresDialect) createVersionTableSql(name string) string {
+	return `CREATE TABLE ` + name + ` (
             	id serial NOT NULL,
                 version_id bigint NOT NULL,
                 is_applied boolean NOT NULL,
@@ -50,12 +56,12 @@ func (pg PostgresDialect) createVersionTableSql() string {
             );`
 }
 
-func (pg PostgresDialect) insertVersionSql() string {
-	return "INSERT INTO goose_db_version (version_id, is_applied) VALUES ($1, $2);"
+func (pg PostgresDialect) insertVersionSql(name string) string {
+	return "INSERT INTO " + name + " (version_id, is_applied) VALUES ($1, $2);"
 }
 
-func (pg PostgresDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
-	rows, err := db.Query("SELECT version_id, is_applied from goose_db_version ORDER BY id DESC")
+func (pg PostgresDialect) dbVersionQuery(db *sql.DB, name string) (*sql.Rows, error) {
+	rows, err := db.Query("SELECT version_id, is_applied from " + name + " ORDER BY id DESC")
 	if err != nil {
 		return nil, err
 	}
@@ -69,8 +75,8 @@ func (pg PostgresDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 
 type MySqlDialect struct{}
 
-func (m MySqlDialect) createVersionTableSql() string {
-	return `CREATE TABLE goose_db_version (
+func (m MySqlDialect) createVersionTableSql(name string) string {
+	return `CREATE TABLE ` + name + ` (
                 id serial NOT NULL,
                 version_id bigint NOT NULL,
                 is_applied boolean NOT NULL,
@@ -79,12 +85,12 @@ func (m MySqlDialect) createVersionTableSql() string {
             );`
 }
 
-func (m MySqlDialect) insertVersionSql() string {
-	return "INSERT INTO goose_db_version (version_id, is_applied) VALUES (?, ?);"
+func (m MySqlDialect) insertVersionSql(name string) string {
+	return "INSERT INTO " + name + " (version_id, is_applied) VALUES (?, ?);"
 }
 
-func (m MySqlDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
-	rows, err := db.Query("SELECT version_id, is_applied from goose_db_version ORDER BY id DESC")
+func (m MySqlDialect) dbVersionQuery(db *sql.DB, name string) (*sql.Rows, error) {
+	rows, err := db.Query("SELECT version_id, is_applied from " + name + " ORDER BY id DESC")
 	if err != nil {
 		return nil, err
 	}
@@ -98,8 +104,8 @@ func (m MySqlDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 
 type Sqlite3Dialect struct{}
 
-func (m Sqlite3Dialect) createVersionTableSql() string {
-	return `CREATE TABLE goose_db_version (
+func (m Sqlite3Dialect) createVersionTableSql(name string) string {
+	return `CREATE TABLE ` + name + ` (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 version_id INTEGER NOT NULL,
                 is_applied INTEGER NOT NULL,
@@ -107,12 +113,12 @@ func (m Sqlite3Dialect) createVersionTableSql() string {
             );`
 }
 
-func (m Sqlite3Dialect) insertVersionSql() string {
-	return "INSERT INTO goose_db_version (version_id, is_applied) VALUES (?, ?);"
+func (m Sqlite3Dialect) insertVersionSql(name string) string {
+	return "INSERT INTO " + name + " (version_id, is_applied) VALUES (?, ?);"
 }
 
-func (m Sqlite3Dialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
-	rows, err := db.Query("SELECT version_id, is_applied from goose_db_version ORDER BY id DESC")
+func (m Sqlite3Dialect) dbVersionQuery(db *sql.DB, name string) (*sql.Rows, error) {
+	rows, err := db.Query("SELECT version_id, is_applied from " + name + " ORDER BY id DESC")
 	if err != nil {
 		return nil, err
 	}

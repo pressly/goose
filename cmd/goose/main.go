@@ -99,7 +99,7 @@ Commands:
     down       Roll back the version by 1
     redo       Re-run the latest migration
     status     Dump the migration status for the current DB
-    dbversion  Print the current version of the database
+    version    Print the current version of the database
     create     Creates a blank migration template
 `
 )

@@ -5,14 +5,14 @@ import (
 	"fmt"
 )
 
-func Up(db *sql.DB, dir string) error {
-	migrations, err := collectMigrations(dir, minVersion, maxVersion)
+func (c *Client) Up(db *sql.DB, dir string) error {
+	migrations, err := c.collectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
 
 	for {
-		current, err := GetDBVersion(db)
+		current, err := c.GetDBVersion(db)
 		if err != nil {
 			return err
 		}
@@ -26,7 +26,7 @@ func Up(db *sql.DB, dir string) error {
 			return err
 		}
 
-		if err = next.Up(db); err != nil {
+		if err = c.runMigration(db, next, migrateUp); err != nil {
 			return err
 		}
 	}
@@ -34,13 +34,13 @@ func Up(db *sql.DB, dir string) error {
 	return nil
 }
 
-func UpByOne(db *sql.DB, dir string) error {
-	migrations, err := collectMigrations(dir, minVersion, maxVersion)
+func (c *Client) UpByOne(db *sql.DB, dir string) error {
+	migrations, err := c.collectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
 
-	currentVersion, err := GetDBVersion(db)
+	currentVersion, err := c.GetDBVersion(db)
 	if err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func UpByOne(db *sql.DB, dir string) error {
 		return err
 	}
 
-	if err = next.Up(db); err != nil {
+	if err = c.runMigration(db, next, migrateUp); err != nil {
 		return err
 	}
 
