@@ -51,6 +51,16 @@ func (ms Migrations) Next(current int64) (*Migration, error) {
 	return nil, ErrNoNextVersion
 }
 
+func (ms Migrations) Previous(current int64) (*Migration, error) {
+	for i := len(ms)-1; i >= 0; i-- {
+		if ms[i].Version < current {
+			return ms[i], nil
+		}
+	}
+
+	return nil, ErrNoNextVersion
+}
+
 func (ms Migrations) Last() (*Migration, error) {
 	if len(ms) == 0 {
 		return nil, ErrNoNextVersion

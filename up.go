@@ -5,8 +5,8 @@ import (
 	"fmt"
 )
 
-func Up(db *sql.DB, dir string) error {
-	migrations, err := collectMigrations(dir, minVersion, maxVersion)
+func UpTo(db *sql.DB, dir string, version int64) error {
+	migrations, err := collectMigrations(dir, minVersion, version)
 	if err != nil {
 		return err
 	}
@@ -32,6 +32,10 @@ func Up(db *sql.DB, dir string) error {
 	}
 
 	return nil
+}
+
+func Up(db *sql.DB, dir string) error {
+	return UpTo(db, dir, maxVersion)
 }
 
 func UpByOne(db *sql.DB, dir string) error {
