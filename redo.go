@@ -10,7 +10,7 @@ func Redo(db *sql.DB, dir string) error {
 		return err
 	}
 
-	migrations, err := collectMigrations(dir, minVersion, maxVersion)
+	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}

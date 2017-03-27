@@ -10,7 +10,7 @@ import (
 
 func Status(db *sql.DB, dir string) error {
 	// collect all migrations
-	migrations, err := collectMigrations(dir, minVersion, maxVersion)
+	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}

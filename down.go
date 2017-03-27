@@ -11,7 +11,7 @@ func Down(db *sql.DB, dir string) error {
 		return err
 	}
 
-	migrations, err := collectMigrations(dir, minVersion, maxVersion)
+	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
@@ -25,7 +25,7 @@ func Down(db *sql.DB, dir string) error {
 }
 
 func DownTo(db *sql.DB, dir string, version int64) error {
-	migrations, err := collectMigrations(dir, minVersion, maxVersion)
+	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
