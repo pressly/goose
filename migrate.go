@@ -85,9 +85,9 @@ func AddMigration(up func(*sql.Tx) error, down func(*sql.Tx) error) {
 	goMigrations = append(goMigrations, migration)
 }
 
-// collect all the valid looking migration scripts in the
-// migrations folder and go func registry, and key them by version
-func collectMigrations(dirpath string, current, target int64) (Migrations, error) {
+// CollectMigrations returns all the valid looking migration scripts in the
+// migrations folder and go func registry, and key them by version.
+func CollectMigrations(dirpath string, current, target int64) (Migrations, error) {
 	var migrations Migrations
 
 	// extract the numeric component of each migration,

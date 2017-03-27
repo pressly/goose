@@ -6,7 +6,7 @@ import (
 )
 
 func UpTo(db *sql.DB, dir string, version int64) error {
-	migrations, err := collectMigrations(dir, minVersion, version)
+	migrations, err := CollectMigrations(dir, minVersion, version)
 	if err != nil {
 		return err
 	}
@@ -39,7 +39,7 @@ func Up(db *sql.DB, dir string) error {
 }
 
 func UpByOne(db *sql.DB, dir string) error {
-	migrations, err := collectMigrations(dir, minVersion, maxVersion)
+	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
