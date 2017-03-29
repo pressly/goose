@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
+	"plugin"
 	"runtime"
 	"sort"
 )
@@ -126,6 +127,24 @@ func CollectMigrations(dirpath string, current, target int64) (Migrations, error
 	migrations = sortAndConnectMigrations(migrations)
 
 	return migrations, nil
+}
+
+// LoadMigrationPlugins loads all the valid looking precompiled migration libraries
+// in the migrations folder and go func registry, and key them by version. Registration
+// is done automatically by shared library init func.
+func LoadMigrationPlugins(dirpath string) error {
+	migrationsPlugins, err := filepath.Glob(dirpath + "/*.so")
+	if err != nil {
+		return err
+	}
+
+	for _, file := range migrationsPlugins {
+		if _, err = plugin.Open(file); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func sortAndConnectMigrations(migrations Migrations) Migrations {

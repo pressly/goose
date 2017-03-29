@@ -27,6 +27,10 @@ type Migration struct {
 	DownFn   func(*sql.Tx) error // Down go migration function
 }
 
+type TemplateParams struct {
+	Version, Name string
+}
+
 func (m *Migration) String() string {
 	return fmt.Sprintf(m.Source)
 }
@@ -40,6 +44,7 @@ func (m *Migration) Down(db *sql.DB) error {
 }
 
 func (m *Migration) run(db *sql.DB, direction bool) error {
+
 	switch filepath.Ext(m.Source) {
 	case ".sql":
 		if err := runSQLMigration(db, m.Source, m.Version, direction); err != nil {
@@ -105,16 +110,16 @@ func CreateMigration(name, migrationType, dir string, t time.Time) (path string,
 		return "", errors.New("migration type must be 'go' or 'sql'")
 	}
 
-	timestamp := t.Format("20060102150405")
-	filename := fmt.Sprintf("%v_%v.%v", timestamp, name, migrationType)
+	version := t.Format("20060102150405")
+	filename := fmt.Sprintf("%v_%v.%v", version, name, migrationType)
 
 	fpath := filepath.Join(dir, filename)
 	tmpl := sqlMigrationTemplate
 	if migrationType == "go" {
-		tmpl = goSqlMigrationTemplate
+		tmpl = goMigrationTemplate
 	}
 
-	path, err = writeTemplateToFile(fpath, tmpl, timestamp)
+	path, err = writeTemplateToFile(fpath, tmpl, TemplateParams{Version: version, Name: filename})
 
 	return
 }
@@ -133,8 +138,8 @@ func FinalizeMigration(tx *sql.Tx, direction bool, v int64) error {
 	return tx.Commit()
 }
 
-var sqlMigrationTemplate = template.Must(template.New("goose.sql-migration").Parse(`
--- +goose Up
+var sqlMigrationTemplate = template.Must(template.New("goose.sql-migration").Parse(
+`-- +goose Up
 -- SQL in section 'Up' is executed when this migration is applied
 
 
@@ -142,8 +147,9 @@ var sqlMigrationTemplate = template.Must(template.New("goose.sql-migration").Par
 -- SQL section 'Down' is executed when this migration is rolled back
 
 `))
-var goSqlMigrationTemplate = template.Must(template.New("goose.go-migration").Parse(`
-package migration
+
+var goMigrationTemplate = template.Must(template.New("goose.go-migration").Parse(
+`package main
 
 import (
     "database/sql"
@@ -152,14 +158,14 @@ import (
 )
 
 func init() {
-    goose.AddMigration(Up_{{.}}, Down_{{.}})
+    goose.AddNamedMigration("{{.Name}}", Up_{{.Version}}, Down_{{.Version}})
 }
 
-func Up_{{.}}(tx *sql.Tx) error {
+func Up_{{.Version}}(tx *sql.Tx) error {
     return nil
 }
 
-func Down_{{.}}(tx *sql.Tx) error {
+func Down_{{.Version}}(tx *sql.Tx) error {
     return nil
 }
 `))
