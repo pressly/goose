@@ -42,12 +42,13 @@ Options:
     	directory with migration files (default ".")
 
 Commands:
-    up         Migrate the DB to the most recent version available
-    down       Roll back the version by 1
-    redo       Re-run the latest migration
-    status     Dump the migration status for the current DB
-    dbversion  Print the current version of the database
-    create     Creates a blank migration template
+    up          Migrate the DB to the most recent version available
+    down        Roll back the version by 1
+    redo        Re-run the latest migration
+    status      Dump the migration status for the current DB
+    dbversion   Print the current version of the database
+    create      Creates a blank migration template
+    create-next Creates a blank migration template with next sequential version
 ```
 ## create
 

@@ -147,6 +147,20 @@ func LoadMigrationPlugins(dirpath string) error {
 	return nil
 }
 
+// lastVersion returns version of last migration present in dirpath
+func LastMigration(dirpath string) (*Migration, error) {
+	ms, err := CollectMigrations(dirpath, 0, MaxVersion)
+	if err != nil {
+		return nil, err
+	}
+	m, err := ms.Last()
+
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func sortAndConnectMigrations(migrations Migrations) Migrations {
 	sort.Sort(migrations)
 

@@ -104,13 +104,12 @@ func NumericComponent(name string) (int64, error) {
 	return n, e
 }
 
-func CreateMigration(name, migrationType, dir string, t time.Time) (path string, err error) {
+func CreateMigration(name, migrationType, dir string, version string) (path string, err error) {
 
 	if migrationType != "go" && migrationType != "sql" {
 		return "", errors.New("migration type must be 'go' or 'sql'")
 	}
 
-	version := t.Format("20060102150405")
 	filename := fmt.Sprintf("%v_%v.%v", version, name, migrationType)
 
 	fpath := filepath.Join(dir, filename)
