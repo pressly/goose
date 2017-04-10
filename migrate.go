@@ -161,7 +161,6 @@ func versionFilter(v, current, target int64) bool {
 // retrieve the current version for this DB.
 // Create and initialize the DB version table if it doesn't exist.
 func EnsureDBVersion(db *sql.DB) (int64, error) {
-
 	rows, err := GetDialect().dbVersionQuery(db)
 	if err != nil {
 		return 0, createVersionTable(db)
@@ -202,7 +201,7 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 		toSkip = append(toSkip, row.VersionId)
 	}
 
-	panic("unreachable")
+	return 0, ErrNoNextVersion
 }
 
 // Create the goose_db_version table
