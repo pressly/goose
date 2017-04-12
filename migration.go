@@ -152,14 +152,16 @@ import (
 )
 
 func init() {
-    goose.AddMigration(Up_{{.}}, Down_{{.}})
+    goose.AddMigration(Up{{.}}, Down{{.}})
 }
 
-func Up_{{.}}(tx *sql.Tx) error {
+// Up{{.}} updates the database to the new requirements
+func Up{{.}}(tx *sql.Tx) error {
     return nil
 }
 
-func Down_{{.}}(tx *sql.Tx) error {
+// Down{{.}} should send the database back to the state it was from before Up was ran
+func Down{{.}}(tx *sql.Tx) error {
     return nil
 }
 `))
