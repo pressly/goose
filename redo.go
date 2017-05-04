@@ -20,12 +20,7 @@ func Redo(db *sql.DB, dir string) error {
 		return err
 	}
 
-	previous, err := migrations.Next(currentVersion)
-	if err != nil {
-		return err
-	}
-
-	if err := previous.Up(db); err != nil {
+	if err := current.Down(db); err != nil {
 		return err
 	}
 
