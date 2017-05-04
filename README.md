@@ -34,6 +34,7 @@ Examples:
     goose postgres "user=postgres dbname=postgres sslmode=disable" up
     goose mysql "user:password@/dbname" down
     goose sqlite3 ./foo.db status
+    goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" create init sql
 
 Options:
   -dir string
