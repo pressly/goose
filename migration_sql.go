@@ -134,7 +134,7 @@ func useTransactions(scriptFile string) bool {
 		log.Fatal(err)
 	}
 
-	noTransactionsRegex, _ := regexp.Compile("--\\s\\+goose\\sNO\\sTRANSACTIONS")
+	noTransactionsRegex, _ := regexp.Compile("--\\s\\+goose\\sNO\\sTRANSACTION")
 
 	scanner := bufio.NewScanner(f)
 

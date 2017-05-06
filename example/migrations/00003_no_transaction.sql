@@ -1,4 +1,4 @@
--- +goose NO TRANSACTIONS --
+-- +goose NO TRANSACTION
 -- +goose Up
 CREATE TABLE post (
     id int NOT NULL,
