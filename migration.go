@@ -63,10 +63,6 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 				return err
 			}
 		}
-
-		if err = FinalizeMigration(tx, direction, m.Version); err != nil {
-			log.Fatalf("error finalizing migration %s, quitting. (%v)", filepath.Base(m.Source), err)
-		}
 	}
 
 	fmt.Println("OK   ", filepath.Base(m.Source))
@@ -121,7 +117,7 @@ func CreateMigration(name, migrationType, dir string, t time.Time) (path string,
 
 // Update the version table for the given migration,
 // and finalize the transaction.
-func FinalizeMigration(tx *sql.Tx, direction bool, v int64) error {
+func FinalizeMigrationTx(tx *sql.Tx, direction bool, v int64) error {
 
 	// XXX: drop goose_db_version table on some minimum version number?
 	stmt := GetDialect().insertVersionSql()
@@ -131,6 +127,18 @@ func FinalizeMigration(tx *sql.Tx, direction bool, v int64) error {
 	}
 
 	return tx.Commit()
+}
+
+// Update the version table for the given migration without a transaction.
+func FinalizeMigration(db *sql.DB, direction bool, v int64) error {
+
+	// XXX: drop goose_db_version table on some minimum version number?
+	stmt := GetDialect().insertVersionSql()
+	if _, err := db.Exec(stmt, v, direction); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 var sqlMigrationTemplate = template.Must(template.New("goose.sql-migration").Parse(`
