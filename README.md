@@ -30,23 +30,31 @@ This will install the `goose` binary to your `$GOPATH/bin` directory.
 ```
 Usage: goose [OPTIONS] DRIVER DBSTRING COMMAND
 
+Drivers:
+    postgres
+    mysql
+    sqlite3
+    redshift
+
+Commands:
+    up                Migrate the DB to the most recent version available
+    up-to VERSION     Migrate the DB to a specific VERSION
+    down              Roll back the version by 1
+    down-to VERSION   Roll back to a specific VERSION
+    redo              Re-run the latest migration
+    status            Dump the migration status for the current DB
+    dbversion         Print the current version of the database
+    create            Creates a blank migration template
+
+Options:
+    -dir string
+        directory with migration files (default ".")
+
 Examples:
     goose postgres "user=postgres dbname=postgres sslmode=disable" up
     goose mysql "user:password@/dbname" down
     goose sqlite3 ./foo.db status
     goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" create init sql
-
-Options:
-  -dir string
-    	directory with migration files (default ".")
-
-Commands:
-    up         Migrate the DB to the most recent version available
-    down       Roll back the version by 1
-    redo       Re-run the latest migration
-    status     Dump the migration status for the current DB
-    dbversion  Print the current version of the database
-    create     Creates a blank migration template
 ```
 ## create
 
@@ -72,6 +80,13 @@ Apply all available migrations.
     $ OK    002_next.sql
     $ OK    003_and_again.go
 
+## up-to
+
+Migrate up to a specific version.
+
+    $ goose up-to 20170506082420
+    $ OK    20170506082420_create_table.sql
+
 ## down
 
 Roll back a single migration from the current version.
@@ -79,6 +94,13 @@ Roll back a single migration from the current version.
     $ goose down
     $ goose: migrating db environment 'development', current version: 3, target: 2
     $ OK    003_and_again.go
+
+## down-to
+
+Roll back migrations to a specific version.
+
+    $ goose down-to 20170506082527
+    $ OK    20170506082527_alter_column.sql
 
 ## redo
 
