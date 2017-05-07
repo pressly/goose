@@ -4,6 +4,7 @@ import (
 	"database/sql"
 )
 
+// Redo : Roll back the most recently applied migration, then run it again.
 func Redo(db *sql.DB, dir string) error {
 	currentVersion, err := GetDBVersion(db)
 	if err != nil {
