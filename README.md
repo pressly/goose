@@ -43,7 +43,7 @@ Commands:
     down-to VERSION   Roll back to a specific VERSION
     redo              Re-run the latest migration
     status            Dump the migration status for the current DB
-    dbversion         Print the current version of the database
+    version           Print the current version of the database
     create            Creates a blank migration template
 
 Options:
@@ -126,12 +126,12 @@ Print the status of all migrations:
 
 Note: for MySQL [parseTime flag](https://github.com/go-sql-driver/mysql#parsetime) must be enabled.
 
-## dbversion
+## version
 
 Print the current version of the database:
 
-    $ goose dbversion
-    $ goose: dbversion 002
+    $ goose version
+    $ goose: version 002
 
 # Migrations
 
