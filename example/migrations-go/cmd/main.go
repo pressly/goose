@@ -100,7 +100,7 @@ Commands:
     down-to VERSION   Roll back to a specific VERSION
     redo              Re-run the latest migration
     status            Dump the migration status for the current DB
-    dbversion         Print the current version of the database
+    version           Print the current version of the database
     create            Creates a blank migration template
 `
 )
