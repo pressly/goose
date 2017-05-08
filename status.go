@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
-	"time"
 )
 
 func Status(db *sql.DB, dir string) error {
@@ -41,7 +40,7 @@ func printMigrationStatus(db *sql.DB, version int64, script string) {
 	var appliedAt string
 
 	if row.IsApplied {
-		appliedAt = row.TStamp.Format(time.ANSIC)
+		appliedAt = row.TStamp
 	} else {
 		appliedAt = "Pending"
 	}
