@@ -11,17 +11,17 @@ import (
 )
 
 var (
-	// ErrNoCurrentVersion : Error when not find a current migration version.
+	// ErrNoCurrentVersion when a current migration version is not found.
 	ErrNoCurrentVersion = errors.New("no current version found")
-	// ErrNoNextVersion : Error when not find a next migration version.
+	// ErrNoNextVersion when the next migration version is not found.
 	ErrNoNextVersion = errors.New("no next version found")
-	// MaxVersion : The maximum allowed version.
+	// MaxVersion is the maximum allowed version.
 	MaxVersion int64 = 9223372036854775807 // max(int64)
 
 	goMigrations []*Migration
 )
 
-// Migrations : Slice of migrations.
+// Migrations slice.
 type Migrations []*Migration
 
 // helpers so we can use pkg sort
@@ -34,7 +34,7 @@ func (ms Migrations) Less(i, j int) bool {
 	return ms[i].Version < ms[j].Version
 }
 
-// Current : Get the current migration.
+// Current gets the current migration.
 func (ms Migrations) Current(current int64) (*Migration, error) {
 	for i, migration := range ms {
 		if migration.Version == current {
@@ -45,7 +45,7 @@ func (ms Migrations) Current(current int64) (*Migration, error) {
 	return nil, ErrNoCurrentVersion
 }
 
-// Next : Get the next migration.
+// Next gets the next migration.
 func (ms Migrations) Next(current int64) (*Migration, error) {
 	for i, migration := range ms {
 		if migration.Version > current {
@@ -67,7 +67,7 @@ func (ms Migrations) Previous(current int64) (*Migration, error) {
 	return nil, ErrNoNextVersion
 }
 
-// Last : Get the last migration.
+// Last gets the last migration.
 func (ms Migrations) Last() (*Migration, error) {
 	if len(ms) == 0 {
 		return nil, ErrNoNextVersion
@@ -84,7 +84,7 @@ func (ms Migrations) String() string {
 	return str
 }
 
-// AddMigration : Add a migration.
+// AddMigration adds a migration.
 func AddMigration(up func(*sql.Tx) error, down func(*sql.Tx) error) {
 	_, filename, _, _ := runtime.Caller(1)
 	AddNamedMigration(filename, up, down)
@@ -98,7 +98,7 @@ func AddNamedMigration(filename string, up func(*sql.Tx) error, down func(*sql.T
 	goMigrations = append(goMigrations, migration)
 }
 
-// CollectMigrations : Returns all the valid looking migration scripts in the
+// CollectMigrations returns all the valid looking migration scripts in the
 // migrations folder and go func registry, and key them by version.
 func CollectMigrations(dirpath string, current, target int64) (Migrations, error) {
 	var migrations Migrations
@@ -170,7 +170,7 @@ func versionFilter(v, current, target int64) bool {
 	return false
 }
 
-// EnsureDBVersion: Retrieve the current version for this DB.
+// EnsureDBVersion retrieves the current version for this DB.
 // Create and initialize the DB version table if it doesn't exist.
 func EnsureDBVersion(db *sql.DB) (int64, error) {
 	rows, err := GetDialect().dbVersionQuery(db)
@@ -187,14 +187,14 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 
 	for rows.Next() {
 		var row MigrationRecord
-		if err = rows.Scan(&row.VersionId, &row.IsApplied); err != nil {
+		if err = rows.Scan(&row.VersionID, &row.IsApplied); err != nil {
 			log.Fatal("error scanning rows:", err)
 		}
 
 		// have we already marked this version to be skipped?
 		skip := false
 		for _, v := range toSkip {
-			if v == row.VersionId {
+			if v == row.VersionID {
 				skip = true
 				break
 			}
@@ -206,11 +206,11 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 
 		// if version has been applied we're done
 		if row.IsApplied {
-			return row.VersionId, nil
+			return row.VersionID, nil
 		}
 
 		// latest version of migration has not been applied.
-		toSkip = append(toSkip, row.VersionId)
+		toSkip = append(toSkip, row.VersionID)
 	}
 
 	return 0, ErrNoNextVersion
@@ -241,7 +241,7 @@ func createVersionTable(db *sql.DB) error {
 	return txn.Commit()
 }
 
-// GetDBVersion : Wrapper for EnsureDBVersion for callers that don't already
+// GetDBVersion is a wrapper for EnsureDBVersion for callers that don't already
 // have their own DB instance
 func GetDBVersion(db *sql.DB) (int64, error) {
 	version, err := EnsureDBVersion(db)

@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// Create : Writes a new blank migration file.
+// Create writes a new blank migration file.
 func Create(db *sql.DB, dir, name, migrationType string) error {
 	path, err := CreateMigration(name, migrationType, dir, time.Now())
 	if err != nil {

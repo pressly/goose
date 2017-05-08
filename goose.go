@@ -13,7 +13,7 @@ var (
 	maxVersion         = int64((1 << 63) - 1)
 )
 
-// Run : Run a goose command.
+// Run runs a goose command.
 func Run(command string, db *sql.DB, dir string, args ...string) error {
 	switch command {
 	case "up":

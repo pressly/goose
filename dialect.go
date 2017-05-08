@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-// SQLDialect : abstracts the details of specific SQL dialects
+// SQLDialect abstracts the details of specific SQL dialects
 // for goose's few SQL specific statements
 type SQLDialect interface {
 	createVersionTableSQL() string // sql string to create the goose_db_version table
@@ -15,12 +15,12 @@ type SQLDialect interface {
 
 var dialect SQLDialect = &PostgresDialect{}
 
-// GetDialect : Get the SQLDialect
+// GetDialect gets the SQLDialect
 func GetDialect() SQLDialect {
 	return dialect
 }
 
-// SetDialect : Set the SQLDialect
+// SetDialect sets the SQLDialect
 func SetDialect(d string) error {
 	switch d {
 	case "postgres":
@@ -42,7 +42,7 @@ func SetDialect(d string) error {
 // Postgres
 ////////////////////////////
 
-// PostgresDialect : The PostgreSQL dialect struct.
+// PostgresDialect struct.
 type PostgresDialect struct{}
 
 func (pg PostgresDialect) createVersionTableSQL() string {
@@ -72,7 +72,7 @@ func (pg PostgresDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 // MySQL
 ////////////////////////////
 
-// MySQLDialect : The MySQLDialect struct.
+// MySQLDialect struct.
 type MySQLDialect struct{}
 
 func (m MySQLDialect) createVersionTableSQL() string {
@@ -102,7 +102,7 @@ func (m MySQLDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 // sqlite3
 ////////////////////////////
 
-// Sqlite3Dialect : The sqlite dialect struct.
+// Sqlite3Dialect struct.
 type Sqlite3Dialect struct{}
 
 func (m Sqlite3Dialect) createVersionTableSQL() string {
@@ -131,7 +131,7 @@ func (m Sqlite3Dialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 // Redshift
 ////////////////////////////
 
-// RedshiftDialect : The Redshift dialect struct.
+// RedshiftDialect struct.
 type RedshiftDialect struct{}
 
 func (rs RedshiftDialect) createVersionTableSQL() string {

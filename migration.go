@@ -12,14 +12,14 @@ import (
 	"time"
 )
 
-// MigrationRecord : A migration record struct.
+// MigrationRecord struct.
 type MigrationRecord struct {
-	VersionId int64
+	VersionID int64
 	TStamp    time.Time
 	IsApplied bool // was this a result of up() or down()
 }
 
-// Migration : The migration struct.
+// Migration struct.
 type Migration struct {
 	Version  int64
 	Next     int64               // next version, or -1 if none
@@ -33,12 +33,12 @@ func (m *Migration) String() string {
 	return fmt.Sprintf(m.Source)
 }
 
-// Up : Run an up migration.
+// Up runs an up migration.
 func (m *Migration) Up(db *sql.DB) error {
 	return m.run(db, true)
 }
 
-// Down : Run a down migration.
+// Down runs a down migration.
 func (m *Migration) Down(db *sql.DB) error {
 	return m.run(db, false)
 }
@@ -78,7 +78,7 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 	return nil
 }
 
-// NumericComponent : look for migration scripts with names in the form:
+// NumericComponent looks for migration scripts with names in the form:
 // XXX_descriptivename.ext where XXX specifies the version number
 // and ext specifies the type of migration
 func NumericComponent(name string) (int64, error) {
@@ -102,7 +102,7 @@ func NumericComponent(name string) (int64, error) {
 	return n, e
 }
 
-// CreateMigration : Create a migration.
+// CreateMigration creates a migration.
 func CreateMigration(name, migrationType, dir string, t time.Time) (path string, err error) {
 
 	if migrationType != "go" && migrationType != "sql" {
@@ -123,7 +123,7 @@ func CreateMigration(name, migrationType, dir string, t time.Time) (path string,
 	return
 }
 
-// FinalizeMigration : Update the version table for the given migration,
+// FinalizeMigration updates the version table for the given migration,
 // and finalize the transaction.
 func FinalizeMigration(tx *sql.Tx, direction bool, v int64) error {
 
