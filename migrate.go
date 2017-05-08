@@ -106,7 +106,10 @@ func CollectMigrations(dirpath string, current, target int64) (Migrations, error
 	// extract the numeric component of each migration,
 	// filter out any uninteresting files,
 	// and ensure we only have one file per migration version.
-	sqlMigrations, err := filepath.Glob(dirpath + "/**/*.sql")
+	sqlMigrations, err := filepath.Glob(dirpath + "/*.sql")
+	sqlMigrationsSubDirectories, err := filepath.Glob(dirpath + "/**/*.sql")
+	sqlMigrations = append(sqlMigrations, sqlMigrationsSubDirectories...)
+
 	if err != nil {
 		return nil, err
 	}
