@@ -3,8 +3,8 @@ package goose
 import (
 	"database/sql"
 	"fmt"
-	"sync"
 	"strconv"
+	"sync"
 )
 
 var (
@@ -13,6 +13,7 @@ var (
 	maxVersion         = int64((1 << 63) - 1)
 )
 
+// Run runs a goose command.
 func Run(command string, db *sql.DB, dir string, args ...string) error {
 	switch command {
 	case "up":

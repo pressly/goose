@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+// Down rolls back a single migration from the current version.
 func Down(db *sql.DB, dir string) error {
 	currentVersion, err := GetDBVersion(db)
 	if err != nil {
@@ -24,6 +25,7 @@ func Down(db *sql.DB, dir string) error {
 	return current.Down(db)
 }
 
+// DownTo rolls back migrations to a specific version.
 func DownTo(db *sql.DB, dir string, version int64) error {
 	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
@@ -59,6 +61,4 @@ func DownTo(db *sql.DB, dir string, version int64) error {
 			return err
 		}
 	}
-
-	return nil
 }

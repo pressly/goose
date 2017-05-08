@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+// UpTo migrates up to a specific version.
 func UpTo(db *sql.DB, dir string, version int64) error {
 	migrations, err := CollectMigrations(dir, minVersion, version)
 	if err != nil {
@@ -30,14 +31,14 @@ func UpTo(db *sql.DB, dir string, version int64) error {
 			return err
 		}
 	}
-
-	return nil
 }
 
+// Up applies all available migrations.
 func Up(db *sql.DB, dir string) error {
 	return UpTo(db, dir, maxVersion)
 }
 
+// UpByOne migrates up by a single version.
 func UpByOne(db *sql.DB, dir string) error {
 	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {

@@ -12,12 +12,14 @@ import (
 	"time"
 )
 
+// MigrationRecord struct.
 type MigrationRecord struct {
-	VersionId int64
+	VersionID int64
 	TStamp    time.Time
 	IsApplied bool // was this a result of up() or down()
 }
 
+// Migration struct.
 type Migration struct {
 	Version  int64
 	Next     int64               // next version, or -1 if none
@@ -31,10 +33,12 @@ func (m *Migration) String() string {
 	return fmt.Sprintf(m.Source)
 }
 
+// Up runs an up migration.
 func (m *Migration) Up(db *sql.DB) error {
 	return m.run(db, true)
 }
 
+// Down runs a down migration.
 func (m *Migration) Down(db *sql.DB) error {
 	return m.run(db, false)
 }
@@ -43,7 +47,7 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 	switch filepath.Ext(m.Source) {
 	case ".sql":
 		if err := runSQLMigration(db, m.Source, m.Version, direction); err != nil {
-			return errors.New(fmt.Sprintf("FAIL %v, quitting migration", err))
+			return fmt.Errorf("FAIL %v, quitting migration", err)
 		}
 
 	case ".go":
@@ -74,9 +78,8 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 	return nil
 }
 
-// look for migration scripts with names in the form:
-//  XXX_descriptivename.ext
-// where XXX specifies the version number
+// NumericComponent looks for migration scripts with names in the form:
+// XXX_descriptivename.ext where XXX specifies the version number
 // and ext specifies the type of migration
 func NumericComponent(name string) (int64, error) {
 
@@ -99,6 +102,7 @@ func NumericComponent(name string) (int64, error) {
 	return n, e
 }
 
+// CreateMigration creates a migration.
 func CreateMigration(name, migrationType, dir string, t time.Time) (path string, err error) {
 
 	if migrationType != "go" && migrationType != "sql" {
@@ -111,7 +115,7 @@ func CreateMigration(name, migrationType, dir string, t time.Time) (path string,
 	fpath := filepath.Join(dir, filename)
 	tmpl := sqlMigrationTemplate
 	if migrationType == "go" {
-		tmpl = goSqlMigrationTemplate
+		tmpl = goSQLMigrationTemplate
 	}
 
 	path, err = writeTemplateToFile(fpath, tmpl, timestamp)
@@ -119,12 +123,12 @@ func CreateMigration(name, migrationType, dir string, t time.Time) (path string,
 	return
 }
 
-// Update the version table for the given migration,
+// FinalizeMigration updates the version table for the given migration,
 // and finalize the transaction.
 func FinalizeMigration(tx *sql.Tx, direction bool, v int64) error {
 
 	// XXX: drop goose_db_version table on some minimum version number?
-	stmt := GetDialect().insertVersionSql()
+	stmt := GetDialect().insertVersionSQL()
 	if _, err := tx.Exec(stmt, v, direction); err != nil {
 		tx.Rollback()
 		return err
@@ -142,26 +146,26 @@ var sqlMigrationTemplate = template.Must(template.New("goose.sql-migration").Par
 -- SQL section 'Down' is executed when this migration is rolled back
 
 `))
-var goSqlMigrationTemplate = template.Must(template.New("goose.go-migration").Parse(`
+
+var goSQLMigrationTemplate = template.Must(template.New("goose.go-migration").Parse(`
 package migration
 
 import (
-    "database/sql"
-
-    "github.com/pressly/goose"
+	"database/sql"
+	"github.com/pressly/goose"
 )
 
 func init() {
-    goose.AddMigration(Up{{.}}, Down{{.}})
+	goose.AddMigration(Up{{.}}, Down{{.}})
 }
 
 // Up{{.}} updates the database to the new requirements
 func Up{{.}}(tx *sql.Tx) error {
-    return nil
+	return nil
 }
 
 // Down{{.}} should send the database back to the state it was from before Up was ran
 func Down{{.}}(tx *sql.Tx) error {
-    return nil
+	return nil
 }
 `))
