@@ -38,23 +38,15 @@ func DownTo(db *sql.DB, dir string, version int64) error {
 			return err
 		}
 
-		prev, err := migrations.Previous(currentVersion)
+		current, err := migrations.Current(currentVersion)
 		if err != nil {
-			if err == ErrNoNextVersion {
-				fmt.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
-				return nil
-			}
-			return err
-		}
-
-		if prev.Version < version {
 			fmt.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
 			return nil
 		}
 
-		current, err := migrations.Current(currentVersion)
-		if err != nil {
-			return fmt.Errorf("no migration %v", currentVersion)
+		if current.Version <= version {
+			fmt.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
+			return nil
 		}
 
 		if err = current.Down(db); err != nil {
