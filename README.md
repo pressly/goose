@@ -37,38 +37,43 @@ Drivers:
     redshift
 
 Commands:
-    up                Migrate the DB to the most recent version available
-    up-to VERSION     Migrate the DB to a specific VERSION
-    down              Roll back the version by 1
-    down-to VERSION   Roll back to a specific VERSION
-    redo              Re-run the latest migration
-    status            Dump the migration status for the current DB
-    version           Print the current version of the database
-    create            Creates a blank migration template
+    up                   Migrate the DB to the most recent version available
+    up-to VERSION        Migrate the DB to a specific VERSION
+    down                 Roll back the version by 1
+    down-to VERSION      Roll back to a specific VERSION
+    redo                 Re-run the latest migration
+    status               Dump the migration status for the current DB
+    version              Print the current version of the database
+    create NAME [sql|go] Creates new migration file with next version
 
 Options:
     -dir string
         directory with migration files (default ".")
 
 Examples:
-    goose postgres "user=postgres dbname=postgres sslmode=disable" up
-    goose mysql "user:password@/dbname" down
     goose sqlite3 ./foo.db status
-    goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" create init sql
+    goose sqlite3 ./foo.db create init sql
+    goose sqlite3 ./foo.db create add_some_column sql
+    goose sqlite3 ./foo.db create fetch_user_data go
+    goose sqlite3 ./foo.db up
+
+    goose postgres "user=postgres dbname=postgres sslmode=disable" status
+    goose mysql "user:password@/dbname" status
+    goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
 ```
 ## create
 
-Create a new Go migration.
+Create a new SQL migration.
 
-    $ goose create AddSomeColumns
-    $ goose: created db/migrations/20130106093224_AddSomeColumns.go
+    $ goose create add_some_column sql
+    $ Created new file: 00001_add_some_column.sql
 
-Edit the newly created script to define the behavior of your migration.
+Edit the newly created file to define the behavior of your migration.
 
-You can also create an SQL migration:
+You can also create a Go migration, if you then invoke it with [your own goose binary](#go-migrations):
 
-    $ goose create AddSomeColumns sql
-    $ goose: created db/migrations/20130106093224_AddSomeColumns.sql
+    $ goose create fetch_user_data go
+    $ Created new file: 00002_fetch_user_data.go
 
 ## up
 
