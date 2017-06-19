@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"text/template"
 	"time"
 )
 
@@ -102,27 +101,6 @@ func NumericComponent(name string) (int64, error) {
 	return n, e
 }
 
-// CreateMigration creates a migration.
-func CreateMigration(name, migrationType, dir string, t time.Time) (path string, err error) {
-
-	if migrationType != "go" && migrationType != "sql" {
-		return "", errors.New("migration type must be 'go' or 'sql'")
-	}
-
-	timestamp := t.Format("20060102150405")
-	filename := fmt.Sprintf("%v_%v.%v", timestamp, name, migrationType)
-
-	fpath := filepath.Join(dir, filename)
-	tmpl := sqlMigrationTemplate
-	if migrationType == "go" {
-		tmpl = goSQLMigrationTemplate
-	}
-
-	path, err = writeTemplateToFile(fpath, tmpl, timestamp)
-
-	return
-}
-
 // FinalizeMigration updates the version table for the given migration,
 // and finalize the transaction.
 func FinalizeMigration(tx *sql.Tx, direction bool, v int64) error {
@@ -136,36 +114,3 @@ func FinalizeMigration(tx *sql.Tx, direction bool, v int64) error {
 
 	return tx.Commit()
 }
-
-var sqlMigrationTemplate = template.Must(template.New("goose.sql-migration").Parse(`
--- +goose Up
--- SQL in section 'Up' is executed when this migration is applied
-
-
--- +goose Down
--- SQL section 'Down' is executed when this migration is rolled back
-
-`))
-
-var goSQLMigrationTemplate = template.Must(template.New("goose.go-migration").Parse(`
-package migration
-
-import (
-	"database/sql"
-	"github.com/pressly/goose"
-)
-
-func init() {
-	goose.AddMigration(Up{{.}}, Down{{.}})
-}
-
-// Up{{.}} updates the database to the new requirements
-func Up{{.}}(tx *sql.Tx) error {
-	return nil
-}
-
-// Down{{.}} should send the database back to the state it was from before Up was ran
-func Down{{.}}(tx *sql.Tx) error {
-	return nil
-}
-`))
