@@ -1,4 +1,4 @@
-package migrations
+package main
 
 import (
 	"database/sql"
@@ -7,10 +7,10 @@ import (
 )
 
 func init() {
-	goose.AddMigration(Up, Down)
+	goose.AddMigration(Up00002, Down00002)
 }
 
-func Up(tx *sql.Tx) error {
+func Up00002(tx *sql.Tx) error {
 	_, err := tx.Exec("UPDATE users SET username='admin' WHERE username='root';")
 	if err != nil {
 		return err
@@ -18,7 +18,7 @@ func Up(tx *sql.Tx) error {
 	return nil
 }
 
-func Down(tx *sql.Tx) error {
+func Down00002(tx *sql.Tx) error {
 	_, err := tx.Exec("UPDATE users SET username='root' WHERE username='admin';")
 	if err != nil {
 		return err

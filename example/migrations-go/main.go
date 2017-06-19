@@ -9,8 +9,7 @@ import (
 
 	"github.com/pressly/goose"
 
-	_ "github.com/pressly/goose/example/migrations-go"
-
+	// Init DB drivers.
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
@@ -27,7 +26,15 @@ func main() {
 	flags.Parse(os.Args[1:])
 
 	args := flags.Args()
-	if len(args) != 3 {
+
+	if len(args) > 1 && args[0] == "create" {
+		if err := goose.Run("create", nil, *dir, args[1:]...); err != nil {
+			log.Fatalf("goose run: %v", err)
+		}
+		return
+	}
+
+	if len(args) < 3 {
 		flags.Usage()
 		return
 	}
@@ -63,7 +70,12 @@ func main() {
 		log.Fatalf("-dbstring=%q: %v\n", dbstring, err)
 	}
 
-	if err := goose.Run(command, db, *dir); err != nil {
+	arguments := []string{}
+	if len(args) > 3 {
+		arguments = append(arguments, args[3:]...)
+	}
+
+	if err := goose.Run(command, db, *dir, arguments...); err != nil {
 		log.Fatalf("goose run: %v", err)
 	}
 }
@@ -84,23 +96,28 @@ Drivers:
     redshift
 
 Examples:
-    goose postgres "user=postgres dbname=postgres sslmode=disable" up
-    goose mysql "user:password@/dbname" down
     goose sqlite3 ./foo.db status
-    goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" create init sql
+    goose sqlite3 ./foo.db create init sql
+    goose sqlite3 ./foo.db create add_some_column sql
+    goose sqlite3 ./foo.db create fetch_user_data go
+    goose sqlite3 ./foo.db up
+
+    goose postgres "user=postgres dbname=postgres sslmode=disable" status
+    goose mysql "user:password@/dbname" status
+    goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
 
 Options:
 `
 
 	usageCommands = `
 Commands:
-    up                Migrate the DB to the most recent version available
-    up-to VERSION     Migrate the DB to a specific VERSION
-    down              Roll back the version by 1
-    down-to VERSION   Roll back to a specific VERSION
-    redo              Re-run the latest migration
-    status            Dump the migration status for the current DB
-    version           Print the current version of the database
-    create            Creates a blank migration template
+    up                   Migrate the DB to the most recent version available
+    up-to VERSION        Migrate the DB to a specific VERSION
+    down                 Roll back the version by 1
+    down-to VERSION      Roll back to a specific VERSION
+    redo                 Re-run the latest migration
+    status               Dump the migration status for the current DB
+    version              Print the current version of the database
+    create NAME [sql|go] Creates new migration file with next version
 `
 )
