@@ -119,7 +119,7 @@ func FinalizeMigrationTx(tx *sql.Tx, direction bool, v int64) error {
 func FinalizeMigration(db *sql.DB, direction bool, v int64) error {
 
 	// XXX: drop goose_db_version table on some minimum version number?
-	stmt := GetDialect().insertVersionSql()
+	stmt := GetDialect().insertVersionSQL()
 	if _, err := db.Exec(stmt, v, direction); err != nil {
 		return err
 	}
