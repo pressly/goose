@@ -20,12 +20,13 @@ type MigrationRecord struct {
 
 // Migration struct.
 type Migration struct {
-	Version  int64
-	Next     int64               // next version, or -1 if none
-	Previous int64               // previous version, -1 if none
-	Source   string              // path to .sql script
-	UpFn     func(*sql.Tx) error // Up go migration function
-	DownFn   func(*sql.Tx) error // Down go migration function
+	Version    int64
+	Next       int64  // next version, or -1 if none
+	Previous   int64  // previous version, -1 if none
+	Source     string // path to .sql script
+	Registered bool
+	UpFn       func(*sql.Tx) error // Up go migration function
+	DownFn     func(*sql.Tx) error // Down go migration function
 }
 
 func (m *Migration) String() string {
@@ -50,6 +51,9 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 		}
 
 	case ".go":
+		if !m.Registered {
+			log.Fatalf("failed to apply Go migration %q: Go functions must be registered and built into a custom binary (see https://github.com/pressly/goose/tree/master/examples/go-migrations)", m.Source)
+		}
 		tx, err := db.Begin()
 		if err != nil {
 			log.Fatal("db.Begin: ", err)
