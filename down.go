@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+// Down rolls back a single migration from the current version.
 func Down(db *sql.DB, dir string) error {
 	currentVersion, err := GetDBVersion(db)
 	if err != nil {
@@ -24,6 +25,7 @@ func Down(db *sql.DB, dir string) error {
 	return current.Down(db)
 }
 
+// DownTo rolls back migrations to a specific version.
 func DownTo(db *sql.DB, dir string, version int64) error {
 	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
@@ -36,29 +38,19 @@ func DownTo(db *sql.DB, dir string, version int64) error {
 			return err
 		}
 
-		prev, err := migrations.Previous(currentVersion)
+		current, err := migrations.Current(currentVersion)
 		if err != nil {
-			if err == ErrNoNextVersion {
-				fmt.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
-				return nil
-			}
-			return err
-		}
-
-		if prev.Version < version {
 			fmt.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
 			return nil
 		}
 
-		current, err := migrations.Current(currentVersion)
-		if err != nil {
-			return fmt.Errorf("no migration %v", currentVersion)
+		if current.Version <= version {
+			fmt.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
+			return nil
 		}
 
 		if err = current.Down(db); err != nil {
 			return err
 		}
 	}
-
-	return nil
 }

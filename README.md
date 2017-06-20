@@ -1,23 +1,30 @@
 # goose
 
-Goose is a database migration tool. Manage your database's evolution by creating incremental SQL files or Go functions.
+Goose is a database migration tool. Manage your database schema by creating incremental SQL changes or Go functions.
 
 [![GoDoc Widget]][GoDoc] [![Travis Widget]][Travis]
 
 ### Goals of this fork
 
-github.com/pressly/goose is a fork of bitbucket.org/liamstask/goose with the following changes:
+`github.com/pressly/goose` is a fork of `bitbucket.org/liamstask/goose` with the following changes:
 - No config files
 - [Default goose binary](./cmd/goose/main.go) can migrate SQL files only
 - Go migrations:
-    - We dropped building Go migrations on-the-fly from .go source files
-    - Instead, you can create your own goose binary, import `github.com/pressly/goose`
-      package and run complex Go migrations with your own `*sql.DB` connection
-    - Each Go migration function is called with `*sql.Tx` argument - within its own transaction
-- The goose pkg is decoupled from the default binary:
-    - goose pkg doesn't register any SQL drivers anymore
-      (no driver `panic()` conflict within your codebase!)
+    - We don't `go build` Go migrations functions on-the-fly
+      from within the goose binary
+    - Instead, we let you
+      [create your own custom goose binary](examples/go-migrations),
+      register your Go migration functions explicitly and run complex
+      migrations with your own `*sql.DB` connection
+    - Go migration functions let you run your code within
+      an SQL transaction, if you use the `*sql.Tx` argument
+- The goose pkg is decoupled from the binary:
+    - goose pkg doesn't register any SQL drivers anymore,
+      thus no driver `panic()` conflict within your codebase!
     - goose pkg doesn't have any vendor dependencies anymore
+- We encourage using sequential versioning of migration files
+    (rather than timestamps-based versioning) to prevent version
+    mismatch and migration colissions
 
 # Install
 
@@ -30,37 +37,50 @@ This will install the `goose` binary to your `$GOPATH/bin` directory.
 ```
 Usage: goose [OPTIONS] DRIVER DBSTRING COMMAND
 
-Examples:
-    goose postgres "user=postgres dbname=postgres sslmode=disable" up
-    goose mysql "user:password@/dbname" down
-    goose sqlite3 ./foo.db status
-    goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" create init sql
-
-Options:
-  -dir string
-    	directory with migration files (default ".")
+Drivers:
+    postgres
+    mysql
+    sqlite3
+    redshift
 
 Commands:
-    up         Migrate the DB to the most recent version available
-    down       Roll back the version by 1
-    redo       Re-run the latest migration
-    status     Dump the migration status for the current DB
-    dbversion  Print the current version of the database
-    create     Creates a blank migration template
+    up                   Migrate the DB to the most recent version available
+    up-to VERSION        Migrate the DB to a specific VERSION
+    down                 Roll back the version by 1
+    down-to VERSION      Roll back to a specific VERSION
+    redo                 Re-run the latest migration
+    status               Dump the migration status for the current DB
+    version              Print the current version of the database
+    create NAME [sql|go] Creates new migration file with next version
+
+Options:
+    -dir string
+        directory with migration files (default ".")
+
+Examples:
+    goose sqlite3 ./foo.db status
+    goose sqlite3 ./foo.db create init sql
+    goose sqlite3 ./foo.db create add_some_column sql
+    goose sqlite3 ./foo.db create fetch_user_data go
+    goose sqlite3 ./foo.db up
+
+    goose postgres "user=postgres dbname=postgres sslmode=disable" status
+    goose mysql "user:password@/dbname" status
+    goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
 ```
 ## create
 
-Create a new Go migration.
+Create a new SQL migration.
 
-    $ goose create AddSomeColumns
-    $ goose: created db/migrations/20130106093224_AddSomeColumns.go
+    $ goose create add_some_column sql
+    $ Created new file: 00001_add_some_column.sql
 
-Edit the newly created script to define the behavior of your migration.
+Edit the newly created file to define the behavior of your migration.
 
-You can also create an SQL migration:
+You can also create a Go migration, if you then invoke it with [your own goose binary](#go-migrations):
 
-    $ goose create AddSomeColumns sql
-    $ goose: created db/migrations/20130106093224_AddSomeColumns.sql
+    $ goose create fetch_user_data go
+    $ Created new file: 00002_fetch_user_data.go
 
 ## up
 
@@ -72,6 +92,13 @@ Apply all available migrations.
     $ OK    002_next.sql
     $ OK    003_and_again.go
 
+## up-to
+
+Migrate up to a specific version.
+
+    $ goose up-to 20170506082420
+    $ OK    20170506082420_create_table.sql
+
 ## down
 
 Roll back a single migration from the current version.
@@ -79,6 +106,13 @@ Roll back a single migration from the current version.
     $ goose down
     $ goose: migrating db environment 'development', current version: 3, target: 2
     $ OK    003_and_again.go
+
+## down-to
+
+Roll back migrations to a specific version.
+
+    $ goose down-to 20170506082527
+    $ OK    20170506082527_alter_column.sql
 
 ## redo
 
@@ -104,12 +138,12 @@ Print the status of all migrations:
 
 Note: for MySQL [parseTime flag](https://github.com/go-sql-driver/mysql#parsetime) must be enabled.
 
-## dbversion
+## version
 
 Print the current version of the database:
 
-    $ goose dbversion
-    $ goose: dbversion 002
+    $ goose version
+    $ goose: version 002
 
 # Migrations
 
@@ -169,7 +203,7 @@ language plpgsql;
 
 ## Go Migrations
 
-1. Create your own goose binary, see [example](./example/migrations-go/cmd/main.go)
+1. Create your own goose binary, see [example](./examples/go-migrations)
 2. Import `github.com/pressly/goose`
 3. Register your migration functions
 4. Run goose command, ie. `goose.Up(db *sql.DB, dir string)`

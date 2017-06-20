@@ -1,22 +1,21 @@
 sudo: false
 language: go
 go:
-- 1.6
-- tip
+- 1.8
 
 install:
-- go get github.com/go-sql-driver/mysql
-- go get github.com/lib/pq
-- go get github.com/mattn/go-sqlite3
-- go get github.com/ziutek/mymysql/godrv
+- go get github.com/golang/dep/cmd/dep
+- dep ensure
 
 script:
 - go test
-- go run ./cmd/goose/main.go -dir=example/migrations sqlite3 sql.db up
-- go run ./cmd/goose/main.go -dir=example/migrations sqlite3 sql.db version
-- go run ./cmd/goose/main.go -dir=example/migrations sqlite3 sql.db down
-- go run ./cmd/goose/main.go -dir=example/migrations sqlite3 sql.db status
-- go run ./example/migrations-go/cmd/main.go -dir=example/migrations-go sqlite3 go.db up
-- go run ./example/migrations-go/cmd/main.go -dir=example/migrations-go sqlite3 go.db version
-- go run ./example/migrations-go/cmd/main.go -dir=example/migrations-go sqlite3 go.db down
-- go run ./example/migrations-go/cmd/main.go -dir=example/migrations-go sqlite3 go.db status
+- go build -i -o goose ./cmd/goose
+- ./goose -dir=examples/sql-migrations sqlite3 sql.db up
+- ./goose -dir=examples/sql-migrations sqlite3 sql.db version
+- ./goose -dir=examples/sql-migrations sqlite3 sql.db down
+- ./goose -dir=examples/sql-migrations sqlite3 sql.db status
+- go build -i -o custom-goose ./examples/go-migrations
+- ./custom-goose -dir=examples/go-migrations sqlite3 go.db up
+- ./custom-goose -dir=examples/go-migrations sqlite3 go.db version
+- ./custom-goose -dir=examples/go-migrations sqlite3 go.db down
+- ./custom-goose -dir=examples/go-migrations sqlite3 go.db status

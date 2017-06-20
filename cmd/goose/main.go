@@ -9,6 +9,7 @@ import (
 
 	"github.com/pressly/goose"
 
+	// Init DB drivers.
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
@@ -88,22 +89,35 @@ func usage() {
 var (
 	usagePrefix = `Usage: goose [OPTIONS] DRIVER DBSTRING COMMAND
 
+Drivers:
+    postgres
+    mysql
+    sqlite3
+    redshift
+
 Examples:
-    goose postgres "user=postgres dbname=postgres sslmode=disable" up
-    goose mysql "user:password@/dbname" down
     goose sqlite3 ./foo.db status
-    goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" create init sql
+    goose sqlite3 ./foo.db create init sql
+    goose sqlite3 ./foo.db create add_some_column sql
+    goose sqlite3 ./foo.db create fetch_user_data go
+    goose sqlite3 ./foo.db up
+
+    goose postgres "user=postgres dbname=postgres sslmode=disable" status
+    goose mysql "user:password@/dbname" status
+    goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
 
 Options:
 `
 
 	usageCommands = `
 Commands:
-    up         Migrate the DB to the most recent version available
-    down       Roll back the version by 1
-    redo       Re-run the latest migration
-    status     Dump the migration status for the current DB
-    dbversion  Print the current version of the database
-    create     Creates a blank migration template
+    up                   Migrate the DB to the most recent version available
+    up-to VERSION        Migrate the DB to a specific VERSION
+    down                 Roll back the version by 1
+    down-to VERSION      Roll back to a specific VERSION
+    redo                 Re-run the latest migration
+    status               Dump the migration status for the current DB
+    version              Print the current version of the database
+    create NAME [sql|go] Creates new migration file with next version
 `
 )
