@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -41,8 +40,7 @@ func endsWithSemicolon(line string) bool {
 // within a statement. For these cases, we provide the explicit annotations
 // 'StatementBegin' and 'StatementEnd' to allow the script to
 // tell us to ignore semicolons.
-func splitSQLStatements(r io.Reader, direction bool) (stmts []string) {
-
+func getSQLStatements(r io.Reader, direction bool) (stmts []string, tx bool) {
 	var buf bytes.Buffer
 	scanner := bufio.NewScanner(r)
 
@@ -54,6 +52,7 @@ func splitSQLStatements(r io.Reader, direction bool) (stmts []string) {
 	statementEnded := false
 	ignoreSemicolons := false
 	directionIsActive := false
+	tx = true
 
 	for scanner.Scan() {
 
@@ -84,6 +83,10 @@ func splitSQLStatements(r io.Reader, direction bool) (stmts []string) {
 					statementEnded = (ignoreSemicolons == true)
 					ignoreSemicolons = false
 				}
+				break
+
+			case "NO TRANSACTION":
+				tx = false
 				break
 			}
 		}
@@ -136,32 +139,44 @@ func splitSQLStatements(r io.Reader, direction bool) (stmts []string) {
 // All statements following an Up or Down directive are grouped together
 // until another direction directive is found.
 func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) error {
-
-	tx, err := db.Begin()
-	if err != nil {
-		log.Fatal("db.Begin:", err)
-	}
-
 	f, err := os.Open(scriptFile)
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer f.Close()
 
-	// find each statement, checking annotations for up/down direction
-	// and execute each of them in the current transaction.
-	// Commits the transaction if successfully applied each statement and
-	// records the version into the version table or returns an error and
-	// rolls back the transaction.
-	for _, query := range splitSQLStatements(f, direction) {
-		if _, err = tx.Exec(query); err != nil {
+	statements, useTx := getSQLStatements(f, direction)
+
+	if useTx {
+		// TRANSACTION.
+
+		tx, err := db.Begin()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		for _, query := range statements {
+			if _, err = tx.Exec(query); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+		if _, err := tx.Exec(GetDialect().insertVersionSQL(), v, direction); err != nil {
 			tx.Rollback()
-			log.Fatalf("FAIL %s (%v), quitting migration.", filepath.Base(scriptFile), err)
+			return err
+		}
+
+		return tx.Commit()
+	}
+
+	// NO TRANSACTION.
+	for _, query := range statements {
+		if _, err := db.Exec(query); err != nil {
 			return err
 		}
 	}
-
-	if err = FinalizeMigration(tx, direction, v); err != nil {
-		log.Fatalf("error finalizing migration %s, quitting. (%v)", filepath.Base(scriptFile), err)
+	if _, err := db.Exec(GetDialect().insertVersionSQL(), v, direction); err != nil {
+		return err
 	}
 
 	return nil

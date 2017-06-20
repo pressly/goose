@@ -1,6 +1,7 @@
 package goose
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -79,10 +80,44 @@ func TestSplitStatements(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		stmts := splitSQLStatements(strings.NewReader(test.sql), test.direction)
+		stmts, _ := getSQLStatements(strings.NewReader(test.sql), test.direction)
 		if len(stmts) != test.count {
 			t.Errorf("incorrect number of stmts. got %v, want %v", len(stmts), test.count)
 		}
+	}
+}
+
+func TestUseTransactions(t *testing.T) {
+	type testData struct {
+		fileName        string
+		useTransactions bool
+	}
+
+	tests := []testData{
+		{
+			fileName:        "./examples/sql-migrations/00001_create_users_table.sql",
+			useTransactions: true,
+		},
+		{
+			fileName:        "./examples/sql-migrations/00002_rename_root.sql",
+			useTransactions: true,
+		},
+		{
+			fileName:        "./examples/sql-migrations/00003_no_transaction.sql",
+			useTransactions: false,
+		},
+	}
+
+	for _, test := range tests {
+		f, err := os.Open(test.fileName)
+		if err != nil {
+			t.Error(err)
+		}
+		_, useTx := getSQLStatements(f, true)
+		if useTx != test.useTransactions {
+			t.Errorf("Failed transaction check. got %v, want %v", useTx, test.useTransactions)
+		}
+		f.Close()
 	}
 }
 

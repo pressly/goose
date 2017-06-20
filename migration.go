@@ -35,12 +35,20 @@ func (m *Migration) String() string {
 
 // Up runs an up migration.
 func (m *Migration) Up(db *sql.DB) error {
-	return m.run(db, true)
+	if err := m.run(db, true); err != nil {
+		return err
+	}
+	fmt.Println("OK   ", filepath.Base(m.Source))
+	return nil
 }
 
 // Down runs a down migration.
 func (m *Migration) Down(db *sql.DB) error {
-	return m.run(db, false)
+	if err := m.run(db, false); err != nil {
+		return err
+	}
+	fmt.Println("OK   ", filepath.Base(m.Source))
+	return nil
 }
 
 func (m *Migration) run(db *sql.DB, direction bool) error {
@@ -70,13 +78,13 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 				return err
 			}
 		}
-
-		if err = FinalizeMigration(tx, direction, m.Version); err != nil {
-			log.Fatalf("error finalizing migration %s, quitting. (%v)", filepath.Base(m.Source), err)
+		if _, err := tx.Exec(GetDialect().insertVersionSQL(), m.Version, direction); err != nil {
+			tx.Rollback()
+			return err
 		}
-	}
 
-	fmt.Println("OK   ", filepath.Base(m.Source))
+		return tx.Commit()
+	}
 
 	return nil
 }
@@ -103,18 +111,4 @@ func NumericComponent(name string) (int64, error) {
 	}
 
 	return n, e
-}
-
-// FinalizeMigration updates the version table for the given migration,
-// and finalize the transaction.
-func FinalizeMigration(tx *sql.Tx, direction bool, v int64) error {
-
-	// XXX: drop goose_db_version table on some minimum version number?
-	stmt := GetDialect().insertVersionSQL()
-	if _, err := tx.Exec(stmt, v, direction); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	return tx.Commit()
 }
