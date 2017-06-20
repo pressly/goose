@@ -1,6 +1,7 @@
 package goose
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -79,7 +80,7 @@ func TestSplitStatements(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		stmts := splitSQLStatements(strings.NewReader(test.sql), test.direction)
+		stmts, _ := getSQLStatements(strings.NewReader(test.sql), test.direction)
 		if len(stmts) != test.count {
 			t.Errorf("incorrect number of stmts. got %v, want %v", len(stmts), test.count)
 		}
@@ -108,10 +109,15 @@ func TestUseTransactions(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		result := useTransactions(test.fileName)
-		if result != test.useTransactions {
-			t.Errorf("Failed transaction check. got %v, want %v", result, test.useTransactions)
+		f, err := os.Open(test.fileName)
+		if err != nil {
+			t.Error(err)
 		}
+		_, useTx := getSQLStatements(f, true)
+		if useTx != test.useTransactions {
+			t.Errorf("Failed transaction check. got %v, want %v", useTx, test.useTransactions)
+		}
+		f.Close()
 	}
 }
 
