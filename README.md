@@ -65,11 +65,11 @@ Examples:
     goose sqlite3 ./foo.db up
 
     goose postgres "user=postgres dbname=postgres sslmode=disable" status
-    goose mysql "user:password@/dbname" status
     goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
+    goose mysql "user:password@/dbname?parseTime=true&multiStatements=true" status
 ```
 
-Note: **MySQL** using [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql) driver: Both [parseTime=true](https://github.com/go-sql-driver/mysql#parsetime) and [multiStatements=true](https://github.com/go-sql-driver/mysql#multistatements) connection string parameters must be enabled.
+Note: **MySQL** using [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql) driver must have both [parseTime=true](https://github.com/go-sql-driver/mysql#parsetime) and [multiStatements=true](https://github.com/go-sql-driver/mysql#multistatements) connection string parameters enabled.
 
 ## create
 
