@@ -98,6 +98,7 @@ func AddNamedMigration(filename string, up func(*sql.Tx) error, down func(*sql.T
 	if existing, ok := registeredGoMigrations[v]; ok {
 		panic(fmt.Sprintf("failed to add migration %q: version conflicts with %q", filename, existing.Source))
 	}
+
 	registeredGoMigrations[v] = migration
 }
 
@@ -141,12 +142,14 @@ func CollectMigrations(dirpath string, current, target int64) (Migrations, error
 	for _, file := range goMigrationFiles {
 		v, err := NumericComponent(file)
 		if err != nil {
-			continue // Skip any files that don't have start with version.
+			continue // Skip any files that don't have version prefix.
 		}
-		// Skip migrations already registered via goose.AddMigration().
+
+		// Skip migrations already existing migrations registered via goose.AddMigration().
 		if _, ok := registeredGoMigrations[v]; ok {
 			continue
 		}
+
 		if versionFilter(v, current, target) {
 			migration := &Migration{Version: v, Next: -1, Previous: -1, Source: file, Registered: false}
 			migrations = append(migrations, migration)
