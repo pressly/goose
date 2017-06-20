@@ -18,7 +18,7 @@ var (
 	// MaxVersion is the maximum allowed version.
 	MaxVersion int64 = 9223372036854775807 // max(int64)
 
-	registeredGoMigrations map[int64]*Migration
+	registeredGoMigrations = map[int64]*Migration{}
 )
 
 // Migrations slice.
