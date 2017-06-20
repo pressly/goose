@@ -146,7 +146,6 @@ func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) err
 	defer f.Close()
 
 	statements, useTx := getSQLStatements(f, direction)
-	log.Printf("gonna use TX: %v\n", useTx)
 
 	if useTx {
 		// TRANSACTION.
