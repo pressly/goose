@@ -9,13 +9,3 @@ install:
 
 script:
 - go test
-- go build -i -o goose ./cmd/goose
-- ./goose -dir=examples/sql-migrations sqlite3 sql.db up
-- ./goose -dir=examples/sql-migrations sqlite3 sql.db version
-- ./goose -dir=examples/sql-migrations sqlite3 sql.db down
-- ./goose -dir=examples/sql-migrations sqlite3 sql.db status
-- go build -i -o custom-goose ./examples/go-migrations
-- ./custom-goose -dir=examples/go-migrations sqlite3 go.db up
-- ./custom-goose -dir=examples/go-migrations sqlite3 go.db version
-- ./custom-goose -dir=examples/go-migrations sqlite3 go.db down
-- ./custom-goose -dir=examples/go-migrations sqlite3 go.db status
