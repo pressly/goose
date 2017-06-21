@@ -103,8 +103,8 @@ Examples:
     goose sqlite3 ./foo.db up
 
     goose postgres "user=postgres dbname=postgres sslmode=disable" status
-    goose mysql "user:password@/dbname" status
     goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
+    goose mysql "user:password@/dbname?parseTime=true&multiStatements=true" status
 
 Options:
 `
