@@ -68,6 +68,17 @@ func Run(command string, db *sql.DB, dir string, args ...string) error {
 		if err := Redo(db, dir); err != nil {
 			return err
 		}
+	case "reset":
+		if err := Reset(db, dir); err != nil {
+			return err
+		}
+	case "refresh":
+		if err := Reset(db, dir); err != nil {
+			return err
+		}
+		if err := Up(db, dir); err != nil {
+			return err
+		}
 	case "status":
 		if err := Status(db, dir); err != nil {
 			return err
