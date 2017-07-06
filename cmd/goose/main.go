@@ -117,7 +117,6 @@ Commands:
     down-to VERSION      Roll back to a specific VERSION
     redo                 Re-run the latest migration
     reset                Roll back all migrations
-    refresh              Roll back all migrations and apply all available migrations again
     status               Dump the migration status for the current DB
     version              Print the current version of the database
     create NAME [sql|go] Creates new migration file with next version
