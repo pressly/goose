@@ -4,5 +4,4 @@ cmd/goose/goose*
 *.test
 go.sql
 db.sql
-goose
 custom-goose
