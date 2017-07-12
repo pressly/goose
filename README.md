@@ -2,7 +2,7 @@
 
 Goose is a database migration tool. Manage your database schema by creating incremental SQL changes or Go functions.
 
-[![GoDoc Widget]][GoDoc] [![Travis Widget]][Travis]
+[![GoDoc Widget]][GoDoc] [![Travis Widget]][Travis]  ![Codeship]
 
 ### Goals of this fork
 
@@ -168,7 +168,7 @@ DROP TABLE post;
 
 Notice the annotations in the comments. Any statements following `-- +goose Up` will be executed as part of a forward migration, and any statements following `-- +goose Down` will be executed as part of a rollback.
 
-By default, all migrations are run within a transaction. Some statements like `CREATE DATABASE`, however, cannot be run within a transaction. You may optionally add `-- +goose NO TRANSACTION` to the top of your migration 
+By default, all migrations are run within a transaction. Some statements like `CREATE DATABASE`, however, cannot be run within a transaction. You may optionally add `-- +goose NO TRANSACTION` to the top of your migration
 file in order to skip transactions within that specific migration file. Both Up and Down migrations within this file will be run without transactions.
 
 By default, SQL statements are delimited by semicolons - in fact, query statements must end with a semicolon to be properly recognized by goose.
@@ -248,3 +248,4 @@ Licensed under [MIT License](./LICENSE)
 [GoDoc Widget]: https://godoc.org/github.com/webconnex/goose?status.svg
 [Travis]: https://travis-ci.org/pressly/goose
 [Travis Widget]: https://travis-ci.org/pressly/goose.svg?branch=master
+[Codeship]:https://app.codeship.com/projects/049956d0-3f11-0135-e3e4-565eda87c2b1/status?branch=master
