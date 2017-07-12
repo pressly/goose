@@ -17,9 +17,19 @@ var (
 func Run(command string, db *sql.DB, dir string, args ...string) error {
 	switch command {
 	case "up":
-		if err := Up(db, dir); err != nil {
+		if err := UpUnapplied(db, dir); err != nil {
 			return err
 		}
+
+		// NOTE: Business logic change from Forked rep.
+		// We want to apply any previously unmigrated version.
+		// The initial package will only apply new versions with dates AFTER
+		// the last migration. In our fast pace / multi dev environment this leaves
+		// migrations un applied once a hotfix surpasses it.
+		// case "up":
+		// 	if err := Up(db, dir); err != nil {
+		// 		return err
+		// 	}
 	case "up-by-one":
 		if err := UpByOne(db, dir); err != nil {
 			return err

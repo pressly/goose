@@ -2,3 +2,7 @@
 cmd/goose/goose*
 *.swp
 *.test
+go.sql
+db.sql
+goose
+custom-goose

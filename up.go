@@ -3,6 +3,7 @@ package goose
 import (
 	"database/sql"
 	"fmt"
+	"log"
 )
 
 // UpTo migrates up to a specific version.
@@ -62,5 +63,45 @@ func UpByOne(db *sql.DB, dir string) error {
 		return err
 	}
 
+	return nil
+}
+
+// UpUnapplied migrates all un-migrated versions.
+func UpUnapplied(db *sql.DB, dir string) error {
+
+	// Collect all migrations from directory.
+	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+	if err != nil {
+		log.Print(err)
+		return err
+	}
+
+	// Must ensure that the version table exists if we're running on a pristine DB.
+	if _, err := EnsureDBVersion(db); err != nil {
+		log.Print(err)
+		return err
+	}
+
+	// Loop over each migration.
+	for _, migration := range migrations {
+
+		// Look up if the migration has been applied.
+		var row MigrationRecord
+		q := fmt.Sprintf("SELECT tstamp, is_applied FROM goose_db_version WHERE version_id=%d ORDER BY tstamp DESC LIMIT 1", migration.Version)
+		err := db.QueryRow(q).Scan(&row.TStamp, &row.IsApplied)
+
+		if err != nil && err != sql.ErrNoRows {
+			log.Print(err)
+			return err
+		}
+
+		// Only apply migrations which are not applied or found.
+		if !row.IsApplied {
+			if err = migration.Up(db); err != nil {
+				log.Print(err)
+				return err
+			}
+		}
+	}
 	return nil
 }

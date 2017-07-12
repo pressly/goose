@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/pressly/goose"
+	"github.com/webconnex/goose"
 
 	// Init DB drivers.
 	_ "github.com/go-sql-driver/mysql"
@@ -18,7 +18,7 @@ import (
 
 var (
 	flags = flag.NewFlagSet("goose", flag.ExitOnError)
-	dir   = flags.String("dir", ".", "directory with migration files")
+	dir   = flags.String("dir", "./db/migrations/", "directory with migration files")
 )
 
 func main() {
