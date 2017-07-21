@@ -2,29 +2,7 @@
 
 Goose is a database migration tool. Manage your database schema by creating incremental SQL changes or Go functions.
 
-[![GoDoc Widget]][GoDoc] [![Travis Widget]][Travis]  ![Codeship]
-
-### Goals of this fork
-
-`github.com/webconnex/goose` is a fork of `bitbucket.org/liamstask/goose` with the following changes:
-- No config files
-- [Default goose binary](./cmd/goose/main.go) can migrate SQL files only
-- Go migrations:
-    - We don't `go build` Go migrations functions on-the-fly
-      from within the goose binary
-    - Instead, we let you
-      [create your own custom goose binary](examples/go-migrations),
-      register your Go migration functions explicitly and run complex
-      migrations with your own `*sql.DB` connection
-    - Go migration functions let you run your code within
-      an SQL transaction, if you use the `*sql.Tx` argument
-- The goose pkg is decoupled from the binary:
-    - goose pkg doesn't register any SQL drivers anymore,
-      thus no driver `panic()` conflict within your codebase!
-    - goose pkg doesn't have any vendor dependencies anymore
-- We encourage using sequential versioning of migration files
-    (rather than timestamps-based versioning) to prevent version
-    mismatch and migration colissions
+![Codeship]
 
 # Install
 
@@ -46,6 +24,7 @@ Drivers:
 Commands:
     up                   Migrate the DB to the most recent version available
     up-to VERSION        Migrate the DB to a specific VERSION
+    apply VERSION        Applies a single VERSION to the DB
     down                 Roll back the version by 1
     down-to VERSION      Roll back to a specific VERSION
     redo                 Re-run the latest migration
@@ -55,7 +34,7 @@ Commands:
 
 Options:
     -dir string
-        directory with migration files (default ".")
+        directory with migration files (default "./db/migrations/")
 
 Examples:
     goose sqlite3 ./foo.db status
@@ -64,8 +43,8 @@ Examples:
     goose sqlite3 ./foo.db create fetch_user_data go
     goose sqlite3 ./foo.db up
 
+    goose mysql "user:password@tcp(<path to mysql>localhost:3306)/webconnex?parseTime=true" status
     goose postgres "user=postgres dbname=postgres sslmode=disable" status
-    goose mysql "user:password@/dbname" status
     goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
 ```
 ## create
@@ -91,12 +70,20 @@ Apply all available migrations.
     $ OK    001_basics.sql
     $ OK    002_next.sql
     $ OK    003_and_again.go
+    $ OK    005_and_again_and_again.go
 
 ## up-to
 
 Migrate up to a specific version.
 
     $ goose up-to 20170506082420
+    $ OK    20170506082420_create_table.sql
+
+## Apply
+
+Applies a single VERSION to the DB.
+
+    $ goose apply 20170506082420
     $ OK    20170506082420_create_table.sql
 
 ## down
@@ -119,10 +106,8 @@ Roll back migrations to a specific version.
 Roll back the most recently applied migration, then run it again.
 
     $ goose redo
-    $ goose: migrating db environment 'development', current version: 3, target: 2
-    $ OK    003_and_again.go
-    $ goose: migrating db environment 'development', current version: 2, target: 3
-    $ OK    003_and_again.go
+    $ OK    003_and_again.sql
+    $ OK    003_and_again.sql
 
 ## status
 
@@ -135,6 +120,7 @@ Print the status of all migrations:
     $   Sun Jan  6 11:25:03 2013 -- 001_basics.sql
     $   Sun Jan  6 11:25:03 2013 -- 002_next.sql
     $   Pending                  -- 003_and_again.go
+    $   Sun Jan  7 11:25:03 2013 -- 004_next.sql
 
 Note: for MySQL [parseTime flag](https://github.com/go-sql-driver/mysql#parsetime) must be enabled.
 
@@ -244,8 +230,4 @@ func Down(tx *sql.Tx) error {
 
 Licensed under [MIT License](./LICENSE)
 
-[GoDoc]: https://godoc.org/github.com/webconnex/goose
-[GoDoc Widget]: https://godoc.org/github.com/webconnex/goose?status.svg
-[Travis]: https://travis-ci.org/pressly/goose
-[Travis Widget]: https://travis-ci.org/pressly/goose.svg?branch=master
 [Codeship]:https://app.codeship.com/projects/049956d0-3f11-0135-e3e4-565eda87c2b1/status?branch=master

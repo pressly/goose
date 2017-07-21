@@ -9,6 +9,9 @@ import (
 )
 
 func TestDefaultBinary(t *testing.T) {
+	defer os.Remove("sql.db")
+	defer os.Remove("./goose")
+
 	commands := []string{
 		"go build -i -o goose ./cmd/goose",
 		"./goose -dir=examples/sql-migrations sqlite3 sql.db up",
@@ -27,7 +30,9 @@ func TestDefaultBinary(t *testing.T) {
 }
 
 func TestCustomBinary(t *testing.T) {
-	defer os.Remove("sql.sql")
+	defer os.Remove("go.db")
+	defer os.Remove("./custom-goose")
+
 	commands := []string{
 		"go build -i -o custom-goose ./examples/go-migrations",
 		"./custom-goose -dir=examples/go-migrations sqlite3 go.db up",
@@ -50,6 +55,7 @@ func TestWebconnexForkLogic(t *testing.T) {
 
 	// Remove sqlite3 db when done.
 	defer os.Remove("sql_wbx.db")
+	defer os.Remove("./goose")
 
 	// Create a new migration labeled 10
 	migrationData := []byte(`
@@ -125,5 +131,25 @@ DROP TABLE webconnex2;
 	expectedResult := "OK    0000009_insert_migration.sql"
 	if sout := string(out); !strings.Contains(sout, expectedResult) {
 		t.Errorf("expected '%s' but returned '%s'", expectedResult, sout)
+	}
+}
+
+func TestWebconnexApply(t *testing.T) {
+	defer os.Remove("sql.db")
+	defer os.Remove("./goose")
+	commands := []string{
+		"go build -i -o goose ./cmd/goose",
+		"./goose -dir=examples/sql-migrations sqlite3 sql.db apply 00001",
+		"./goose -dir=examples/sql-migrations sqlite3 sql.db apply 00002",
+		"./goose -dir=examples/sql-migrations sqlite3 sql.db apply 00003",
+		"./goose -dir=examples/sql-migrations sqlite3 sql.db status",
+	}
+
+	for _, cmd := range commands {
+		args := strings.Split(cmd, " ")
+		out, err := exec.Command(args[0], args[1:]...).CombinedOutput()
+		if err != nil {
+			t.Fatalf("%s:\n%v\n\n%s", err, cmd, out)
+		}
 	}
 }
