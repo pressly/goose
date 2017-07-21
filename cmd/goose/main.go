@@ -116,6 +116,7 @@ Commands:
     down                 Roll back the version by 1
     down-to VERSION      Roll back to a specific VERSION
 		apply                Applies a single VERSION to the DB
+		revert VERSION       Reverts a single VERSION to the DB
     redo                 Re-run the latest migration
     reset                Roll back all migrations
     status               Dump the migration status for the current DB
