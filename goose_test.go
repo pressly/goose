@@ -134,7 +134,7 @@ DROP TABLE webconnex2;
 	}
 }
 
-func TestWebconnexApply(t *testing.T) {
+func TestWebconnexApplyRevert(t *testing.T) {
 	defer os.Remove("sql.db")
 	defer os.Remove("./goose")
 	commands := []string{
@@ -142,6 +142,8 @@ func TestWebconnexApply(t *testing.T) {
 		"./goose -dir=examples/sql-migrations sqlite3 sql.db apply 00001",
 		"./goose -dir=examples/sql-migrations sqlite3 sql.db apply 00002",
 		"./goose -dir=examples/sql-migrations sqlite3 sql.db apply 00003",
+		"./goose -dir=examples/sql-migrations sqlite3 sql.db status",
+		"./goose -dir=examples/sql-migrations sqlite3 sql.db revert 00002",
 		"./goose -dir=examples/sql-migrations sqlite3 sql.db status",
 	}
 
