@@ -46,6 +46,28 @@ func Run(command string, db *sql.DB, dir string, args ...string) error {
 		if err := UpTo(db, dir, version); err != nil {
 			return err
 		}
+	case "apply":
+		if len(args) == 0 {
+			return fmt.Errorf("apply must be of form: goose [OPTIONS] DRIVER DBSTRING apply VERSION")
+		}
+		version, err := strconv.ParseInt(args[0], 10, 64)
+		if err != nil {
+			return fmt.Errorf("version must be a number (got '%s')", args[0])
+		}
+		if err := Apply(db, dir, version); err != nil {
+			return err
+		}
+	case "revert":
+		if len(args) == 0 {
+			return fmt.Errorf("revert must be of form: goose [OPTIONS] DRIVER DBSTRING revert VERSION")
+		}
+		version, err := strconv.ParseInt(args[0], 10, 64)
+		if err != nil {
+			return fmt.Errorf("version must be a number (got '%s')", args[0])
+		}
+		if err := Revert(db, dir, version); err != nil {
+			return err
+		}
 	case "create":
 		if len(args) == 0 {
 			return fmt.Errorf("create must be of form: goose [OPTIONS] DRIVER DBSTRING create NAME [go|sql]")
