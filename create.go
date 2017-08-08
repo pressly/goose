@@ -6,22 +6,13 @@ import (
 	"os"
 	"path/filepath"
 	"text/template"
+	"time"
 )
 
 // Create writes a new blank migration file.
 func Create(db *sql.DB, dir, name, migrationType string) error {
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
-	if err != nil {
-		return err
-	}
-
-	// Initial version.
-	version := "00001"
-
-	if last, err := migrations.Last(); err == nil {
-		version = fmt.Sprintf("%05v", last.Version+1)
-	}
-
+	t := time.Now()
+	version := t.Format("20060102150405")
 	filename := fmt.Sprintf("%v_%v.%v", version, name, migrationType)
 
 	fpath := filepath.Join(dir, filename)
