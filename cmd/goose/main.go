@@ -16,16 +16,25 @@ import (
 	_ "github.com/ziutek/mymysql/godrv"
 )
 
+const (
+	envKeyDriver   = `GOOSE_DRIVER`
+	envKeyDbstring = `GOOSE_DBSTRING`
+)
+
 var (
 	flags = flag.NewFlagSet("goose", flag.ExitOnError)
 	dir   = flags.String("dir", ".", "directory with migration files")
 )
 
-func main() {
+func configuration() (driver, dbstring, command string, arguments []string, help bool) {
 	flags.Usage = usage
 	flags.Parse(os.Args[1:])
 
 	args := flags.Args()
+	if args[0] == "-h" || args[0] == "--help" {
+		help = true
+		return
+	}
 
 	if len(args) > 1 && args[0] == "create" {
 		if err := goose.Run("create", nil, *dir, args[1:]...); err != nil {
@@ -34,17 +43,49 @@ func main() {
 		return
 	}
 
+	if os.Getenv(envKeyDriver) != "" || os.Getenv(envKeyDbstring) != "" {
+		return environment()
+	}
+
 	if len(args) < 3 {
-		flags.Usage()
+		help = true
 		return
 	}
 
-	if args[0] == "-h" || args[0] == "--help" {
-		flags.Usage()
-		return
+	driver, dbstring, command = args[0], args[1], args[2]
+	if len(args) > 3 {
+		arguments = append(arguments, args[3:]...)
 	}
 
-	driver, dbstring, command := args[0], args[1], args[2]
+	return
+}
+
+func environment() (driver, dbstring, command string, arguments []string, help bool) {
+	var args []string
+
+	driver = os.Getenv(envKeyDriver)
+	dbstring = os.Getenv(envKeyDbstring)
+	args = flags.Args()
+	if len(args) < 1 {
+		help = true
+		return
+	}
+	command = args[0]
+	if len(args) > 1 {
+		arguments = append(arguments, args[1:]...)
+	}
+
+	return
+}
+
+func main() {
+	driver, dbstring, command, arguments, help := configuration()
+	if help {
+		flags.Usage()
+		return
+	} else if driver == "" {
+		return
+	}
 
 	switch driver {
 	case "postgres", "mysql", "sqlite3", "redshift":
@@ -70,11 +111,6 @@ func main() {
 		log.Fatalf("-dbstring=%q: %v\n", dbstring, err)
 	}
 
-	arguments := []string{}
-	if len(args) > 3 {
-		arguments = append(arguments, args[3:]...)
-	}
-
 	if err := goose.Run(command, db, *dir, arguments...); err != nil {
 		log.Fatalf("goose run: %v", err)
 	}
@@ -88,6 +124,14 @@ func usage() {
 
 var (
 	usagePrefix = `Usage: goose [OPTIONS] DRIVER DBSTRING COMMAND
+
+or
+
+Set environment key
+GOOSE_DRIVER=DRIVER
+GOOSE_DBSTRING=DBSTRING
+
+Usage: goose [OPTIONS] COMMAND
 
 Drivers:
     postgres
@@ -105,6 +149,13 @@ Examples:
     goose postgres "user=postgres dbname=postgres sslmode=disable" status
     goose mysql "user:password@/dbname" status
     goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
+
+    GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose status
+    GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose create init sql
+
+    GOOSE_DRIVER=postgres GOOSE_DBSTRING="user=postgres dbname=postgres sslmode=disable" goose status
+    GOOSE_DRIVER=mysql GOOSE_DBSTRING="user:password@/dbname" goose status
+    GOOSE_DRIVER=redshift GOOSE_DBSTRING="postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" goose status
 
 Options:
 `
