@@ -2,7 +2,7 @@ package goose
 
 import (
 	"database/sql"
-	"fmt"
+	"log"
 )
 
 // UpTo migrates up to a specific version.
@@ -21,7 +21,7 @@ func UpTo(db *sql.DB, dir string, version int64) error {
 		next, err := migrations.Next(current)
 		if err != nil {
 			if err == ErrNoNextVersion {
-				fmt.Printf("goose: no migrations to run. current version: %d\n", current)
+				log.Printf("goose: no migrations to run. current version: %d\n", current)
 				return nil
 			}
 			return err
@@ -53,7 +53,7 @@ func UpByOne(db *sql.DB, dir string) error {
 	next, err := migrations.Next(currentVersion)
 	if err != nil {
 		if err == ErrNoNextVersion {
-			fmt.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
+			log.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
 		}
 		return err
 	}

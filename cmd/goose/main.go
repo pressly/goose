@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"flag"
-	"fmt"
 	"log"
 	"os"
 
@@ -81,9 +80,9 @@ func main() {
 }
 
 func usage() {
-	fmt.Print(usagePrefix)
+	log.Print(usagePrefix)
 	flags.PrintDefaults()
-	fmt.Print(usageCommands)
+	log.Print(usageCommands)
 }
 
 var (
