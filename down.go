@@ -3,6 +3,7 @@ package goose
 import (
 	"database/sql"
 	"fmt"
+	"log"
 )
 
 // Down rolls back a single migration from the current version.
@@ -40,12 +41,12 @@ func DownTo(db *sql.DB, dir string, version int64) error {
 
 		current, err := migrations.Current(currentVersion)
 		if err != nil {
-			fmt.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
+			log.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
 			return nil
 		}
 
 		if current.Version <= version {
-			fmt.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
+			log.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
 			return nil
 		}
 

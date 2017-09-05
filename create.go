@@ -3,6 +3,7 @@ package goose
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"text/template"
@@ -35,7 +36,7 @@ func Create(db *sql.DB, dir, name, migrationType string) error {
 		return err
 	}
 
-	fmt.Printf("Created new file: %s\n", path)
+	log.Printf("Created new file: %s\n", path)
 	return nil
 }
 

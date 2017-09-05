@@ -2,7 +2,7 @@ package goose
 
 import (
 	"database/sql"
-	"fmt"
+	"log"
 )
 
 // Up applies all available migrations.
@@ -23,7 +23,7 @@ func UpMissing(db *sql.DB, dir string, onlyOne bool) error {
 	}
 
 	if len(migrations) == 0 {
-		fmt.Printf("goose: no migrations to run\n")
+		log.Printf("goose: no migrations to run\n")
 	}
 
 	for _, migration := range migrations {
@@ -46,7 +46,7 @@ func UpTo(db *sql.DB, dir string, version int64) error {
 	}
 
 	if len(migrations) == 0 {
-		fmt.Printf("goose: no migrations to run\n")
+		log.Printf("goose: no migrations to run\n")
 	}
 
 	for _, migration := range migrations {
