@@ -2,3 +2,12 @@
 cmd/goose/goose*
 *.swp
 *.test
+
+# IDE
+.vscode/
+*.iml
+.idea
+
+# Mac
+.DS_Store
+
