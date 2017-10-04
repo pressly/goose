@@ -49,3 +49,29 @@ func printMigrationStatus(db *sql.DB, version int64, script string) {
 
 	fmt.Printf("    %-24s -- %v\n", appliedAt, script)
 }
+
+// StatusMissing prints all missing migrations
+func StatusMissing(db *sql.DB, dir string) error {
+	migrations, err := MissingMigrations(db, dir)
+	if err != nil {
+		return err
+	}
+
+	// must ensure that the version table exists if we're running on a pristine DB
+	if _, err := EnsureDBVersion(db); err != nil {
+		return err
+	}
+
+	if len(migrations) == 0 {
+		fmt.Printf("goose: no missing migrations\n")
+		return nil
+	}
+
+	fmt.Println("    Missing migrations")
+	fmt.Println("    ===========")
+	for _, migration := range migrations {
+		fmt.Printf("    %v\n", filepath.Base(migration.Source))
+	}
+
+	return nil
+}

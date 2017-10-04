@@ -64,3 +64,38 @@ func UpByOne(db *sql.DB, dir string) error {
 
 	return nil
 }
+
+// UpMissing migrates all missing migrations
+func UpMissing(db *sql.DB, dir string) error {
+	migrations, err := MissingMigrations(db, dir)
+	if err != nil {
+		return err
+	}
+
+	// must ensure that the version table exists if we're running on a pristine DB
+	if _, err := EnsureDBVersion(db); err != nil {
+		return err
+	}
+
+	if len(migrations) == 0 {
+		fmt.Printf("goose: no missing migrations to run\n")
+	}
+
+	for _, migration := range migrations {
+		if err = migration.Up(db); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// UpWithMissing migrates all missing migrations, then all new migrations
+func UpWithMissing(db *sql.DB, dir string) error {
+	err := UpMissing(db, dir)
+	if err != nil {
+		return err
+	}
+
+	return Up(db, dir)
+}

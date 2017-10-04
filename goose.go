@@ -36,6 +36,14 @@ func Run(command string, db *sql.DB, dir string, args ...string) error {
 		if err := UpTo(db, dir, version); err != nil {
 			return err
 		}
+	case "up-missing":
+		if err := UpMissing(db, dir); err != nil {
+			return err
+		}
+	case "up-with-missing":
+		if err := UpWithMissing(db, dir); err != nil {
+			return err
+		}
 	case "create":
 		if len(args) == 0 {
 			return fmt.Errorf("create must be of form: goose [OPTIONS] DRIVER DBSTRING create NAME [go|sql]")
@@ -74,6 +82,10 @@ func Run(command string, db *sql.DB, dir string, args ...string) error {
 		}
 	case "status":
 		if err := Status(db, dir); err != nil {
+			return err
+		}
+	case "status-missing":
+		if err := StatusMissing(db, dir); err != nil {
 			return err
 		}
 	case "version":

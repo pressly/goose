@@ -29,10 +29,13 @@ Drivers:
 Commands:
     up                   Migrate the DB to the most recent version available
     up-to VERSION        Migrate the DB to a specific VERSION
+    up-missing           Migrate only missing migrations
+    up-with-missing      Migrate missing migrations first, then the new ones
     down                 Roll back the version by 1
     down-to VERSION      Roll back to a specific VERSION
     redo                 Re-run the latest migration
     status               Dump the migration status for the current DB
+    status-missing       Find out all migrations, missing from the current DB
     version              Print the current version of the database
     create NAME [sql|go] Creates new migration file with next version
 
