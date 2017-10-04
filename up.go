@@ -89,13 +89,3 @@ func UpMissing(db *sql.DB, dir string) error {
 
 	return nil
 }
-
-// UpWithMissing migrates all missing migrations, then all new migrations
-func UpWithMissing(db *sql.DB, dir string) error {
-	err := UpMissing(db, dir)
-	if err != nil {
-		return err
-	}
-
-	return Up(db, dir)
-}

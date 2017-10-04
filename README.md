@@ -30,7 +30,7 @@ Commands:
     up                   Migrate the DB to the most recent version available
     up-to VERSION        Migrate the DB to a specific VERSION
     up-missing           Migrate only missing migrations
-    up-with-missing      Migrate missing migrations first, then the new ones
+                         Warning! Do not use any other up* commands after this!
     down                 Roll back the version by 1
     down-to VERSION      Roll back to a specific VERSION
     redo                 Re-run the latest migration
