@@ -7,7 +7,7 @@ Goose is a database migration tool. Manage your database schema by creating incr
 ### Goals of this fork
 
 `github.com/mc2soft/goose` is a fork of `github.com/pressly/goose` with the following changes:
-- Applying all missing migrations, regardless of latest migration version.
+- Applying all missing migrations, regardless of latest migration version (see [example](./examples/go-migrations-package)).
 
 # Install
 
