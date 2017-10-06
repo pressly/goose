@@ -112,7 +112,7 @@ Options:
 	usageCommands = `
 Commands:
     up                   Migrate the DB to the most recent version available
-    up-to VERSION        Migrate the DB to a specific VERSION
+    up-by-one            Migrate up by a single version
     down                 Roll back the version by 1
     down-to VERSION      Roll back to a specific VERSION
     redo                 Re-run the latest migration
