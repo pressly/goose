@@ -77,12 +77,18 @@ func Run(command string, db *sql.DB, dir string, args ...string) error {
 			return err
 		}
 	case "status":
-		if err := Status(db, dir); err != nil {
-			return err
-		}
-	case "status-missing":
-		if err := StatusMissing(db, dir); err != nil {
-			return err
+		if len(args) == 1 {
+			if args[0] == "--missing-only" {
+				if err := StatusMissing(db, dir); err != nil {
+					return err
+				}
+			} else {
+				return fmt.Errorf("status accepts only [--missing-only] option")
+			}
+		} else {
+			if err := Status(db, dir); err != nil {
+				return err
+			}
 		}
 	case "version":
 		if err := Version(db, dir); err != nil {
