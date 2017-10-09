@@ -19,6 +19,7 @@ import (
 var (
 	flags = flag.NewFlagSet("goose", flag.ExitOnError)
 	dir   = flags.String("dir", ".", "directory with migration files")
+	pretend   = flags.Bool("pretend", false, "run migrations without applying them - only update current DB")
 )
 
 func main() {
@@ -28,7 +29,7 @@ func main() {
 	args := flags.Args()
 
 	if len(args) > 1 && args[0] == "create" {
-		if err := goose.Run("create", nil, *dir, args[1:]...); err != nil {
+		if err := goose.Run("create", nil, *dir, *pretend, args[1:]...); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
 		return
@@ -75,7 +76,7 @@ func main() {
 		arguments = append(arguments, args[3:]...)
 	}
 
-	if err := goose.Run(command, db, *dir, arguments...); err != nil {
+	if err := goose.Run(command, db, *dir, *pretend, arguments...); err != nil {
 		log.Fatalf("goose run: %v", err)
 	}
 }
@@ -107,6 +108,10 @@ Examples:
     goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
 
 Options:
+    -dir string
+        directory with migration files (default ".")
+    -pretend
+        run migrations without applying them - only update current DB. Accepted by up and up-by-one commands
 `
 
 	usageCommands = `

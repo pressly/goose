@@ -25,7 +25,7 @@ func Redo(db *sql.DB, dir string) error {
 		return err
 	}
 
-	if err := current.Up(db); err != nil {
+	if err := current.Up(db, false); err != nil {
 		return err
 	}
 

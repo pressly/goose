@@ -14,14 +14,14 @@ var (
 )
 
 // Run runs a goose command.
-func Run(command string, db *sql.DB, dir string, args ...string) error {
+func Run(command string, db *sql.DB, dir string, pretend bool, args ...string) error {
 	switch command {
 	case "up":
-		if err := Up(db, dir); err != nil {
+		if err := Up(db, dir, pretend); err != nil {
 			return err
 		}
 	case "up-by-one":
-		if err := UpByOne(db, dir); err != nil {
+		if err := UpByOne(db, dir, pretend); err != nil {
 			return err
 		}
 	case "create":

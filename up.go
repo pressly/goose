@@ -6,17 +6,17 @@ import (
 )
 
 // Up applies all available migrations.
-func Up(db *sql.DB, dir string) error {
-	return UpMissing(db, dir, false)
+func Up(db *sql.DB, dir string, pretend bool) error {
+	return UpMissing(db, dir, false, pretend)
 }
 
 // UpByOne migrates up by a single version.
-func UpByOne(db *sql.DB, dir string) error {
-	return UpMissing(db, dir, true)
+func UpByOne(db *sql.DB, dir string, pretend bool) error {
+	return UpMissing(db, dir, true, pretend)
 }
 
 // UpMissing migrates all missing migrations
-func UpMissing(db *sql.DB, dir string, onlyOne bool) error {
+func UpMissing(db *sql.DB, dir string, onlyOne bool, pretend bool) error {
 	migrations, err := MissingMigrations(db, dir)
 	if err != nil {
 		return err
@@ -27,7 +27,7 @@ func UpMissing(db *sql.DB, dir string, onlyOne bool) error {
 	}
 
 	for _, migration := range migrations {
-		if err = migration.Up(db); err != nil {
+		if err = migration.Up(db, pretend); err != nil {
 			return err
 		}
 		if onlyOne {

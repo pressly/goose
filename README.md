@@ -39,6 +39,8 @@ Commands:
 Options:
     -dir string
         directory with migration files (default ".")
+    -pretend
+        run migrations without applying them - only update current DB. Accepted by up and up-by-one commands
 
 Examples:
     goose sqlite3 ./foo.db status

@@ -138,7 +138,7 @@ func getSQLStatements(r io.Reader, direction bool) (stmts []string, tx bool) {
 //
 // All statements following an Up or Down directive are grouped together
 // until another direction directive is found.
-func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) error {
+func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool, pretend bool) error {
 	f, err := os.Open(scriptFile)
 	if err != nil {
 		log.Fatal(err)
@@ -155,10 +155,12 @@ func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) err
 			log.Fatal(err)
 		}
 
-		for _, query := range statements {
-			if _, err = tx.Exec(query); err != nil {
-				tx.Rollback()
-				return err
+		if !pretend {
+			for _, query := range statements {
+				if _, err = tx.Exec(query); err != nil {
+					tx.Rollback()
+					return err
+				}
 			}
 		}
 		if _, err := tx.Exec(GetDialect().insertVersionSQL(), v, direction); err != nil {
@@ -170,9 +172,11 @@ func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) err
 	}
 
 	// NO TRANSACTION.
-	for _, query := range statements {
-		if _, err := db.Exec(query); err != nil {
-			return err
+	if !pretend {
+		for _, query := range statements {
+			if _, err := db.Exec(query); err != nil {
+				return err
+			}
 		}
 	}
 	if _, err := db.Exec(GetDialect().insertVersionSQL(), v, direction); err != nil {

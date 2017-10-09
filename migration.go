@@ -34,8 +34,8 @@ func (m *Migration) String() string {
 }
 
 // Up runs an up migration.
-func (m *Migration) Up(db *sql.DB) error {
-	if err := m.run(db, true); err != nil {
+func (m *Migration) Up(db *sql.DB, pretend bool) error {
+	if err := m.run(db, true, pretend); err != nil {
 		return err
 	}
 	fmt.Println("OK   ", filepath.Base(m.Source))
@@ -44,17 +44,17 @@ func (m *Migration) Up(db *sql.DB) error {
 
 // Down runs a down migration.
 func (m *Migration) Down(db *sql.DB) error {
-	if err := m.run(db, false); err != nil {
+	if err := m.run(db, false, false); err != nil {
 		return err
 	}
 	fmt.Println("OK   ", filepath.Base(m.Source))
 	return nil
 }
 
-func (m *Migration) run(db *sql.DB, direction bool) error {
+func (m *Migration) run(db *sql.DB, direction bool, pretend bool) error {
 	switch filepath.Ext(m.Source) {
 	case ".sql":
-		if err := runSQLMigration(db, m.Source, m.Version, direction); err != nil {
+		if err := runSQLMigration(db, m.Source, m.Version, direction, pretend); err != nil {
 			return fmt.Errorf("FAIL %v, quitting migration", err)
 		}
 
@@ -71,7 +71,7 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 		if !direction {
 			fn = m.DownFn
 		}
-		if fn != nil {
+		if fn != nil && !pretend {
 			if err := fn(tx); err != nil {
 				tx.Rollback()
 				log.Fatalf("FAIL %s (%v), quitting migration.", filepath.Base(m.Source), err)
