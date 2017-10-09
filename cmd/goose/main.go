@@ -17,10 +17,10 @@ import (
 )
 
 var (
-	flags = flag.NewFlagSet("goose", flag.ExitOnError)
-	dir   = flags.String("dir", ".", "directory with migration files")
-	pretend   = flags.Bool("pretend", false, "run migrations without applying them - only update current DB")
-	missingOnly   = flags.Bool("missing-only", false, "for status command - find out only migrations, missing from the current DB")
+	flags       = flag.NewFlagSet("goose", flag.ExitOnError)
+	dir         = flags.String("dir", ".", "directory with migration files")
+	pretend     = flags.Bool("pretend", false, "run migrations without applying them - only update current DB")
+	missingOnly = flags.Bool("missing-only", false, "for status command - find out only migrations, missing from the current DB")
 )
 
 func main() {
