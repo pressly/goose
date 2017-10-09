@@ -32,7 +32,7 @@ Commands:
     down                 Roll back the version by 1
     down-to VERSION      Roll back to a specific VERSION
     redo                 Re-run the latest migration
-    status               Dump the migration status for the current DB. Use [--missing-only] option to find out only migrations, missing from the current DB
+    status               Dump the migration status for the current DB. Use [-missing-only] option to find out only migrations, missing from the current DB
     version              Print the current version of the database
     create NAME [sql|go] Creates new migration file with next version
 
@@ -41,6 +41,8 @@ Options:
         directory with migration files (default ".")
     -pretend
         run migrations without applying them - only update current DB. Accepted by up and up-by-one commands
+    -missing-only
+        for status command - find out only migrations, missing from the current DB
 
 Examples:
     goose sqlite3 ./foo.db status

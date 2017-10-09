@@ -11,7 +11,7 @@ $ go run main.go -dir ./db/migrations sqlite3 ./db/foo.db status
     Pending                  -- 00001_create_users_table.sql
     Pending                  -- 00002_rename_root.go
     Pending                  -- 00004_rename_admin.go
-$ go run main.go -dir ./db/migrations sqlite3 ./db/foo.db status --missing-only
+$ go run main.go -dir ./db/migrations -missing-only sqlite3 ./db/foo.db status
     Missing migrations
     ===========
     00001_create_users_table.sql
@@ -27,7 +27,7 @@ $ go run main.go -dir ./db/migrations sqlite3 ./db/foo.db status
     Fri Oct  6 13:03:09 2017 -- 00001_create_users_table.sql
     Fri Oct  6 13:03:09 2017 -- 00002_rename_root.go
     Fri Oct  6 13:03:09 2017 -- 00004_rename_admin.go
-$ go run main.go -dir ./db/migrations sqlite3 ./db/foo.db status --missing-only
+$ go run main.go -dir ./db/migrations -missing-only sqlite3 ./db/foo.db status
 goose: no missing migrations
 
 ```
@@ -41,7 +41,7 @@ $ go run main.go -dir ./db/migrations sqlite3 ./db/foo.db status
     Pending                  -- 00003_rename_admin.go
     Fri Oct  6 13:03:09 2017 -- 00004_rename_admin.go
     Pending                  -- 00005_rename_admin.go
-$ go run main.go -dir ./db/migrations sqlite3 ./db/foo.db status --missing-only
+$ go run main.go -dir ./db/migrations -missing-only sqlite3 ./db/foo.db status
     Missing migrations
     ===========
     00003_rename_admin.go

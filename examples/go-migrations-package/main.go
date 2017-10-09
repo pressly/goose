@@ -23,6 +23,7 @@ var (
 	flags = flag.NewFlagSet("goose", flag.ExitOnError)
 	dir   = flags.String("dir", ".", "directory with migration files")
 	pretend   = flags.Bool("pretend", false, "run migrations without applying them - only update current DB")
+	missingOnly   = flags.Bool("missing-only", false, "for status command - find out only migrations, missing from the current DB")
 )
 
 func main() {
@@ -32,7 +33,7 @@ func main() {
 	args := flags.Args()
 
 	if len(args) > 1 && args[0] == "create" {
-		if err := goose.Run("create", nil, *dir, *pretend, args[1:]...); err != nil {
+		if err := goose.Run("create", nil, *dir, *pretend, *missingOnly, args[1:]...); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
 		return
@@ -79,7 +80,7 @@ func main() {
 		arguments = append(arguments, args[3:]...)
 	}
 
-	if err := goose.Run(command, db, *dir, *pretend, arguments...); err != nil {
+	if err := goose.Run(command, db, *dir, *pretend, *missingOnly, arguments...); err != nil {
 		log.Fatalf("goose run: %v", err)
 	}
 }
@@ -115,6 +116,8 @@ Options:
         directory with migration files (default ".")
     -pretend
         run migrations without applying them - only update current DB. Accepted by up and up-by-one commands
+    -missing-only
+        for status command - find out only migrations, missing from the current DB
 `
 
 	usageCommands = `
@@ -124,7 +127,7 @@ Commands:
     down                 Roll back the version by 1
     down-to VERSION      Roll back to a specific VERSION
     redo                 Re-run the latest migration
-    status               Dump the migration status for the current DB. Use [--missing-only] option to find out only migrations, missing from the current DB
+    status               Dump the migration status for the current DB. Use [-missing-only] option to find out only migrations, missing from the current DB
     version              Print the current version of the database
     create NAME [sql|go] Creates new migration file with next version
 `

@@ -14,7 +14,7 @@ var (
 )
 
 // Run runs a goose command.
-func Run(command string, db *sql.DB, dir string, pretend bool, args ...string) error {
+func Run(command string, db *sql.DB, dir string, pretend bool, missingOnly bool, args ...string) error {
 	switch command {
 	case "up":
 		if err := Up(db, dir, pretend); err != nil {
@@ -61,13 +61,9 @@ func Run(command string, db *sql.DB, dir string, pretend bool, args ...string) e
 			return err
 		}
 	case "status":
-		if len(args) == 1 {
-			if args[0] == "--missing-only" {
-				if err := StatusMissing(db, dir); err != nil {
-					return err
-				}
-			} else {
-				return fmt.Errorf("status accepts only [--missing-only] option")
+		if missingOnly {
+			if err := StatusMissing(db, dir); err != nil {
+				return err
 			}
 		} else {
 			if err := Status(db, dir); err != nil {
