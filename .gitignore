@@ -11,3 +11,5 @@ cmd/goose/goose*
 # Mac
 .DS_Store
 
+*.db
+
