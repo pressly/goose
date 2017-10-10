@@ -37,3 +37,26 @@ func UpMissing(db *sql.DB, dir string, onlyOne bool, pretend bool) error {
 
 	return nil
 }
+
+// UpTo migrates up to a specific version.
+func UpTo(db *sql.DB, dir string, version int64, pretend bool) error {
+	migrations, err := MissingMigrations(db, dir)
+	if err != nil {
+		return err
+	}
+
+	if len(migrations) == 0 {
+		fmt.Printf("goose: no migrations to run\n")
+	}
+
+	for _, migration := range migrations {
+		if migration.Version > version {
+			break
+		}
+		if err = migration.Up(db, pretend); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

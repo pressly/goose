@@ -115,7 +115,7 @@ Options:
     -dir string
         directory with migration files (default ".")
     -pretend
-        run migrations without applying them - only update current DB. Accepted by up and up-by-one commands
+        run migrations without applying them - only update current DB. Accepted by all up* commands
     -missing-only
         for status command - find out only migrations, missing from the current DB
 `
@@ -124,6 +124,7 @@ Options:
 Commands:
     up                   Migrate the DB to the most recent version available
     up-by-one            Migrate up by a single version
+    up-to VERSION        Migrate the DB to a specific VERSION
     down                 Roll back the version by 1
     down-to VERSION      Roll back to a specific VERSION
     redo                 Re-run the latest migration
