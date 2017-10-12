@@ -6,17 +6,17 @@ import (
 )
 
 // Up applies all available migrations.
-func Up(db *sql.DB, dir string, pretend bool) error {
-	return UpMissing(db, dir, false, pretend)
+func Up(db *sql.DB, dir string) error {
+	return UpMissing(db, dir, false)
 }
 
 // UpByOne migrates up by a single version.
-func UpByOne(db *sql.DB, dir string, pretend bool) error {
-	return UpMissing(db, dir, true, pretend)
+func UpByOne(db *sql.DB, dir string) error {
+	return UpMissing(db, dir, true)
 }
 
 // UpMissing migrates all missing migrations
-func UpMissing(db *sql.DB, dir string, onlyOne bool, pretend bool) error {
+func UpMissing(db *sql.DB, dir string, onlyOne bool) error {
 	migrations, err := MissingMigrations(db, dir)
 	if err != nil {
 		return err
@@ -27,7 +27,7 @@ func UpMissing(db *sql.DB, dir string, onlyOne bool, pretend bool) error {
 	}
 
 	for _, migration := range migrations {
-		if err = migration.Up(db, pretend); err != nil {
+		if err = migration.Up(db); err != nil {
 			return err
 		}
 		if onlyOne {
@@ -39,7 +39,7 @@ func UpMissing(db *sql.DB, dir string, onlyOne bool, pretend bool) error {
 }
 
 // UpTo migrates up to a specific version.
-func UpTo(db *sql.DB, dir string, version int64, pretend bool) error {
+func UpTo(db *sql.DB, dir string, version int64) error {
 	migrations, err := MissingMigrations(db, dir)
 	if err != nil {
 		return err
@@ -53,7 +53,7 @@ func UpTo(db *sql.DB, dir string, version int64, pretend bool) error {
 		if migration.Version > version {
 			break
 		}
-		if err = migration.Up(db, pretend); err != nil {
+		if err = migration.Up(db); err != nil {
 			return err
 		}
 	}

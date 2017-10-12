@@ -22,7 +22,6 @@ import (
 var (
 	flags       = flag.NewFlagSet("goose", flag.ExitOnError)
 	dir         = flags.String("dir", ".", "directory with migration files")
-	pretend     = flags.Bool("pretend", false, "run migrations without applying them - only update current DB")
 	missingOnly = flags.Bool("missing-only", false, "for status command - find out only migrations, missing from the current DB")
 )
 
@@ -33,7 +32,7 @@ func main() {
 	args := flags.Args()
 
 	if len(args) > 1 && args[0] == "create" {
-		if err := goose.Run("create", nil, *dir, *pretend, *missingOnly, args[1:]...); err != nil {
+		if err := goose.Run("create", nil, *dir, *missingOnly, args[1:]...); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
 		return
@@ -80,7 +79,7 @@ func main() {
 		arguments = append(arguments, args[3:]...)
 	}
 
-	if err := goose.Run(command, db, *dir, *pretend, *missingOnly, arguments...); err != nil {
+	if err := goose.Run(command, db, *dir, *missingOnly, arguments...); err != nil {
 		log.Fatalf("goose run: %v", err)
 	}
 }
@@ -114,8 +113,6 @@ Examples:
 Options:
     -dir string
         directory with migration files (default ".")
-    -pretend
-        run migrations without applying them - only update current DB. Accepted by all up* commands
     -missing-only
         for status command - find out only migrations, missing from the current DB
 `
