@@ -21,8 +21,8 @@ func Status(db *sql.DB, dir string) error {
 		return err
 	}
 
-	fmt.Println("    Applied At                  Migration")
-	fmt.Println("    =======================================")
+	log.Println("    Applied At                  Migration")
+	log.Println("    =======================================")
 	for _, migration := range migrations {
 		printMigrationStatus(db, migration.Version, filepath.Base(migration.Source))
 	}
@@ -47,5 +47,5 @@ func printMigrationStatus(db *sql.DB, version int64, script string) {
 		appliedAt = "Pending"
 	}
 
-	fmt.Printf("    %-24s -- %v\n", appliedAt, script)
+	log.Printf("    %-24s -- %v\n", appliedAt, script)
 }
