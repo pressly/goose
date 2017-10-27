@@ -60,11 +60,15 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 
 	case ".go":
 		if !m.Registered {
-			log.Fatalf("failed to apply Go migration %q: Go functions must be registered and built into a custom binary (see https://github.com/pressly/goose/tree/master/examples/go-migrations)", m.Source)
+			msg := fmt.Sprintf("failed to apply Go migration %q: Go functions must be registered and built into a custom binary (see https://github.com/pressly/goose/tree/master/examples/go-migrations)", m.Source)
+			log.Print(msg)
+			err := errors.New(msg)
+			return err
 		}
 		tx, err := db.Begin()
 		if err != nil {
-			log.Fatal("db.Begin: ", err)
+			log.Printf("db.Begin: %v", err)
+			return err
 		}
 
 		fn := m.UpFn
@@ -74,7 +78,7 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 		if fn != nil {
 			if err := fn(tx); err != nil {
 				tx.Rollback()
-				log.Fatalf("FAIL %s (%v), quitting migration.", filepath.Base(m.Source), err)
+				log.Printf("FAIL %s (%v), quitting migration.", filepath.Base(m.Source), err)
 				return err
 			}
 		}

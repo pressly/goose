@@ -36,7 +36,9 @@ func printMigrationStatus(db *sql.DB, version int64, script string) {
 	e := db.QueryRow(q).Scan(&row.TStamp, &row.IsApplied)
 
 	if e != nil && e != sql.ErrNoRows {
-		log.Fatal(e)
+		log.Print(e)
+		fmt.Print(e)
+		return
 	}
 
 	var appliedAt string

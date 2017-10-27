@@ -80,7 +80,7 @@ func TestSplitStatements(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		stmts, _ := getSQLStatements(strings.NewReader(test.sql), test.direction)
+		stmts, _, _ := getSQLStatements(strings.NewReader(test.sql), test.direction)
 		if len(stmts) != test.count {
 			t.Errorf("incorrect number of stmts. got %v, want %v", len(stmts), test.count)
 		}
@@ -113,7 +113,7 @@ func TestUseTransactions(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		_, useTx := getSQLStatements(f, true)
+		_, useTx, _ := getSQLStatements(f, true)
 		if useTx != test.useTransactions {
 			t.Errorf("Failed transaction check. got %v, want %v", useTx, test.useTransactions)
 		}

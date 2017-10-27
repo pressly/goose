@@ -40,9 +40,10 @@ func endsWithSemicolon(line string) bool {
 // within a statement. For these cases, we provide the explicit annotations
 // 'StatementBegin' and 'StatementEnd' to allow the script to
 // tell us to ignore semicolons.
-func getSQLStatements(r io.Reader, direction bool) (stmts []string, tx bool) {
+func getSQLStatements(r io.Reader, direction bool) ([]string, bool, error) {
 	var buf bytes.Buffer
 	scanner := bufio.NewScanner(r)
+	var err error
 
 	// track the count of each section
 	// so we can diagnose scripts with no annotations
@@ -52,7 +53,8 @@ func getSQLStatements(r io.Reader, direction bool) (stmts []string, tx bool) {
 	statementEnded := false
 	ignoreSemicolons := false
 	directionIsActive := false
-	tx = true
+	stmts := []string{}
+	tx := true
 
 	for scanner.Scan() {
 
@@ -95,8 +97,9 @@ func getSQLStatements(r io.Reader, direction bool) (stmts []string, tx bool) {
 			continue
 		}
 
-		if _, err := buf.WriteString(line + "\n"); err != nil {
-			log.Fatalf("io err: %v", err)
+		if _, err = buf.WriteString(line + "\n"); err != nil {
+			log.Printf("io err: %v", err)
+			return []string{}, false, err
 		}
 
 		// Wrap up the two supported cases: 1) basic with semicolon; 2) psql statement
@@ -109,8 +112,9 @@ func getSQLStatements(r io.Reader, direction bool) (stmts []string, tx bool) {
 		}
 	}
 
-	if err := scanner.Err(); err != nil {
-		log.Fatalf("scanning migration: %v", err)
+	if err = scanner.Err(); err != nil {
+		log.Printf("ERROR: scanning migration: %v", err)
+		return []string{}, false, err
 	}
 
 	// diagnose likely migration script errors
@@ -123,11 +127,12 @@ func getSQLStatements(r io.Reader, direction bool) (stmts []string, tx bool) {
 	}
 
 	if upSections == 0 && downSections == 0 {
-		log.Fatalf(`ERROR: no Up/Down annotations found, so no statements were executed.
+		log.Printf(`ERROR: no Up/Down annotations found, so no statements were executed.
 			See https://bitbucket.org/liamstask/goose/overview for details.`)
+		return []string{}, false, err
 	}
 
-	return
+	return stmts, tx, nil
 }
 
 // Run a migration specified in raw SQL.
@@ -141,18 +146,23 @@ func getSQLStatements(r io.Reader, direction bool) (stmts []string, tx bool) {
 func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) error {
 	f, err := os.Open(scriptFile)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return err
 	}
 	defer f.Close()
 
-	statements, useTx := getSQLStatements(f, direction)
+	statements, useTx, err := getSQLStatements(f, direction)
+	if err != nil {
+		return err
+	}
 
 	if useTx {
 		// TRANSACTION.
 
 		tx, err := db.Begin()
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
+			return err
 		}
 
 		for _, query := range statements {

@@ -1,18 +1,25 @@
 package goose
 
 import (
+	"fmt"
 	"os/exec"
+	"runtime"
 	"strings"
 	"testing"
 )
 
 func TestDefaultBinary(t *testing.T) {
+	bin := "goose"
+	if runtime.GOOS == "windows" {
+		bin += ".exe"
+	}
+
 	commands := []string{
-		"go build -i -o goose ./cmd/goose",
-		"./goose -dir=examples/sql-migrations sqlite3 sql.db up",
-		"./goose -dir=examples/sql-migrations sqlite3 sql.db version",
-		"./goose -dir=examples/sql-migrations sqlite3 sql.db down",
-		"./goose -dir=examples/sql-migrations sqlite3 sql.db status",
+		fmt.Sprintf("go build -i -o %s ./cmd/goose", bin),
+		fmt.Sprintf("./%s -dir=examples/sql-migrations sqlite3 sql.db up", bin),
+		fmt.Sprintf("./%s -dir=examples/sql-migrations sqlite3 sql.db version", bin),
+		fmt.Sprintf("./%s -dir=examples/sql-migrations sqlite3 sql.db down", bin),
+		fmt.Sprintf("./%s -dir=examples/sql-migrations sqlite3 sql.db status", bin),
 	}
 
 	for _, cmd := range commands {
@@ -25,12 +32,16 @@ func TestDefaultBinary(t *testing.T) {
 }
 
 func TestCustomBinary(t *testing.T) {
+	bin := "custom-goose"
+	if runtime.GOOS == "windows" {
+		bin += ".exe"
+	}
 	commands := []string{
-		"go build -i -o custom-goose ./examples/go-migrations",
-		"./custom-goose -dir=examples/go-migrations sqlite3 go.db up",
-		"./custom-goose -dir=examples/go-migrations sqlite3 go.db version",
-		"./custom-goose -dir=examples/go-migrations sqlite3 go.db down",
-		"./custom-goose -dir=examples/go-migrations sqlite3 go.db status",
+		fmt.Sprintf("go build -i -o %s ./examples/go-migrations", bin),
+		fmt.Sprintf("./%s -dir=examples/go-migrations sqlite3 go.db up", bin),
+		fmt.Sprintf("./%s -dir=examples/go-migrations sqlite3 go.db version", bin),
+		fmt.Sprintf("./%s -dir=examples/go-migrations sqlite3 go.db down", bin),
+		fmt.Sprintf("./%s -dir=examples/go-migrations sqlite3 go.db status", bin),
 	}
 
 	for _, cmd := range commands {
