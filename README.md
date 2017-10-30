@@ -35,7 +35,7 @@ Commands:
 
 Options:
     -dir string
-        directory with migration files (default "./db/migrations/")
+        directory with migration files (default "./migrations/")
 
 Examples:
     goose sqlite3 ./foo.db status
