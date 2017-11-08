@@ -42,6 +42,7 @@ Drivers:
     mysql
     sqlite3
     redshift
+    clickhouse
 
 Commands:
     up                   Migrate the DB to the most recent version available
@@ -67,6 +68,7 @@ Examples:
     goose postgres "user=postgres dbname=postgres sslmode=disable" status
     goose mysql "user:password@/dbname?parseTime=true" status
     goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
+    goose clickhouse "native://127.0.0.1:9000?username=user&password=password&database=dbname" status
 ```
 ## create
 
