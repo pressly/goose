@@ -16,7 +16,7 @@ func TestClickHouseDialect(t *testing.T) {
 		return
 	}
 	if connect, err := sql.Open("clickhouse", "native://127.0.0.1:9000?debug=true"); assert.NoError(t, err) && assert.NoError(t, connect.Ping()) {
-		defer connect.Exec("DROP DATABASE IF EXISTS goose_test")
+		//	defer connect.Exec("DROP DATABASE IF EXISTS goose_test")
 		if _, err := connect.Exec("DROP DATABASE IF EXISTS goose_test"); !assert.NoError(t, err) {
 			return
 		}
@@ -45,7 +45,11 @@ func TestClickHouseDialect(t *testing.T) {
 			}
 		}
 
-		var countOfMigrations int
+		var (
+			countOfColumns    int
+			countOfMigrations int
+		)
+
 		if err := connect.QueryRow("SELECT COUNT() FROM goose_test.goose_db_version").Scan(&countOfMigrations); !assert.NoError(t, err) {
 			return
 		}
@@ -58,6 +62,21 @@ func TestClickHouseDialect(t *testing.T) {
 				return
 			}
 		}
+
+		if err := connect.QueryRow("SELECT COUNT() FROM system.columns WHERE database = 'goose_test' AND table = 'events'").Scan(&countOfColumns); !assert.NoError(t, err) {
+			return
+		}
+		if !assert.Equal(t, int(4), countOfColumns) {
+			return
+		}
+
+		if err := connect.QueryRow("SELECT COUNT() FROM system.columns WHERE database = 'goose_test' AND table = 'events' AND name = 'CreatedAt'").Scan(&countOfColumns); !assert.NoError(t, err) {
+			return
+		}
+		if !assert.Equal(t, int(1), countOfColumns) {
+			return
+		}
+
 		if err := connect.QueryRow("SELECT COUNT() FROM goose_test.goose_db_version").Scan(&countOfMigrations); !assert.NoError(t, err) {
 			return
 		}
@@ -69,6 +88,16 @@ func TestClickHouseDialect(t *testing.T) {
 			if !assert.NoError(t, err, string(out)) {
 				return
 			}
+		}
+		if err := connect.QueryRow("SELECT COUNT() FROM system.columns WHERE database = 'goose_test' AND table = 'events'").Scan(&countOfColumns); !assert.NoError(t, err) {
+			return
+		}
+		if !assert.Equal(t, int(3), countOfColumns) {
+			return
+		}
+
+		if err := connect.QueryRow("SELECT COUNT() FROM system.columns WHERE database = 'goose_test' AND table = 'events' AND name = 'CreatedAt'").Scan(&countOfColumns); !assert.Equal(t, sql.ErrNoRows, err) {
+			return
 		}
 
 		if err := connect.QueryRow("SELECT COUNT() FROM goose_test.goose_db_version").Scan(&countOfMigrations); !assert.NoError(t, err) {
