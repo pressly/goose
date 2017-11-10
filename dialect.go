@@ -170,7 +170,7 @@ func (ClickHouseDialect) createVersionTableSQL() string {
 	return `
 		CREATE TABLE goose_db_version (
 			version_id Int64,
-			is_applied Int8,
+			is_applied UInt8,
 			date       Date     default today(),
 			tstamp     DateTime default now()
 		) Engine = MergeTree(date, (date), 8192)
