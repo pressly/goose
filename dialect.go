@@ -163,7 +163,7 @@ func (rs RedshiftDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 // TiDB
 ////////////////////////////
 
-// MySQLDialect struct.
+// TiDBDialect struct.
 type TiDBDialect struct{}
 
 func (m TiDBDialect) createVersionTableSQL() string {
