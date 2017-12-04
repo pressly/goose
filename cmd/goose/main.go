@@ -46,7 +46,7 @@ func main() {
 	driver, dbstring, command := args[0], args[1], args[2]
 
 	switch driver {
-	case "postgres", "mysql", "sqlite3", "redshift":
+	case "postgres", "mysql", "sqlite3", "redshift", "tidb":
 		if err := goose.SetDialect(driver); err != nil {
 			log.Fatal(err)
 		}
@@ -62,6 +62,10 @@ func main() {
 
 	if driver == "redshift" {
 		driver = "postgres"
+	}
+
+	if driver == "tidb" {
+		driver = "mysql"
 	}
 
 	db, err := sql.Open(driver, dbstring)
@@ -104,6 +108,7 @@ Examples:
     goose postgres "user=postgres dbname=postgres sslmode=disable" status
     goose mysql "user:password@/dbname?parseTime=true" status
     goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
+	goose tidb "user:password@/dbname?parseTime=true" status
 
 Options:
 `
