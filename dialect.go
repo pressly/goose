@@ -31,6 +31,8 @@ func SetDialect(d string) error {
 		dialect = &Sqlite3Dialect{}
 	case "redshift":
 		dialect = &RedshiftDialect{}
+	case "tidb":
+		dialect = &TiDBDialect{}
 	default:
 		return fmt.Errorf("%q: unknown dialect", d)
 	}
@@ -149,6 +151,36 @@ func (rs RedshiftDialect) insertVersionSQL() string {
 }
 
 func (rs RedshiftDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
+	rows, err := db.Query("SELECT version_id, is_applied from goose_db_version ORDER BY id DESC")
+	if err != nil {
+		return nil, err
+	}
+
+	return rows, err
+}
+
+////////////////////////////
+// TiDB
+////////////////////////////
+
+// TiDBDialect struct.
+type TiDBDialect struct{}
+
+func (m TiDBDialect) createVersionTableSQL() string {
+	return `CREATE TABLE goose_db_version (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT UNIQUE,
+                version_id bigint NOT NULL,
+                is_applied boolean NOT NULL,
+                tstamp timestamp NULL default now(),
+                PRIMARY KEY(id)
+            );`
+}
+
+func (m TiDBDialect) insertVersionSQL() string {
+	return "INSERT INTO goose_db_version (version_id, is_applied) VALUES (?, ?);"
+}
+
+func (m TiDBDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	rows, err := db.Query("SELECT version_id, is_applied from goose_db_version ORDER BY id DESC")
 	if err != nil {
 		return nil, err
