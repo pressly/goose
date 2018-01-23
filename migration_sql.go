@@ -23,10 +23,12 @@ var bufferPool = sync.Pool{
 // Checks the line to see if the line has a statement-ending semicolon
 // or if the line contains a double-dash comment.
 func endsWithSemicolon(line string) bool {
+	scanBuf := bufferPool.Get().([]byte)
+	defer bufferPool.Put(scanBuf)
 
 	prev := ""
 	scanner := bufio.NewScanner(strings.NewReader(line))
-	scanner.Buffer(bufferPool.Get().([]byte), scanBufSize)
+	scanner.Buffer(scanBuf, scanBufSize)
 	scanner.Split(bufio.ScanWords)
 
 	for scanner.Scan() {
@@ -51,8 +53,11 @@ func endsWithSemicolon(line string) bool {
 // tell us to ignore semicolons.
 func getSQLStatements(r io.Reader, direction bool) (stmts []string, tx bool) {
 	var buf bytes.Buffer
+	scanBuf := bufferPool.Get().([]byte)
+	defer bufferPool.Put(scanBuf)
+
 	scanner := bufio.NewScanner(r)
-	scanner.Buffer(bufferPool.Get().([]byte), scanBufSize)
+	scanner.Buffer(scanBuf, scanBufSize)
 
 	// track the count of each section
 	// so we can diagnose scripts with no annotations
