@@ -2,10 +2,11 @@ sudo: false
 language: go
 go:
 - 1.8
-
 install:
 - go get github.com/golang/dep/cmd/dep
 - dep ensure
-
 script:
 - go test
+notifications:
+  slack:
+    secure: VpHoJ6+mdJDmVne5C98aqh/A1r+wrudcKrGQy9R1FAKb9JToQKh5rGLDoO7fZHdLbGVexMqUi8Qr24PE9Lyg2NZX/2AIFwLVuwZKRqEikAZYzPyiexvEHdJfH37F9ItLTNif73SeIoxjGIsdLcI5nQD9YPClVAAQeq+ekIGdO1cAA6/8mBSSYfZwDW6JBCK+DVsTKbqd3mRQ+8Ue6cKrzM/2G9lSiFbdOm0QPOPKWI6glBhPBgywnRUjja4Ry8MJ4/ASlOrj9vBOlzKJsKiDn++/edUc/x2soHDwLURSvNAhtqmbzPzUUQEPAEMkoD81NYGGcjUU6dLrCQOw31Va+geEwohWP2V3tbifDYRaG8zjFbQoNrx90FRUq1BzQ+8ODUA2InaZQMtv07tqqINnXgVF1TRh//6hBkOi5kO6hGrGdjKrMDqSqvSglEdtfGLKI0Unkob4I6/15VgeA3JnABvqbghJMjoVifcWPC90YkQi0ltpVRz+LucGBV2pM21yX7lsuP/qw7rPZwalWwSO1LEf18/oITuuFeKm7UDoa8Z84Z0y2R7zIH+tXY0tcidGY99fOlwl0B5oD/UqeUWPpNo/V2eXsCn89p5aPopKUQcRpOf6NiVxiwrkJ4mnKhcfmyCtkOZE19bjEtZ9xiAclH9vAwM5uKKyvg1Zy+VXXW8=
