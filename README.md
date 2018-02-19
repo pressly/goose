@@ -2,7 +2,7 @@
 
 Goose is a database migration tool. Manage your database schema by creating incremental SQL changes or Go functions.
 
-![Codeship]
+[![Build Status](https://travis-ci.org/webconnex/goose.svg?branch=master)](https://travis-ci.org/webconnex/goose)
 
 # Install
 
@@ -80,7 +80,7 @@ Migrate up to a specific version.
     $ goose up-to 20170506082420
     $ OK    20170506082420_create_table.sql
 
-## Apply
+## apply
 
 Applies a single VERSION to the DB.
 
@@ -230,5 +230,3 @@ func Down(tx *sql.Tx) error {
 ## License
 
 Licensed under [MIT License](./LICENSE)
-
-[Codeship]:https://app.codeship.com/projects/049956d0-3f11-0135-e3e4-565eda87c2b1/status?branch=master
