@@ -27,15 +27,8 @@ $
 
 ## Best practice: Split migrations into a standalone package
 
-1. Move [main.go](main.go) into your `cmd/` directory
+1. Move [main.go](main.go) into your `src/cmd/` directory
 
-2. Rename package name in all `*_.go` migration files from `main` to `migrations`.
+2. Create `src/migrations/` directory with your migrations named `#######_migration_name.go` with the package declared as `migrations`.
 
-3. Import this `migrations` package from your custom [cmd/main.go](main.go) file:
-
-    ```go
-    import (
-        // Invoke init() functions within migrations pkg.
-        _ "github.com/pressly/goose/example/migrations-go"
-    )
-    ```
+3. Build the go package: `$ go build -o goose src/cmd/*.go`
