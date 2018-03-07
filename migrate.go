@@ -106,27 +106,7 @@ func AddNamedMigration(filename string, up func(*sql.Tx) error, down func(*sql.T
 // CollectMigrations returns all the valid looking migration scripts in the
 // migrations folder and go func registry, and key them by version.
 func CollectMigrations(dirpath string, current, target int64) (Migrations, error) {
-	if _, err := os.Stat(dirpath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("%s directory does not exists", dirpath)
-	}
-
 	var migrations Migrations
-
-	// SQL migration files.
-	sqlMigrationFiles, err := filepath.Glob(dirpath + "/**.sql")
-	if err != nil {
-		return nil, err
-	}
-	for _, file := range sqlMigrationFiles {
-		v, err := NumericComponent(file)
-		if err != nil {
-			return nil, err
-		}
-		if versionFilter(v, current, target) {
-			migration := &Migration{Version: v, Next: -1, Previous: -1, Source: file}
-			migrations = append(migrations, migration)
-		}
-	}
 
 	// Go migrations registered via goose.AddMigration().
 	for _, migration := range registeredGoMigrations {
@@ -139,25 +119,47 @@ func CollectMigrations(dirpath string, current, target int64) (Migrations, error
 		}
 	}
 
-	// Go migration files
-	goMigrationFiles, err := filepath.Glob(dirpath + "/**.go")
-	if err != nil {
-		return nil, err
-	}
-	for _, file := range goMigrationFiles {
-		v, err := NumericComponent(file)
+	if dirpath != "" {
+		if _, err := os.Stat(dirpath); os.IsNotExist(err) {
+			return nil, fmt.Errorf("%s directory does not exists", dirpath)
+		}
+
+		// SQL migration files.
+		sqlMigrationFiles, err := filepath.Glob(dirpath + "/**.sql")
 		if err != nil {
-			continue // Skip any files that don't have version prefix.
+			return nil, err
+		}
+		for _, file := range sqlMigrationFiles {
+			v, err := NumericComponent(file)
+			if err != nil {
+				return nil, err
+			}
+			if versionFilter(v, current, target) {
+				migration := &Migration{Version: v, Next: -1, Previous: -1, Source: file}
+				migrations = append(migrations, migration)
+			}
 		}
 
-		// Skip migrations already existing migrations registered via goose.AddMigration().
-		if _, ok := registeredGoMigrations[v]; ok {
-			continue
+		// Go migration files
+		goMigrationFiles, err := filepath.Glob(dirpath + "/**.go")
+		if err != nil {
+			return nil, err
 		}
+		for _, file := range goMigrationFiles {
+			v, err := NumericComponent(file)
+			if err != nil {
+				continue // Skip any files that don't have version prefix.
+			}
 
-		if versionFilter(v, current, target) {
-			migration := &Migration{Version: v, Next: -1, Previous: -1, Source: file, Registered: false}
-			migrations = append(migrations, migration)
+			// Skip migrations already existing migrations registered via goose.AddMigration().
+			if _, ok := registeredGoMigrations[v]; ok {
+				continue
+			}
+
+			if versionFilter(v, current, target) {
+				migration := &Migration{Version: v, Next: -1, Previous: -1, Source: file, Registered: false}
+				migrations = append(migrations, migration)
+			}
 		}
 	}
 
@@ -198,10 +200,10 @@ func versionFilter(v, current, target int64) bool {
 
 // EnsureDBVersion retrieves the current version for this DB.
 // Create and initialize the DB version table if it doesn't exist.
-func EnsureDBVersion(db *sql.DB) (int64, error) {
-	rows, err := GetDialect().dbVersionQuery(db)
+func EnsureDBVersion(db *sql.DB, schemaID string) (int64, error) {
+	rows, err := GetDialect().dbVersionQuery(db, schemaID)
 	if err != nil {
-		return 0, createVersionTable(db)
+		return 0, createVersionTable(db, schemaID)
 	}
 	defer rows.Close()
 
@@ -210,8 +212,10 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 	// The first version we find that has been applied is the current version.
 
 	toSkip := make([]int64, 0)
+	numRows := 0
 
 	for rows.Next() {
+		numRows += 1
 		var row MigrationRecord
 		if err = rows.Scan(&row.VersionID, &row.IsApplied); err != nil {
 			log.Fatal("error scanning rows:", err)
@@ -239,12 +243,16 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 		toSkip = append(toSkip, row.VersionID)
 	}
 
+	if numRows == 0 {
+		return 0, nil
+	}
+
 	return 0, ErrNoNextVersion
 }
 
 // Create the goose_db_version table
 // and insert the initial 0 value into it
-func createVersionTable(db *sql.DB) error {
+func createVersionTable(db *sql.DB, schemaID string) error {
 	txn, err := db.Begin()
 	if err != nil {
 		return err
@@ -257,20 +265,13 @@ func createVersionTable(db *sql.DB) error {
 		return err
 	}
 
-	version := 0
-	applied := true
-	if _, err := txn.Exec(d.insertVersionSQL(), version, applied); err != nil {
-		txn.Rollback()
-		return err
-	}
-
 	return txn.Commit()
 }
 
 // GetDBVersion is a wrapper for EnsureDBVersion for callers that don't already
 // have their own DB instance
-func GetDBVersion(db *sql.DB) (int64, error) {
-	version, err := EnsureDBVersion(db)
+func GetDBVersion(db *sql.DB, schemaID string) (int64, error) {
+	version, err := EnsureDBVersion(db, schemaID)
 	if err != nil {
 		return -1, err
 	}

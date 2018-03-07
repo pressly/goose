@@ -7,12 +7,12 @@ import (
 )
 
 // Reset rolls back all migrations
-func Reset(db *sql.DB, dir string) error {
+func Reset(db *sql.DB, schemaID, dir string) error {
 	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
-	statuses, err := dbMigrationsStatus(db)
+	statuses, err := dbMigrationsStatus(db, schemaID)
 	if err != nil {
 		return err
 	}
@@ -22,7 +22,7 @@ func Reset(db *sql.DB, dir string) error {
 		if !statuses[migration.Version] {
 			continue
 		}
-		if err = migration.Down(db); err != nil {
+		if err = migration.Down(db, schemaID); err != nil {
 			return err
 		}
 	}
@@ -30,17 +30,19 @@ func Reset(db *sql.DB, dir string) error {
 	return nil
 }
 
-func dbMigrationsStatus(db *sql.DB) (map[int64]bool, error) {
-	rows, err := GetDialect().dbVersionQuery(db)
+func dbMigrationsStatus(db *sql.DB, schemaID string) (map[int64]bool, error) {
+	rows, err := GetDialect().dbVersionQuery(db, schemaID)
 	if err != nil {
-		return map[int64]bool{}, createVersionTable(db)
+		return map[int64]bool{}, createVersionTable(db, schemaID)
 	}
 	defer rows.Close()
 
 	// The most recent record for each migration specifies
 	// whether it has been applied or rolled back.
 
-	result := make(map[int64]bool)
+	result := map[int64]bool{
+		0: true,
+	}
 
 	for rows.Next() {
 		var row MigrationRecord

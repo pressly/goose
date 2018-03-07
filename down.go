@@ -7,8 +7,8 @@ import (
 )
 
 // Down rolls back a single migration from the current version.
-func Down(db *sql.DB, dir string) error {
-	currentVersion, err := GetDBVersion(db)
+func Down(db *sql.DB, schemaID, dir string) error {
+	currentVersion, err := GetDBVersion(db, schemaID)
 	if err != nil {
 		return err
 	}
@@ -23,18 +23,18 @@ func Down(db *sql.DB, dir string) error {
 		return fmt.Errorf("no migration %v", currentVersion)
 	}
 
-	return current.Down(db)
+	return current.Down(db, schemaID)
 }
 
 // DownTo rolls back migrations to a specific version.
-func DownTo(db *sql.DB, dir string, version int64) error {
+func DownTo(db *sql.DB, schemaID, dir string, version int64) error {
 	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
 
 	for {
-		currentVersion, err := GetDBVersion(db)
+		currentVersion, err := GetDBVersion(db, schemaID)
 		if err != nil {
 			return err
 		}
@@ -50,7 +50,7 @@ func DownTo(db *sql.DB, dir string, version int64) error {
 			return nil
 		}
 
-		if err = current.Down(db); err != nil {
+		if err = current.Down(db, schemaID); err != nil {
 			return err
 		}
 	}

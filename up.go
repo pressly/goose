@@ -6,14 +6,14 @@ import (
 )
 
 // UpTo migrates up to a specific version.
-func UpTo(db *sql.DB, dir string, version int64) error {
+func UpTo(db *sql.DB, schemaID, dir string, version int64) error {
 	migrations, err := CollectMigrations(dir, minVersion, version)
 	if err != nil {
 		return err
 	}
 
 	for {
-		current, err := GetDBVersion(db)
+		current, err := GetDBVersion(db, schemaID)
 		if err != nil {
 			return err
 		}
@@ -27,25 +27,25 @@ func UpTo(db *sql.DB, dir string, version int64) error {
 			return err
 		}
 
-		if err = next.Up(db); err != nil {
+		if err = next.Up(db, schemaID); err != nil {
 			return err
 		}
 	}
 }
 
 // Up applies all available migrations.
-func Up(db *sql.DB, dir string) error {
-	return UpTo(db, dir, maxVersion)
+func Up(db *sql.DB, schemaID, dir string) error {
+	return UpTo(db, schemaID, dir, maxVersion)
 }
 
 // UpByOne migrates up by a single version.
-func UpByOne(db *sql.DB, dir string) error {
+func UpByOne(db *sql.DB, schemaID, dir string) error {
 	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
 
-	currentVersion, err := GetDBVersion(db)
+	currentVersion, err := GetDBVersion(db, schemaID)
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func UpByOne(db *sql.DB, dir string) error {
 		return err
 	}
 
-	if err = next.Up(db); err != nil {
+	if err = next.Up(db, schemaID); err != nil {
 		return err
 	}
 

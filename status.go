@@ -9,7 +9,7 @@ import (
 )
 
 // Status prints the status of all migrations.
-func Status(db *sql.DB, dir string) error {
+func Status(db *sql.DB, schemaID, dir string) error {
 	// collect all migrations
 	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
@@ -17,7 +17,7 @@ func Status(db *sql.DB, dir string) error {
 	}
 
 	// must ensure that the version table exists if we're running on a pristine DB
-	if _, err := EnsureDBVersion(db); err != nil {
+	if _, err := EnsureDBVersion(db, schemaID); err != nil {
 		return err
 	}
 

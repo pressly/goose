@@ -34,8 +34,8 @@ func (m *Migration) String() string {
 }
 
 // Up runs an up migration.
-func (m *Migration) Up(db *sql.DB) error {
-	if err := m.run(db, true); err != nil {
+func (m *Migration) Up(db *sql.DB, schemaID string) error {
+	if err := m.run(db, schemaID, true); err != nil {
 		return err
 	}
 	log.Println("OK   ", filepath.Base(m.Source))
@@ -43,24 +43,24 @@ func (m *Migration) Up(db *sql.DB) error {
 }
 
 // Down runs a down migration.
-func (m *Migration) Down(db *sql.DB) error {
-	if err := m.run(db, false); err != nil {
+func (m *Migration) Down(db *sql.DB, schemaID string) error {
+	if err := m.run(db, schemaID, false); err != nil {
 		return err
 	}
 	log.Println("OK   ", filepath.Base(m.Source))
 	return nil
 }
 
-func (m *Migration) run(db *sql.DB, direction bool) error {
+func (m *Migration) run(db *sql.DB, schemaID string, direction bool) error {
 	switch filepath.Ext(m.Source) {
 	case ".sql":
-		if err := runSQLMigration(db, m.Source, m.Version, direction); err != nil {
+		if err := runSQLMigration(db, schemaID, m.Source, m.Version, direction); err != nil {
 			return fmt.Errorf("FAIL %v, quitting migration", err)
 		}
 
 	case ".go":
 		if !m.Registered {
-			log.Fatalf("failed to apply Go migration %q: Go functions must be registered and built into a custom binary (see https://github.com/pressly/goose/tree/master/examples/go-migrations)", m.Source)
+			log.Fatalf("failed to apply Go migration %q: Go functions must be registered and built into a custom binary (see https://github.com/cryptowatch/goose/tree/master/examples/go-migrations)", m.Source)
 		}
 		tx, err := db.Begin()
 		if err != nil {
@@ -78,7 +78,7 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 				return err
 			}
 		}
-		if _, err := tx.Exec(GetDialect().insertVersionSQL(), m.Version, direction); err != nil {
+		if _, err := tx.Exec(GetDialect().insertVersionSQL(), schemaID, m.Version, direction); err != nil {
 			tx.Rollback()
 			return err
 		}

@@ -6,13 +6,17 @@ import (
 	"log"
 	"os"
 
-	"github.com/pressly/goose"
+	"github.com/cryptowatch/goose"
 
 	// Init DB drivers.
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	_ "github.com/ziutek/mymysql/godrv"
+)
+
+const (
+	schemaID = "default"
 )
 
 var (
@@ -27,7 +31,7 @@ func main() {
 	args := flags.Args()
 
 	if len(args) > 1 && args[0] == "create" {
-		if err := goose.Run("create", nil, *dir, args[1:]...); err != nil {
+		if err := goose.Run("create", nil, schemaID, *dir, args[1:]...); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
 		return
@@ -74,7 +78,7 @@ func main() {
 		arguments = append(arguments, args[3:]...)
 	}
 
-	if err := goose.Run(command, db, *dir, arguments...); err != nil {
+	if err := goose.Run(command, db, schemaID, *dir, arguments...); err != nil {
 		log.Fatalf("goose run: %v", err)
 	}
 }
