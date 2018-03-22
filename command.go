@@ -5,7 +5,6 @@ import (
 	"flag"
 	"log"
 	"os"
-	_ "migrations"
 
 	// Init DB drivers.
 	_ "github.com/go-sql-driver/mysql"
