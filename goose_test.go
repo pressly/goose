@@ -26,7 +26,7 @@ func TestDefaultBinary(t *testing.T) {
 
 func TestCustomBinary(t *testing.T) {
 	commands := []string{
-		"go build -i -o custom-goose ./examples/go-migrations",
+		"go build -i -o custom-goose ./examples/go-migrations/custom.go",
 		"./custom-goose -dir=examples/go-migrations sqlite3 go.db up",
 		"./custom-goose -dir=examples/go-migrations sqlite3 go.db version",
 		"./custom-goose -dir=examples/go-migrations sqlite3 go.db down",
