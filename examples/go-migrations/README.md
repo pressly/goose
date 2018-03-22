@@ -29,7 +29,7 @@ $
 
 1. Move [main.go](main.go) into your `src/cmd/` directory
 
-2. Change import "goose" to import 'github.com/pressly/goose'
+2. Adjust the imports to the paths for your project
 
 3. Create `src/migrations/` directory with your migrations named `#######_migration_name.go` with the package declared as `migrations`.
 
