@@ -29,6 +29,8 @@ $
 
 1. Move [main.go](main.go) into your `src/cmd/` directory
 
-2. Create `src/migrations/` directory with your migrations named `#######_migration_name.go` with the package declared as `migrations`.
+2. Change import "goose" to import 'github.com/pressly/goose'
 
-3. Build the go package: `$ go build -o goose src/cmd/*.go`
+3. Create `src/migrations/` directory with your migrations named `#######_migration_name.go` with the package declared as `migrations`.
+
+4. Build the go package: `$ go build -o goose src/cmd/*.go`

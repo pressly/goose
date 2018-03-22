@@ -1,7 +1,9 @@
 package main
 
 import (
-	"github.com/pressly/goose"
+	"goose"
+	// In your repo, replace the line above with the line below:
+	// "github.com/pressly/goose"
 )
 
 func main() {
