@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"flag"
 	"log"
 	"os"
@@ -52,7 +51,7 @@ func main() {
 	switch driver {
 	case "redshift":
 		driver = "postgres"
-	case  "tidb":
+	case "tidb":
 		driver = "mysql"
 	}
 
@@ -62,7 +61,7 @@ func main() {
 	default:
 	}
 
-	db, err := sql.Open(driver, dbstring)
+	db, err := createDBWithDriver(driver, dbstring)
 	if err != nil {
 		log.Fatalf("-dbstring=%q: %v\n", dbstring, err)
 	}
