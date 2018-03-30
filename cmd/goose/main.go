@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"flag"
 	"fmt"
 	"log"
@@ -73,7 +72,7 @@ func main() {
 	default:
 	}
 
-	db, err := sql.Open(driver, dbstring)
+	db, err := createDBWithDriver(driver, dbstring)
 	if err != nil {
 		log.Fatalf("-dbstring=%q: %v\n", dbstring, err)
 	}
