@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/pressly/goose"
+	"github.com/discovery-digital/goose"
 )
 
 func main() {
