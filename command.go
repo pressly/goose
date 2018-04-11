@@ -1,12 +1,10 @@
-package main
+package goose
 
 import (
 	"database/sql"
 	"flag"
 	"log"
 	"os"
-
-	"github.com/pressly/goose"
 
 	// Init DB drivers.
 	_ "github.com/go-sql-driver/mysql"
@@ -20,14 +18,14 @@ var (
 	dir   = flags.String("dir", ".", "directory with migration files")
 )
 
-func main() {
+func Command() {
 	flags.Usage = usage
 	flags.Parse(os.Args[1:])
 
 	args := flags.Args()
 
 	if len(args) > 1 && args[0] == "create" {
-		if err := goose.Run("create", nil, *dir, args[1:]...); err != nil {
+		if err := Run("create", nil, *dir, args[1:]...); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
 		return
@@ -47,21 +45,11 @@ func main() {
 
 	switch driver {
 	case "postgres", "mysql", "sqlite3", "redshift":
-		if err := goose.SetDialect(driver); err != nil {
+		if err := SetDialect(driver); err != nil {
 			log.Fatal(err)
 		}
 	default:
 		log.Fatalf("%q driver not supported\n", driver)
-	}
-
-	switch dbstring {
-	case "":
-		log.Fatalf("-dbstring=%q not supported\n", dbstring)
-	default:
-	}
-
-	if driver == "redshift" {
-		driver = "postgres"
 	}
 
 	db, err := sql.Open(driver, dbstring)
@@ -74,7 +62,7 @@ func main() {
 		arguments = append(arguments, args[3:]...)
 	}
 
-	if err := goose.Run(command, db, *dir, arguments...); err != nil {
+	if err := Run(command, db, *dir, arguments...); err != nil {
 		log.Fatalf("goose run: %v", err)
 	}
 }
@@ -104,6 +92,7 @@ Examples:
     goose postgres "user=postgres dbname=postgres sslmode=disable" status
     goose mysql "user:password@/dbname?parseTime=true" status
     goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
+    goose tidb "user:password@/dbname?parseTime=true" status
 
 Options:
 `
@@ -115,6 +104,7 @@ Commands:
     down                 Roll back the version by 1
     down-to VERSION      Roll back to a specific VERSION
     redo                 Re-run the latest migration
+    reset                Roll back all migrations
     status               Dump the migration status for the current DB
     version              Print the current version of the database
     create NAME [sql|go] Creates new migration file with next version
