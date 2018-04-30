@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"database/sql"
 	"io"
-	"log"
 	"os"
 	"strings"
 )

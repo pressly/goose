@@ -52,7 +52,7 @@ func main() {
 	switch driver {
 	case "redshift":
 		driver = "postgres"
-	case  "tidb":
+	case "tidb":
 		driver = "mysql"
 	}
 
