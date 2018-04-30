@@ -3,7 +3,6 @@ package goose
 import (
 	"database/sql"
 	"fmt"
-	"log"
 )
 
 // Down rolls back a single migration from the current version.
