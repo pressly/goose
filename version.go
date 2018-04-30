@@ -2,7 +2,6 @@ package goose
 
 import (
 	"database/sql"
-	"log"
 )
 
 // Version prints the current version of the database.
