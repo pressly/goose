@@ -32,7 +32,7 @@ func Status(db *sql.DB, dir string) error {
 
 func printMigrationStatus(db *sql.DB, version int64, script string) {
 	var row MigrationRecord
-	q := fmt.Sprintf("SELECT tstamp, is_applied FROM %s WHERE version_id=%d ORDER BY tstamp DESC LIMIT 1", GetDBVersionTableName(), version)
+	q := fmt.Sprintf("SELECT tstamp, is_applied FROM %s WHERE version_id=%d ORDER BY tstamp DESC LIMIT 1", TableName(), version)
 	e := db.QueryRow(q).Scan(&row.TStamp, &row.IsApplied)
 
 	if e != nil && e != sql.ErrNoRows {

@@ -16,14 +16,14 @@ func Version(db *sql.DB, dir string) error {
 	return nil
 }
 
-var dbVersionTableName = "goose_db_version"
+var tableName = "goose_db_version"
 
-// GetDBVersionTableName returns goose db version table name
-func GetDBVersionTableName() string {
-	return dbVersionTableName
+// TableName returns goose db version table name
+func TableName() string {
+	return tableName
 }
 
-// SetDBVersionTableName set goose db version table name
-func SetDBVersionTableName(n string) {
-	dbVersionTableName = n
+// SetTableName set goose db version table name
+func SetTableName(n string) {
+	tableName = n
 }
