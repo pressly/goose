@@ -55,24 +55,13 @@ func main() {
 
 	driver, dbstring, command := args[0], args[1], args[2]
 
-	if err := goose.SetDialect(driver); err != nil {
-		log.Fatal(err)
-	}
-
-	switch driver {
-	case "redshift":
-		driver = "postgres"
-	case "tidb":
-		driver = "mysql"
-	}
-
 	switch dbstring {
 	case "":
 		log.Fatalf("-dbstring=%q not supported\n", dbstring)
 	default:
 	}
 
-	db, err := createDBWithDriver(driver, dbstring)
+	db, err := goose.OpenDBWithDriver(driver, dbstring)
 	if err != nil {
 		log.Fatalf("-dbstring=%q: %v\n", dbstring, err)
 	}
