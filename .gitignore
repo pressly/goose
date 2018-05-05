@@ -4,3 +4,4 @@ cmd/goose/goose*
 *.test
 vendor
 bin
+*.db
