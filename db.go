@@ -1,4 +1,4 @@
-package main
+package goose
 
 import (
 	"database/sql"
@@ -20,7 +20,20 @@ func normalizeMySQLDSN(dsn string) (string, error) {
 	return config.FormatDSN(), nil
 }
 
-func createDBWithDriver(driver string, dbstring string) (*sql.DB, error) {
+// OpenDBWithDriver creates a connection a database, and modifies goose
+// internals to be compatible with the supplied driver by calling SetDialect.
+func OpenDBWithDriver(driver string, dbstring string) (*sql.DB, error) {
+	if err := SetDialect(driver); err != nil {
+		return nil, err
+	}
+
+	switch driver {
+	case "redshift":
+		driver = "postgres"
+	case "tidb":
+		driver = "mysql"
+	}
+
 	switch driver {
 	case "postgres", "sqlite3":
 		return sql.Open(driver, dbstring)
