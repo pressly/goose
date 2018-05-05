@@ -3,7 +3,6 @@ package goose
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"text/template"

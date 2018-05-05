@@ -52,7 +52,7 @@ func main() {
 
 	db, err := goose.OpenDBWithDriver(driver, dbstring)
 	if err != nil {
-		log.Fatalf("-dbstring=%q: %v\n", dbstring, err)
+		log.Fatalf("goose run :%v", err)
 	}
 
 	arguments := []string{}
