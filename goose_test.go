@@ -128,7 +128,7 @@ DROP TABLE webconnex2;
 	}
 
 	// Verify the new schema was run.
-	expectedResult := "OK    0000009_insert_migration.sql"
+	expectedResult := "OK   0000009_insert_migration.sql"
 	if sout := string(out); !strings.Contains(sout, expectedResult) {
 		t.Errorf("expected '%s' but returned '%s'", expectedResult, sout)
 	}
