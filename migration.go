@@ -35,19 +35,25 @@ func (m *Migration) String() string {
 
 // Up runs an up migration.
 func (m *Migration) Up(db *sql.DB) error {
+	start := time.Now()
 	if err := m.run(db, true); err != nil {
 		return err
 	}
-	fmt.Println("OK   ", filepath.Base(m.Source))
+
+	duration := time.Now().Sub(start)
+	fmt.Printf("OK   %s   ELAPSED: %.2f Seconds\n", filepath.Base(m.Source), duration.Seconds())
 	return nil
 }
 
 // Down runs a down migration.
 func (m *Migration) Down(db *sql.DB) error {
+	start := time.Now()
 	if err := m.run(db, false); err != nil {
 		return err
 	}
-	fmt.Println("OK   ", filepath.Base(m.Source))
+
+	duration := time.Now().Sub(start)
+	fmt.Printf("OK   %s   ELAPSED: %.2f Seconds\n", filepath.Base(m.Source), duration.Seconds())
 	return nil
 }
 
