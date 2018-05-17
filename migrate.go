@@ -266,8 +266,7 @@ func createVersionTable(db *sql.DB) error {
 	return txn.Commit()
 }
 
-// GetDBVersion is a wrapper for EnsureDBVersion for callers that don't already
-// have their own DB instance
+// GetDBVersion is an alias for EnsureDBVersion, but returns -1 in error.
 func GetDBVersion(db *sql.DB) (int64, error) {
 	version, err := EnsureDBVersion(db)
 	if err != nil {
