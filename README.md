@@ -25,6 +25,12 @@ Goose is a database migration tool. Manage your database schema by creating incr
 - We encourage using sequential versioning of migration files
     (rather than timestamps-based versioning) to prevent version
     mismatch and migration colissions
+#Build
+
+If you want to build binaries for linux 64,linux 386,darwin run the following command
+    $ make dist
+If you want to build binaries for linux 64,linux 386,darwin without CGO run the following command
+    $ make dist CGO_FLAG="CGO_ENABLED=0"
 
 # Install
 
