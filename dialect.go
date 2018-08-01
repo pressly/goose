@@ -181,7 +181,7 @@ func (m TiDBDialect) insertVersionSQL() string {
 }
 
 func (m TiDBDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
-	rows, err := db.Query(fmt.Sprintf("SELECT version_id, is_applied from %s ORDER BY id DESC", TableName()))
+	rows, err := db.Query(fmt.Sprintf("SELECT version_id, is_applied from %s ORDER BY tstamp DESC", TableName()))
 	if err != nil {
 		return nil, err
 	}
