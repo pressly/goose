@@ -13,3 +13,8 @@ cmd/goose/goose*
 
 *.db
 
+# Files output by tests
+custom-goose
+go.db
+goose
+sql.db
