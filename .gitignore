@@ -2,3 +2,9 @@
 cmd/goose/goose*
 *.swp
 *.test
+
+# Files output by tests
+custom-goose
+go.db
+goose
+sql.db
