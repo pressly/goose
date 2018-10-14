@@ -25,11 +25,6 @@ var (
 	environment   = flags.String("environment", "development", "database environment config")
 )
 
-type YamlData struct {
-	Driver string `yaml:driver`
-	DBString string `yaml:open`
-}
-
 func main() {
 	flags.Usage = usage
 	flags.Parse(os.Args[1:])
