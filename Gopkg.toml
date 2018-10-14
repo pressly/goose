@@ -9,3 +9,7 @@
 [[constraint]]
   name = "github.com/mattn/go-sqlite3"
   version = "^1.2.0"
+
+[[constraint]]
+  name = "gopkg.in/yaml.v2"
+  version = "=2.2.1"

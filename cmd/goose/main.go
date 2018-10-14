@@ -5,8 +5,11 @@ import (
 	"flag"
 	"log"
 	"os"
+	"io/ioutil"
 
 	"github.com/pressly/goose"
+	// YAML support
+	"gopkg.in/yaml.v2"
 
 	// Init DB drivers.
 	_ "github.com/go-sql-driver/mysql"
@@ -16,9 +19,16 @@ import (
 )
 
 var (
-	flags = flag.NewFlagSet("goose", flag.ExitOnError)
-	dir   = flags.String("dir", ".", "directory with migration files")
+	flags         = flag.NewFlagSet("goose", flag.ExitOnError)
+	dir           = flags.String("dir", ".", "directory with migration files")
+	filepath      = flags.String("file", "", "yaml file with database config file")
+	environment   = flags.String("environment", "development", "database environment config")
 )
+
+type YamlData struct {
+	Driver string `yaml:driver`
+	DBString string `yaml:open`
+}
 
 func main() {
 	flags.Usage = usage
@@ -33,17 +43,37 @@ func main() {
 		return
 	}
 
-	if len(args) < 3 {
-		flags.Usage()
-		return
-	}
-
 	if args[0] == "-h" || args[0] == "--help" {
 		flags.Usage()
 		return
 	}
 
-	driver, dbstring, command := args[0], args[1], args[2]
+	var driver string
+	var dbstring string
+	var command string
+
+	if *filepath != "" {
+		var database_environment string
+		database_environment = *environment
+		log.Printf("environment: %s", database_environment)
+		file, err := ioutil.ReadFile(*filepath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		tmp := make(map[interface {}]interface {})
+		if err := yaml.Unmarshal([]byte(file), &tmp); err != nil {
+			log.Fatal(err)
+		}
+		conf := tmp[database_environment].(map[interface {}]interface {})
+		driver, dbstring, command = conf["driver"].(string), conf["open"].(string), args[0]
+		log.Printf("%s, %s, %s",driver, dbstring, command)
+	} else if len(args) < 3 {
+		flags.Usage()
+		return
+	} else {
+	        driver, dbstring, command = args[0], args[1], args[2]
+	}
+
 
 	if err := goose.SetDialect(driver); err != nil {
 		log.Fatal(err)
