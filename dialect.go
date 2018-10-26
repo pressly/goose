@@ -11,6 +11,7 @@ type SQLDialect interface {
 	createVersionTableSQL() string // sql string to create the db version table
 	insertVersionSQL() string      // sql string to insert the initial version table row
 	dbVersionQuery(db *sql.DB) (*sql.Rows, error)
+	lockTableQuery(tx *sql.Tx) error
 }
 
 var dialect SQLDialect = &PostgresDialect{}
@@ -70,6 +71,12 @@ func (pg PostgresDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	return rows, err
 }
 
+func (pg PostgresDialect) lockTableQuery(tx *sql.Tx) error {
+	_, err := tx.Exec(fmt.Sprintf("LOCK TABLE %s IN ACCESS EXCLUSIVE MODE NOWAIT", TableName()))
+
+	return err
+}
+
 ////////////////////////////
 // MySQL
 ////////////////////////////
@@ -100,6 +107,13 @@ func (m MySQLDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	return rows, err
 }
 
+func (m MySQLDialect) lockTableQuery(_ *sql.Tx) error {
+	// MySQL does not seem to support erroring out on an existing lock.
+	// This would render the lock useless
+
+	return nil
+}
+
 ////////////////////////////
 // sqlite3
 ////////////////////////////
@@ -127,6 +141,14 @@ func (m Sqlite3Dialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	}
 
 	return rows, err
+}
+
+func (m Sqlite3Dialect) lockTableQuery(_ *sql.Tx) error {
+	// SQLite does not support Table level locks.
+	// The transactions lock the file as needed, described in:
+	// https://sqlite.org/lang_transaction.html
+
+	return nil
 }
 
 ////////////////////////////
@@ -159,6 +181,14 @@ func (rs RedshiftDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	return rows, err
 }
 
+func (rs RedshiftDialect) lockTableQuery(db *sql.Tx) error {
+	// RedShift does not document support for "NOWAIT"
+	// For that reason this is a NOOP as it would just lock up a migration,
+	// And in no way prevent a migration form running twice, since if started
+	// at the the same time will just wait and run sequentially.
+	return nil
+}
+
 ////////////////////////////
 // TiDB
 ////////////////////////////
@@ -187,4 +217,9 @@ func (m TiDBDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	}
 
 	return rows, err
+}
+
+func (m TiDBDialect) lockTableQuery(db *sql.Tx) error {
+	// A quick search provided no information on TABLE LEVEL locks in TiDB
+	return nil
 }

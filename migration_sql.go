@@ -154,6 +154,12 @@ func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) err
 			log.Fatal(err)
 		}
 
+		err = GetDialect().lockTableQuery(tx)
+
+		if err != nil {
+			log.Fatalf("Could not acquire table lock. Is there another migration in progress? Error: %v", err)
+		}
+
 		for _, query := range statements {
 			if _, err = tx.Exec(query); err != nil {
 				tx.Rollback()
