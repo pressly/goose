@@ -29,6 +29,12 @@ func Fix(db *sql.DB, dir string) error {
 		version = last.Version + 1
 	}
 
+	// fix db table as well
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatal("db.Begin: ", err)
+	}
+
 	// fix filenames by replacing timestamps with sequential versions
 	for _, tsm := range tsMigrations {
 		oldPath := tsm.Source
@@ -38,8 +44,13 @@ func Fix(db *sql.DB, dir string) error {
 			return err
 		}
 
+		if _, err := tx.Exec(GetDialect().updateVersionSQL(), version, tsm.Version); err != nil {
+			tx.Rollback()
+			return err
+		}
+
 		version++
 	}
 
-	return nil
+	return tx.Commit()
 }
