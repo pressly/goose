@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"time"
 )
 
 var (
@@ -74,6 +75,43 @@ func (ms Migrations) Last() (*Migration, error) {
 	}
 
 	return ms[len(ms)-1], nil
+}
+
+// Versioned gets versioned migrations.
+func (ms Migrations) Versioned() (Migrations, error) {
+	var migrations Migrations
+
+	// assume that the user will never have more than 19700101000000 migrations
+	for _, m := range ms {
+		// parse version as timestmap
+		versionTime, err := time.Parse(timestampFormat, fmt.Sprintf("%d", m.Version))
+
+		if versionTime.Before(time.Unix(0, 0)) || err != nil {
+			migrations = append(migrations, m)
+		}
+	}
+
+	return migrations, nil
+}
+
+// Timestamped gets the timestamped migrations.
+func (ms Migrations) Timestamped() (Migrations, error) {
+	var migrations Migrations
+
+	// assume that the user will never have more than 19700101000000 migrations
+	for _, m := range ms {
+		// parse version as timestmap
+		versionTime, err := time.Parse(timestampFormat, fmt.Sprintf("%d", m.Version))
+		if err != nil {
+			// probably not a timestamp
+			continue
+		}
+
+		if versionTime.After(time.Unix(0, 0)) {
+			migrations = append(migrations, m)
+		}
+	}
+	return migrations, nil
 }
 
 func (ms Migrations) String() string {
