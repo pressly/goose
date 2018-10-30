@@ -78,7 +78,7 @@ func (ms Migrations) Last() (*Migration, error) {
 }
 
 // Versioned gets versioned migrations.
-func (ms Migrations) Versioned() (Migrations, error) {
+func (ms Migrations) versioned() (Migrations, error) {
 	var migrations Migrations
 
 	// assume that the user will never have more than 19700101000000 migrations
@@ -95,7 +95,7 @@ func (ms Migrations) Versioned() (Migrations, error) {
 }
 
 // Timestamped gets the timestamped migrations.
-func (ms Migrations) Timestamped() (Migrations, error) {
+func (ms Migrations) timestamped() (Migrations, error) {
 	var migrations Migrations
 
 	// assume that the user will never have more than 19700101000000 migrations

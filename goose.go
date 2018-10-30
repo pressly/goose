@@ -66,7 +66,7 @@ func Run(command string, db *sql.DB, dir string, args ...string) error {
 			return err
 		}
 	case "fix":
-		if err := Fix(db, dir); err != nil {
+		if err := Fix(dir); err != nil {
 			return err
 		}
 	case "redo":

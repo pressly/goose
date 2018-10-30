@@ -26,8 +26,8 @@ func main() {
 
 	args := flags.Args()
 
-	if len(args) > 1 && args[0] == "create" {
-		if err := goose.Run("create", nil, *dir, args[1:]...); err != nil {
+	if len(args) > 1 && (args[0] == "create" || args[0] == "fix") {
+		if err := goose.Run(args[0], nil, *dir, args[1:]...); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
 		return
