@@ -21,10 +21,10 @@ func TestFix(t *testing.T) {
 
 	commands := []string{
 		"go build -i -o goose ./cmd/goose",
-		fmt.Sprintf("./goose -dir=%s create yolo", dir),
-		fmt.Sprintf("./goose -dir=%s create yolo", dir),
-		fmt.Sprintf("./goose -dir=%s create yolo", dir),
-		fmt.Sprintf("./goose -dir=%s create yolo", dir),
+		fmt.Sprintf("./goose -dir=%s create create_table", dir),
+		fmt.Sprintf("./goose -dir=%s create add_users", dir),
+		fmt.Sprintf("./goose -dir=%s create add_indices", dir),
+		fmt.Sprintf("./goose -dir=%s create update_users", dir),
 		fmt.Sprintf("./goose -dir=%s sqlite3 sql.db fix", dir),
 	}
 
@@ -52,8 +52,8 @@ func TestFix(t *testing.T) {
 
 	// add more migrations and then fix it
 	commands = []string{
-		fmt.Sprintf("./goose -dir=%s create yolo", dir),
-		fmt.Sprintf("./goose -dir=%s create yolo", dir),
+		fmt.Sprintf("./goose -dir=%s create remove_column", dir),
+		fmt.Sprintf("./goose -dir=%s create create_books_table", dir),
 		fmt.Sprintf("./goose -dir=%s sqlite3 sql.db fix", dir),
 	}
 
