@@ -10,6 +10,7 @@ import (
 type SQLDialect interface {
 	createVersionTableSQL() string // sql string to create the db version table
 	insertVersionSQL() string      // sql string to insert the initial version table row
+	updateVersionSQL() string      // sql string to update version
 	dbVersionQuery(db *sql.DB) (*sql.Rows, error)
 }
 
