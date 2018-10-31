@@ -3,6 +3,7 @@ package goose
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -37,6 +38,7 @@ func Fix(dir string) error {
 			return err
 		}
 
+		log.Printf("RENAMED %s => %s", filepath.Base(oldPath), filepath.Base(newPath))
 		version++
 	}
 
