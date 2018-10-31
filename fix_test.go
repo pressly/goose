@@ -25,7 +25,7 @@ func TestFix(t *testing.T) {
 		fmt.Sprintf("./goose -dir=%s create add_users", dir),
 		fmt.Sprintf("./goose -dir=%s create add_indices", dir),
 		fmt.Sprintf("./goose -dir=%s create update_users", dir),
-		fmt.Sprintf("./goose -dir=%s sqlite3 sql.db fix", dir),
+		fmt.Sprintf("./goose -dir=%s fix", dir),
 	}
 
 	for _, cmd := range commands {
@@ -54,7 +54,7 @@ func TestFix(t *testing.T) {
 	commands = []string{
 		fmt.Sprintf("./goose -dir=%s create remove_column", dir),
 		fmt.Sprintf("./goose -dir=%s create create_books_table", dir),
-		fmt.Sprintf("./goose -dir=%s sqlite3 sql.db fix", dir),
+		fmt.Sprintf("./goose -dir=%s fix", dir),
 	}
 
 	for _, cmd := range commands {
