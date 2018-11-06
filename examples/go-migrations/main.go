@@ -33,6 +33,14 @@ func main() {
 		return
 	}
 
+	// TODO clean up arg/flag parsing flow
+	if args[0] == "fix" {
+		if err := goose.Run("fix", nil, *dir); err != nil {
+			log.Fatalf("goose run: %v", err)
+		}
+		return
+	}
+
 	if len(args) < 3 {
 		flags.Usage()
 		return
