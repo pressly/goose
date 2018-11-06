@@ -131,6 +131,7 @@ Commands:
     reset                Roll back all migrations
     status               Dump the migration status for the current DB. Use [-missing-only] option to find out only migrations, missing from the current DB
     version              Print the current version of the database
-    create NAME [sql|go] Creates new migration file with next version
+		create NAME [sql|go] Creates new migration file with the current timestamp
+		fix                  Apply sequential ordering to migrations
 `
 )
