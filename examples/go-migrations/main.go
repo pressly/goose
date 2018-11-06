@@ -33,6 +33,14 @@ func main() {
 		return
 	}
 
+	// TODO clean up arg/flag parsing flow
+	if args[0] == "fix" {
+		if err := goose.Run("fix", nil, *dir); err != nil {
+			log.Fatalf("goose run: %v", err)
+		}
+		return
+	}
+
 	if len(args) < 3 {
 		flags.Usage()
 		return
@@ -117,6 +125,7 @@ Commands:
     redo                 Re-run the latest migration
     status               Dump the migration status for the current DB
     version              Print the current version of the database
-    create NAME [sql|go] Creates new migration file with next version
+    create NAME [sql|go] Creates new migration file with the current timestamp
+		fix                  Apply sequential ordering to migrations
 `
 )
