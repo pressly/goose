@@ -24,6 +24,23 @@ func TestDefaultBinary(t *testing.T) {
 	}
 }
 
+func TestLiteBinary(t *testing.T) {
+	commands := []string{
+		"go build -i -o goose ./cmd/goose",
+		"./goose-lite -dir=examples/sql-migrations create user_table sql",
+		"./goose-lite -dir=examples/sql-migrations create user_indices sql",
+		"./goose-lite -dir=examples/sql-migrations fix",
+	}
+
+	for _, cmd := range commands {
+		args := strings.Split(cmd, " ")
+		out, err := exec.Command(args[0], args[1:]...).CombinedOutput()
+		if err != nil {
+			t.Fatalf("%s:\n%v\n\n%s", err, cmd, out)
+		}
+	}
+}
+
 func TestCustomBinary(t *testing.T) {
 	commands := []string{
 		"go build -i -o custom-goose ./examples/go-migrations",
