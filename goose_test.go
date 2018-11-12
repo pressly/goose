@@ -26,7 +26,7 @@ func TestDefaultBinary(t *testing.T) {
 
 func TestLiteBinary(t *testing.T) {
 	commands := []string{
-		"go build -i -o goose ./cmd/goose",
+		"go build -i -o goose-lite ./cmd/goose-lite",
 		"./goose-lite -dir=examples/sql-migrations create user_table sql",
 		"./goose-lite -dir=examples/sql-migrations create user_indices sql",
 		"./goose-lite -dir=examples/sql-migrations fix",
