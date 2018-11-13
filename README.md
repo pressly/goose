@@ -30,9 +30,9 @@ Goose is a database migration tool. Manage your database schema by creating incr
 
 This will install the `goose` binary to your `$GOPATH/bin` directory.
 
-For a lite version of the binary without DB connection dependent commands, use build tags:
+For a lite version of the binary without DB connection dependent commands, use the exclusive build tags:
 
-    $ go build -tags='not_mysql not_sqlite not_psql' -i -o goose ./cmd/goose
+    $ go build -tags='no_mysql no_sqlite no_psql' -i -o goose ./cmd/goose
 
 
 # Usage
