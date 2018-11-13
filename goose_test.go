@@ -32,8 +32,8 @@ func TestLiteBinary(t *testing.T) {
 
 	// this has to be done outside of the loop
 	// since go only supports space separated tags list.
-	cmd := "go build -tags='not_mysql not_sqlite not_psql' -i -o goose ./cmd/goose"
-	out, err := exec.Command("go", "build", "-tags='not_mysql not_sqlite not_psql'", "-i", "-o", "goose", "./cmd/goose").CombinedOutput()
+	cmd := "go build -tags='no_mysql no_sqlite no_psql' -i -o goose ./cmd/goose"
+	out, err := exec.Command("go", "build", "-tags='no_mysql no_sqlite no_psql'", "-i", "-o", "goose", "./cmd/goose").CombinedOutput()
 	if err != nil {
 		t.Fatalf("%s:\n%v\n\n%s", err, cmd, out)
 	}
