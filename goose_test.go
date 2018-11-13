@@ -26,10 +26,10 @@ func TestDefaultBinary(t *testing.T) {
 
 func TestLiteBinary(t *testing.T) {
 	commands := []string{
-		"go build -i -o goose-lite ./cmd/goose-lite",
-		"./goose-lite -dir=examples/sql-migrations create user_table sql",
-		"./goose-lite -dir=examples/sql-migrations create user_indices sql",
-		"./goose-lite -dir=examples/sql-migrations fix",
+		"go build -tags=!not_msql -tags 'not_mysql not_sqlite not_psql' -i -o goose ./cmd/goose",
+		"./goose -dir=examples/sql-migrations create user_table sql",
+		"./goose -dir=examples/sql-migrations create user_indices sql",
+		"./goose -dir=examples/sql-migrations fix",
 	}
 
 	for _, cmd := range commands {
