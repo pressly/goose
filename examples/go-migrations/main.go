@@ -26,20 +26,21 @@ func main() {
 	flags.Parse(os.Args[1:])
 
 	args := flags.Args()
+	if len(args) == 0 || args[0] == "-h" || args[0] == "--help" {
+		flags.Usage()
+		return
+	}
 
-	if len(args) > 1 && args[0] == "create" {
+	switch args[0] {
+	case "create":
 		if err := goose.Run("create", nil, *dir, *missingOnly, args[1:]...); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
 		return
-	}
-
-	// TODO clean up arg/flag parsing flow
-	if args[0] == "fix" {
-		if err := goose.Run("fix", nil, *dir); err != nil {
+	case "fix":
+		if err := goose.Run("fix", nil, *dir, *missingOnly); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
-		return
 	}
 
 	if len(args) < 3 {
