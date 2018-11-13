@@ -14,11 +14,8 @@ cmd/goose/goose*
 *.db
 
 # Files output by tests
-custom-goose
+bin
 go.db
-goose
 sql.db
 
 
-# don't ignore goose dir
-!goose/
