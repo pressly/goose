@@ -1,4 +1,4 @@
-// +build !not_mysql
+// +build !no_mysql
 
 package main
 

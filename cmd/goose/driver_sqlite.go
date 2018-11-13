@@ -1,4 +1,4 @@
-// +build !not_sqlite
+// +build !no_sqlite
 
 package main
 

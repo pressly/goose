@@ -1,4 +1,4 @@
-// +build !not_pq
+// +build !no_pq
 
 package main
 
