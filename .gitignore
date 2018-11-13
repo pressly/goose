@@ -8,3 +8,7 @@ custom-goose
 go.db
 goose
 sql.db
+
+
+# don't ignore goose dir
+!goose/
