@@ -4,7 +4,8 @@ cmd/goose/goose*
 *.test
 
 # Files output by tests
-custom-goose
+bin
 go.db
-goose
 sql.db
+
+
