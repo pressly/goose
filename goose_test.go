@@ -16,11 +16,18 @@ func TestDefaultBinary(t *testing.T) {
 		"./bin/goose -dir=examples/sql-migrations sqlite3 sql.db version",
 		"./bin/goose -dir=examples/sql-migrations sqlite3 sql.db down",
 		"./bin/goose -dir=examples/sql-migrations sqlite3 sql.db status",
+		"./bin/goose",
 	}
 
 	for _, cmd := range commands {
 		args := strings.Split(cmd, " ")
-		out, err := exec.Command(args[0], args[1:]...).CombinedOutput()
+		command := args[0]
+		var params []string
+		if len(args) > 1 {
+			params = args[1:]
+		}
+
+		out, err := exec.Command(command, params...).CombinedOutput()
 		if err != nil {
 			t.Fatalf("%s:\n%v\n\n%s", err, cmd, out)
 		}
