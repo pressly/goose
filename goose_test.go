@@ -33,8 +33,8 @@ func TestLiteBinary(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer os.RemoveAll(dir)  // clean up
-	defer os.Remove("goose") // clean up
+	defer os.RemoveAll(dir)        // clean up
+	defer os.Remove("./bin/goose") // clean up
 
 	commands := []string{
 		fmt.Sprintf("./bin/goose -dir=%s create user_indices sql", dir),
