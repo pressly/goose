@@ -35,6 +35,7 @@ func main() {
 		if err := goose.Run("fix", nil, *dir, *missingOnly); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
+		return
 	}
 
 	if len(args) < 3 {
