@@ -11,6 +11,7 @@ type SQLDialect interface {
 	createVersionTableSQL() string // sql string to create the db version table
 	insertVersionSQL() string      // sql string to insert the initial version table row
 	updateVersionSQL() string      // sql string to update version
+	deleteVersionSQL() string      // sql string to delete version
 	dbVersionQuery(db *sql.DB) (*sql.Rows, error)
 }
 
@@ -63,7 +64,7 @@ func (pg PostgresDialect) insertVersionSQL() string {
 }
 
 func (pg PostgresDialect) updateVersionSQL() string {
-	return fmt.Sprintf("UPDATE %s SET version_id=? WHERE version_id=?;", TableName())
+	return fmt.Sprintf("UPDATE %s SET version_id=? WHERE version_id=$1;", TableName())
 }
 
 func (pg PostgresDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
@@ -73,6 +74,10 @@ func (pg PostgresDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	}
 
 	return rows, err
+}
+
+func (pg PostgresDialect) deleteVersionSQL() string {
+	return fmt.Sprintf("DELETE FROM %s WHERE version_id=$1;", TableName())
 }
 
 ////////////////////////////
@@ -109,6 +114,10 @@ func (m MySQLDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	return rows, err
 }
 
+func (m MySQLDialect) deleteVersionSQL() string {
+	return fmt.Sprintf("DELETE FROM %s WHERE version_id=?;", TableName())
+}
+
 ////////////////////////////
 // sqlite3
 ////////////////////////////
@@ -130,7 +139,7 @@ func (m Sqlite3Dialect) insertVersionSQL() string {
 }
 
 func (m Sqlite3Dialect) updateVersionSQL() string {
-	return fmt.Sprintf("UPDATE %s SET version_id=? WHERE version_id=?;", TableName())
+	return fmt.Sprintf("UPDATE %s SET version_id=%1 WHERE version_id=2;", TableName())
 }
 
 func (m Sqlite3Dialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
@@ -140,6 +149,10 @@ func (m Sqlite3Dialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	}
 
 	return rows, err
+}
+
+func (m Sqlite3Dialect) deleteVersionSQL() string {
+	return fmt.Sprintf("DELETE FROM %s WHERE version_id=?;", TableName())
 }
 
 ////////////////////////////
@@ -164,7 +177,7 @@ func (rs RedshiftDialect) insertVersionSQL() string {
 }
 
 func (rs RedshiftDialect) updateVersionSQL() string {
-	return fmt.Sprintf("UPDATE %s SET version_id=? WHERE version_id=?;", TableName())
+	return fmt.Sprintf("UPDATE %s SET version_id=%1 WHERE version_id=$2;", TableName())
 }
 
 func (rs RedshiftDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
@@ -174,6 +187,10 @@ func (rs RedshiftDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	}
 
 	return rows, err
+}
+
+func (rs RedshiftDialect) deleteVersionSQL() string {
+	return fmt.Sprintf("DELETE FROM %s WHERE version_id=?;", TableName())
 }
 
 ////////////////////////////
@@ -208,4 +225,8 @@ func (m TiDBDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	}
 
 	return rows, err
+}
+
+func (m TiDBDialect) deleteVersionSQL() string {
+	return fmt.Sprintf("DELETE FROM %s WHERE version_id=?;", TableName())
 }
