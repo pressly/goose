@@ -10,7 +10,6 @@ import (
 type SQLDialect interface {
 	createVersionTableSQL() string // sql string to create the db version table
 	insertVersionSQL() string      // sql string to insert the initial version table row
-	updateVersionSQL() string      // sql string to update version
 	deleteVersionSQL() string      // sql string to delete version
 	dbVersionQuery(db *sql.DB) (*sql.Rows, error)
 }
@@ -63,10 +62,6 @@ func (pg PostgresDialect) insertVersionSQL() string {
 	return fmt.Sprintf("INSERT INTO %s (version_id, is_applied) VALUES ($1, $2);", TableName())
 }
 
-func (pg PostgresDialect) updateVersionSQL() string {
-	return fmt.Sprintf("UPDATE %s SET version_id=? WHERE version_id=$1;", TableName())
-}
-
 func (pg PostgresDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	rows, err := db.Query(fmt.Sprintf("SELECT version_id, is_applied from %s ORDER BY id DESC", TableName()))
 	if err != nil {
@@ -101,10 +96,6 @@ func (m MySQLDialect) insertVersionSQL() string {
 	return fmt.Sprintf("INSERT INTO %s (version_id, is_applied) VALUES (?, ?);", TableName())
 }
 
-func (m MySQLDialect) updateVersionSQL() string {
-	return fmt.Sprintf("UPDATE %s SET version_id=? WHERE version_id=?;", TableName())
-}
-
 func (m MySQLDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	rows, err := db.Query(fmt.Sprintf("SELECT version_id, is_applied from %s ORDER BY id DESC", TableName()))
 	if err != nil {
@@ -136,10 +127,6 @@ func (m Sqlite3Dialect) createVersionTableSQL() string {
 
 func (m Sqlite3Dialect) insertVersionSQL() string {
 	return fmt.Sprintf("INSERT INTO %s (version_id, is_applied) VALUES (?, ?);", TableName())
-}
-
-func (m Sqlite3Dialect) updateVersionSQL() string {
-	return fmt.Sprintf("UPDATE %s SET version_id=? WHERE version_id=?;", TableName())
 }
 
 func (m Sqlite3Dialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
@@ -176,10 +163,6 @@ func (rs RedshiftDialect) insertVersionSQL() string {
 	return fmt.Sprintf("INSERT INTO %s (version_id, is_applied) VALUES ($1, $2);", TableName())
 }
 
-func (rs RedshiftDialect) updateVersionSQL() string {
-	return fmt.Sprintf("UPDATE %s SET version_id=$1 WHERE version_id=$2;", TableName())
-}
-
 func (rs RedshiftDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	rows, err := db.Query(fmt.Sprintf("SELECT version_id, is_applied from %s ORDER BY id DESC", TableName()))
 	if err != nil {
@@ -212,10 +195,6 @@ func (m TiDBDialect) createVersionTableSQL() string {
 
 func (m TiDBDialect) insertVersionSQL() string {
 	return fmt.Sprintf("INSERT INTO %s (version_id, is_applied) VALUES (?, ?);", TableName())
-}
-
-func (m TiDBDialect) updateVersionSQL() string {
-	return fmt.Sprintf("UPDATE %s SET version_id=? WHERE version_id=?;", TableName())
 }
 
 func (m TiDBDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
