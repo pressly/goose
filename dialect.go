@@ -139,7 +139,7 @@ func (m Sqlite3Dialect) insertVersionSQL() string {
 }
 
 func (m Sqlite3Dialect) updateVersionSQL() string {
-	return fmt.Sprintf("UPDATE %s SET version_id=%1 WHERE version_id=2;", TableName())
+	return fmt.Sprintf("UPDATE %s SET version_id=? WHERE version_id=?;", TableName())
 }
 
 func (m Sqlite3Dialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
@@ -177,7 +177,7 @@ func (rs RedshiftDialect) insertVersionSQL() string {
 }
 
 func (rs RedshiftDialect) updateVersionSQL() string {
-	return fmt.Sprintf("UPDATE %s SET version_id=%1 WHERE version_id=$2;", TableName())
+	return fmt.Sprintf("UPDATE %s SET version_id=$1 WHERE version_id=$2;", TableName())
 }
 
 func (rs RedshiftDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
