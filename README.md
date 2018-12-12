@@ -245,6 +245,8 @@ func Down(tx *sql.Tx) error {
 ```
 
 # Hybrid Versioning
+Please, read the [versioning problem](https://github.com/pressly/goose/issues/63#issuecomment-428681694) first.
+
 We strongly recommend adopting a hybrid versioning approach, using both timestamps and sequential numbers. Migrations created during the development process are timestamped and sequential versions are ran on production. We believe this method will prevent the problem of conflicting versions when writing software in a team environment.
 
 To help you adopt this approach, `create` will use the current timestamp as the migration version. When you're ready to deploy your migrations in a production environment, we also provide a helpful `fix` command to convert your migrations into sequential order, while preserving the timestamp ordering. We recommend running `fix` in the CI pipeline, and only when the migrations are ready for production.
