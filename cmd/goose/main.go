@@ -10,8 +10,9 @@ import (
 )
 
 var (
-	flags = flag.NewFlagSet("goose", flag.ExitOnError)
-	dir   = flags.String("dir", ".", "directory with migration files")
+	flags   = flag.NewFlagSet("goose", flag.ExitOnError)
+	dir     = flags.String("dir", ".", "directory with migration files")
+	verbose = flags.Bool("v", false, "enable verbose mode")
 )
 
 func main() {
@@ -22,6 +23,10 @@ func main() {
 	if len(args) == 0 || args[0] == "-h" || args[0] == "--help" {
 		flags.Usage()
 		return
+	}
+
+	if *verbose {
+		goose.SetVerbosity(goose.VerboseOn)
 	}
 
 	switch args[0] {

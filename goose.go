@@ -3,8 +3,19 @@ package goose
 import (
 	"database/sql"
 	"fmt"
+	"regexp"
 	"strconv"
 	"sync"
+)
+
+// VerboseLevel verbose level of the goose library
+type VerboseLevel int
+
+const (
+	// VerboseOff disable the log of the executed SQL statements
+	VerboseOff VerboseLevel = iota + 1
+	// VerboseOn log the executed SQL statements
+	VerboseOn
 )
 
 var (
@@ -12,7 +23,14 @@ var (
 	minVersion         = int64(0)
 	maxVersion         = int64((1 << 63) - 1)
 	timestampFormat    = "20060102150405"
+	verbose            = VerboseOff
+	reMatchSQLComments = regexp.MustCompile(`(--.*)|(((\/\*)+?[\w\W]+?(\*\/)+))`)
 )
+
+// SetVerbosity defines the goose verbose level
+func SetVerbosity(vl VerboseLevel) {
+	verbose = vl
+}
 
 // Run runs a goose command.
 func Run(command string, db *sql.DB, dir string, args ...string) error {
