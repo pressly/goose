@@ -202,7 +202,7 @@ func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) err
 }
 
 func printInfo(s string, args ...interface{}) {
-	if verbose {
+	if verbose == VerboseOn {
 		log.Printf(s, args...)
 	}
 }
