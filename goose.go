@@ -8,14 +8,14 @@ import (
 	"sync"
 )
 
-// VerboseLevel verbose level of the goose library
-type VerboseLevel int
+// VerboseMode is the goose verbosity
+type VerboseMode bool
 
 const (
-	// VerboseOff disable the log of the executed SQL statements
-	VerboseOff VerboseLevel = iota + 1
-	// VerboseOn log the executed SQL statements
-	VerboseOn
+	// VerboseOn is the goose verbose mode
+	VerboseOn VerboseMode = true
+	// VerboseOff is the goose silent mode
+	VerboseOff VerboseMode = false
 )
 
 var (
@@ -24,11 +24,11 @@ var (
 	maxVersion         = int64((1 << 63) - 1)
 	timestampFormat    = "20060102150405"
 	verbose            = VerboseOff
-	reMatchSQLComments = regexp.MustCompile(`(--.*)|(((\/\*)+?[\w\W]+?(\*\/)+))`)
+	reMatchSQLComments = regexp.MustCompile(`(--.*)`)
 )
 
-// SetVerbosity defines the goose verbose level
-func SetVerbosity(vl VerboseLevel) {
+// SetVerbosity defines the goose verbosity
+func SetVerbosity(vl VerboseMode) {
 	verbose = vl
 }
 
