@@ -8,28 +8,18 @@ import (
 	"sync"
 )
 
-// VerboseMode is the goose verbosity
-type VerboseMode bool
-
-const (
-	// VerboseOn is the goose verbose mode
-	VerboseOn VerboseMode = true
-	// VerboseOff is the goose silent mode
-	VerboseOff VerboseMode = false
-)
-
 var (
 	duplicateCheckOnce sync.Once
 	minVersion         = int64(0)
 	maxVersion         = int64((1 << 63) - 1)
 	timestampFormat    = "20060102150405"
-	verbose            = VerboseOff
+	verbose            = false
 	reMatchSQLComments = regexp.MustCompile(`(--.*)`)
 )
 
-// SetVerbosity defines the goose verbosity
-func SetVerbosity(vl VerboseMode) {
-	verbose = vl
+// SetVerbose set the goose verbosity mode
+func SetVerbose(v bool) {
+	verbose = v
 }
 
 // Run runs a goose command.

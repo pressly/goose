@@ -26,7 +26,7 @@ func main() {
 	}
 
 	if *verbose {
-		goose.SetVerbosity(goose.VerboseOn)
+		goose.SetVerbose(true)
 	}
 
 	switch args[0] {
