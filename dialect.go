@@ -8,13 +8,21 @@ import (
 // SQLDialect abstracts the details of specific SQL dialects
 // for goose's few SQL specific statements
 type SQLDialect interface {
-	createVersionTableSQL() string // sql string to create the db version table
-	insertVersionSQL() string      // sql string to insert the initial version table row
-	deleteVersionSQL() string      // sql string to delete version
-	dbVersionQuery(db *sql.DB) (*sql.Rows, error)
+	CreateVersionTableSQL() string // sql string to create the db version table
+	InsertVersionSQL() string      // sql string to insert the initial version table row
+	DeleteVersionSQL() string      // sql string to delete version
+	DBVersionQuery(db *sql.DB) (*sql.Rows, error)
 }
 
-var dialect SQLDialect = &PostgresDialect{}
+var dialects = map[string]SQLDialect{
+	"postgres": &PostgresDialect{},
+	"mysql":    &MySQLDialect{},
+	"sqlite3":  &Sqlite3Dialect{},
+	"redshift": &RedshiftDialect{},
+	"tidb":     &TiDBDialect{},
+}
+
+var dialect = dialects["postgres"]
 
 // GetDialect gets the SQLDialect
 func GetDialect() SQLDialect {
@@ -22,23 +30,28 @@ func GetDialect() SQLDialect {
 }
 
 // SetDialect sets the SQLDialect
-func SetDialect(d string) error {
-	switch d {
-	case "postgres":
-		dialect = &PostgresDialect{}
-	case "mysql":
-		dialect = &MySQLDialect{}
-	case "sqlite3":
-		dialect = &Sqlite3Dialect{}
-	case "redshift":
-		dialect = &RedshiftDialect{}
-	case "tidb":
-		dialect = &TiDBDialect{}
-	default:
-		return fmt.Errorf("%q: unknown dialect", d)
+func SetDialect(name string) error {
+	d, ok := dialects[name]
+	if !ok {
+		return fmt.Errorf("%q: unknown dialect", name)
 	}
 
+	dialect = d
 	return nil
+}
+
+// RegisterDialect registers a new SQLDialect implementation by name
+func RegisterDialect(name string, d SQLDialect) {
+	dialects[name] = d
+}
+
+// GetDialects returns the list of registered dialects
+func GetDialects() []string {
+	var names []string
+	for name := range dialects {
+		names = append(names, name)
+	}
+	return names
 }
 
 ////////////////////////////
@@ -48,7 +61,7 @@ func SetDialect(d string) error {
 // PostgresDialect struct.
 type PostgresDialect struct{}
 
-func (pg PostgresDialect) createVersionTableSQL() string {
+func (pg PostgresDialect) CreateVersionTableSQL() string {
 	return fmt.Sprintf(`CREATE TABLE %s (
             	id serial NOT NULL,
                 version_id bigint NOT NULL,
@@ -58,11 +71,11 @@ func (pg PostgresDialect) createVersionTableSQL() string {
             );`, TableName())
 }
 
-func (pg PostgresDialect) insertVersionSQL() string {
+func (pg PostgresDialect) InsertVersionSQL() string {
 	return fmt.Sprintf("INSERT INTO %s (version_id, is_applied) VALUES ($1, $2);", TableName())
 }
 
-func (pg PostgresDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
+func (pg PostgresDialect) DBVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	rows, err := db.Query(fmt.Sprintf("SELECT version_id, is_applied from %s ORDER BY id DESC", TableName()))
 	if err != nil {
 		return nil, err
@@ -71,7 +84,7 @@ func (pg PostgresDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	return rows, err
 }
 
-func (pg PostgresDialect) deleteVersionSQL() string {
+func (pg PostgresDialect) DeleteVersionSQL() string {
 	return fmt.Sprintf("DELETE FROM %s WHERE version_id=$1;", TableName())
 }
 
@@ -82,7 +95,7 @@ func (pg PostgresDialect) deleteVersionSQL() string {
 // MySQLDialect struct.
 type MySQLDialect struct{}
 
-func (m MySQLDialect) createVersionTableSQL() string {
+func (m MySQLDialect) CreateVersionTableSQL() string {
 	return fmt.Sprintf(`CREATE TABLE %s (
                 id serial NOT NULL,
                 version_id bigint NOT NULL,
@@ -92,11 +105,11 @@ func (m MySQLDialect) createVersionTableSQL() string {
             );`, TableName())
 }
 
-func (m MySQLDialect) insertVersionSQL() string {
+func (m MySQLDialect) InsertVersionSQL() string {
 	return fmt.Sprintf("INSERT INTO %s (version_id, is_applied) VALUES (?, ?);", TableName())
 }
 
-func (m MySQLDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
+func (m MySQLDialect) DBVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	rows, err := db.Query(fmt.Sprintf("SELECT version_id, is_applied from %s ORDER BY id DESC", TableName()))
 	if err != nil {
 		return nil, err
@@ -105,7 +118,7 @@ func (m MySQLDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	return rows, err
 }
 
-func (m MySQLDialect) deleteVersionSQL() string {
+func (m MySQLDialect) DeleteVersionSQL() string {
 	return fmt.Sprintf("DELETE FROM %s WHERE version_id=?;", TableName())
 }
 
@@ -116,7 +129,7 @@ func (m MySQLDialect) deleteVersionSQL() string {
 // Sqlite3Dialect struct.
 type Sqlite3Dialect struct{}
 
-func (m Sqlite3Dialect) createVersionTableSQL() string {
+func (m Sqlite3Dialect) CreateVersionTableSQL() string {
 	return fmt.Sprintf(`CREATE TABLE %s (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 version_id INTEGER NOT NULL,
@@ -125,11 +138,11 @@ func (m Sqlite3Dialect) createVersionTableSQL() string {
             );`, TableName())
 }
 
-func (m Sqlite3Dialect) insertVersionSQL() string {
+func (m Sqlite3Dialect) InsertVersionSQL() string {
 	return fmt.Sprintf("INSERT INTO %s (version_id, is_applied) VALUES (?, ?);", TableName())
 }
 
-func (m Sqlite3Dialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
+func (m Sqlite3Dialect) DBVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	rows, err := db.Query(fmt.Sprintf("SELECT version_id, is_applied from %s ORDER BY id DESC", TableName()))
 	if err != nil {
 		return nil, err
@@ -138,7 +151,7 @@ func (m Sqlite3Dialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	return rows, err
 }
 
-func (m Sqlite3Dialect) deleteVersionSQL() string {
+func (m Sqlite3Dialect) DeleteVersionSQL() string {
 	return fmt.Sprintf("DELETE FROM %s WHERE version_id=?;", TableName())
 }
 
@@ -149,7 +162,7 @@ func (m Sqlite3Dialect) deleteVersionSQL() string {
 // RedshiftDialect struct.
 type RedshiftDialect struct{}
 
-func (rs RedshiftDialect) createVersionTableSQL() string {
+func (rs RedshiftDialect) CreateVersionTableSQL() string {
 	return fmt.Sprintf(`CREATE TABLE %s (
             	id integer NOT NULL identity(1, 1),
                 version_id bigint NOT NULL,
@@ -159,11 +172,11 @@ func (rs RedshiftDialect) createVersionTableSQL() string {
             );`, TableName())
 }
 
-func (rs RedshiftDialect) insertVersionSQL() string {
+func (rs RedshiftDialect) InsertVersionSQL() string {
 	return fmt.Sprintf("INSERT INTO %s (version_id, is_applied) VALUES ($1, $2);", TableName())
 }
 
-func (rs RedshiftDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
+func (rs RedshiftDialect) DBVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	rows, err := db.Query(fmt.Sprintf("SELECT version_id, is_applied from %s ORDER BY id DESC", TableName()))
 	if err != nil {
 		return nil, err
@@ -172,7 +185,7 @@ func (rs RedshiftDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	return rows, err
 }
 
-func (rs RedshiftDialect) deleteVersionSQL() string {
+func (rs RedshiftDialect) DeleteVersionSQL() string {
 	return fmt.Sprintf("DELETE FROM %s WHERE version_id=?;", TableName())
 }
 
@@ -183,7 +196,7 @@ func (rs RedshiftDialect) deleteVersionSQL() string {
 // TiDBDialect struct.
 type TiDBDialect struct{}
 
-func (m TiDBDialect) createVersionTableSQL() string {
+func (m TiDBDialect) CreateVersionTableSQL() string {
 	return fmt.Sprintf(`CREATE TABLE %s (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT UNIQUE,
                 version_id bigint NOT NULL,
@@ -193,11 +206,11 @@ func (m TiDBDialect) createVersionTableSQL() string {
             );`, TableName())
 }
 
-func (m TiDBDialect) insertVersionSQL() string {
+func (m TiDBDialect) InsertVersionSQL() string {
 	return fmt.Sprintf("INSERT INTO %s (version_id, is_applied) VALUES (?, ?);", TableName())
 }
 
-func (m TiDBDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
+func (m TiDBDialect) DBVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	rows, err := db.Query(fmt.Sprintf("SELECT version_id, is_applied from %s ORDER BY id DESC", TableName()))
 	if err != nil {
 		return nil, err
@@ -206,6 +219,6 @@ func (m TiDBDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	return rows, err
 }
 
-func (m TiDBDialect) deleteVersionSQL() string {
+func (m TiDBDialect) DeleteVersionSQL() string {
 	return fmt.Sprintf("DELETE FROM %s WHERE version_id=?;", TableName())
 }

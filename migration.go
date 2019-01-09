@@ -79,12 +79,12 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 		}
 
 		if direction {
-			if _, err := tx.Exec(GetDialect().insertVersionSQL(), m.Version, direction); err != nil {
+			if _, err := tx.Exec(GetDialect().InsertVersionSQL(), m.Version, direction); err != nil {
 				tx.Rollback()
 				return err
 			}
 		} else {
-			if _, err := tx.Exec(GetDialect().deleteVersionSQL(), m.Version); err != nil {
+			if _, err := tx.Exec(GetDialect().DeleteVersionSQL(), m.Version); err != nil {
 				tx.Rollback()
 				return err
 			}
