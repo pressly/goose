@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/pressly/goose"
+	"github.com/ecarrel/goose"
 
 	// Init all Go migrations
 	_ "github.com/pressly/goose/examples/go-migrations-package/db/migrations"
