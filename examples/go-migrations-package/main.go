@@ -7,10 +7,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/pressly/goose"
+	"github.com/elijahcarrel/goose"
 
 	// Init all Go migrations
-	_ "github.com/pressly/goose/examples/go-migrations-package/db/migrations"
+	_ "github.com/elijahcarrel/goose/examples/go-migrations-package/db/migrations"
 
 	// Init DB drivers.
 	_ "github.com/go-sql-driver/mysql"

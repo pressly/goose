@@ -3,7 +3,7 @@ package migrations
 import (
 	"database/sql"
 
-	"github.com/pressly/goose"
+	"github.com/elijahcarrel/goose"
 )
 
 func init() {
