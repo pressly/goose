@@ -69,7 +69,7 @@ var goSQLMigrationTemplate = template.Must(template.New("goose.go-migration").Pa
 
 import (
 	"database/sql"
-	"github.com/ecarrel/goose"
+	"github.com/pressly/goose"
 )
 
 func init() {

@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/ecarrel/goose"
+	"github.com/pressly/goose"
 )
 
 var (

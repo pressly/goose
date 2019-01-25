@@ -223,7 +223,7 @@ package migrations
 import (
 	"database/sql"
 
-	"github.com/ecarrel/goose"
+	"github.com/pressly/goose"
 )
 
 func init() {
