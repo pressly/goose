@@ -3,16 +3,6 @@ cmd/goose/goose*
 *.swp
 *.test
 
-# IDE
-.vscode/
-*.iml
-.idea
-
-# Mac
-.DS_Store
-
-*.db
-
 # Files output by tests
 bin
 go.db
