@@ -119,8 +119,8 @@ Options:
 
 	usageCommands = `
 Commands:
-    up                   Migrate the DB to the most recent version available
-    up-by-one            Migrate up by a single version
+    up                   Migrate the DB to the most recent version available. Use [--include-missing] include migrations that were missed
+    up-by-one            Migrate up by a single version. Use [--include-missing] include migrations that were missed
     up-to VERSION        Migrate the DB to a specific VERSION
     down                 Roll back the version by 1
     down-to VERSION      Roll back to a specific VERSION
