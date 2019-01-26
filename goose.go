@@ -7,6 +7,12 @@ import (
 	"sync"
 )
 
+type RunParams struct {
+	Dir            *string
+	MissingOnly    *bool
+	IncludeMissing *bool
+}
+
 var (
 	duplicateCheckOnce sync.Once
 	minVersion         = int64(0)
@@ -15,14 +21,14 @@ var (
 )
 
 // Run runs a goose command.
-func Run(command string, db *sql.DB, dir string, missingOnly bool, includeMissing bool, args ...string) error {
+func Run(command string, db *sql.DB, params RunParams, args ...string) error {
 	switch command {
 	case "up":
-		if err := Up(db, dir, includeMissing, false, nil); err != nil {
+		if err := Up(db, *params.Dir, *params.IncludeMissing, false, nil); err != nil {
 			return err
 		}
 	case "up-by-one":
-		if err := Up(db, dir, false, true, nil); err != nil {
+		if err := Up(db, *params.Dir, *params.IncludeMissing, true, nil); err != nil {
 			return err
 		}
 	case "up-to":
@@ -34,7 +40,7 @@ func Run(command string, db *sql.DB, dir string, missingOnly bool, includeMissin
 		if err != nil {
 			return fmt.Errorf("version must be a number (got '%s')", args[0])
 		}
-		if err := Up(db, dir, includeMissing, false, &version); err != nil {
+		if err := Up(db, *params.Dir, *params.IncludeMissing, false, &version); err != nil {
 			return err
 		}
 	case "create":
@@ -46,11 +52,11 @@ func Run(command string, db *sql.DB, dir string, missingOnly bool, includeMissin
 		if len(args) == 2 {
 			migrationType = args[1]
 		}
-		if err := Create(db, dir, args[0], migrationType); err != nil {
+		if err := Create(db, *params.Dir, args[0], migrationType); err != nil {
 			return err
 		}
 	case "down":
-		if err := Down(db, dir); err != nil {
+		if err := Down(db, *params.Dir); err != nil {
 			return err
 		}
 	case "down-to":
@@ -62,33 +68,33 @@ func Run(command string, db *sql.DB, dir string, missingOnly bool, includeMissin
 		if err != nil {
 			return fmt.Errorf("version must be a number (got '%s')", args[0])
 		}
-		if err := DownTo(db, dir, version); err != nil {
+		if err := DownTo(db, *params.Dir, version); err != nil {
 			return err
 		}
 	case "fix":
-		if err := Fix(dir); err != nil {
+		if err := Fix(*params.Dir); err != nil {
 			return err
 		}
 	case "redo":
-		if err := Redo(db, dir); err != nil {
+		if err := Redo(db, *params.Dir); err != nil {
 			return err
 		}
 	case "reset":
-		if err := Reset(db, dir); err != nil {
+		if err := Reset(db, *params.Dir); err != nil {
 			return err
 		}
 	case "status":
-		if missingOnly {
-			if err := StatusMissing(db, dir); err != nil {
+		if *params.MissingOnly {
+			if err := StatusMissing(db, *params.Dir); err != nil {
 				return err
 			}
 		} else {
-			if err := Status(db, dir); err != nil {
+			if err := Status(db, *params.Dir); err != nil {
 				return err
 			}
 		}
 	case "version":
-		if err := Version(db, dir); err != nil {
+		if err := Version(db, *params.Dir); err != nil {
 			return err
 		}
 	default:
