@@ -33,7 +33,7 @@ func main() {
 		}
 		return
 	case "fix":
-		if err := goose.Run("fix", nil, *dir, *missingOnly) *includeMissing,; err != nil {
+		if err := goose.Run("fix", nil, *dir, *missingOnly, *includeMissing); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
 		return
