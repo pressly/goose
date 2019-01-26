@@ -19,7 +19,6 @@ var (
 func main() {
 	flags.Usage = usage
 	flags.Parse(os.Args[1:])
-	log.Printf("includeMissing is %v", *includeMissing)
 
 	args := flags.Args()
 	if len(args) == 0 || args[0] == "-h" || args[0] == "--help" {
@@ -111,8 +110,8 @@ Options:
         directory with migration files (default ".")
     --missing-only
         for status command - show only migrations that were missed
-	--include-missing
-		for up or up-to command - include migrations that were missed
+    --include-missing
+        for up or up-to command - include migrations that were missed
 `
 
 	usageCommands = `
