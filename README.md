@@ -260,5 +260,5 @@ Licensed under [MIT License](./LICENSE)
 
 [GoDoc]: https://godoc.org/github.com/pressly/goose
 [GoDoc Widget]: https://godoc.org/github.com/pressly/goose?status.svg
-[Travis]: https://travis-ci.org/elijahcarrel/goose
-[Travis Widget]: https://travis-ci.org/elijahcarrel/goose.svg?branch=master
+[Travis]: https://travis-ci.org/pressly/goose
+[Travis Widget]: https://travis-ci.org/pressly/goose.svg?branch=master
