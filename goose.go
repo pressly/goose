@@ -15,14 +15,14 @@ var (
 )
 
 // Run runs a goose command.
-func Run(command string, db *sql.DB, dir string, missingOnly bool, args ...string) error {
+func Run(command string, db *sql.DB, dir string, missingOnly bool, includeMissing bool, args ...string) error {
 	switch command {
 	case "up":
-		if err := Up(db, dir); err != nil {
+		if err := Up(db, dir, includeMissing, false, nil); err != nil {
 			return err
 		}
 	case "up-by-one":
-		if err := UpByOne(db, dir); err != nil {
+		if err := Up(db, dir, false, true, nil); err != nil {
 			return err
 		}
 	case "up-to":
@@ -34,7 +34,7 @@ func Run(command string, db *sql.DB, dir string, missingOnly bool, args ...strin
 		if err != nil {
 			return fmt.Errorf("version must be a number (got '%s')", args[0])
 		}
-		if err := UpTo(db, dir, version); err != nil {
+		if err := Up(db, dir, includeMissing, false, &version); err != nil {
 			return err
 		}
 	case "create":
