@@ -47,13 +47,13 @@ Drivers:
     redshift
 
 Commands:
-    up                   Migrate the DB to the most recent version available. Use [--include-missing] to include migrations that were missed
+    up                   Migrate the DB to the most recent version available. Use [-include-missing] to include migrations that were missed
     up-by-one            Migrate up by a single version
-    up-to VERSION        Migrate the DB to a specific VERSION. Use [--include-missing] to include migrations that were missed
+    up-to VERSION        Migrate the DB to a specific VERSION. Use [-include-missing] to include migrations that were missed
     down                 Roll back the version by 1
     down-to VERSION      Roll back to a specific VERSION
     redo                 Re-run the latest migration
-    status               Dump the migration status for the current DB. Use [--missing-only] option to show only migrations that were missed
+    status               Dump the migration status for the current DB. Use [-missing-only] option to show only migrations that were missed
     version              Print the current version of the database
     create NAME [sql|go] Creates new migration file with the current timestamp
 
@@ -62,6 +62,8 @@ Options:
         directory with migration files (default ".")
     -missing-only
         for status command - find out only migrations, missing from the current DB
+    -include-missing
+        for up or up-to command - include migrations that were missed
 
 Examples:
     goose sqlite3 ./foo.db status
