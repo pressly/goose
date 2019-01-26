@@ -2,7 +2,6 @@ package goose
 
 import (
 	"database/sql"
-	"fmt"
 )
 
 // Up performs all types of migrations upwards, depending on the params.
@@ -24,29 +23,37 @@ func Up(db *sql.DB, dir string, includeMissing bool, onlyOne bool, endVersion *i
 			return err
 		}
 	}
-	for {
-		current, err := GetDBVersion(db)
-		if err != nil {
-			return err
-		}
-
-		next, err := migrations.Next(current)
-		if err != nil {
-			if err == ErrNoNextVersion {
-				log.Printf("goose: no migrations to run. current version: %d\n", current)
-				return nil
-			}
-			return err
-		}
-		if endVersion != nil && next.Version > *endVersion {
+	for _, migration := range migrations {
+		if endVersion != nil && migration.Version > *endVersion {
 			break
 		}
-		if err = next.Up(db); err != nil {
+		if err := migration.Up(db); err != nil {
 			return err
 		}
 		if onlyOne {
 			break
 		}
 	}
-	return fmt.Errorf("should not happen")
+	currentVersion, err := GetDBVersion(db)
+	if err != nil {
+		return err
+	}
+	if includeMissing {
+		// The version has been set based on the last migration we just applied.
+		// However, since we included missing migrations, that migration might
+		// not be the latest one.
+		actualCurrentVersion, err := GetLatestAppliedMigrationVersion(db, dir)
+		if err != nil {
+			return err
+		}
+		if actualCurrentVersion != currentVersion {
+			err := SetDBVersion(db, actualCurrentVersion)
+			if err != nil {
+				return err
+			}
+			currentVersion = actualCurrentVersion
+		}
+	}
+	log.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
+	return nil
 }

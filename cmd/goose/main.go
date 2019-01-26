@@ -11,16 +11,15 @@ import (
 
 var (
 	flags          = flag.NewFlagSet("goose", flag.ExitOnError)
-	runParams      = goose.RunParams{
-		Dir:            flags.String("dir", ".", "directory with migration files"),
-		MissingOnly:    flags.Bool("missing-only", false, "for status command - show only migrations that were missed"),
-		IncludeMissing: flags.Bool("include-missing", false, "for up or up-to command - include migrations that were missed"),
-	}
+	dir            = flags.String("dir", ".", "directory with migration files")
+	missingOnly    = flags.Bool("missing-only", false, "for status command - show only migrations that were missed")
+	includeMissing = flags.Bool("include-missing", false, "for up or up-to command - include migrations that were missed")
 )
 
 func main() {
 	flags.Usage = usage
 	flags.Parse(os.Args[1:])
+	log.Printf("includeMissing is %v", *includeMissing)
 
 	args := flags.Args()
 	if len(args) == 0 || args[0] == "-h" || args[0] == "--help" {
@@ -30,12 +29,12 @@ func main() {
 
 	switch args[0] {
 	case "create":
-		if err := goose.Run("create", nil, runParams, args[1:]...); err != nil {
+		if err := goose.Run("create", nil, *dir, *missingOnly, *includeMissing, args[1:]...); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
 		return
 	case "fix":
-		if err := goose.Run("fix", nil, runParams); err != nil {
+		if err := goose.Run("fix", nil, *dir, *missingOnly, *includeMissing); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
 		return
@@ -75,7 +74,7 @@ func main() {
 		arguments = append(arguments, args[3:]...)
 	}
 
-	if err := goose.Run(command, db, runParams, arguments...); err != nil {
+	if err := goose.Run(command, db, *dir, *missingOnly, *includeMissing, arguments...); err != nil {
 		log.Fatalf("goose run: %v", err)
 	}
 }
@@ -118,9 +117,9 @@ Options:
 
 	usageCommands = `
 Commands:
-    up                   Migrate the DB to the most recent version available. Use [--include-missing] include migrations that were missed
+    up                   Migrate the DB to the most recent version available. Use [--include-missing] to include migrations that were missed
     up-by-one            Migrate up by a single version
-    up-to VERSION        Migrate the DB to a specific VERSION. Use [--include-missing] include migrations that were missed
+    up-to VERSION        Migrate the DB to a specific VERSION. Use [--include-missing] to include migrations that were missed
     down                 Roll back the version by 1
     down-to VERSION      Roll back to a specific VERSION
     redo                 Re-run the latest migration

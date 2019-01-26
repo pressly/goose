@@ -19,6 +19,7 @@ var (
 	flags       = flag.NewFlagSet("goose", flag.ExitOnError)
 	dir         = flags.String("dir", ".", "directory with migration files")
 	missingOnly = flags.Bool("missing-only", false, "for status command - find out only migrations, missing from the current DB")
+	includeMissing = flags.Bool("include-missing", false, "for up or up-to command - include migrations that were missed")
 )
 
 func main() {
@@ -33,12 +34,12 @@ func main() {
 
 	switch args[0] {
 	case "create":
-		if err := goose.Run("create", nil, *dir, *missingOnly, args[1:]...); err != nil {
+		if err := goose.Run("create", nil, *dir, *missingOnly, *includeMissing, args[1:]...); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
 		return
 	case "fix":
-		if err := goose.Run("fix", nil, *dir, *missingOnly); err != nil {
+		if err := goose.Run("fix", nil, *dir, *missingOnly, *includeMissing); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
 		return
@@ -85,7 +86,7 @@ func main() {
 		arguments = append(arguments, args[3:]...)
 	}
 
-	if err := goose.Run(command, db, *dir, *missingOnly, arguments...); err != nil {
+	if err := goose.Run(command, db, *dir, *missingOnly, *includeMissing, arguments...); err != nil {
 		log.Fatalf("goose run: %v", err)
 	}
 }
@@ -125,13 +126,13 @@ Options:
 
 	usageCommands = `
 Commands:
-    up                   Migrate the DB to the most recent version available. Use [--include-missing] include migrations that were missed
+    up                   Migrate the DB to the most recent version available. Use [--include-missing] to include migrations that were missed
     up-by-one            Migrate up by a single version
-    up-to VERSION        Migrate the DB to a specific VERSION. Use [--include-missing] include migrations that were missed
+    up-to VERSION        Migrate the DB to a specific VERSION. Use [--include-missing] to include migrations that were missed
     down                 Roll back the version by 1
     down-to VERSION      Roll back to a specific VERSION
     redo                 Re-run the latest migration
-    status               Dump the migration status for the current DB. Use [-missing-only] option to find out only migrations, missing from the current DB
+    status               Dump the migration status for the current DB. Use [--missing-only] option to show only migrations that were missed
     version              Print the current version of the database
     create NAME [sql|go] Creates new migration file with the current timestamp
 		fix                  Apply sequential ordering to migrations
