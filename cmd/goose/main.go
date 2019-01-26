@@ -11,9 +11,11 @@ import (
 
 var (
 	flags          = flag.NewFlagSet("goose", flag.ExitOnError)
-	dir            = flags.String("dir", ".", "directory with migration files")
-	missingOnly    = flags.Bool("missing-only", false, "for status command - show only migrations that were missed")
-	includeMissing = flags.Bool("include-missing", false, "for up or up-to command - include migrations that were missed")
+	runParams      = goose.RunParams{
+		Dir:            flags.String("dir", ".", "directory with migration files"),
+		MissingOnly:    flags.Bool("missing-only", false, "for status command - show only migrations that were missed"),
+		IncludeMissing: flags.Bool("include-missing", false, "for up or up-to command - include migrations that were missed"),
+	}
 )
 
 func main() {
@@ -28,12 +30,12 @@ func main() {
 
 	switch args[0] {
 	case "create":
-		if err := goose.Run("create", nil, *dir, *missingOnly, *includeMissing, args[1:]...); err != nil {
+		if err := goose.Run("create", nil, runParams, args[1:]...); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
 		return
 	case "fix":
-		if err := goose.Run("fix", nil, *dir, *missingOnly, *includeMissing); err != nil {
+		if err := goose.Run("fix", nil, runParams); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
 		return
@@ -73,7 +75,7 @@ func main() {
 		arguments = append(arguments, args[3:]...)
 	}
 
-	if err := goose.Run(command, db, *dir, *missingOnly, *includeMissing, arguments...); err != nil {
+	if err := goose.Run(command, db, runParams, arguments...); err != nil {
 		log.Fatalf("goose run: %v", err)
 	}
 }
