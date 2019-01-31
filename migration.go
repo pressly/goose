@@ -33,8 +33,8 @@ func (m *Migration) String() string {
 }
 
 // Up runs an up migration.
-func (m *Migration) Up(db *sql.DB) error {
-	if err := m.run(db, true); err != nil {
+func (m *Migration) Up(db *sql.DB, updateVersion bool) error {
+	if err := m.run(db, true, updateVersion); err != nil {
 		return err
 	}
 	log.Println("OK   ", filepath.Base(m.Source))
@@ -43,18 +43,18 @@ func (m *Migration) Up(db *sql.DB) error {
 
 // Down runs a down migration.
 func (m *Migration) Down(db *sql.DB) error {
-	if err := m.run(db, false); err != nil {
+	if err := m.run(db, false, true); err != nil {
 		return err
 	}
 	log.Println("OK   ", filepath.Base(m.Source))
 	return nil
 }
 
-func (m *Migration) run(db *sql.DB, direction bool) error {
+func (m *Migration) run(db *sql.DB, direction bool, updateVersion bool) error {
 	switch filepath.Ext(m.Source) {
 	case ".sql":
 		if err := runSQLMigration(db, m.Source, m.Version, direction); err != nil {
-			return fmt.Errorf("FAIL %v, quitting migration", err)
+			return fmt.Errorf("FAIL %s (%v), quitting migration.", filepath.Base(m.Source), err)
 		}
 
 	case ".go":
@@ -78,15 +78,17 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 			}
 		}
 
-		if direction {
-			if _, err := tx.Exec(GetDialect().insertVersionSQL(), m.Version, direction); err != nil {
-				tx.Rollback()
-				return err
-			}
-		} else {
-			if _, err := tx.Exec(GetDialect().deleteVersionSQL(), m.Version); err != nil {
-				tx.Rollback()
-				return err
+		if updateVersion {
+			if direction {
+				if _, err := tx.Exec(GetDialect().insertVersionSQL(), m.Version, direction); err != nil {
+					tx.Rollback()
+					return err
+				}
+			} else {
+				if _, err := tx.Exec(GetDialect().deleteVersionSQL(), m.Version); err != nil {
+					tx.Rollback()
+					return err
+				}
 			}
 		}
 

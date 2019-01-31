@@ -334,29 +334,3 @@ func MissingMigrations(db *sql.DB, dir string) (missingMigrations Migrations, er
 
 	return missingMigrations, nil
 }
-
-// GetLatestAppliedMigrationVersion gets the version of the latest applied migration.
-func GetLatestAppliedMigrationVersion(db *sql.DB, dir string) (int64, error) {
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
-	if err != nil {
-		return 0, err
-	}
-	statuses, err := dbMigrationsStatus(db)
-	if err != nil {
-		return 0, err
-	}
-	sort.Sort(sort.Reverse(migrations))
-
-	for _, migration := range migrations {
-		if statuses[migration.Version] {
-			return migration.Version, nil
-		}
-	}
-	return 0, nil
-}
-
-// SetDBVersion sets the version to the given value.
-func SetDBVersion(db *sql.DB, version int64) error {
-	_, err := db.Exec(GetDialect().insertVersionSQL(), version, true)
-	return err
-}
