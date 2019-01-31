@@ -138,7 +138,7 @@ func getSQLStatements(r io.Reader, direction bool) ([]string, bool, error) {
 //
 // All statements following an Up or Down directive are grouped together
 // until another direction directive is found.
-func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) error {
+func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool, shouldUpdateVersion bool) error {
 	f, err := os.Open(scriptFile)
 	if err != nil {
 		log.Fatal(err)
@@ -165,15 +165,17 @@ func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) err
 			}
 		}
 
-		if direction {
-			if _, err := tx.Exec(GetDialect().insertVersionSQL(), v, direction); err != nil {
-				tx.Rollback()
-				return err
-			}
-		} else {
-			if _, err := tx.Exec(GetDialect().deleteVersionSQL(), v); err != nil {
-				tx.Rollback()
-				return err
+		if shouldUpdateVersion {
+			if direction {
+				if _, err := tx.Exec(GetDialect().insertVersionSQL(), v, direction); err != nil {
+					tx.Rollback()
+					return err
+				}
+			} else {
+				if _, err := tx.Exec(GetDialect().deleteVersionSQL(), v); err != nil {
+					tx.Rollback()
+					return err
+				}
 			}
 		}
 
