@@ -50,10 +50,10 @@ func (m *Migration) Down(db *sql.DB) error {
 	return nil
 }
 
-func (m *Migration) run(db *sql.DB, direction bool, updateVersion bool) error {
+func (m *Migration) run(db *sql.DB, direction bool, shouldUpdateVersion bool) error {
 	switch filepath.Ext(m.Source) {
 	case ".sql":
-		if err := runSQLMigration(db, m.Source, m.Version, direction); err != nil {
+		if err := runSQLMigration(db, m.Source, m.Version, direction, shouldUpdateVersion); err != nil {
 			return fmt.Errorf("FAIL %s (%v), quitting migration.", filepath.Base(m.Source), err)
 		}
 
@@ -78,7 +78,7 @@ func (m *Migration) run(db *sql.DB, direction bool, updateVersion bool) error {
 			}
 		}
 
-		if updateVersion {
+		if shouldUpdateVersion {
 			if direction {
 				if _, err := tx.Exec(GetDialect().insertVersionSQL(), m.Version, direction); err != nil {
 					tx.Rollback()
