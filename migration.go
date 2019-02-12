@@ -96,6 +96,26 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 	return nil
 }
 
+func (m *Migration) Baseline(db *sql.DB) error {
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatalf("db.Begin: %s", err)
+	}
+
+	if _, err := tx.Exec(GetDialect().insertVersionSQL(), m.Version, true); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	log.Printf("baselined migration %v, did not execute migration", m.String())
+
+	return nil
+}
+
 // NumericComponent looks for migration scripts with names in the form:
 // XXX_descriptivename.ext where XXX specifies the version number
 // and ext specifies the type of migration
