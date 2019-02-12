@@ -1,17 +1,17 @@
 # goose
 
-Goose is a database migration tool. Manage your database schema by creating incremental SQL changes or Go functions.
+Gander is a database migration tool. Manage your database schema by creating incremental SQL changes or Go functions.
 
 This is a new fort with work still to be done
 
 ### Goals of this fork
 
-`github.com/geniusmonkey/goose` is a fork of `github.com/pressly/goose` which is a fork of `bitbucket.org/liamstask/goose` with the following changes:
+`github.com/geniusmonkey/gander` is a fork of `github.com/pressly/goose` which is a fork of `bitbucket.org/liamstask/goose` with the following changes:
 - TOML config file support multipule environments
-- [Default goose binary](./cmd/goose/main.go) can migrate SQL files only
+- [Default gander binary](./cmd/gander/main.go) can migrate SQL files only
 - Baseline migrations for existing databases
 - Migrate CLI to use cobra style commands
-- Update exposed API in package `github.com/geniusmonkey/goose` to do more with less
+- Update exposed API in package `github.com/geniusmonkey/gander` to do more with less
     - Eliminate the need to set a dialect prior to calling the api
     - Introduce adding new drivers/dialects with without updating core library
     - Seperate the CLI specific logic from core API
@@ -25,9 +25,9 @@ This is a new fort with work still to be done
 
 # Install
 
-    $ go get -u github.com/geniusmonkey/goose/cmd/goose
+    $ go get -u github.com/geniusmonkey/gander/cmd/gander
 
-This will install the `goose` binary to your `$GOPATH/bin` directory.
+This will install the `gander` binary to your `$GOPATH/bin` directory.
 
 
 # Usage
@@ -36,7 +36,7 @@ This will install the `goose` binary to your `$GOPATH/bin` directory.
 CLI for running SQL migrations
 
 Usage:
-  goose [command]
+  gander [command]
 
 Available Commands:
   baseline    Baseline an existing db to a specific VERSION
@@ -54,68 +54,68 @@ Flags:
       --driver string   name of the database driver
       --dsn string      dataSourceName to connect to the server
   -e, --env string      name of the environment to use (default "development")
-  -h, --help            help for goose
+  -h, --help            help for gander
 
-Use "goose [command] --help" for more information about a command.
+Use "gander [command] --help" for more information about a command.
 ```
 ## create
 
 Create a new SQL migration.
 
-    $ goose create add_some_column 
+    $ gander create add_some_column 
     $ Created new file: 20170506082420_add_some_column.sql
 
 Edit the newly created file to define the behavior of your migration.
 
-You can also create a Go migration, if you then invoke it with [your own goose binary](#go-migrations):
+You can also create a Go migration, if you then invoke it with [your own gander binary](#go-migrations):
 
-    $ goose create fetch_user_data --type=go
+    $ gander create fetch_user_data --type=go
     $ Created new file: 20170506082421_fetch_user_data.go
 
 ## up
 
 Apply all available migrations.
 
-    $ goose up
-    $ goose: migrating db environment 'development', current version: 0, target: 3
+    $ gander up
+    $ gander: migrating db environment 'development', current version: 0, target: 3
     $ OK    001_basics.sql
     $ OK    002_next.sql
     $ OK    003_and_again.go
 
 Migrate up to a specific version.
 
-    $ goose up --to=20170506082420
+    $ gander up --to=20170506082420
     $ OK    20170506082420_create_table.sql
 
 ## down
 
 Roll back a single migration from the current version.
 
-    $ goose down
-    $ goose: migrating db environment 'development', current version: 3, target: 2
+    $ gander down
+    $ gander: migrating db environment 'development', current version: 3, target: 2
     $ OK    003_and_again.go
 
 Roll back migrations to a specific version.
 
-    $ goose down --to=20170506082527
+    $ gander down --to=20170506082527
     $ OK    20170506082527_alter_column.sql
 
 ## redo
 
 Roll back the most recently applied migration, then run it again.
 
-    $ goose redo
-    $ goose: migrating db environment 'development', current version: 3, target: 2
+    $ gander redo
+    $ gander: migrating db environment 'development', current version: 3, target: 2
     $ OK    003_and_again.go
-    $ goose: migrating db environment 'development', current version: 2, target: 3
+    $ gander: migrating db environment 'development', current version: 2, target: 3
     $ OK    003_and_again.go
 
 ## status
 
 Print the status of all migrations:
 
-    $ goose status
-    $ goose: status for environment 'development'
+    $ gander status
+    $ gander: status for environment 'development'
     $   Applied At                  Migration
     $   =======================================
     $   Sun Jan  6 11:25:03 2013 -- 001_basics.sql
@@ -128,14 +128,14 @@ Note: for MySQL [parseTime flag](https://github.com/go-sql-driver/mysql#parsetim
 
 Print the current version of the database:
 
-    $ goose version
-    $ goose: version 002
+    $ gander version
+    $ gander: version 002
 
 ## baseline
 
-Mark some migrations as applied for migrating to goose on existing databases
+Mark some migrations as applied for migrating to gander on existing databases
 
-    $ goose baseline 003
+    $ gander baseline 003
     $ OK    001_basics.sql
     $ OK    002_next.sql
     $ OK    003_and_again.go
@@ -156,7 +156,7 @@ By default the CLI will look for a `dbconf.toml` relative to the current directo
 
 # Migrations
 
-goose supports migrations written in SQL or in Go.
+gander supports migrations written in SQL or in Go.
 
 ## SQL Migrations
 
@@ -212,10 +212,10 @@ language plpgsql;
 
 ## Go Migrations
 
-1. Create your own goose binary, see [example](./examples/go-migrations)
-2. Import `github.com/pressly/goose`
+1. Create your own gander binary, see [example](./examples/go-migrations)
+2. Import `github.com/geniusmonkey/gander`
 3. Register your migration functions
-4. Run goose command, ie. `goose.Up(db *sql.DB, dir string)`
+4. Run gander command, ie. `gander.Up(db *sql.DB, dir string)`
 
 A [sample Go migration 00002_users_add_email.go file](./example/migrations-go/00002_rename_root.go) looks like:
 
@@ -225,11 +225,11 @@ package migrations
 import (
 	"database/sql"
 
-	"github.com/pressly/goose"
+	"github.com/geniusmonkey/gander"
 )
 
 func init() {
-	goose.AddMigration(Up, Down)
+	gander.AddMigration(Up, Down)
 }
 
 func Up(tx *sql.Tx) error {

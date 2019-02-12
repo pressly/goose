@@ -1,4 +1,4 @@
-package goose
+package gander
 
 type Config struct {
 	Environments map[string]Environment `toml:"env"`

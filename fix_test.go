@@ -1,4 +1,4 @@
-package goose
+package gander
 
 import (
 	"fmt"
@@ -17,15 +17,15 @@ func TestFix(t *testing.T) {
 	}
 
 	defer os.RemoveAll(dir)  // clean up
-	defer os.Remove("goose") // clean up
+	defer os.Remove("gander") // clean up
 
 	commands := []string{
-		"go build -i -o ./bin/goose ./cmd/goose",
-		fmt.Sprintf("./bin/goose -dir=%s create create_table", dir),
-		fmt.Sprintf("./bin/goose -dir=%s create add_users", dir),
-		fmt.Sprintf("./bin/goose -dir=%s create add_indices", dir),
-		fmt.Sprintf("./bin/goose -dir=%s create update_users", dir),
-		fmt.Sprintf("./bin/goose -dir=%s fix", dir),
+		"go build -i -o ./bin/gander ./cmd/gander",
+		fmt.Sprintf("./bin/gander -dir=%s create create_table", dir),
+		fmt.Sprintf("./bin/gander -dir=%s create add_users", dir),
+		fmt.Sprintf("./bin/gander -dir=%s create add_indices", dir),
+		fmt.Sprintf("./bin/gander -dir=%s create update_users", dir),
+		fmt.Sprintf("./bin/gander -dir=%s fix", dir),
 	}
 
 	for _, cmd := range commands {
@@ -52,9 +52,9 @@ func TestFix(t *testing.T) {
 
 	// add more migrations and then fix it
 	commands = []string{
-		fmt.Sprintf("./bin/goose -dir=%s create remove_column", dir),
-		fmt.Sprintf("./bin/goose -dir=%s create create_books_table", dir),
-		fmt.Sprintf("./bin/goose -dir=%s fix", dir),
+		fmt.Sprintf("./bin/gander -dir=%s create remove_column", dir),
+		fmt.Sprintf("./bin/gander -dir=%s create create_books_table", dir),
+		fmt.Sprintf("./bin/gander -dir=%s fix", dir),
 	}
 
 	for _, cmd := range commands {

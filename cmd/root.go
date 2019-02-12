@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/BurntSushi/toml"
-	"github.com/geniusmonkey/goose"
+	"github.com/geniusmonkey/gander"
 	_ "github.com/lib/pq"
 	"github.com/spf13/cobra"
 	"log"
@@ -13,13 +13,13 @@ import (
 )
 
 var cfgFile string
-var env = &goose.Environment{}
+var env = &gander.Environment{}
 var envName string
 var db *sql.DB
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "goose",
+	Use:   "gander",
 	Short: "CLI for running SQL migrations",
 }
 
@@ -60,7 +60,7 @@ func initConfig() {
 		log.Fatalf("no config file found at %s", cfgFile)
 	}
 
-	c := goose.Config{}
+	c := gander.Config{}
 	if _, err := toml.DecodeReader(file, &c); err != nil {
 		log.Fatalf("failed to read file %s", err)
 	}
@@ -76,7 +76,7 @@ func initConfig() {
 
 func dbSetup(cmd *cobra.Command, args []string) {
 	var err error
-	if err := goose.SetDialect(env.Driver); err != nil {
+	if err := gander.SetDialect(env.Driver); err != nil {
 		log.Fatalf("failed to set dialect %s, %v", env.Driver, err)
 	}
 

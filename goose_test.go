@@ -1,4 +1,4 @@
-package goose
+package gander
 
 import (
 	"fmt"
@@ -11,12 +11,12 @@ import (
 
 func TestDefaultBinary(t *testing.T) {
 	commands := []string{
-		"go build -i -o ./bin/goose ./cmd/goose",
-		"./bin/goose -dir=examples/sql-migrations sqlite3 sql.db up",
-		"./bin/goose -dir=examples/sql-migrations sqlite3 sql.db version",
-		"./bin/goose -dir=examples/sql-migrations sqlite3 sql.db down",
-		"./bin/goose -dir=examples/sql-migrations sqlite3 sql.db status",
-		"./bin/goose",
+		"go build -i -o ./bin/gander ./cmd/gander",
+		"./bin/gander -dir=examples/sql-migrations sqlite3 sql.db up",
+		"./bin/gander -dir=examples/sql-migrations sqlite3 sql.db version",
+		"./bin/gander -dir=examples/sql-migrations sqlite3 sql.db down",
+		"./bin/gander -dir=examples/sql-migrations sqlite3 sql.db status",
+		"./bin/gander",
 	}
 
 	for _, cmd := range commands {
@@ -41,17 +41,17 @@ func TestLiteBinary(t *testing.T) {
 	}
 
 	defer os.RemoveAll(dir)        // clean up
-	defer os.Remove("./bin/goose") // clean up
+	defer os.Remove("./bin/gander") // clean up
 
 	commands := []string{
-		fmt.Sprintf("./bin/goose -dir=%s create user_indices sql", dir),
-		fmt.Sprintf("./bin/goose -dir=%s fix", dir),
+		fmt.Sprintf("./bin/gander -dir=%s create user_indices sql", dir),
+		fmt.Sprintf("./bin/gander -dir=%s fix", dir),
 	}
 
 	// this has to be done outside of the loop
 	// since go only supports space separated tags list.
-	cmd := "go build -tags='no_mysql no_sqlite no_psql' -i -o ./bin/goose ./cmd/goose"
-	out, err := exec.Command("go", "build", "-tags='no_mysql no_sqlite no_psql'", "-i", "-o", "./bin/goose", "./cmd/goose").CombinedOutput()
+	cmd := "go build -tags='no_mysql no_sqlite no_psql' -i -o ./bin/gander ./cmd/gander"
+	out, err := exec.Command("go", "build", "-tags='no_mysql no_sqlite no_psql'", "-i", "-o", "./bin/gander", "./cmd/gander").CombinedOutput()
 	if err != nil {
 		t.Fatalf("%s:\n%v\n\n%s", err, cmd, out)
 	}

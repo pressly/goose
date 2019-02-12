@@ -1,4 +1,4 @@
-package goose
+package gander
 
 import (
 	"os"

@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/geniusmonkey/goose"
+	"github.com/geniusmonkey/gander"
 	"github.com/spf13/cobra"
 	"log"
 )
@@ -13,7 +13,7 @@ var createCmd = &cobra.Command{
 	Short: "Creates new migration file with the current timestamp",
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := goose.Create(db, env.MigrationsDir, args[0], migType); err != nil {
+		if err := gander.Create(db, env.MigrationsDir, args[0], migType); err != nil {
 			log.Fatalf("failed to create migration, %s", err)
 		}
 	},

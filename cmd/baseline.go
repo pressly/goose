@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/geniusmonkey/goose"
+	"github.com/geniusmonkey/gander"
 	"github.com/spf13/cobra"
 	"log"
 	"strconv"
@@ -19,7 +19,7 @@ var baselineCmd = &cobra.Command{
 			log.Fatalf("unable to convert version %s into number, %s", args[0], err)
 		}
 
-		if err := goose.Baseline(db, env.MigrationsDir, ver); err != nil {
+		if err := gander.Baseline(db, env.MigrationsDir, ver); err != nil {
 			log.Fatalf("failed to create migration, %s", err)
 		}
 	},
