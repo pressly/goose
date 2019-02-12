@@ -2,88 +2,74 @@
 
 Goose is a database migration tool. Manage your database schema by creating incremental SQL changes or Go functions.
 
-[![GoDoc Widget]][GoDoc] [![Travis Widget]][Travis]
+This is a new fort with work still to be done
 
 ### Goals of this fork
 
-`github.com/pressly/goose` is a fork of `bitbucket.org/liamstask/goose` with the following changes:
-- No config files
+`github.com/geniusmonkey/goose` is a fork of `github.com/pressly/goose` which is a fork of `bitbucket.org/liamstask/goose` with the following changes:
+- TOML config file support multipule environments
 - [Default goose binary](./cmd/goose/main.go) can migrate SQL files only
-- Go migrations:
-    - We don't `go build` Go migrations functions on-the-fly
-      from within the goose binary
-    - Instead, we let you
-      [create your own custom goose binary](examples/go-migrations),
-      register your Go migration functions explicitly and run complex
-      migrations with your own `*sql.DB` connection
-    - Go migration functions let you run your code within
-      an SQL transaction, if you use the `*sql.Tx` argument
-- The goose pkg is decoupled from the binary:
-    - goose pkg doesn't register any SQL drivers anymore,
-      thus no driver `panic()` conflict within your codebase!
-    - goose pkg doesn't have any vendor dependencies anymore
-- We use timestamped migrations by default but recommend a hybrid approach of using timestamps in the development process and sequential versions in production.  
+- Baseline migrations for existing databases
+- Migrate CLI to use cobra style commands
+- Update exposed API in package `github.com/geniusmonkey/goose` to do more with less
+    - Eliminate the need to set a dialect prior to calling the api
+    - Introduce adding new drivers/dialects with without updating core library
+    - Seperate the CLI specific logic from core API
+- Imporove upon versioning
+    - Maintaine current timestamped based default versions
+    - Add more statagies for versioning via the CLI
+- Imporove logging
+    - Allow verbose logging of sql statements
+    - Better status updates files are applied
+
 
 # Install
 
-    $ go get -u github.com/pressly/goose/cmd/goose
+    $ go get -u github.com/geniusmonkey/goose/cmd/goose
 
 This will install the `goose` binary to your `$GOPATH/bin` directory.
-
-For a lite version of the binary without DB connection dependent commands, use the exclusive build tags:
-
-    $ go build -tags='no_mysql no_sqlite no_psql' -i -o goose ./cmd/goose
 
 
 # Usage
 
 ```
-Usage: goose [OPTIONS] DRIVER DBSTRING COMMAND
+CLI for running SQL migrations
 
-Drivers:
-    postgres
-    mysql
-    sqlite3
-    redshift
+Usage:
+  goose [command]
 
-Commands:
-    up                   Migrate the DB to the most recent version available
-    up-to VERSION        Migrate the DB to a specific VERSION
-    down                 Roll back the version by 1
-    down-to VERSION      Roll back to a specific VERSION
-    redo                 Re-run the latest migration
-    status               Dump the migration status for the current DB
-    version              Print the current version of the database
-    create NAME [sql|go] Creates new migration file with the current timestamp
+Available Commands:
+  baseline    Baseline an existing db to a specific VERSION
+  create      Creates new migration file with the current timestamp
+  down        Roll back the version by 1
+  help        Help about any command
+  redo        Re-run the latest migration
+  status      Dump the migration status for the current DB
+  up          Migrate the DB to the most recent version available
+  version     Print the current version of the database
 
-Options:
-    -dir string
-        directory with migration files (default ".")
+Flags:
+  -c, --config string   config file location (default dbconf.toml)
+      --dir string      directory containing the migration files (default "./migrations")
+      --driver string   name of the database driver
+      --dsn string      dataSourceName to connect to the server
+  -e, --env string      name of the environment to use (default "development")
+  -h, --help            help for goose
 
-Examples:
-    goose sqlite3 ./foo.db status
-    goose sqlite3 ./foo.db create init sql
-    goose sqlite3 ./foo.db create add_some_column sql
-    goose sqlite3 ./foo.db create fetch_user_data go
-    goose sqlite3 ./foo.db up
-
-    goose postgres "user=postgres dbname=postgres sslmode=disable" status
-    goose mysql "user:password@/dbname?parseTime=true" status
-    goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
-    goose tidb "user:password@/dbname?parseTime=true" status
+Use "goose [command] --help" for more information about a command.
 ```
 ## create
 
 Create a new SQL migration.
 
-    $ goose create add_some_column sql
+    $ goose create add_some_column 
     $ Created new file: 20170506082420_add_some_column.sql
 
 Edit the newly created file to define the behavior of your migration.
 
 You can also create a Go migration, if you then invoke it with [your own goose binary](#go-migrations):
 
-    $ goose create fetch_user_data go
+    $ goose create fetch_user_data --type=go
     $ Created new file: 20170506082421_fetch_user_data.go
 
 ## up
@@ -96,11 +82,9 @@ Apply all available migrations.
     $ OK    002_next.sql
     $ OK    003_and_again.go
 
-## up-to
-
 Migrate up to a specific version.
 
-    $ goose up-to 20170506082420
+    $ goose up --to=20170506082420
     $ OK    20170506082420_create_table.sql
 
 ## down
@@ -111,11 +95,9 @@ Roll back a single migration from the current version.
     $ goose: migrating db environment 'development', current version: 3, target: 2
     $ OK    003_and_again.go
 
-## down-to
-
 Roll back migrations to a specific version.
 
-    $ goose down-to 20170506082527
+    $ goose down --to=20170506082527
     $ OK    20170506082527_alter_column.sql
 
 ## redo
@@ -148,6 +130,29 @@ Print the current version of the database:
 
     $ goose version
     $ goose: version 002
+
+## baseline
+
+Mark some migrations as applied for migrating to goose on existing databases
+
+    $ goose baseline 003
+    $ OK    001_basics.sql
+    $ OK    002_next.sql
+    $ OK    003_and_again.go
+
+# Config File
+
+By default the CLI will look for a `dbconf.toml` relative to the current directory. By default if no `env` flag is passed it will use `development` as the default environment. You can use the `config` flag to specify the location of the config file. `migrationsDir` is relative to the location of the `dbconf.toml` file.
+
+    [env.development]
+    dsn = "user=root password=supersupersecret host=127.0.0.1 port=9001 dbname=dev-monkey"
+    migrationsDir = "migrations"
+    driver = "redshift"
+
+    [env.production]
+    dsn = "user=root password=supersupersecret host=127.0.0.1 port=9001 dbname=prod-monkey"
+    migrationsDir = "migrations"
+    driver = "redshift"
 
 # Migrations
 
