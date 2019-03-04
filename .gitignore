@@ -2,6 +2,5 @@
 cmd/goose/goose*
 *.swp
 *.test
-vendor
 bin
 *.db
