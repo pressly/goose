@@ -8,16 +8,27 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 )
 
 const sqlCmdPrefix = "-- +goose "
+const scanBufSize = 4 * 1024 * 1024
+
+var bufferPool = sync.Pool{
+	New: func() interface{} {
+		return make([]byte, scanBufSize)
+	},
+}
 
 // Checks the line to see if the line has a statement-ending semicolon
 // or if the line contains a double-dash comment.
 func endsWithSemicolon(line string) bool {
+	scanBuf := bufferPool.Get().([]byte)
+	defer bufferPool.Put(scanBuf)
 
 	prev := ""
 	scanner := bufio.NewScanner(strings.NewReader(line))
+	scanner.Buffer(scanBuf, scanBufSize)
 	scanner.Split(bufio.ScanWords)
 
 	for scanner.Scan() {
@@ -42,7 +53,11 @@ func endsWithSemicolon(line string) bool {
 // tell us to ignore semicolons.
 func getSQLStatements(r io.Reader, direction bool) ([]string, bool, error) {
 	var buf bytes.Buffer
+	scanBuf := bufferPool.Get().([]byte)
+	defer bufferPool.Put(scanBuf)
+
 	scanner := bufio.NewScanner(r)
+	scanner.Buffer(scanBuf, scanBufSize)
 
 	// track the count of each section
 	// so we can diagnose scripts with no annotations
