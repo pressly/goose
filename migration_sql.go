@@ -168,13 +168,17 @@ func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) err
 	if useTx {
 		// TRANSACTION.
 
+		printInfo("Begin transaction\n")
+
 		tx, err := db.Begin()
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		for _, query := range statements {
+			printInfo("Executing statement : %s\n", cleanStatement(query))
 			if _, err = tx.Exec(query); err != nil {
+				printInfo("Rollback transaction\n")
 				tx.Rollback()
 				return err
 			}
@@ -182,21 +186,25 @@ func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) err
 
 		if direction {
 			if _, err := tx.Exec(GetDialect().insertVersionSQL(), v, direction); err != nil {
+				printInfo("Rollback transaction\n")
 				tx.Rollback()
 				return err
 			}
 		} else {
 			if _, err := tx.Exec(GetDialect().deleteVersionSQL(), v); err != nil {
+				printInfo("Rollback transaction\n")
 				tx.Rollback()
 				return err
 			}
 		}
 
+		printInfo("Commit transaction\n")
 		return tx.Commit()
 	}
 
 	// NO TRANSACTION.
 	for _, query := range statements {
+		printInfo("Executing statement : %s\n", cleanStatement(query))
 		if _, err := db.Exec(query); err != nil {
 			return err
 		}
@@ -206,4 +214,14 @@ func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) err
 	}
 
 	return nil
+}
+
+func printInfo(s string, args ...interface{}) {
+	if verbose {
+		log.Printf(s, args...)
+	}
+}
+
+func cleanStatement(s string) string {
+	return reMatchSQLComments.ReplaceAllString(s, ``)
 }
