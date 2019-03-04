@@ -6,12 +6,6 @@ import (
 	"os"
 
 	"github.com/pressly/goose"
-
-	// Init DB drivers.
-	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
-	_ "github.com/ziutek/mymysql/godrv"
 )
 
 var (
@@ -24,20 +18,25 @@ func main() {
 	flags.Parse(os.Args[1:])
 
 	args := flags.Args()
+	if len(args) == 0 || args[0] == "-h" || args[0] == "--help" {
+		flags.Usage()
+		return
+	}
 
-	if len(args) > 1 && args[0] == "create" {
+	switch args[0] {
+	case "create":
 		if err := goose.Run("create", nil, *dir, args[1:]...); err != nil {
+			log.Fatalf("goose run: %v", err)
+		}
+		return
+	case "fix":
+		if err := goose.Run("fix", nil, *dir); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
 		return
 	}
 
 	if len(args) < 3 {
-		flags.Usage()
-		return
-	}
-
-	if args[0] == "-h" || args[0] == "--help" {
 		flags.Usage()
 		return
 	}
@@ -105,6 +104,7 @@ Commands:
     reset                Roll back all migrations
     status               Dump the migration status for the current DB
     version              Print the current version of the database
-    create NAME [sql|go] Creates new migration file with next version
+    create NAME [sql|go] Creates new migration file with the current timestamp
+    fix                  Apply sequential ordering to migrations
 `
 )

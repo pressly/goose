@@ -2,5 +2,15 @@
 cmd/goose/goose*
 *.swp
 *.test
+<<<<<<< HEAD
 bin
 *.db
+=======
+
+# Files output by tests
+bin
+go.db
+sql.db
+
+
+>>>>>>> master

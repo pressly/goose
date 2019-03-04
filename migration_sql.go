@@ -4,19 +4,31 @@ import (
 	"bufio"
 	"bytes"
 	"database/sql"
+	"fmt"
 	"io"
 	"os"
 	"strings"
+	"sync"
 )
 
 const sqlCmdPrefix = "-- +goose "
+const scanBufSize = 4 * 1024 * 1024
+
+var bufferPool = sync.Pool{
+	New: func() interface{} {
+		return make([]byte, scanBufSize)
+	},
+}
 
 // Checks the line to see if the line has a statement-ending semicolon
 // or if the line contains a double-dash comment.
 func endsWithSemicolon(line string) bool {
+	scanBuf := bufferPool.Get().([]byte)
+	defer bufferPool.Put(scanBuf)
 
 	prev := ""
 	scanner := bufio.NewScanner(strings.NewReader(line))
+	scanner.Buffer(scanBuf, scanBufSize)
 	scanner.Split(bufio.ScanWords)
 
 	for scanner.Scan() {
@@ -39,9 +51,13 @@ func endsWithSemicolon(line string) bool {
 // within a statement. For these cases, we provide the explicit annotations
 // 'StatementBegin' and 'StatementEnd' to allow the script to
 // tell us to ignore semicolons.
-func getSQLStatements(r io.Reader, direction bool) (stmts []string, tx bool) {
+func getSQLStatements(r io.Reader, direction bool) ([]string, bool, error) {
 	var buf bytes.Buffer
+	scanBuf := bufferPool.Get().([]byte)
+	defer bufferPool.Put(scanBuf)
+
 	scanner := bufio.NewScanner(r)
+	scanner.Buffer(scanBuf, scanBufSize)
 
 	// track the count of each section
 	// so we can diagnose scripts with no annotations
@@ -51,7 +67,8 @@ func getSQLStatements(r io.Reader, direction bool) (stmts []string, tx bool) {
 	statementEnded := false
 	ignoreSemicolons := false
 	directionIsActive := false
-	tx = true
+	tx := true
+	stmts := []string{}
 
 	for scanner.Scan() {
 
@@ -95,7 +112,7 @@ func getSQLStatements(r io.Reader, direction bool) (stmts []string, tx bool) {
 		}
 
 		if _, err := buf.WriteString(line + "\n"); err != nil {
-			log.Fatalf("io err: %v", err)
+			return nil, false, fmt.Errorf("io err: %v", err)
 		}
 
 		// Wrap up the two supported cases: 1) basic with semicolon; 2) psql statement
@@ -109,24 +126,23 @@ func getSQLStatements(r io.Reader, direction bool) (stmts []string, tx bool) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Fatalf("scanning migration: %v", err)
+		return nil, false, fmt.Errorf("scanning migration: %v", err)
 	}
 
 	// diagnose likely migration script errors
 	if ignoreSemicolons {
-		log.Println("WARNING: saw '-- +goose StatementBegin' with no matching '-- +goose StatementEnd'")
+		return nil, false, fmt.Errorf("parsing migration: saw '-- +goose StatementBegin' with no matching '-- +goose StatementEnd'")
 	}
 
 	if bufferRemaining := strings.TrimSpace(buf.String()); len(bufferRemaining) > 0 {
-		log.Printf("WARNING: Unexpected unfinished SQL query: %s. Missing a semicolon?\n", bufferRemaining)
+		return nil, false, fmt.Errorf("parsing migration: unexpected unfinished SQL query: %s. potential missing semicolon", bufferRemaining)
 	}
 
 	if upSections == 0 && downSections == 0 {
-		log.Fatalf(`ERROR: no Up/Down annotations found, so no statements were executed.
-			See https://bitbucket.org/liamstask/goose/overview for details.`)
+		return nil, false, fmt.Errorf("parsing migration: no Up/Down annotations found, so no statements were executed. See https://bitbucket.org/liamstask/goose/overview for details")
 	}
 
-	return
+	return stmts, tx, nil
 }
 
 // Run a migration specified in raw SQL.
@@ -144,7 +160,10 @@ func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) err
 	}
 	defer f.Close()
 
-	statements, useTx := getSQLStatements(f, direction)
+	statements, useTx, err := getSQLStatements(f, direction)
+	if err != nil {
+		return err
+	}
 
 	if useTx {
 		// TRANSACTION.
@@ -160,9 +179,17 @@ func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) err
 				return err
 			}
 		}
-		if _, err := tx.Exec(GetDialect().insertVersionSQL(), v, direction); err != nil {
-			tx.Rollback()
-			return err
+
+		if direction {
+			if _, err := tx.Exec(GetDialect().insertVersionSQL(), v, direction); err != nil {
+				tx.Rollback()
+				return err
+			}
+		} else {
+			if _, err := tx.Exec(GetDialect().deleteVersionSQL(), v); err != nil {
+				tx.Rollback()
+				return err
+			}
 		}
 
 		return tx.Commit()
