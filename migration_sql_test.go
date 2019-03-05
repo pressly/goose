@@ -7,37 +7,18 @@ import (
 )
 
 func TestSemicolons(t *testing.T) {
-
 	type testData struct {
 		line   string
 		result bool
 	}
 
 	tests := []testData{
-		{
-			line:   "END;",
-			result: true,
-		},
-		{
-			line:   "END; -- comment",
-			result: true,
-		},
-		{
-			line:   "END   ; -- comment",
-			result: true,
-		},
-		{
-			line:   "END -- comment",
-			result: false,
-		},
-		{
-			line:   "END -- comment ;",
-			result: false,
-		},
-		{
-			line:   "END \" ; \" -- comment",
-			result: false,
-		},
+		{line: "END;", result: true},
+		{line: "END; -- comment", result: true},
+		{line: "END   ; -- comment", result: true},
+		{line: "END -- comment", result: false},
+		{line: "END -- comment ;", result: false},
+		{line: "END \" ; \" -- comment", result: false},
 	}
 
 	for _, test := range tests {
@@ -49,7 +30,6 @@ func TestSemicolons(t *testing.T) {
 }
 
 func TestSplitStatements(t *testing.T) {
-
 	type testData struct {
 		sql       string
 		direction bool
@@ -57,26 +37,10 @@ func TestSplitStatements(t *testing.T) {
 	}
 
 	tests := []testData{
-		{
-			sql:       functxt,
-			direction: true,
-			count:     2,
-		},
-		{
-			sql:       functxt,
-			direction: false,
-			count:     2,
-		},
-		{
-			sql:       multitxt,
-			direction: true,
-			count:     2,
-		},
-		{
-			sql:       multitxt,
-			direction: false,
-			count:     2,
-		},
+		{sql: functxt, direction: true, count: 2},
+		{sql: functxt, direction: false, count: 2},
+		{sql: multitxt, direction: true, count: 2},
+		{sql: multitxt, direction: false, count: 2},
 	}
 
 	for _, test := range tests {
@@ -97,18 +61,9 @@ func TestUseTransactions(t *testing.T) {
 	}
 
 	tests := []testData{
-		{
-			fileName:        "./examples/sql-migrations/00001_create_users_table.sql",
-			useTransactions: true,
-		},
-		{
-			fileName:        "./examples/sql-migrations/00002_rename_root.sql",
-			useTransactions: true,
-		},
-		{
-			fileName:        "./examples/sql-migrations/00003_no_transaction.sql",
-			useTransactions: false,
-		},
+		{fileName: "./examples/sql-migrations/00001_create_users_table.sql", useTransactions: true},
+		{fileName: "./examples/sql-migrations/00002_rename_root.sql", useTransactions: true},
+		{fileName: "./examples/sql-migrations/00003_no_transaction.sql", useTransactions: false},
 	}
 
 	for _, test := range tests {
@@ -133,18 +88,9 @@ func TestParsingErrors(t *testing.T) {
 		error bool
 	}
 	tests := []testData{
-		{
-			sql:   statementBeginNoStatementEnd,
-			error: true,
-		},
-		{
-			sql:   unfinishedSQL,
-			error: true,
-		},
-		{
-			sql:   noUpDownAnnotations,
-			error: true,
-		},
+		{sql: statementBeginNoStatementEnd, error: true},
+		{sql: unfinishedSQL, error: true},
+		{sql: noUpDownAnnotations, error: true},
 	}
 	for _, test := range tests {
 		_, _, err := getSQLStatements(strings.NewReader(test.sql), true)

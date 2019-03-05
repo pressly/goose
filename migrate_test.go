@@ -9,7 +9,6 @@ func newMigration(v int64, src string) *Migration {
 }
 
 func TestMigrationSort(t *testing.T) {
-
 	ms := Migrations{}
 
 	// insert in any order
@@ -26,7 +25,6 @@ func TestMigrationSort(t *testing.T) {
 }
 
 func validateMigrationSort(t *testing.T, ms Migrations, sorted []int64) {
-
 	for i, m := range ms {
 		if sorted[i] != m.Version {
 			t.Error("incorrect sorted version")
