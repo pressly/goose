@@ -46,6 +46,7 @@ func TestSplitStatements(t *testing.T) {
 		{sql: emptySQL2, up: 0, down: 0},
 		{sql: functxt, up: 2, down: 2},
 		{sql: mysqlChangeDelimiter, up: 4, down: 0},
+		{sql: copyFromStdin, up: 1, down: 0},
 	}
 
 	for i, test := range tt {
@@ -273,4 +274,18 @@ DELIMITER ;
 
 select my_func("123") from dual;
 -- +goose Down
+`
+
+var copyFromStdin = `
+-- +goose Up
+-- +goose StatementBegin
+COPY public.django_content_type (id, app_label, model) FROM stdin;
+1	admin	logentry
+2	auth	permission
+3	auth	group
+4	auth	user
+5	contenttypes	contenttype
+6	sessions	session
+\.
+-- +goose StatementEnd
 `
