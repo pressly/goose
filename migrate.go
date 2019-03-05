@@ -275,6 +275,9 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 		// latest version of migration has not been applied.
 		toSkip = append(toSkip, row.VersionID)
 	}
+	if err := rows.Err(); err != nil {
+		return 0, errors.Wrap(err, "failed to get next row")
+	}
 
 	return 0, ErrNoNextVersion
 }
