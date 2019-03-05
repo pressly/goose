@@ -127,31 +127,40 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 		// Export statement once we hit end of statement.
 		switch stateMachine {
 		case gooseUp:
-			if !endsWithSemicolon(line) {
-				return nil, false, errors.Errorf("failed to parse Up SQL migration: %q: simple query must be terminated by semicolon;", line)
+			if !direction /*down*/ {
+				buf.Reset()
+				break
 			}
-			if direction { // up
+			if endsWithSemicolon(line) {
 				stmts = append(stmts, buf.String())
+				buf.Reset()
 			}
 		case gooseDown:
-			if !endsWithSemicolon(line) {
-				return nil, false, errors.Errorf("failed to parse Down SQL migration: %q: simple query must be terminated by semicolon;", line)
+			if direction /*up*/ {
+				buf.Reset()
+				break
 			}
-			if !direction { // down
+			if endsWithSemicolon(line) {
 				stmts = append(stmts, buf.String())
+				buf.Reset()
 			}
 		case gooseStatementEndUp:
-			if direction /*up*/ && endsWithSemicolon(line) {
-				stmts = append(stmts, buf.String())
+			if !direction /*down*/ {
+				buf.Reset()
+				break
 			}
+			stmts = append(stmts, buf.String())
+			buf.Reset()
 		case gooseStatementEndDown:
-			if !direction /*down*/ && endsWithSemicolon(line) {
-				stmts = append(stmts, buf.String())
+			if direction /*up*/ {
+				buf.Reset()
+				break
 			}
+			stmts = append(stmts, buf.String())
+			buf.Reset()
 		default:
 			return nil, false, errors.New("failed to parse migration: unexpected state %q, see https://github.com/pressly/goose#sql-migrations")
 		}
-		buf.Reset()
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, false, errors.Wrap(err, "failed to scan migration")
@@ -166,7 +175,7 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 	}
 
 	if bufferRemaining := strings.TrimSpace(buf.String()); len(bufferRemaining) > 0 {
-		return nil, false, errors.Errorf("failed to parse migration: unexpected unfinished SQL query: %q: missing semicolon?", bufferRemaining)
+		return nil, false, errors.Errorf("failed to parse migration: state %q, direction: %v: unexpected unfinished SQL query: %q: missing semicolon?", stateMachine, direction, bufferRemaining)
 	}
 
 	return stmts, useTx, nil

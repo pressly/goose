@@ -44,7 +44,7 @@ func TestSplitStatements(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		stmts, _, err := getSQLStatements(strings.NewReader(test.sql), test.direction)
+		stmts, _, err := parseSQLMigration(strings.NewReader(test.sql), test.direction)
 		if err != nil {
 			t.Error(err)
 		}
@@ -71,7 +71,7 @@ func TestUseTransactions(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		_, useTx, err := getSQLStatements(f, true)
+		_, useTx, err := parseSQLMigration(f, true)
 		if err != nil {
 			t.Error(err)
 		}
@@ -90,7 +90,7 @@ func TestParsingErrors(t *testing.T) {
 		emptySQL,
 	}
 	for _, sql := range tt {
-		_, _, err := getSQLStatements(strings.NewReader(sql), true)
+		_, _, err := parseSQLMigration(strings.NewReader(sql), true)
 		if err == nil {
 			t.Errorf("expected error on %q", sql)
 		}
