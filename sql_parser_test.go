@@ -4,6 +4,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/pkg/errors"
 )
 
 func TestSemicolons(t *testing.T) {
@@ -30,26 +32,53 @@ func TestSemicolons(t *testing.T) {
 }
 
 func TestSplitStatements(t *testing.T) {
+	//SetVerbose(true)
+
 	type testData struct {
-		sql       string
-		direction bool
-		count     int
+		sql  string
+		up   int
+		down int
 	}
 
-	tests := []testData{
-		{sql: functxt, direction: true, count: 2},
-		{sql: functxt, direction: false, count: 2},
-		{sql: multitxt, direction: true, count: 2},
-		{sql: multitxt, direction: false, count: 2},
+	tt := []testData{
+		{sql: `-- +goose Up
+CREATE TABLE post (
+		id int NOT NULL,
+		title text,
+		body text,
+		PRIMARY KEY(id)
+); SELECT 1;
+
+-- comment
+SELECT 2;
+SELECT 3; SELECT 3;
+SELECT 4;
+
+-- +goose Down
+-- comment
+DROP TABLE post;		SELECT 1; -- comment
+`, up: 4, down: 1},
+
+		{sql: functxt, up: 2, down: 2},
 	}
 
-	for _, test := range tests {
-		stmts, _, err := parseSQLMigration(strings.NewReader(test.sql), test.direction)
+	for i, test := range tt {
+		// up
+		stmts, _, err := parseSQLMigration(strings.NewReader(test.sql), true)
 		if err != nil {
-			t.Error(err)
+			t.Error(errors.Wrapf(err, "tt[%v] unexpected error", i))
 		}
-		if len(stmts) != test.count {
-			t.Errorf("incorrect number of stmts. got %v, want %v", len(stmts), test.count)
+		if len(stmts) != test.up {
+			t.Errorf("tt[%v] incorrect number of up stmts. got %v (%+v), want %v", i, len(stmts), stmts, test.up)
+		}
+
+		// down
+		stmts, _, err = parseSQLMigration(strings.NewReader(test.sql), false)
+		if err != nil {
+			t.Error(errors.Wrapf(err, "tt[%v] unexpected error", i))
+		}
+		if len(stmts) != test.down {
+			t.Errorf("tt[%v] incorrect number of down stmts. got %v (%+v), want %v", i, len(stmts), stmts, test.down)
 		}
 	}
 }
@@ -88,6 +117,8 @@ func TestParsingErrors(t *testing.T) {
 		unfinishedSQL,
 		noUpDownAnnotations,
 		emptySQL,
+		multiUpDown,
+		downFirst,
 	}
 	for _, sql := range tt {
 		_, _, err := parseSQLMigration(strings.NewReader(sql), true)
@@ -132,8 +163,7 @@ drop function histories_partition_creation(DATE, DATE);
 drop TABLE histories;
 `
 
-// test multiple up/down transitions in a single script
-var multitxt = `-- +goose Up
+var multiUpDown = `-- +goose Up
 CREATE TABLE post (
 		id int NOT NULL,
 		title text,
@@ -152,8 +182,9 @@ CREATE TABLE fancier_post (
 		created_on timestamp without time zone,
 		PRIMARY KEY(id)
 );
+`
 
--- +goose Down
+var downFirst = `-- +goose Down
 DROP TABLE fancier_post;
 `
 
