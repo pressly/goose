@@ -91,7 +91,6 @@ You can also create a Go migration, if you then invoke it with [your own goose b
 Apply all available migrations.
 
     $ goose up
-    $ goose: migrating db environment 'development', current version: 0, target: 3
     $ OK    001_basics.sql
     $ OK    002_next.sql
     $ OK    003_and_again.go
@@ -108,7 +107,6 @@ Migrate up to a specific version.
 Roll back a single migration from the current version.
 
     $ goose down
-    $ goose: migrating db environment 'development', current version: 3, target: 2
     $ OK    003_and_again.go
 
 ## down-to
@@ -123,9 +121,7 @@ Roll back migrations to a specific version.
 Roll back the most recently applied migration, then run it again.
 
     $ goose redo
-    $ goose: migrating db environment 'development', current version: 3, target: 2
     $ OK    003_and_again.go
-    $ goose: migrating db environment 'development', current version: 2, target: 3
     $ OK    003_and_again.go
 
 ## status
@@ -133,7 +129,6 @@ Roll back the most recently applied migration, then run it again.
 Print the status of all migrations:
 
     $ goose status
-    $ goose: status for environment 'development'
     $   Applied At                  Migration
     $   =======================================
     $   Sun Jan  6 11:25:03 2013 -- 001_basics.sql
