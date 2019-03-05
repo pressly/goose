@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 
@@ -13,20 +14,26 @@ var (
 	flags   = flag.NewFlagSet("goose", flag.ExitOnError)
 	dir     = flags.String("dir", ".", "directory with migration files")
 	verbose = flags.Bool("v", false, "enable verbose mode")
+	help    = flags.Bool("h", false, "print help")
+	version = flags.Bool("version", false, "print version")
 )
 
 func main() {
 	flags.Usage = usage
 	flags.Parse(os.Args[1:])
 
-	args := flags.Args()
-	if len(args) == 0 || args[0] == "-h" || args[0] == "--help" {
-		flags.Usage()
+	if *version {
+		fmt.Println(goose.VERSION)
 		return
 	}
-
 	if *verbose {
 		goose.SetVerbose(true)
+	}
+
+	args := flags.Args()
+	if len(args) == 0 || *help {
+		flags.Usage()
+		return
 	}
 
 	switch args[0] {
@@ -82,9 +89,9 @@ func main() {
 }
 
 func usage() {
-	log.Print(usagePrefix)
+	fmt.Println(usagePrefix)
 	flags.PrintDefaults()
-	log.Print(usageCommands)
+	fmt.Println(usageCommands)
 }
 
 var (
