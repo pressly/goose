@@ -59,10 +59,14 @@ func writeTemplateToFile(path string, t *template.Template, version string) (str
 }
 
 var sqlMigrationTemplate = template.Must(template.New("goose.sql-migration").Parse(`-- +goose Up
--- SQL in this section is executed when the migration is applied.
+-- +goose StatementBegin
+SELECT 'up SQL query';
+-- +goose StatementEnd
 
 -- +goose Down
--- SQL in this section is executed when the migration is rolled back.
+-- +goose StatementBegin
+SELECT 'down SQL query';
+-- +goose StatementEnd
 `))
 
 var goSQLMigrationTemplate = template.Must(template.New("goose.go-migration").Parse(`package migration
