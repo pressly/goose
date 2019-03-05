@@ -7,8 +7,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/pkg/errors"
 )
 
 const sqlCmdPrefix = "-- +goose "
@@ -153,10 +156,10 @@ func getSQLStatements(r io.Reader, direction bool) ([]string, bool, error) {
 //
 // All statements following an Up or Down directive are grouped together
 // until another direction directive is found.
-func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) error {
-	f, err := os.Open(scriptFile)
+func runSQLMigration(db *sql.DB, sqlFile string, v int64, direction bool) error {
+	f, err := os.Open(sqlFile)
 	if err != nil {
-		log.Fatal(err)
+		return errors.Wrap(err, "failed to open SQL migration file")
 	}
 	defer f.Close()
 
@@ -172,15 +175,15 @@ func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) err
 
 		tx, err := db.Begin()
 		if err != nil {
-			log.Fatal(err)
+			errors.Wrap(err, "failed to begin transaction")
 		}
 
 		for _, query := range statements {
-			printInfo("Executing statement : %s\n", cleanStatement(query))
+			printInfo("Executing statement: %s\n", clearStatement(query))
 			if _, err = tx.Exec(query); err != nil {
 				printInfo("Rollback transaction\n")
 				tx.Rollback()
-				return err
+				return errors.Wrapf(err, "failed to execute SQL query %q", clearStatement(query))
 			}
 		}
 
@@ -188,29 +191,33 @@ func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) err
 			if _, err := tx.Exec(GetDialect().insertVersionSQL(), v, direction); err != nil {
 				printInfo("Rollback transaction\n")
 				tx.Rollback()
-				return err
+				return errors.Wrap(err, "failed to insert new goose version")
 			}
 		} else {
 			if _, err := tx.Exec(GetDialect().deleteVersionSQL(), v); err != nil {
 				printInfo("Rollback transaction\n")
 				tx.Rollback()
-				return err
+				return errors.Wrap(err, "failed to delete goose version")
 			}
 		}
 
 		printInfo("Commit transaction\n")
-		return tx.Commit()
+		if err := tx.Commit(); err != nil {
+			return errors.Wrap(err, "failed to commit transaction")
+		}
+
+		return nil
 	}
 
 	// NO TRANSACTION.
 	for _, query := range statements {
-		printInfo("Executing statement : %s\n", cleanStatement(query))
+		printInfo("Executing statement: %s\n", clearStatement(query))
 		if _, err := db.Exec(query); err != nil {
-			return err
+			return errors.Wrapf(err, "failed to execute SQL query %q", clearStatement(query))
 		}
 	}
 	if _, err := db.Exec(GetDialect().insertVersionSQL(), v, direction); err != nil {
-		return err
+		return errors.Wrap(err, "failed to insert new goose version")
 	}
 
 	return nil
@@ -222,6 +229,12 @@ func printInfo(s string, args ...interface{}) {
 	}
 }
 
-func cleanStatement(s string) string {
-	return reMatchSQLComments.ReplaceAllString(s, ``)
+var (
+	matchSQLComments = regexp.MustCompile(`(?m)^--.*$[\r\n]*`)
+	matchEmptyLines  = regexp.MustCompile(`(?m)^$[\r\n]*`)
+)
+
+func clearStatement(s string) string {
+	s = matchSQLComments.ReplaceAllString(s, ``)
+	return matchEmptyLines.ReplaceAllString(s, ``)
 }

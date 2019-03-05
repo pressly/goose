@@ -3,7 +3,6 @@ package goose
 import (
 	"database/sql"
 	"fmt"
-	"regexp"
 	"strconv"
 	"sync"
 )
@@ -14,7 +13,6 @@ var (
 	maxVersion         = int64((1 << 63) - 1)
 	timestampFormat    = "20060102150405"
 	verbose            = false
-	reMatchSQLComments = regexp.MustCompile(`(--.*)`)
 )
 
 // SetVerbose set the goose verbosity mode
