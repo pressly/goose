@@ -9,6 +9,8 @@ import (
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/pkg/errors"
 )
 
 const sqlCmdPrefix = "-- +goose "
@@ -153,10 +155,10 @@ func getSQLStatements(r io.Reader, direction bool) ([]string, bool, error) {
 //
 // All statements following an Up or Down directive are grouped together
 // until another direction directive is found.
-func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) error {
-	f, err := os.Open(scriptFile)
+func runSQLMigration(db *sql.DB, sqlFile string, v int64, direction bool) error {
+	f, err := os.Open(sqlFile)
 	if err != nil {
-		log.Fatal(err)
+		return errors.Wrap(err, "failed to open SQL migration file")
 	}
 	defer f.Close()
 
@@ -172,7 +174,7 @@ func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) err
 
 		tx, err := db.Begin()
 		if err != nil {
-			log.Fatal(err)
+			errors.Wrap(err, "failed to begin transaction")
 		}
 
 		for _, query := range statements {
@@ -180,7 +182,7 @@ func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) err
 			if _, err = tx.Exec(query); err != nil {
 				printInfo("Rollback transaction\n")
 				tx.Rollback()
-				return err
+				return errors.Wrapf(err, "failed to execute SQL query:\n%v", cleanStatement(query))
 			}
 		}
 
@@ -188,29 +190,33 @@ func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) err
 			if _, err := tx.Exec(GetDialect().insertVersionSQL(), v, direction); err != nil {
 				printInfo("Rollback transaction\n")
 				tx.Rollback()
-				return err
+				return errors.Wrap(err, "failed to insert new goose version")
 			}
 		} else {
 			if _, err := tx.Exec(GetDialect().deleteVersionSQL(), v); err != nil {
 				printInfo("Rollback transaction\n")
 				tx.Rollback()
-				return err
+				return errors.Wrap(err, "failed to delete goose version")
 			}
 		}
 
 		printInfo("Commit transaction\n")
-		return tx.Commit()
+		if err := tx.Commit(); err != nil {
+			return errors.Wrap(err, "failed to commit transaction")
+		}
+
+		return nil
 	}
 
 	// NO TRANSACTION.
 	for _, query := range statements {
 		printInfo("Executing statement : %s\n", cleanStatement(query))
 		if _, err := db.Exec(query); err != nil {
-			return err
+			return errors.Wrapf(err, "failed to execute SQL query statement\n%v", cleanStatement(query))
 		}
 	}
 	if _, err := db.Exec(GetDialect().insertVersionSQL(), v, direction); err != nil {
-		return err
+		return errors.Wrap(err, "failed to insert new goose version")
 	}
 
 	return nil

@@ -2,12 +2,13 @@ package goose
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // MigrationRecord struct.
@@ -54,16 +55,16 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 	switch filepath.Ext(m.Source) {
 	case ".sql":
 		if err := runSQLMigration(db, m.Source, m.Version, direction); err != nil {
-			return fmt.Errorf("FAIL %v, quitting migration", err)
+			return errors.Wrapf(err, "failed to run SQL migration %q", filepath.Base(m.Source))
 		}
 
 	case ".go":
 		if !m.Registered {
-			log.Fatalf("failed to apply Go migration %q: Go functions must be registered and built into a custom binary (see https://github.com/pressly/goose/tree/master/examples/go-migrations)", m.Source)
+			return errors.Errorf("failed to run Go migration %q: Go functions must be registered and built into a custom binary (see https://github.com/pressly/goose/tree/master/examples/go-migrations)", m.Source)
 		}
 		tx, err := db.Begin()
 		if err != nil {
-			log.Fatal("db.Begin: ", err)
+			return errors.Wrap(err, "failed to begin transaction")
 		}
 
 		fn := m.UpFn
@@ -73,24 +74,27 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 		if fn != nil {
 			if err := fn(tx); err != nil {
 				tx.Rollback()
-				log.Fatalf("FAIL %s (%v), quitting migration.", filepath.Base(m.Source), err)
-				return err
+				return errors.Wrapf(err, "failed to run Go migration %q", filepath.Base(m.Source))
 			}
 		}
 
 		if direction {
 			if _, err := tx.Exec(GetDialect().insertVersionSQL(), m.Version, direction); err != nil {
 				tx.Rollback()
-				return err
+				return errors.Wrap(err, "failed to execute transaction")
 			}
 		} else {
 			if _, err := tx.Exec(GetDialect().deleteVersionSQL(), m.Version); err != nil {
 				tx.Rollback()
-				return err
+				return errors.Wrap(err, "failed to execute transaction")
 			}
 		}
 
-		return tx.Commit()
+		if err := tx.Commit(); err != nil {
+			return errors.Wrap(err, "failed to commit transaction")
+		}
+
+		return nil
 	}
 
 	return nil
@@ -100,7 +104,6 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 // XXX_descriptivename.ext where XXX specifies the version number
 // and ext specifies the type of migration
 func NumericComponent(name string) (int64, error) {
-
 	base := filepath.Base(name)
 
 	if ext := filepath.Ext(base); ext != ".go" && ext != ".sql" {

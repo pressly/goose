@@ -2,13 +2,14 @@ package goose
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"sort"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 var (
@@ -30,7 +31,7 @@ func (ms Migrations) Len() int      { return len(ms) }
 func (ms Migrations) Swap(i, j int) { ms[i], ms[j] = ms[j], ms[i] }
 func (ms Migrations) Less(i, j int) bool {
 	if ms[i].Version == ms[j].Version {
-		log.Fatalf("goose: duplicate version %v detected:\n%v\n%v", ms[i].Version, ms[i].Source, ms[j].Source)
+		panic(fmt.Sprintf("goose: duplicate version %v detected:\n%v\n%v", ms[i].Version, ms[i].Source, ms[j].Source))
 	}
 	return ms[i].Version < ms[j].Version
 }
@@ -251,7 +252,7 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 	for rows.Next() {
 		var row MigrationRecord
 		if err = rows.Scan(&row.VersionID, &row.IsApplied); err != nil {
-			log.Fatal("error scanning rows:", err)
+			return 0, errors.Wrap(err, "failed to scan row")
 		}
 
 		// have we already marked this version to be skipped?

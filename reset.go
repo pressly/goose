@@ -3,17 +3,19 @@ package goose
 import (
 	"database/sql"
 	"sort"
+
+	"github.com/pkg/errors"
 )
 
 // Reset rolls back all migrations
 func Reset(db *sql.DB, dir string) error {
 	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to collect migrations")
 	}
 	statuses, err := dbMigrationsStatus(db)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to get status of migrations")
 	}
 	sort.Sort(sort.Reverse(migrations))
 
@@ -22,7 +24,7 @@ func Reset(db *sql.DB, dir string) error {
 			continue
 		}
 		if err = migration.Down(db); err != nil {
-			return err
+			return errors.Wrap(err, "failed to db-down")
 		}
 	}
 
@@ -44,7 +46,7 @@ func dbMigrationsStatus(db *sql.DB) (map[int64]bool, error) {
 	for rows.Next() {
 		var row MigrationRecord
 		if err = rows.Scan(&row.VersionID, &row.IsApplied); err != nil {
-			log.Fatal("error scanning rows:", err)
+			return nil, errors.Wrap(err, "failed to scan row")
 		}
 
 		if _, ok := result[row.VersionID]; ok {
