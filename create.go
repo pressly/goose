@@ -69,7 +69,7 @@ SELECT 'down SQL query';
 -- +goose StatementEnd
 `))
 
-var goSQLMigrationTemplate = template.Must(template.New("goose.go-migration").Parse(`package migration
+var goSQLMigrationTemplate = template.Must(template.New("goose.go-migration").Parse(`package migrations
 
 import (
 	"database/sql"
