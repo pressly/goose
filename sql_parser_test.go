@@ -47,6 +47,7 @@ func TestSplitStatements(t *testing.T) {
 		{sql: functxt, up: 2, down: 2},
 		{sql: mysqlChangeDelimiter, up: 4, down: 0},
 		{sql: copyFromStdin, up: 1, down: 0},
+		{sql: plpgsqlSyntax, up: 2, down: 2},
 	}
 
 	for i, test := range tt {
@@ -287,5 +288,29 @@ COPY public.django_content_type (id, app_label, model) FROM stdin;
 5	contenttypes	contenttype
 6	sessions	session
 \.
+-- +goose StatementEnd
+`
+
+var plpgsqlSyntax = `
+-- +goose Up
+-- +goose StatementBegin
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+-- +goose StatementEnd
+-- +goose StatementBegin
+CREATE TRIGGER update_properties_updated_at BEFORE UPDATE ON properties FOR EACH ROW EXECUTE PROCEDURE  update_updated_at_column();
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DROP TRIGGER update_properties_updated_at
+-- +goose StatementEnd
+-- +goose StatementBegin
+DROP FUNCTION update_updated_at_column()
 -- +goose StatementEnd
 `
