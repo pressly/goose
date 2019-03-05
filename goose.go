@@ -7,6 +7,8 @@ import (
 	"sync"
 )
 
+const VERSION = "v2.6.0"
+
 var (
 	duplicateCheckOnce sync.Once
 	minVersion         = int64(0)
