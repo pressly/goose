@@ -32,7 +32,7 @@ func TestSemicolons(t *testing.T) {
 }
 
 func TestSplitStatements(t *testing.T) {
-	//SetVerbose(true)
+	// SetVerbose(true)
 
 	type testData struct {
 		sql  string
@@ -41,24 +41,9 @@ func TestSplitStatements(t *testing.T) {
 	}
 
 	tt := []testData{
-		{sql: `-- +goose Up
-CREATE TABLE post (
-		id int NOT NULL,
-		title text,
-		body text,
-		PRIMARY KEY(id)
-); SELECT 1;
-
--- comment
-SELECT 2;
-SELECT 3; SELECT 3;
-SELECT 4;
-
--- +goose Down
--- comment
-DROP TABLE post;		SELECT 1; -- comment
-`, up: 4, down: 1},
-
+		{sql: multilineSQL, up: 4, down: 1},
+		{sql: emptySQL, up: 0, down: 0},
+		{sql: emptySQL2, up: 0, down: 0},
 		{sql: functxt, up: 2, down: 2},
 	}
 
@@ -116,17 +101,34 @@ func TestParsingErrors(t *testing.T) {
 		statementBeginNoStatementEnd,
 		unfinishedSQL,
 		noUpDownAnnotations,
-		emptySQL,
 		multiUpDown,
 		downFirst,
 	}
-	for _, sql := range tt {
+	for i, sql := range tt {
 		_, _, err := parseSQLMigration(strings.NewReader(sql), true)
 		if err == nil {
-			t.Errorf("expected error on %q", sql)
+			t.Errorf("expected error on tt[%v] %q", i, sql)
 		}
 	}
 }
+
+var multilineSQL = `-- +goose Up
+CREATE TABLE post (
+		id int NOT NULL,
+		title text,
+		body text,
+		PRIMARY KEY(id)
+); SELECT 1;
+
+-- comment
+SELECT 2;
+SELECT 3; SELECT 3;
+SELECT 4;
+
+-- +goose Down
+-- comment
+DROP TABLE post;		SELECT 1; -- comment
+`
 
 var functxt = `-- +goose Up
 CREATE TABLE IF NOT EXISTS histories (
@@ -231,6 +233,16 @@ ALTER TABLE post
 
 var emptySQL = `-- +goose Up
 -- This is just a comment`
+
+var emptySQL2 = `
+
+-- comment
+-- +goose Up
+
+-- comment
+-- +goose Down
+
+`
 
 var noUpDownAnnotations = `
 CREATE TABLE post (

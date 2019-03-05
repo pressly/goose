@@ -80,6 +80,7 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 				default:
 					return nil, false, errors.Errorf("duplicate '-- +goose Up' annotations; stateMachine=%v, see https://github.com/pressly/goose#sql-migrations", stateMachine)
 				}
+				continue
 
 			case "+goose Down":
 				switch stateMachine.Get() {
@@ -88,6 +89,7 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 				default:
 					return nil, false, errors.Errorf("must start with '-- +goose Up' annotation, stateMachine=%v, see https://github.com/pressly/goose#sql-migrations", stateMachine)
 				}
+				continue
 
 			case "+goose StatementBegin":
 				switch stateMachine.Get() {
@@ -98,6 +100,7 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 				default:
 					return nil, false, errors.Errorf("'-- +goose StatementBegin' must be defined after '-- +goose Up' or '-- +goose Down' annotation, stateMachine=%v, see https://github.com/pressly/goose#sql-migrations", stateMachine)
 				}
+				continue
 
 			case "+goose StatementEnd":
 				switch stateMachine.Get() {
@@ -111,10 +114,12 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 
 			case "+goose NO TRANSACTION":
 				useTx = false
+				continue
 
 			default:
 				// Ignore comments.
 				verboseInfo("=> ignore comment")
+				continue
 			}
 		}
 
