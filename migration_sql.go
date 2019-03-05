@@ -19,7 +19,7 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 	if useTx {
 		// TRANSACTION.
 
-		verboseInfo("Begin transaction\n")
+		verboseInfo("Begin transaction")
 
 		tx, err := db.Begin()
 		if err != nil {
@@ -29,7 +29,7 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 		for _, query := range statements {
 			verboseInfo("Executing statement: %s\n", clearStatement(query))
 			if _, err = tx.Exec(query); err != nil {
-				verboseInfo("Rollback transaction\n")
+				verboseInfo("Rollback transaction")
 				tx.Rollback()
 				return errors.Wrapf(err, "failed to execute SQL query %q", clearStatement(query))
 			}
@@ -37,19 +37,19 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 
 		if direction {
 			if _, err := tx.Exec(GetDialect().insertVersionSQL(), v, direction); err != nil {
-				verboseInfo("Rollback transaction\n")
+				verboseInfo("Rollback transaction")
 				tx.Rollback()
 				return errors.Wrap(err, "failed to insert new goose version")
 			}
 		} else {
 			if _, err := tx.Exec(GetDialect().deleteVersionSQL(), v); err != nil {
-				verboseInfo("Rollback transaction\n")
+				verboseInfo("Rollback transaction")
 				tx.Rollback()
 				return errors.Wrap(err, "failed to delete goose version")
 			}
 		}
 
-		verboseInfo("Commit transaction\n")
+		verboseInfo("Commit transaction")
 		if err := tx.Commit(); err != nil {
 			return errors.Wrap(err, "failed to commit transaction")
 		}
@@ -59,7 +59,7 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 
 	// NO TRANSACTION.
 	for _, query := range statements {
-		verboseInfo("Executing statement: %s\n", clearStatement(query))
+		verboseInfo("Executing statement: %s", clearStatement(query))
 		if _, err := db.Exec(query); err != nil {
 			return errors.Wrapf(err, "failed to execute SQL query %q", clearStatement(query))
 		}
@@ -71,9 +71,14 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 	return nil
 }
 
+const (
+	grayColor  = "\033[90m"
+	resetColor = "\033[00m"
+)
+
 func verboseInfo(s string, args ...interface{}) {
 	if verbose {
-		log.Printf(s, args...)
+		log.Printf(grayColor+s+resetColor, args...)
 	}
 }
 

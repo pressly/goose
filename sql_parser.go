@@ -29,7 +29,7 @@ func (s *stateMachine) Get() parserState {
 	return parserState(*s)
 }
 func (s *stateMachine) Set(new parserState) {
-	verboseInfo("=> stateMachine: %v => %v", *s, new)
+	verboseInfo("StateMachine: %v => %v", *s, new)
 	*s = stateMachine(new)
 }
 
@@ -66,8 +66,9 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 
 	for scanner.Scan() {
 		line := scanner.Text()
-
-		verboseInfo("   %v\n", line)
+		if verbose {
+			log.Println(line)
+		}
 
 		if strings.HasPrefix(line, "--") {
 			cmd := strings.TrimSpace(strings.TrimPrefix(line, "--"))
@@ -118,14 +119,14 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 
 			default:
 				// Ignore comments.
-				verboseInfo("=> ignore comment")
+				verboseInfo("StateMachine: ignore comment")
 				continue
 			}
 		}
 
 		// Ignore empty lines.
 		if matchEmptyLines.MatchString(line) {
-			verboseInfo("=> ignore empty line")
+			verboseInfo("StateMachine: ignore empty line")
 			continue
 		}
 
@@ -143,13 +144,13 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 		case gooseUp, gooseStatementBeginUp, gooseStatementEndUp:
 			if !direction /*down*/ {
 				buf.Reset()
-				verboseInfo("=> ignore down")
+				verboseInfo("StateMachine: ignore down")
 				continue
 			}
 		case gooseDown, gooseStatementBeginDown, gooseStatementEndDown:
 			if direction /*up*/ {
 				buf.Reset()
-				verboseInfo("=> ignore up")
+				verboseInfo("StateMachine: ignore up")
 				continue
 			}
 		default:
@@ -161,22 +162,22 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 			if endsWithSemicolon(line) {
 				stmts = append(stmts, buf.String())
 				buf.Reset()
-				verboseInfo("=> store simple up query")
+				verboseInfo("StateMachine: store simple Up query")
 			}
 		case gooseDown:
 			if endsWithSemicolon(line) {
 				stmts = append(stmts, buf.String())
 				buf.Reset()
-				verboseInfo("=> store simple down query")
+				verboseInfo("StateMachine: store simple Down query")
 			}
 		case gooseStatementEndUp:
 			stmts = append(stmts, buf.String())
 			buf.Reset()
-			verboseInfo("=> store up statement")
+			verboseInfo("StateMachine: store Up statement")
 		case gooseStatementEndDown:
 			stmts = append(stmts, buf.String())
 			buf.Reset()
-			verboseInfo("=> store down statement")
+			verboseInfo("StateMachine: store Down statement")
 		}
 	}
 	if err := scanner.Err(); err != nil {

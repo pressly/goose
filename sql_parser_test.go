@@ -45,6 +45,7 @@ func TestSplitStatements(t *testing.T) {
 		{sql: emptySQL, up: 0, down: 0},
 		{sql: emptySQL2, up: 0, down: 0},
 		{sql: functxt, up: 2, down: 2},
+		{sql: mysqlChangeDelimiter, up: 4, down: 0},
 	}
 
 	for i, test := range tt {
@@ -118,16 +119,16 @@ CREATE TABLE post (
 		title text,
 		body text,
 		PRIMARY KEY(id)
-); SELECT 1;
+);                  -- 1st stmt
 
 -- comment
-SELECT 2;
-SELECT 3; SELECT 3;
-SELECT 4;
+SELECT 2;           -- 2nd stmt
+SELECT 3; SELECT 3; -- 3rd stmt
+SELECT 4;           -- 4th stmt
 
 -- +goose Down
 -- comment
-DROP TABLE post;		SELECT 1; -- comment
+DROP TABLE post;    -- 1st stmt
 `
 
 var functxt = `-- +goose Up
@@ -251,4 +252,25 @@ CREATE TABLE post (
     body text,
     PRIMARY KEY(id)
 );
+`
+
+var mysqlChangeDelimiter = `
+-- +goose Up
+-- +goose StatementBegin
+DELIMITER | 
+-- +goose StatementEnd
+
+-- +goose StatementBegin
+CREATE FUNCTION my_func( str CHAR(255) ) RETURNS CHAR(255) DETERMINISTIC
+BEGIN 
+  RETURN "Dummy Body"; 
+END | 
+-- +goose StatementEnd
+
+-- +goose StatementBegin
+DELIMITER ; 
+-- +goose StatementEnd
+
+select my_func("123") from dual;
+-- +goose Down
 `
