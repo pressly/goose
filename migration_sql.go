@@ -2,7 +2,6 @@ package goose
 
 import (
 	"database/sql"
-	"os"
 	"regexp"
 
 	"github.com/pkg/errors"
@@ -16,22 +15,11 @@ import (
 //
 // All statements following an Up or Down directive are grouped together
 // until another direction directive is found.
-func runSQLMigration(db *sql.DB, sqlFile string, v int64, direction bool) error {
-	f, err := os.Open(sqlFile)
-	if err != nil {
-		return errors.Wrap(err, "failed to open SQL migration file")
-	}
-	defer f.Close()
-
-	statements, useTx, err := parseSQLMigrationFile(f, direction)
-	if err != nil {
-		return errors.Wrap(err, "failed to parse SQL migration file")
-	}
-
+func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direction bool) error {
 	if useTx {
 		// TRANSACTION.
 
-		printInfo("Begin transaction\n")
+		verboseInfo("Begin transaction\n")
 
 		tx, err := db.Begin()
 		if err != nil {
@@ -39,9 +27,9 @@ func runSQLMigration(db *sql.DB, sqlFile string, v int64, direction bool) error 
 		}
 
 		for _, query := range statements {
-			printInfo("Executing statement: %s\n", clearStatement(query))
+			verboseInfo("Executing statement: %s\n", clearStatement(query))
 			if _, err = tx.Exec(query); err != nil {
-				printInfo("Rollback transaction\n")
+				verboseInfo("Rollback transaction\n")
 				tx.Rollback()
 				return errors.Wrapf(err, "failed to execute SQL query %q", clearStatement(query))
 			}
@@ -49,19 +37,19 @@ func runSQLMigration(db *sql.DB, sqlFile string, v int64, direction bool) error 
 
 		if direction {
 			if _, err := tx.Exec(GetDialect().insertVersionSQL(), v, direction); err != nil {
-				printInfo("Rollback transaction\n")
+				verboseInfo("Rollback transaction\n")
 				tx.Rollback()
 				return errors.Wrap(err, "failed to insert new goose version")
 			}
 		} else {
 			if _, err := tx.Exec(GetDialect().deleteVersionSQL(), v); err != nil {
-				printInfo("Rollback transaction\n")
+				verboseInfo("Rollback transaction\n")
 				tx.Rollback()
 				return errors.Wrap(err, "failed to delete goose version")
 			}
 		}
 
-		printInfo("Commit transaction\n")
+		verboseInfo("Commit transaction\n")
 		if err := tx.Commit(); err != nil {
 			return errors.Wrap(err, "failed to commit transaction")
 		}
@@ -71,7 +59,7 @@ func runSQLMigration(db *sql.DB, sqlFile string, v int64, direction bool) error 
 
 	// NO TRANSACTION.
 	for _, query := range statements {
-		printInfo("Executing statement: %s\n", clearStatement(query))
+		verboseInfo("Executing statement: %s\n", clearStatement(query))
 		if _, err := db.Exec(query); err != nil {
 			return errors.Wrapf(err, "failed to execute SQL query %q", clearStatement(query))
 		}
@@ -83,7 +71,7 @@ func runSQLMigration(db *sql.DB, sqlFile string, v int64, direction bool) error 
 	return nil
 }
 
-func printInfo(s string, args ...interface{}) {
+func verboseInfo(s string, args ...interface{}) {
 	if verbose {
 		log.Printf(s, args...)
 	}
@@ -91,10 +79,10 @@ func printInfo(s string, args ...interface{}) {
 
 var (
 	matchSQLComments = regexp.MustCompile(`(?m)^--.*$[\r\n]*`)
-	matchEmptyLines  = regexp.MustCompile(`(?m)^$[\r\n]*`) // TODO: Duplicate
+	matchEmptyEOL    = regexp.MustCompile(`(?m)^$[\r\n]*`) // TODO: Duplicate
 )
 
 func clearStatement(s string) string {
 	s = matchSQLComments.ReplaceAllString(s, ``)
-	return matchEmptyLines.ReplaceAllString(s, ``)
+	return matchEmptyEOL.ReplaceAllString(s, ``)
 }
