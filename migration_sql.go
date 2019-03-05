@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -178,11 +179,11 @@ func runSQLMigration(db *sql.DB, sqlFile string, v int64, direction bool) error 
 		}
 
 		for _, query := range statements {
-			printInfo("Executing statement : %s\n", cleanStatement(query))
+			printInfo("Executing statement: %s\n", clearStatement(query))
 			if _, err = tx.Exec(query); err != nil {
 				printInfo("Rollback transaction\n")
 				tx.Rollback()
-				return errors.Wrapf(err, "failed to execute SQL query:\n%v", cleanStatement(query))
+				return errors.Wrapf(err, "failed to execute SQL query %q", clearStatement(query))
 			}
 		}
 
@@ -210,9 +211,9 @@ func runSQLMigration(db *sql.DB, sqlFile string, v int64, direction bool) error 
 
 	// NO TRANSACTION.
 	for _, query := range statements {
-		printInfo("Executing statement : %s\n", cleanStatement(query))
+		printInfo("Executing statement: %s\n", clearStatement(query))
 		if _, err := db.Exec(query); err != nil {
-			return errors.Wrapf(err, "failed to execute SQL query statement\n%v", cleanStatement(query))
+			return errors.Wrapf(err, "failed to execute SQL query %q", clearStatement(query))
 		}
 	}
 	if _, err := db.Exec(GetDialect().insertVersionSQL(), v, direction); err != nil {
@@ -228,6 +229,12 @@ func printInfo(s string, args ...interface{}) {
 	}
 }
 
-func cleanStatement(s string) string {
-	return reMatchSQLComments.ReplaceAllString(s, ``)
+var (
+	matchSQLComments = regexp.MustCompile(`(?m)^--.*$[\r\n]*`)
+	matchEmptyLines  = regexp.MustCompile(`(?m)^$[\r\n]*`)
+)
+
+func clearStatement(s string) string {
+	s = matchSQLComments.ReplaceAllString(s, ``)
+	return matchEmptyLines.ReplaceAllString(s, ``)
 }
