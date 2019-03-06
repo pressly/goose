@@ -25,9 +25,8 @@ func (s camelSnakeStateMachine) next(r rune) camelSnakeStateMachine {
 	case firstAlphaNum:
 		if isAlphaNum(r) {
 			return alphaNum
-		} else {
-			return delimiter
 		}
+		return delimiter
 	case alphaNum:
 		if !isAlphaNum(r) {
 			return delimiter
@@ -35,9 +34,8 @@ func (s camelSnakeStateMachine) next(r rune) camelSnakeStateMachine {
 	case delimiter:
 		if isAlphaNum(r) {
 			return firstAlphaNum
-		} else {
-			return idle
 		}
+		return idle
 	}
 	return s
 }
