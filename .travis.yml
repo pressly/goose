@@ -3,9 +3,5 @@ language: go
 go:
 - 1.12
 
-install:
-- go get github.com/golang/dep/cmd/dep
-- dep ensure
-
 script:
-- go test
+- GO111MODULE=on go test
