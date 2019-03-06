@@ -173,7 +173,7 @@ func (rs RedshiftDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 }
 
 func (rs RedshiftDialect) deleteVersionSQL() string {
-	return fmt.Sprintf("DELETE FROM %s WHERE version_id=?;", TableName())
+	return fmt.Sprintf("DELETE FROM %s WHERE version_id=$1;", TableName())
 }
 
 ////////////////////////////
