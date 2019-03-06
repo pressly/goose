@@ -41,7 +41,7 @@ func (s camelSnakeStateMachine) next(r rune) camelSnakeStateMachine {
 	return s
 }
 
-func lowerCamelCase(str string) string {
+func camelCase(str string) string {
 	var b strings.Builder
 
 	stateMachine := begin
@@ -57,6 +57,14 @@ func lowerCamelCase(str string) string {
 		}
 	}
 	return b.String()
+}
+
+func lowerCamelCase(str string) string {
+	str = camelCase(str)
+	if len(str) == 0 {
+		return str
+	}
+	return strings.ToLower(str[:1]) + str[1:]
 }
 
 func isAlphaNum(r rune) bool {
