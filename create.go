@@ -7,30 +7,48 @@ import (
 	"path/filepath"
 	"text/template"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
+type tmplVars struct {
+	Version   string
+	CamelName string
+}
+
 // Create writes a new blank migration file.
-func CreateWithTemplate(db *sql.DB, dir string, migrationTemplate *template.Template, name, migrationType string) error {
+func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, migrationType string) error {
 	version := time.Now().Format(timestampFormat)
-	filename := fmt.Sprintf("%v_%v.%v", version, name, migrationType)
+	filename := fmt.Sprintf("%v_%v.%v", version, snakeCase(name), migrationType)
 
-	fpath := filepath.Join(dir, filename)
-
-	tmpl := sqlMigrationTemplate
-	if migrationType == "go" {
-		tmpl = goSQLMigrationTemplate
+	if tmpl == nil {
+		if migrationType == "go" {
+			tmpl = goSQLMigrationTemplate
+		} else {
+			tmpl = sqlMigrationTemplate
+		}
 	}
 
-	if migrationTemplate != nil {
-		tmpl = migrationTemplate
+	path := filepath.Join(dir, filename)
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		return errors.Wrap(err, "failed to create migration file")
 	}
 
-	path, err := writeTemplateToFile(fpath, tmpl, version)
+	f, err := os.Create(path)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to create migration file")
+	}
+	defer f.Close()
+
+	vars := tmplVars{
+		Version:   version,
+		CamelName: camelCase(name),
+	}
+	if err := tmpl.Execute(f, vars); err != nil {
+		return errors.Wrap(err, "failed to execute tmpl")
 	}
 
-	log.Printf("Created new file: %s\n", path)
+	log.Printf("Created new file: %s\n", f.Name())
 	return nil
 }
 
@@ -39,33 +57,18 @@ func Create(db *sql.DB, dir, name, migrationType string) error {
 	return CreateWithTemplate(db, dir, nil, name, migrationType)
 }
 
-func writeTemplateToFile(path string, t *template.Template, version string) (string, error) {
-	if _, err := os.Stat(path); !os.IsNotExist(err) {
-		return "", fmt.Errorf("failed to create file: %v already exists", path)
-	}
-
-	f, err := os.Create(path)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-
-	err = t.Execute(f, version)
-	if err != nil {
-		return "", err
-	}
-
-	return f.Name(), nil
-}
-
 var sqlMigrationTemplate = template.Must(template.New("goose.sql-migration").Parse(`-- +goose Up
--- SQL in this section is executed when the migration is applied.
+-- +goose StatementBegin
+SELECT 'up SQL query';
+-- +goose StatementEnd
 
 -- +goose Down
--- SQL in this section is executed when the migration is rolled back.
+-- +goose StatementBegin
+SELECT 'down SQL query';
+-- +goose StatementEnd
 `))
 
-var goSQLMigrationTemplate = template.Must(template.New("goose.go-migration").Parse(`package migration
+var goSQLMigrationTemplate = template.Must(template.New("goose.go-migration").Parse(`package migrations
 
 import (
 	"database/sql"
@@ -73,15 +76,15 @@ import (
 )
 
 func init() {
-	goose.AddMigration(Up{{.}}, Down{{.}})
+	goose.AddMigration(up{{.CamelName}}, down{{.CamelName}})
 }
 
-func Up{{.}}(tx *sql.Tx) error {
+func up{{.CamelName}}(tx *sql.Tx) error {
 	// This code is executed when the migration is applied.
 	return nil
 }
 
-func Down{{.}}(tx *sql.Tx) error {
+func down{{.CamelName}}(tx *sql.Tx) error {
 	// This code is executed when the migration is rolled back.
 	return nil
 }
