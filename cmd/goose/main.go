@@ -55,13 +55,7 @@ func main() {
 
 	driver, dbstring, command := args[0], args[1], args[2]
 
-	switch dbstring {
-	case "":
-		log.Fatalf("-dbstring=%q not supported\n", dbstring)
-	default:
-	}
-
-	db, err := goose.OpenDBWithDriver(driver, dbstring)
+	db, err := goose.OpenDBWithDriver(driver, normalizeDBString(dbstring))
 	if err != nil {
 		log.Fatalf("-dbstring=%q: %v\n", dbstring, err)
 	}
