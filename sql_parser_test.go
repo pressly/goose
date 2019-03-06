@@ -9,6 +9,8 @@ import (
 )
 
 func TestSemicolons(t *testing.T) {
+	t.Parallel()
+
 	type testData struct {
 		line   string
 		result bool
@@ -32,6 +34,7 @@ func TestSemicolons(t *testing.T) {
 }
 
 func TestSplitStatements(t *testing.T) {
+	t.Parallel()
 	// SetVerbose(true)
 
 	type testData struct {
@@ -72,6 +75,8 @@ func TestSplitStatements(t *testing.T) {
 }
 
 func TestUseTransactions(t *testing.T) {
+	t.Parallel()
+
 	type testData struct {
 		fileName        string
 		useTransactions bool

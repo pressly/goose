@@ -10,14 +10,17 @@ import (
 )
 
 func TestDefaultBinary(t *testing.T) {
+	t.Parallel()
+
 	commands := []string{
-		"go build -i -o ./bin/goose ./cmd/goose",
+		"go build -o ./bin/goose ./cmd/goose",
 		"./bin/goose -dir=examples/sql-migrations sqlite3 sql.db up",
 		"./bin/goose -dir=examples/sql-migrations sqlite3 sql.db version",
 		"./bin/goose -dir=examples/sql-migrations sqlite3 sql.db down",
 		"./bin/goose -dir=examples/sql-migrations sqlite3 sql.db status",
-		"./bin/goose",
+		"./bin/goose --version",
 	}
+	defer os.Remove("./bin/goose") // clean up
 
 	for _, cmd := range commands {
 		args := strings.Split(cmd, " ")
@@ -27,7 +30,9 @@ func TestDefaultBinary(t *testing.T) {
 			params = args[1:]
 		}
 
-		out, err := exec.Command(command, params...).CombinedOutput()
+		cmd := exec.Command(command, params...)
+		cmd.Env = os.Environ()
+		out, err := cmd.CombinedOutput()
 		if err != nil {
 			t.Fatalf("%s:\n%v\n\n%s", err, cmd, out)
 		}
@@ -35,30 +40,34 @@ func TestDefaultBinary(t *testing.T) {
 }
 
 func TestLiteBinary(t *testing.T) {
+	t.Parallel()
+
 	dir, err := ioutil.TempDir("", "tmptest")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	defer os.RemoveAll(dir)        // clean up
-	defer os.Remove("./bin/goose") // clean up
-
-	commands := []string{
-		fmt.Sprintf("./bin/goose -dir=%s create user_indices sql", dir),
-		fmt.Sprintf("./bin/goose -dir=%s fix", dir),
-	}
+	defer os.RemoveAll(dir)              // clean up
+	defer os.Remove("./bin/light-goose") // clean up
 
 	// this has to be done outside of the loop
 	// since go only supports space separated tags list.
-	cmd := "go build -tags='no_mysql no_sqlite no_psql' -i -o ./bin/goose ./cmd/goose"
-	out, err := exec.Command("go", "build", "-tags='no_mysql no_sqlite no_psql'", "-i", "-o", "./bin/goose", "./cmd/goose").CombinedOutput()
+	cmd := exec.Command("go", "build", "-tags='no_mysql no_sqlite no_psql'", "-o", "./bin/light-goose", "./cmd/goose")
+	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("%s:\n%v\n\n%s", err, cmd, out)
 	}
 
+	commands := []string{
+		fmt.Sprintf("./bin/light-goose -dir=%s create user_indices sql", dir),
+		fmt.Sprintf("./bin/light-goose -dir=%s fix", dir),
+	}
+
 	for _, cmd := range commands {
 		args := strings.Split(cmd, " ")
-		out, err := exec.Command(args[0], args[1:]...).CombinedOutput()
+		cmd := exec.Command(args[0], args[1:]...)
+		cmd.Env = os.Environ()
+		out, err := cmd.CombinedOutput()
 		if err != nil {
 			t.Fatalf("%s:\n%v\n\n%s", err, cmd, out)
 		}
@@ -66,8 +75,10 @@ func TestLiteBinary(t *testing.T) {
 }
 
 func TestCustomBinary(t *testing.T) {
+	t.Parallel()
+
 	commands := []string{
-		"go build -i -o ./bin/custom-goose ./examples/go-migrations",
+		"go build -o ./bin/custom-goose ./examples/go-migrations",
 		"./bin/custom-goose -dir=examples/go-migrations sqlite3 go.db up",
 		"./bin/custom-goose -dir=examples/go-migrations sqlite3 go.db version",
 		"./bin/custom-goose -dir=examples/go-migrations sqlite3 go.db down",

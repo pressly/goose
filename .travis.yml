@@ -3,9 +3,6 @@ language: go
 go:
 - 1.12
 
-install:
-- go get github.com/golang/dep/cmd/dep
-- dep ensure
-
 script:
-- go test
+- mkdir -p bin
+- go test -v ./...
