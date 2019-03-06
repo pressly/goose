@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-const VERSION = "v2.7.0-rc1"
+const VERSION = "v2.7.0-rc2"
 
 var (
 	duplicateCheckOnce sync.Once
