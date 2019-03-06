@@ -1,4 +1,4 @@
-// +build !mysql
+// +build no_mysql
 
 package main
 
@@ -7,6 +7,6 @@ import (
 	_ "github.com/ziutek/mymysql/godrv"
 )
 
-func normalizeDBString(str string) string {
+func normalizeDBString(driver string, str string) string {
 	return str
 }

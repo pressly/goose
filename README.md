@@ -32,7 +32,7 @@ This will install the `goose` binary to your `$GOPATH/bin` directory.
 
 For a lite version of the binary without DB connection dependent commands, use the exclusive build tags:
 
-    $ go build -tags='no_mysql no_sqlite no_psql' -i -o goose ./cmd/goose
+    $ go build -tags='no_postgres no_mysql no_sqlite3' -i -o goose ./cmd/goose
 
 
 # Usage

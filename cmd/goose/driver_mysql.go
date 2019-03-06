@@ -1,4 +1,4 @@
-// +build mysql
+// +build !no_mysql
 
 package main
 
@@ -15,19 +15,22 @@ import (
 // the parameter `parseTime` set to true. This allows internal goose logic
 // to assume that DATETIME/DATE/TIMESTAMP can be scanned into the time.Time
 // type.
-func normalizeDBString(str string) string {
-	var err error
-	str, err = normalizeMySQLDSN(dns string)
-	if err != nil {
-		log.Fatalf("failed to normalize MySQL connection string: %v", err)
+func normalizeDBString(driver string, str string) string {
+	if driver == "mysql" {
+		var err error
+		str, err = normalizeMySQLDSN(str)
+		if err != nil {
+			log.Fatalf("failed to normalize MySQL connection string: %v", err)
+		}
 	}
+	return str
 }
 
-func normalizeMySQLDSN(dns string) (string, error) {
-    config, err := mysql.ParseDSN(dsn)
-    if err != nil {
-        return "", err
-    }
-    config.ParseTime = true
-    return config.FormatDSN(), nil
+func normalizeMySQLDSN(dsn string) (string, error) {
+	config, err := mysql.ParseDSN(dsn)
+	if err != nil {
+		return "", err
+	}
+	config.ParseTime = true
+	return config.FormatDSN(), nil
 }
