@@ -22,7 +22,7 @@ func TestFix(t *testing.T) {
 	defer os.Remove("./bin/fix-goose") // clean up
 
 	commands := []string{
-		"go build -i -o ./bin/fix-goose ./cmd/goose",
+		"go build -o ./bin/fix-goose ./cmd/goose",
 		fmt.Sprintf("./bin/fix-goose -dir=%s create create_table", dir),
 		fmt.Sprintf("./bin/fix-goose -dir=%s create add_users", dir),
 		fmt.Sprintf("./bin/fix-goose -dir=%s create add_indices", dir),

@@ -13,7 +13,7 @@ func TestDefaultBinary(t *testing.T) {
 	t.Parallel()
 
 	commands := []string{
-		"go build -i -o ./bin/goose ./cmd/goose",
+		"go build -o ./bin/goose ./cmd/goose",
 		"./bin/goose -dir=examples/sql-migrations sqlite3 sql.db up",
 		"./bin/goose -dir=examples/sql-migrations sqlite3 sql.db version",
 		"./bin/goose -dir=examples/sql-migrations sqlite3 sql.db down",
@@ -52,7 +52,7 @@ func TestLiteBinary(t *testing.T) {
 
 	// this has to be done outside of the loop
 	// since go only supports space separated tags list.
-	cmd := exec.Command("go", "build", "-tags='no_mysql no_sqlite no_psql'", "-i", "-o", "./bin/light-goose", "./cmd/goose")
+	cmd := exec.Command("go", "build", "-tags='no_mysql no_sqlite no_psql'", "-o", "./bin/light-goose", "./cmd/goose")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("%s:\n%v\n\n%s", err, cmd, out)
@@ -78,7 +78,7 @@ func TestCustomBinary(t *testing.T) {
 	t.Parallel()
 
 	commands := []string{
-		"go build -i -o ./bin/custom-goose ./examples/go-migrations",
+		"go build -o ./bin/custom-goose ./examples/go-migrations",
 		"./bin/custom-goose -dir=examples/go-migrations sqlite3 go.db up",
 		"./bin/custom-goose -dir=examples/go-migrations sqlite3 go.db version",
 		"./bin/custom-goose -dir=examples/go-migrations sqlite3 go.db down",
