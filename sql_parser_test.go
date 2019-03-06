@@ -51,6 +51,7 @@ func TestSplitStatements(t *testing.T) {
 		{sql: mysqlChangeDelimiter, up: 4, down: 0},
 		{sql: copyFromStdin, up: 1, down: 0},
 		{sql: plpgsqlSyntax, up: 2, down: 2},
+		{sql: statementAndSimpleMultilineQuery, up: 2, down: 1},
 	}
 
 	for i, test := range tt {
@@ -318,4 +319,25 @@ DROP TRIGGER update_properties_updated_at
 -- +goose StatementBegin
 DROP FUNCTION update_updated_at_column()
 -- +goose StatementEnd
+`
+
+var statementAndSimpleMultilineQuery = `
+-- +goose Up
+
+-- +goose StatementBegin
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'things') THEN
+        create type things AS ENUM ('hello', 'world');
+    END IF;
+END
+$$;
+-- +goose StatementEnd
+
+CREATE TABLE IF NOT EXISTS doge (
+  id int
+);
+-- +goose Down
+-- SQL in this section is executed when the migration is rolled back.
+DROP TABLE IF EXISTS doge;
 `
