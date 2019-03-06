@@ -9,3 +9,4 @@
 # We don't want to switch to Go modules, until we release v3.0.0 or later.
 /go.mod
 /go.sum
+
