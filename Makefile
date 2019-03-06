@@ -11,6 +11,8 @@ dist:
 .PHONY: vendor
 vendor:
 	mv _go.mod go.mod
+	mv _go.sum go.sum
 	GO111MODULE=on go build -o ./bin/goose ./cmd/goose
 	GO111MODULE=on go mod vendor && GO111MODULE=on go mod tidy
 	mv go.mod _go.mod
+	mv go.sum _go.sum
