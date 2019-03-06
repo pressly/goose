@@ -1,7 +1,7 @@
 sudo: false
 language: go
 go:
-- 1.8
+- 1.12
 
 install:
 - go get github.com/golang/dep/cmd/dep
