@@ -5,6 +5,8 @@ import (
 )
 
 func TestCamelSnake(t *testing.T) {
+	t.Parallel()
+
 	tt := []struct {
 		in    string
 		camel string

@@ -11,27 +11,31 @@ import (
 )
 
 func TestFix(t *testing.T) {
+	t.Parallel()
+
 	dir, err := ioutil.TempDir("", "tmptest")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	defer os.RemoveAll(dir)  // clean up
-	defer os.Remove("goose") // clean up
+	defer os.RemoveAll(dir)            // clean up
+	defer os.Remove("./bin/fix-goose") // clean up
 
 	commands := []string{
-		"go build -i -o ./bin/goose ./cmd/goose",
-		fmt.Sprintf("./bin/goose -dir=%s create create_table", dir),
-		fmt.Sprintf("./bin/goose -dir=%s create add_users", dir),
-		fmt.Sprintf("./bin/goose -dir=%s create add_indices", dir),
-		fmt.Sprintf("./bin/goose -dir=%s create update_users", dir),
-		fmt.Sprintf("./bin/goose -dir=%s fix", dir),
+		"go build -i -o ./bin/fix-goose ./cmd/goose",
+		fmt.Sprintf("./bin/fix-goose -dir=%s create create_table", dir),
+		fmt.Sprintf("./bin/fix-goose -dir=%s create add_users", dir),
+		fmt.Sprintf("./bin/fix-goose -dir=%s create add_indices", dir),
+		fmt.Sprintf("./bin/fix-goose -dir=%s create update_users", dir),
+		fmt.Sprintf("./bin/fix-goose -dir=%s fix", dir),
 	}
 
 	for _, cmd := range commands {
 		args := strings.Split(cmd, " ")
 		time.Sleep(1 * time.Second)
-		out, err := exec.Command(args[0], args[1:]...).CombinedOutput()
+		cmd := exec.Command(args[0], args[1:]...)
+		cmd.Env = os.Environ()
+		out, err := cmd.CombinedOutput()
 		if err != nil {
 			t.Fatalf("%s:\n%v\n\n%s", err, cmd, out)
 		}
@@ -52,9 +56,9 @@ func TestFix(t *testing.T) {
 
 	// add more migrations and then fix it
 	commands = []string{
-		fmt.Sprintf("./bin/goose -dir=%s create remove_column", dir),
-		fmt.Sprintf("./bin/goose -dir=%s create create_books_table", dir),
-		fmt.Sprintf("./bin/goose -dir=%s fix", dir),
+		fmt.Sprintf("./bin/fix-goose -dir=%s create remove_column", dir),
+		fmt.Sprintf("./bin/fix-goose -dir=%s create create_books_table", dir),
+		fmt.Sprintf("./bin/fix-goose -dir=%s fix", dir),
 	}
 
 	for _, cmd := range commands {

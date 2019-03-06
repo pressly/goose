@@ -4,11 +4,9 @@ import (
 	"testing"
 )
 
-func newMigration(v int64, src string) *Migration {
-	return &Migration{Version: v, Previous: -1, Next: -1, Source: src}
-}
-
 func TestMigrationSort(t *testing.T) {
+	t.Parallel()
+
 	ms := Migrations{}
 
 	// insert in any order
@@ -22,6 +20,10 @@ func TestMigrationSort(t *testing.T) {
 	sorted := []int64{20120000, 20127000, 20128000, 20129000}
 
 	validateMigrationSort(t, ms, sorted)
+}
+
+func newMigration(v int64, src string) *Migration {
+	return &Migration{Version: v, Previous: -1, Next: -1, Source: src}
 }
 
 func validateMigrationSort(t *testing.T, ms Migrations, sorted []int64) {
