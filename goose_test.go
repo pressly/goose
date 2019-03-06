@@ -47,20 +47,20 @@ func TestLiteBinary(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer os.RemoveAll(dir)              // clean up
-	defer os.Remove("./bin/light-goose") // clean up
+	defer os.RemoveAll(dir)             // clean up
+	defer os.Remove("./bin/lite-goose") // clean up
 
 	// this has to be done outside of the loop
 	// since go only supports space separated tags list.
-	cmd := exec.Command("go", "build", "-tags='no_mysql no_sqlite no_psql'", "-o", "./bin/light-goose", "./cmd/goose")
+	cmd := exec.Command("go", "build", "-tags='no_postgres no_mysql no_sqlite3'", "-o", "./bin/lite-goose", "./cmd/goose")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("%s:\n%v\n\n%s", err, cmd, out)
 	}
 
 	commands := []string{
-		fmt.Sprintf("./bin/light-goose -dir=%s create user_indices sql", dir),
-		fmt.Sprintf("./bin/light-goose -dir=%s fix", dir),
+		fmt.Sprintf("./bin/lite-goose -dir=%s create user_indices sql", dir),
+		fmt.Sprintf("./bin/lite-goose -dir=%s fix", dir),
 	}
 
 	for _, cmd := range commands {
