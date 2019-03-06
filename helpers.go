@@ -1,6 +1,7 @@
 package goose
 
 import (
+	"bytes"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -8,16 +9,16 @@ import (
 
 type camelSnakeStateMachine int
 
-const (
-	begin         camelSnakeStateMachine = iota // 0
-	firstAlphaNum                               // 1
-	alphaNum                                    // 2
-	delimiter                                   // 3
+const ( //                                           _$$_This is some text, OK?!
+	idle          camelSnakeStateMachine = iota // 0 ↑                     ↑   ↑
+	firstAlphaNum                               // 1     ↑    ↑  ↑    ↑     ↑
+	alphaNum                                    // 2      ↑↑↑  ↑  ↑↑↑  ↑↑↑   ↑
+	delimiter                                   // 3         ↑  ↑    ↑    ↑   ↑
 )
 
 func (s camelSnakeStateMachine) next(r rune) camelSnakeStateMachine {
 	switch s {
-	case begin:
+	case idle:
 		if isAlphaNum(r) {
 			return firstAlphaNum
 		}
@@ -35,7 +36,7 @@ func (s camelSnakeStateMachine) next(r rune) camelSnakeStateMachine {
 		if isAlphaNum(r) {
 			return firstAlphaNum
 		} else {
-			return begin
+			return idle
 		}
 	}
 	return s
@@ -44,7 +45,7 @@ func (s camelSnakeStateMachine) next(r rune) camelSnakeStateMachine {
 func camelCase(str string) string {
 	var b strings.Builder
 
-	stateMachine := begin
+	stateMachine := idle
 	for i := 0; i < len(str); {
 		r, size := utf8.DecodeRuneInString(str[i:])
 		i += size
@@ -65,6 +66,27 @@ func lowerCamelCase(str string) string {
 		return str
 	}
 	return strings.ToLower(str[:1]) + str[1:]
+}
+
+func snakeCase(str string) string {
+	var b bytes.Buffer
+
+	stateMachine := idle
+	for i := 0; i < len(str); {
+		r, size := utf8.DecodeRuneInString(str[i:])
+		i += size
+		stateMachine = stateMachine.next(r)
+		switch stateMachine {
+		case firstAlphaNum, alphaNum:
+			b.WriteRune(unicode.ToLower(r))
+		case delimiter:
+			b.WriteByte('_')
+		}
+	}
+	if stateMachine == idle {
+		return string(bytes.TrimSuffix(b.Bytes(), []byte{'_'}))
+	}
+	return b.String()
 }
 
 func isAlphaNum(r rune) bool {

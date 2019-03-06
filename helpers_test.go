@@ -16,10 +16,10 @@ func TestCamelSnake(t *testing.T) {
 
 	for _, test := range tt {
 		if got := lowerCamelCase(test.in); got != test.camel {
-			t.Errorf("unexpected lower camel for input(%q), got %q, want %q", test.in, got, test.camel)
+			t.Errorf("unexpected lowerCamelCase for input(%q), got %q, want %q", test.in, got, test.camel)
 		}
-		// if got := snake(test.in); got != test.snake {
-		// 	t.Error("unexpected snake for input(%q), got %q, want %q", test.in, got, test.snake)
-		// }
+		if got := snakeCase(test.in); got != test.snake {
+			t.Errorf("unexpected snake_case for input(%q), got %q, want %q", test.in, got, test.snake)
+		}
 	}
 }
