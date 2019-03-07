@@ -11,26 +11,24 @@ import (
 	"github.com/pkg/errors"
 )
 
-type parserState int
+type stateMachine int
 
 const (
-	start                   parserState = iota // 0
-	gooseUp                                    // 1
-	gooseStatementBeginUp                      // 2
-	gooseStatementEndUp                        // 3
-	gooseDown                                  // 4
-	gooseStatementBeginDown                    // 5
-	gooseStatementEndDown                      // 6
+	start                   stateMachine = iota // 0
+	gooseUp                                     // 1
+	gooseStatementBeginUp                       // 2
+	gooseStatementEndUp                         // 3
+	gooseDown                                   // 4
+	gooseStatementBeginDown                     // 5
+	gooseStatementEndDown                       // 6
 )
 
-type stateMachine parserState
-
-func (s *stateMachine) Get() parserState {
-	return parserState(*s)
+func (s *stateMachine) Get() stateMachine {
+	return stateMachine(*s)
 }
-func (s *stateMachine) Set(new parserState) {
-	verboseInfo("StateMachine: %v => %v", *s, new)
-	*s = stateMachine(new)
+func (s *stateMachine) Set(state stateMachine) {
+	verboseInfo("StateMachine: %v => %v", *s, state)
+	*s = state
 }
 
 const scanBufSize = 4 * 1024 * 1024
@@ -61,7 +59,7 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 	scanner := bufio.NewScanner(r)
 	scanner.Buffer(scanBuf, scanBufSize)
 
-	stateMachine := stateMachine(start)
+	stateMachine := start
 	useTx = true
 
 	for scanner.Scan() {
