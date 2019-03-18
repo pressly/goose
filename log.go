@@ -6,7 +6,7 @@ import (
 
 var log Logger = &stdLogger{}
 
-// Logger is standart logger interface
+// Logger is standard logger interface
 type Logger interface {
 	Fatal(v ...interface{})
 	Fatalf(format string, v ...interface{})
