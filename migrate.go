@@ -234,6 +234,32 @@ func versionFilter(v, current, target int64) bool {
 	return false
 }
 
+// EnsureDBVersions retrieves all executed versions for this DB.
+// Create and initialize the DB version table if it doesn't exist.
+func EnsureDBVersions(db *sql.DB) (map[int64]bool, error) {
+	versions := make(map[int64]bool)
+	rows, err := GetDialect().dbVersionQuery(db)
+	if err != nil {
+		return versions, createVersionTable(db)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var row MigrationRecord
+		if err = rows.Scan(&row.VersionID, &row.IsApplied); err != nil {
+			return versions, errors.Wrap(err, "failed to scan row")
+		}
+
+		if _, ok := versions[row.VersionID]; !ok {
+			versions[row.VersionID] = row.IsApplied
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return versions, errors.Wrap(err, "failed to get next row")
+	}
+	return versions, nil
+}
+
 // EnsureDBVersion retrieves the current version for this DB.
 // Create and initialize the DB version table if it doesn't exist.
 func EnsureDBVersion(db *sql.DB) (int64, error) {

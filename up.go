@@ -63,3 +63,24 @@ func UpByOne(db *sql.DB, dir string) error {
 
 	return nil
 }
+
+// UpAll migrates up all pending migrations.
+func UpAll(db *sql.DB, dir string) error {
+	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+	if err != nil {
+		return err
+	}
+	versions, err := EnsureDBVersions(db)
+	if err != nil {
+		return err
+	}
+	for _, migration := range migrations {
+		if versions[migration.Version] {
+			continue
+		}
+		if err = migration.Up(db); err != nil {
+			return err
+		}
+	}
+	return nil
+}

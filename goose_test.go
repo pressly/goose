@@ -17,6 +17,8 @@ func TestDefaultBinary(t *testing.T) {
 		"./bin/goose -dir=examples/sql-migrations sqlite3 sql.db up",
 		"./bin/goose -dir=examples/sql-migrations sqlite3 sql.db version",
 		"./bin/goose -dir=examples/sql-migrations sqlite3 sql.db down",
+		"./bin/goose -dir=examples/sql-migrations sqlite3 sql.db up-all",
+		"./bin/goose -dir=examples/sql-migrations sqlite3 sql.db down",
 		"./bin/goose -dir=examples/sql-migrations sqlite3 sql.db status",
 		"./bin/goose --version",
 	}
