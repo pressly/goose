@@ -2,7 +2,6 @@ package goose
 
 import (
 	"database/sql"
-	"fmt"
 	"path/filepath"
 	"time"
 
@@ -34,10 +33,11 @@ func Status(db *sql.DB, dir string) error {
 }
 
 func printMigrationStatus(db *sql.DB, version int64, script string) error {
-	q := fmt.Sprintf("SELECT tstamp, is_applied FROM %s WHERE version_id=%d ORDER BY tstamp DESC LIMIT 1", TableName(), version)
+	q := GetDialect().migrationSQL()
 
 	var row MigrationRecord
-	err := db.QueryRow(q).Scan(&row.TStamp, &row.IsApplied)
+
+	err := db.QueryRow(q, version).Scan(&row.TStamp, &row.IsApplied)
 	if err != nil && err != sql.ErrNoRows {
 		return errors.Wrap(err, "failed to query the latest migration")
 	}
