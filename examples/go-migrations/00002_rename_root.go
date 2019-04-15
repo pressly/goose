@@ -3,7 +3,7 @@ package main
 import (
 	"database/sql"
 
-	"github.com/bandlab/goose"
+	"github.com/pressly/goose"
 )
 
 func init() {
