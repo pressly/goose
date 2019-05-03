@@ -174,10 +174,12 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 			stmts = append(stmts, buf.String())
 			buf.Reset()
 			verboseInfo("StateMachine: store Up statement")
+			stateMachine.Set(gooseUp)
 		case gooseStatementEndDown:
 			stmts = append(stmts, buf.String())
 			buf.Reset()
 			verboseInfo("StateMachine: store Down statement")
+			stateMachine.Set(gooseDown)
 		}
 	}
 	if err := scanner.Err(); err != nil {
