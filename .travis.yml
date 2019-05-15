@@ -3,9 +3,6 @@ language: go
 go:
 - 1.12
 
-before_script:
-- go get github.com/denisenkom/go-mssqldb
-
 script:
 - mkdir -p bin
 - go test -v ./...
