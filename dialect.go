@@ -31,7 +31,7 @@ func SetDialect(d string) error {
 		dialect = &MySQLDialect{}
 	case "sqlite3":
 		dialect = &Sqlite3Dialect{}
-	case "sqlserver":
+	case "mssql":
 		dialect = &SqlServerDialect{}
 	case "redshift":
 		dialect = &RedshiftDialect{}

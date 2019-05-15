@@ -1,4 +1,4 @@
-// +build !no_sqlserver
+// +build !no_mssql
 
 package main
 
