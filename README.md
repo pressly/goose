@@ -44,6 +44,7 @@ Drivers:
     postgres
     mysql
     sqlite3
+    mssql
     redshift
 
 Examples:
@@ -57,6 +58,7 @@ Examples:
     goose mysql "user:password@/dbname?parseTime=true" status
     goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
     goose tidb "user:password@/dbname?parseTime=true" status
+    goose mssql "sqlserver://user:password@dbname:1433?database=master" status
 
 Options:
 

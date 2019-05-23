@@ -1,3 +1,8 @@
+# cloud.google.com/go v0.37.4
+cloud.google.com/go/civil
+# github.com/denisenkom/go-mssqldb v0.0.0-20190514213226-23b29e59681b
+github.com/denisenkom/go-mssqldb
+github.com/denisenkom/go-mssqldb/internal/cp
 # github.com/go-sql-driver/mysql v1.4.1
 github.com/go-sql-driver/mysql
 # github.com/lib/pq v1.0.0
@@ -11,5 +16,7 @@ github.com/pkg/errors
 github.com/ziutek/mymysql/godrv
 github.com/ziutek/mymysql/mysql
 github.com/ziutek/mymysql/native
+# golang.org/x/crypto v0.0.0-20190325154230-a5d413f7728c
+golang.org/x/crypto/md4
 # google.golang.org/appengine v1.4.0
 google.golang.org/appengine/cloudsql
