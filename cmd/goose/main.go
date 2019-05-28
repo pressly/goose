@@ -105,6 +105,7 @@ Options:
 	usageCommands = `
 Commands:
     up                   Migrate the DB to the most recent version available
+    up-by-one            Migrate the DB up by 1
     up-to VERSION        Migrate the DB to a specific VERSION
     down                 Roll back the version by 1
     down-to VERSION      Roll back to a specific VERSION
