@@ -23,7 +23,7 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 
 		tx, err := db.Begin()
 		if err != nil {
-			errors.Wrap(err, "failed to begin transaction")
+			return errors.Wrap(err, "failed to begin transaction")
 		}
 
 		for _, query := range statements {
