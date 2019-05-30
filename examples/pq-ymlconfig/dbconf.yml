@@ -1,0 +1,9 @@
+development:
+    driver: postgres
+    open: user=example dbname=example_dev sslmode=disable
+staging:
+    driver: postgres
+    open: user=example dbname=example_staging sslmode=disable
+production:
+    driver: postgres
+    open: user=example host=postgres dbname=example sslmode=disable
