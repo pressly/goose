@@ -10,11 +10,12 @@ import (
 )
 
 var (
-	flags   = flag.NewFlagSet("goose", flag.ExitOnError)
-	dir     = flags.String("dir", ".", "directory with migration files")
-	verbose = flags.Bool("v", false, "enable verbose mode")
-	help    = flags.Bool("h", false, "print help")
-	version = flags.Bool("version", false, "print version")
+	flags     = flag.NewFlagSet("goose", flag.ExitOnError)
+	dir       = flags.String("dir", ".", "directory with migration files")
+	verbose   = flags.Bool("v", false, "enable verbose mode")
+	help      = flags.Bool("h", false, "print help")
+	version   = flags.Bool("version", false, "print version")
+	tableName = flags.String("table-name", "", "Use custom goose version table name")
 )
 
 func main() {
@@ -27,6 +28,10 @@ func main() {
 	}
 	if *verbose {
 		goose.SetVerbose(true)
+	}
+
+	if *tableName != "" {
+		goose.SetTableName(*tableName)
 	}
 
 	args := flags.Args()
