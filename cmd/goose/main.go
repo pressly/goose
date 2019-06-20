@@ -36,7 +36,8 @@ func main() {
 		return
 	}
 
-	if *sslCA != "" {
+	tls := *sslCA != ""
+	if tls {
 		if err := registerTLSConfig(*sslCA); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
@@ -62,7 +63,7 @@ func main() {
 
 	driver, dbstring, command := args[0], args[1], args[2]
 
-	db, err := goose.OpenDBWithDriver(driver, normalizeDBString(driver, dbstring))
+	db, err := goose.OpenDBWithDriver(driver, normalizeDBString(driver, dbstring, tls))
 	if err != nil {
 		log.Fatalf("-dbstring=%q: %v\n", dbstring, err)
 	}
