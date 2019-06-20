@@ -3,11 +3,13 @@
 package main
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"fmt"
+	"io/ioutil"
 	"log"
 
 	"github.com/go-sql-driver/mysql"
-
-	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/ziutek/mymysql/godrv"
 )
 
@@ -33,4 +35,20 @@ func normalizeMySQLDSN(dsn string) (string, error) {
 	}
 	config.ParseTime = true
 	return config.FormatDSN(), nil
+}
+
+const tlsConfigKey = "custom"
+
+func registerTLSConfig(pemfile string) error {
+	rootCertPool := x509.NewCertPool()
+	pem, err := ioutil.ReadFile(pemfile)
+	if err != nil {
+		return err
+	}
+	if ok := rootCertPool.AppendCertsFromPEM(pem); !ok {
+		return fmt.Errorf("failed to append PEM: %q", pemfile)
+	}
+	return mysql.RegisterTLSConfig(tlsConfigKey, &tls.Config{
+		RootCAs: rootCertPool,
+	})
 }

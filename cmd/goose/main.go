@@ -15,6 +15,7 @@ var (
 	verbose = flags.Bool("v", false, "enable verbose mode")
 	help    = flags.Bool("h", false, "print help")
 	version = flags.Bool("version", false, "print version")
+	sslCA   = flags.String("ssl-ca", "", "file path to root CA's certificates in pem format (only support on mysql)")
 )
 
 func main() {
@@ -33,6 +34,12 @@ func main() {
 	if len(args) == 0 || *help {
 		flags.Usage()
 		return
+	}
+
+	if *sslCA != "" {
+		if err := registerTLSConfig(*sslCA); err != nil {
+			log.Fatalf("goose run: %v", err)
+		}
 	}
 
 	switch args[0] {

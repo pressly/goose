@@ -10,3 +10,7 @@ import (
 func normalizeDBString(driver string, str string) string {
 	return str
 }
+
+func registerTLSConfig(_ string) error {
+	return nil
+}
