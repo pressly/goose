@@ -225,7 +225,7 @@ language plpgsql;
 3. Register your migration functions
 4. Run goose command, ie. `goose.Up(db *sql.DB, dir string)`
 
-A [sample Go migration 00002_users_add_email.go file](./example/go-migrations/00002_rename_root.go) looks like:
+A [sample Go migration 00002_users_add_email.go file](./examples/go-migrations/00002_rename_root.go) looks like:
 
 ```go
 package migrations
