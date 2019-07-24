@@ -3,13 +3,15 @@ package cmd
 import (
 	"database/sql"
 	"fmt"
-	"github.com/BurntSushi/toml"
-	"github.com/geniusmonkey/gander"
-	_ "github.com/lib/pq"
-	"github.com/spf13/cobra"
 	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/BurntSushi/toml"
+	"github.com/geniusmonkey/gander"
+	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
+	"github.com/spf13/cobra"
 )
 
 var cfgFile string
