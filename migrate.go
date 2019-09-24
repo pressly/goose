@@ -248,8 +248,11 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 	// The first version we find that has been applied is the current version.
 
 	toSkip := make([]int64, 0)
+	hasRows := false
 
 	for rows.Next() {
+		hasRows = true
+
 		var row MigrationRecord
 		if err = rows.Scan(&row.VersionID, &row.IsApplied); err != nil {
 			return 0, errors.Wrap(err, "failed to scan row")
@@ -278,6 +281,16 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 	}
 	if err := rows.Err(); err != nil {
 		return 0, errors.Wrap(err, "failed to get next row")
+	}
+
+	if !hasRows {
+		// the table was created but the initial 'version 0' row was not inserted due to an error
+		version := 0
+		applied := true
+		if _, err := db.Exec(GetDialect().insertVersionSQL(), version, applied); err != nil {
+			return 0, errors.Wrap(err, "failed to insert initial version")
+		}
+		return int64(version), nil
 	}
 
 	return 0, ErrNoNextVersion
