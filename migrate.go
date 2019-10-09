@@ -19,8 +19,6 @@ var (
 	ErrNoNextVersion = errors.New("no next version found")
 	// MaxVersion is the maximum allowed version.
 	MaxVersion int64 = 9223372036854775807 // max(int64)
-
-	registeredGoMigrations = map[int64]*Migration{}
 )
 
 // Migrations slice.
@@ -134,11 +132,11 @@ func AddNamedMigration(filename string, up func(*sql.Tx) error, down func(*sql.T
 	v, _ := NumericComponent(filename)
 	migration := &Migration{Version: v, Next: -1, Previous: -1, Registered: true, UpFn: up, DownFn: down, Source: filename}
 
-	if existing, ok := registeredGoMigrations[v]; ok {
+	if existing, ok := globalRegister.goMigrations[v]; ok {
 		panic(fmt.Sprintf("failed to add migration %q: version conflicts with %q", filename, existing.Source))
 	}
 
-	registeredGoMigrations[v] = migration
+	globalRegister.goMigrations[v] = migration
 }
 
 // CollectMigrations returns all the valid looking migration scripts in the
@@ -167,7 +165,7 @@ func CollectMigrations(dirpath string, current, target int64) (Migrations, error
 	}
 
 	// Go migrations registered via goose.AddMigration().
-	for _, migration := range registeredGoMigrations {
+	for _, migration := range globalRegister.goMigrations {
 		v, err := NumericComponent(migration.Source)
 		if err != nil {
 			return nil, err
@@ -189,7 +187,7 @@ func CollectMigrations(dirpath string, current, target int64) (Migrations, error
 		}
 
 		// Skip migrations already existing migrations registered via goose.AddMigration().
-		if _, ok := registeredGoMigrations[v]; ok {
+		if _, ok := globalRegister.goMigrations[v]; ok {
 			continue
 		}
 
