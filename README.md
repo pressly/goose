@@ -64,6 +64,8 @@ Options:
 
   -dir string
     	directory with migration files (default ".")
+  -table string
+    	migrations table name (default "goose_db_version")
   -h	print help
   -v	enable verbose mode
   -version
