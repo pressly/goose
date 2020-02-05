@@ -1,16 +1,18 @@
 package gander
 
 import (
-	"database/sql"
 	"fmt"
+	"github.com/spf13/afero"
 	"os"
 	"path/filepath"
 	"text/template"
 	"time"
 )
 
+var fs = afero.NewOsFs()
+
 // Create writes a new blank migration file.
-func CreateWithTemplate(db *sql.DB, dir string, migrationTemplate *template.Template, name, migrationType string) error {
+func CreateWithTemplate(dir string, migrationTemplate *template.Template, name, migrationType string) error {
 	version := time.Now().Format(timestampFormat)
 	filename := fmt.Sprintf("%v_%v.%v", version, name, migrationType)
 
@@ -30,21 +32,21 @@ func CreateWithTemplate(db *sql.DB, dir string, migrationTemplate *template.Temp
 		return err
 	}
 
-	log.Printf("Created new file: %s\n", path)
+	log.Infof("Created new file: %s\n", path)
 	return nil
 }
 
 // Create writes a new blank migration file.
-func Create(db *sql.DB, dir, name, migrationType string) error {
-	return CreateWithTemplate(db, dir, nil, name, migrationType)
+func Create(dir, name, migrationType string) error {
+	return CreateWithTemplate(dir, nil, name, migrationType)
 }
 
 func writeTemplateToFile(path string, t *template.Template, version string) (string, error) {
-	if _, err := os.Stat(path); !os.IsNotExist(err) {
+	if _, err := fs.Stat(path); !os.IsNotExist(err) {
 		return "", fmt.Errorf("failed to create file: %v already exists", path)
 	}
 
-	f, err := os.Create(path)
+	f, err := fs.Create(path)
 	if err != nil {
 		return "", err
 	}

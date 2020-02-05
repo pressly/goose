@@ -1,23 +1,26 @@
 package cmd
 
 import (
-	"database/sql"
 	"fmt"
-	"log"
-	"os"
-	"path/filepath"
-
-	"github.com/BurntSushi/toml"
-	"github.com/geniusmonkey/gander"
+	"github.com/apex/log"
+	"github.com/geniusmonkey/gander/creds"
+	"github.com/geniusmonkey/gander/db"
+	"github.com/geniusmonkey/gander/env"
+	"github.com/geniusmonkey/gander/project"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	"github.com/spf13/cobra"
+	"os"
 )
 
-var cfgFile string
-var env = &gander.Environment{}
-var envName string
-var db *sql.DB
+//var cfgFile string
+var (
+	proj *project.Project
+	//environment *env.Environment
+)
+
+//var envName string
+//var db *sql.DB
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -36,65 +39,43 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file location (default dbconf.toml)")
-	rootCmd.PersistentFlags().StringVarP(&envName, "env", "e", "development", "name of the environment to use")
-
-	rootCmd.PersistentFlags().StringVar(&env.Dsn, "dsn", "", "dataSourceName to connect to the server")
-	rootCmd.PersistentFlags().StringVar(&env.Driver, "driver", "", "name of the database driver")
-	rootCmd.PersistentFlags().StringVar(&env.MigrationsDir, "dir", "./migrations", "directory containing the migration files")
-}
-
-// initConfig reads in config file and ENV variables if set.
-func initConfig() {
-	if cfgFile == "" {
-		if _, err := os.Stat("dbconf.toml"); os.IsNotExist(err) {
-			return
-		} else if cfgFile == "" {
-			cfgFile = "dbconf.toml"
-		}
-
-	}
-
-	file, err := os.Open(cfgFile)
-	info, _ := file.Stat()
-	if os.IsNotExist(err) {
-		log.Fatalf("no config file found at %s", cfgFile)
-	}
-
-	c := gander.Config{}
-	if _, err := toml.DecodeReader(file, &c); err != nil {
-		log.Fatalf("failed to read file %s", err)
-	}
-
-	if e, ok := c.Environments[envName]; !ok {
-		log.Fatalf("failed to environment named %s in %s", envName, info.Name())
-	} else {
-		env = &e
-	}
-
-	env.MigrationsDir = filepath.Join(filepath.Dir(cfgFile), env.MigrationsDir)
-}
-
-func dbSetup(cmd *cobra.Command, args []string) {
 	var err error
-	if err := gander.SetDialect(env.Driver); err != nil {
-		log.Fatalf("failed to set dialect %s, %v", env.Driver, err)
+	var dir string
+	if d, err := os.Getwd(); err != nil {
+		log.Fatal("failed to get project directory")
+	} else {
+		dir = d
 	}
 
-	switch env.Driver {
-	case "redshift", "cockroach":
-		env.Driver = "postgres"
-	case "tidb":
-		env.Driver = "mysql"
-	}
-
-	db, err = sql.Open(env.Driver, env.Dsn)
-	if err != nil {
-		log.Fatalf("failed to open connection %s", err)
+	proj, err = project.Get(dir)
+	if err != nil && err != project.IsNotExists {
+		log.Fatalf("error while trying to load project directory: %v", err)
 	}
 }
 
-func dbClose(cmd *cobra.Command, args []string) {
-	_ = db.Close()
+func setup(cmd *cobra.Command, args []string) {
+	if proj == nil {
+		log.Fatalf("not a gander project")
+	}
+
+	var envName = proj.DefaultEnv
+	if len(args) == 1 {
+		envName = args[0]
+	}
+
+	environment, err := env.Get(proj, envName)
+	if err != nil {
+		log.Fatalf("failed to get environment: %v", err)
+	}
+
+	cred, err := creds.Get(*proj, environment)
+	if err != nil {
+		log.Fatalf("credentials not found for environment %v, \n\tuse \"gander creds add\"", environment.Name)
+	}
+
+	db.Setup(*proj, environment, cred)
+}
+
+func tearDown(cmd *cobra.Command, args []string) {
+	db.Close()
 }

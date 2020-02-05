@@ -44,7 +44,7 @@ func dbMigrationsStatus(db *sql.DB) (map[int64]bool, error) {
 	for rows.Next() {
 		var row MigrationRecord
 		if err = rows.Scan(&row.VersionID, &row.IsApplied); err != nil {
-			log.Fatal("error scanning rows:", err)
+			log.Fatalf("error scanning rows:", err)
 		}
 
 		if _, ok := result[row.VersionID]; ok {

@@ -251,7 +251,7 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 	for rows.Next() {
 		var row MigrationRecord
 		if err = rows.Scan(&row.VersionID, &row.IsApplied); err != nil {
-			log.Fatal("error scanning rows:", err)
+			log.Fatalf("error scanning rows:", err)
 		}
 
 		// have we already marked this version to be skipped?

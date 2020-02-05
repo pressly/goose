@@ -1,9 +1,10 @@
 package cmd
 
 import (
+	"github.com/apex/log"
 	"github.com/geniusmonkey/gander"
+	"github.com/gosimple/slug"
 	"github.com/spf13/cobra"
-	"log"
 )
 
 var migType string
@@ -13,7 +14,9 @@ var createCmd = &cobra.Command{
 	Short: "Creates new migration file with the current timestamp",
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := gander.Create(db, env.MigrationsDir, args[0], migType); err != nil {
+		dir := proj.MigrationDir()
+
+		if err := gander.Create(dir, slug.Make(args[0]), migType); err != nil {
 			log.Fatalf("failed to create migration, %s", err)
 		}
 	},

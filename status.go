@@ -20,8 +20,8 @@ func Status(db *sql.DB, dir string) error {
 		return err
 	}
 
-	log.Println("    Applied At                  Migration")
-	log.Println("    =======================================")
+	log.Infof("    Applied At                  Migration")
+	log.Infof("    =======================================")
 	for _, migration := range migrations {
 		printMigrationStatus(db, migration.Version, filepath.Base(migration.Source))
 	}
@@ -35,7 +35,7 @@ func printMigrationStatus(db *sql.DB, version int64, script string) {
 	e := db.QueryRow(q).Scan(&row.TStamp, &row.IsApplied)
 
 	if e != nil && e != sql.ErrNoRows {
-		log.Fatal(e)
+		log.Fatal(e.Error())
 	}
 
 	var appliedAt string
@@ -46,5 +46,6 @@ func printMigrationStatus(db *sql.DB, version int64, script string) {
 		appliedAt = "Pending"
 	}
 
-	log.Printf("    %-24s -- %v\n", appliedAt, script)
+	log.Infof("    %-24s -- %v", appliedAt, script)
 }
+

@@ -2,17 +2,19 @@ package cmd
 
 import (
 	"github.com/geniusmonkey/gander"
+	"github.com/geniusmonkey/gander/db"
 	"github.com/spf13/cobra"
 	"log"
 )
 
 var statusCmd = &cobra.Command{
-	Use: "status",
+	Use: "status [env]",
 	Short: "Dump the migration status for the current DB",
-	PreRun: dbSetup,
-	PostRun: dbClose,
+	Args: cobra.MaximumNArgs(1),
+	PreRun: setup,
+	PostRun: tearDown,
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := gander.Status(db, env.MigrationsDir); err != nil {
+		if err := gander.Status(db.Get(), proj.MigrationDir()); err != nil {
 			log.Fatalf("failed to get status, %s", err)
 		}
 	},

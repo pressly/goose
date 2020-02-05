@@ -46,7 +46,7 @@ func Run(command string, db *sql.DB, dir string, args ...string) error {
 		if len(args) == 2 {
 			migrationType = args[1]
 		}
-		if err := Create(db, dir, args[0], migrationType); err != nil {
+		if err := Create(dir, args[0], migrationType); err != nil {
 			return err
 		}
 	case "down":

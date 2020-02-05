@@ -141,7 +141,7 @@ func getSQLStatements(r io.Reader, direction bool) ([]string, bool, error) {
 func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) error {
 	f, err := os.Open(scriptFile)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(err.Error())
 	}
 	defer f.Close()
 
@@ -155,7 +155,7 @@ func runSQLMigration(db *sql.DB, scriptFile string, v int64, direction bool) err
 
 		tx, err := db.Begin()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(err.Error())
 		}
 
 		for _, query := range statements {

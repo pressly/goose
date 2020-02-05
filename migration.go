@@ -37,7 +37,7 @@ func (m *Migration) Up(db *sql.DB) error {
 	if err := m.run(db, true); err != nil {
 		return err
 	}
-	log.Println("OK   ", filepath.Base(m.Source))
+	log.Infof("UP     %v", filepath.Base(m.Source))
 	return nil
 }
 
@@ -46,7 +46,7 @@ func (m *Migration) Down(db *sql.DB) error {
 	if err := m.run(db, false); err != nil {
 		return err
 	}
-	log.Println("OK   ", filepath.Base(m.Source))
+	log.Infof("DOWN   %v", filepath.Base(m.Source))
 	return nil
 }
 
@@ -63,7 +63,7 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 		}
 		tx, err := db.Begin()
 		if err != nil {
-			log.Fatal("db.Begin: ", err)
+			log.Fatalf("db.Begin: ", err)
 		}
 
 		fn := m.UpFn
@@ -111,7 +111,7 @@ func (m *Migration) Baseline(db *sql.DB) error {
 		return err
 	}
 
-	log.Printf("baselined migration %v, did not execute migration", m.String())
+	log.Infof("baselined migration %v, did not execute migration", m.String())
 
 	return nil
 }

@@ -11,7 +11,7 @@ func Version(db *sql.DB, dir string) error {
 		return err
 	}
 
-	log.Printf("goose: version %v\n", current)
+	log.Infof("gander: version %v\n", current)
 	return nil
 }
 

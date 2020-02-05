@@ -1,0 +1,4 @@
+driver: mysql
+name: examples
+default: local
+migrations: sql-migrations

@@ -3,10 +3,9 @@ package main
 import (
 	"database/sql"
 	"flag"
+	"github.com/geniusmonkey/gander"
 	"log"
 	"os"
-
-	"github.com/pressly/goose"
 
 	// Init DB drivers.
 	_ "github.com/go-sql-driver/mysql"
@@ -32,12 +31,12 @@ func main() {
 
 	switch args[0] {
 	case "create":
-		if err := goose.Run("create", nil, *dir, args[1:]...); err != nil {
+		if err := gander.Run("create", nil, *dir, args[1:]...); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
 		return
 	case "fix":
-		if err := goose.Run("fix", nil, *dir); err != nil {
+		if err := gander.Run("fix", nil, *dir); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
 		return
@@ -57,7 +56,7 @@ func main() {
 
 	switch driver {
 	case "postgres", "mysql", "sqlite3", "redshift":
-		if err := goose.SetDialect(driver); err != nil {
+		if err := gander.SetDialect(driver); err != nil {
 			log.Fatal(err)
 		}
 	default:
@@ -84,7 +83,7 @@ func main() {
 		arguments = append(arguments, args[3:]...)
 	}
 
-	if err := goose.Run(command, db, *dir, arguments...); err != nil {
+	if err := gander.Run(command, db, *dir, arguments...); err != nil {
 		log.Fatalf("goose run: %v", err)
 	}
 }
@@ -126,7 +125,7 @@ Commands:
     down-to VERSION      Roll back to a specific VERSION
     redo                 Re-run the latest migration
     status               Dump the migration status for the current DB
-    version              Print the current version of the database
+    version              Info the current version of the database
     create NAME [sql|go] Creates new migration file with the current timestamp
 		fix                  Apply sequential ordering to migrations
 `
