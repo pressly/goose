@@ -13,6 +13,8 @@ var fs afero.Fs
 var ErrProjectExists = errors.New("existing project")
 var IsNotExists = errors.New("not a gander project dir")
 
+const dirName = ".gander"
+
 func init() {
 	fs = afero.NewOsFs()
 }
@@ -30,7 +32,7 @@ func (p Project) MigrationDir() string {
 }
 
 func Init(dir string, project Project) error {
-	ganderDir := path.Join(dir, ".gander")
+	ganderDir := path.Join(dir, dirName)
 	_, err := fs.Stat(ganderDir)
 	if err == nil {
 		return ErrProjectExists
@@ -56,7 +58,7 @@ func Init(dir string, project Project) error {
 }
 
 func Get(dir string) (*Project, error) {
-	ganderDir := path.Join(dir, ".gander", "project.yaml")
+	ganderDir := path.Join(dir, dirName, "project.yaml")
 	file, err := fs.Open(ganderDir)
 	if err != nil {
 		return nil, IsNotExists

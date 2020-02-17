@@ -19,7 +19,7 @@ func init() {
 			Writer:  os.Stdout,
 			Padding: 0,
 		},
-		Level:   std.InfoLevel,
+		Level:   std.DebugLevel,
 	}
 }
 

@@ -3,6 +3,7 @@ package creds
 import (
 	"errors"
 	"fmt"
+	"github.com/apex/log"
 	"github.com/geniusmonkey/gander/env"
 	"github.com/geniusmonkey/gander/project"
 	"github.com/spf13/afero"
@@ -13,6 +14,8 @@ import (
 
 var fs = afero.NewOsFs()
 var IsNotExist = errors.New("credentials do not exist")
+
+const dirName = "gander"
 
 type projectCreds map[string]Credentials
 
@@ -34,19 +37,19 @@ func Save(proj project.Project, environment env.Environment, credentials Credent
 		return err
 	}
 
-	ganderCfg := path.Join(usrDir, "gander")
+	ganderCfg := path.Join(usrDir, dirName)
 	credPath := path.Join(ganderCfg, proj.Name)
 
 	var file afero.File
-	if ok, err := exists(credPath); err != nil {
+	if exists, err := afero.Exists(fs, credPath); err != nil {
 		return err
-	} else if ok {
-		file, err = os.Open(credPath)
+	} else if exists {
+		file, err = fs.Open(credPath)
 	} else {
 		if err := fs.MkdirAll(ganderCfg, os.ModeDir|os.ModePerm); err != nil {
 			return fmt.Errorf("unable to create config directory, %w", err)
 		}
-		file, err = os.Create(credPath)
+		file, err = fs.Create(credPath)
 	}
 
 	if err != nil {
@@ -76,10 +79,11 @@ func loadProCreds(proj project.Project) (projectCreds, error) {
 		return pc, err
 	}
 
-	credPath := path.Join(usrDir, "gander", proj.Name)
-	if ok, err := exists(credPath); err != nil {
+	credPath := path.Join(usrDir, dirName, proj.Name)
+	if exists, err := afero.Exists(fs, credPath); err != nil {
 		return pc, err
-	} else if ok {
+	} else if exists {
+		log.Debugf("using credentials file found at $s", credPath)
 		file, err := fs.Open(credPath)
 		if err != nil {
 			return pc, err
@@ -87,17 +91,8 @@ func loadProCreds(proj project.Project) (projectCreds, error) {
 		err = yaml.NewDecoder(file).Decode(&pc)
 		return pc, err
 	} else {
+		log.Debugf("credential file %s does not exist returning empty config", credPath)
 		return pc, nil
 	}
 }
 
-func exists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return true, err
-}
