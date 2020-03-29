@@ -5,14 +5,17 @@ import (
 )
 
 // UpTo migrates up to a specific version.
-func UpTo(db *sql.DB, dir string, version int64) error {
-	migrations, err := CollectMigrations(dir, minVersion, version)
+func UpTo(db *sql.DB, dir string, version int64) error { return def.UpTo(db, dir, version) }
+
+// UpTo migrates up to a specific version.
+func (in *Instance) UpTo(db *sql.DB, dir string, version int64) error {
+	migrations, err := in.CollectMigrations(dir, minVersion, version)
 	if err != nil {
 		return err
 	}
 
 	for {
-		current, err := GetDBVersion(db)
+		current, err := in.GetDBVersion(db)
 		if err != nil {
 			return err
 		}
@@ -33,18 +36,24 @@ func UpTo(db *sql.DB, dir string, version int64) error {
 }
 
 // Up applies all available migrations.
-func Up(db *sql.DB, dir string) error {
-	return UpTo(db, dir, maxVersion)
+func Up(db *sql.DB, dir string) error { return def.Up(db, dir) }
+
+// Up applies all available migrations.
+func (in *Instance) Up(db *sql.DB, dir string) error {
+	return in.UpTo(db, dir, maxVersion)
 }
 
 // UpByOne migrates up by a single version.
-func UpByOne(db *sql.DB, dir string) error {
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+func UpByOne(db *sql.DB, dir string) error { return def.UpByOne(db, dir) }
+
+// UpByOne migrates up by a single version.
+func (in *Instance) UpByOne(db *sql.DB, dir string) error {
+	migrations, err := in.CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
 
-	currentVersion, err := GetDBVersion(db)
+	currentVersion, err := in.GetDBVersion(db)
 	if err != nil {
 		return err
 	}

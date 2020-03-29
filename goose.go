@@ -24,13 +24,18 @@ func SetVerbose(v bool) {
 
 // Run runs a goose command.
 func Run(command string, db *sql.DB, dir string, args ...string) error {
+	return def.Run(command, db, dir, args...)
+}
+
+// Run runs a goose command.
+func (in *Instance) Run(command string, db *sql.DB, dir string, args ...string) error {
 	switch command {
 	case "up":
-		if err := Up(db, dir); err != nil {
+		if err := in.Up(db, dir); err != nil {
 			return err
 		}
 	case "up-by-one":
-		if err := UpByOne(db, dir); err != nil {
+		if err := in.UpByOne(db, dir); err != nil {
 			return err
 		}
 	case "up-to":
@@ -42,7 +47,7 @@ func Run(command string, db *sql.DB, dir string, args ...string) error {
 		if err != nil {
 			return fmt.Errorf("version must be a number (got '%s')", args[0])
 		}
-		if err := UpTo(db, dir, version); err != nil {
+		if err := in.UpTo(db, dir, version); err != nil {
 			return err
 		}
 	case "create":
@@ -58,7 +63,7 @@ func Run(command string, db *sql.DB, dir string, args ...string) error {
 			return err
 		}
 	case "down":
-		if err := Down(db, dir); err != nil {
+		if err := in.Down(db, dir); err != nil {
 			return err
 		}
 	case "down-to":
@@ -70,27 +75,27 @@ func Run(command string, db *sql.DB, dir string, args ...string) error {
 		if err != nil {
 			return fmt.Errorf("version must be a number (got '%s')", args[0])
 		}
-		if err := DownTo(db, dir, version); err != nil {
+		if err := in.DownTo(db, dir, version); err != nil {
 			return err
 		}
 	case "fix":
-		if err := Fix(dir); err != nil {
+		if err := in.Fix(dir); err != nil {
 			return err
 		}
 	case "redo":
-		if err := Redo(db, dir); err != nil {
+		if err := in.Redo(db, dir); err != nil {
 			return err
 		}
 	case "reset":
-		if err := Reset(db, dir); err != nil {
+		if err := in.Reset(db, dir); err != nil {
 			return err
 		}
 	case "status":
-		if err := Status(db, dir); err != nil {
+		if err := in.Status(db, dir); err != nil {
 			return err
 		}
 	case "version":
-		if err := Version(db, dir); err != nil {
+		if err := in.Version(db, dir); err != nil {
 			return err
 		}
 	default:

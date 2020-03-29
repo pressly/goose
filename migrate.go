@@ -19,8 +19,6 @@ var (
 	ErrNoNextVersion = errors.New("no next version found")
 	// MaxVersion is the maximum allowed version.
 	MaxVersion int64 = 9223372036854775807 // max(int64)
-
-	registeredGoMigrations = map[int64]*Migration{}
 )
 
 // Migrations slice.
@@ -126,24 +124,41 @@ func (ms Migrations) String() string {
 // AddMigration adds a migration.
 func AddMigration(up func(*sql.Tx) error, down func(*sql.Tx) error) {
 	_, filename, _, _ := runtime.Caller(1)
-	AddNamedMigration(filename, up, down)
+	def.AddNamedMigration(filename, up, down)
+}
+
+// AddMigration adds a migration.
+func (in *Instance) AddMigration(up func(*sql.Tx) error, down func(*sql.Tx) error) {
+	_, filename, _, _ := runtime.Caller(1)
+	in.AddNamedMigration(filename, up, down)
 }
 
 // AddNamedMigration : Add a named migration.
 func AddNamedMigration(filename string, up func(*sql.Tx) error, down func(*sql.Tx) error) {
-	v, _ := NumericComponent(filename)
-	migration := &Migration{Version: v, Next: -1, Previous: -1, Registered: true, UpFn: up, DownFn: down, Source: filename}
+	def.AddNamedMigration(filename, up, down)
+}
 
-	if existing, ok := registeredGoMigrations[v]; ok {
+// AddNamedMigration : Add a named migration.
+func (in *Instance) AddNamedMigration(filename string, up func(*sql.Tx) error, down func(*sql.Tx) error) {
+	v, _ := NumericComponent(filename)
+	migration := &Migration{Version: v, Next: -1, Previous: -1, Registered: true, UpFn: up, DownFn: down, Source: filename, in: in}
+
+	if existing, ok := in.registeredGoMigrations[v]; ok {
 		panic(fmt.Sprintf("failed to add migration %q: version conflicts with %q", filename, existing.Source))
 	}
 
-	registeredGoMigrations[v] = migration
+	in.registeredGoMigrations[v] = migration
 }
 
 // CollectMigrations returns all the valid looking migration scripts in the
 // migrations folder and go func registry, and key them by version.
 func CollectMigrations(dirpath string, current, target int64) (Migrations, error) {
+	return def.CollectMigrations(dirpath, current, target)
+}
+
+// CollectMigrations returns all the valid looking migration scripts in the
+// migrations folder and go func registry, and key them by version.
+func (in *Instance) CollectMigrations(dirpath string, current, target int64) (Migrations, error) {
 	if _, err := os.Stat(dirpath); os.IsNotExist(err) {
 		return nil, fmt.Errorf("%s directory does not exists", dirpath)
 	}
@@ -161,13 +176,13 @@ func CollectMigrations(dirpath string, current, target int64) (Migrations, error
 			return nil, err
 		}
 		if versionFilter(v, current, target) {
-			migration := &Migration{Version: v, Next: -1, Previous: -1, Source: file}
+			migration := &Migration{Version: v, Next: -1, Previous: -1, Source: file, in: in}
 			migrations = append(migrations, migration)
 		}
 	}
 
 	// Go migrations registered via goose.AddMigration().
-	for _, migration := range registeredGoMigrations {
+	for _, migration := range in.registeredGoMigrations {
 		v, err := NumericComponent(migration.Source)
 		if err != nil {
 			return nil, err
@@ -189,12 +204,12 @@ func CollectMigrations(dirpath string, current, target int64) (Migrations, error
 		}
 
 		// Skip migrations already existing migrations registered via goose.AddMigration().
-		if _, ok := registeredGoMigrations[v]; ok {
+		if _, ok := in.registeredGoMigrations[v]; ok {
 			continue
 		}
 
 		if versionFilter(v, current, target) {
-			migration := &Migration{Version: v, Next: -1, Previous: -1, Source: file, Registered: false}
+			migration := &Migration{Version: v, Next: -1, Previous: -1, Source: file, Registered: false, in: in}
 			migrations = append(migrations, migration)
 		}
 	}
@@ -236,10 +251,14 @@ func versionFilter(v, current, target int64) bool {
 
 // EnsureDBVersion retrieves the current version for this DB.
 // Create and initialize the DB version table if it doesn't exist.
-func EnsureDBVersion(db *sql.DB) (int64, error) {
-	rows, err := GetDialect().dbVersionQuery(db)
+func EnsureDBVersion(db *sql.DB) (int64, error) { return def.EnsureDBVersion(db) }
+
+// EnsureDBVersion retrieves the current version for this DB.
+// Create and initialize the DB version table if it doesn't exist.
+func (in *Instance) EnsureDBVersion(db *sql.DB) (int64, error) {
+	rows, err := in.GetDialect().dbVersionQuery(db)
 	if err != nil {
-		return 0, createVersionTable(db)
+		return 0, in.createVersionTable(db)
 	}
 	defer rows.Close()
 
@@ -285,13 +304,15 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 
 // Create the db version table
 // and insert the initial 0 value into it
-func createVersionTable(db *sql.DB) error {
+func createVersionTable(db *sql.DB) error { return def.createVersionTable(db) }
+
+func (in *Instance) createVersionTable(db *sql.DB) error {
 	txn, err := db.Begin()
 	if err != nil {
 		return err
 	}
 
-	d := GetDialect()
+	d := in.GetDialect()
 
 	if _, err := txn.Exec(d.createVersionTableSQL()); err != nil {
 		txn.Rollback()
@@ -309,8 +330,11 @@ func createVersionTable(db *sql.DB) error {
 }
 
 // GetDBVersion is an alias for EnsureDBVersion, but returns -1 in error.
-func GetDBVersion(db *sql.DB) (int64, error) {
-	version, err := EnsureDBVersion(db)
+func GetDBVersion(db *sql.DB) (int64, error) { return def.GetDBVersion(db) }
+
+// GetDBVersion is an alias for EnsureDBVersion, but returns -1 in error.
+func (in *Instance) GetDBVersion(db *sql.DB) (int64, error) {
+	version, err := in.EnsureDBVersion(db)
 	if err != nil {
 		return -1, err
 	}

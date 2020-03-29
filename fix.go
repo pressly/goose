@@ -7,8 +7,10 @@ import (
 	"strings"
 )
 
-func Fix(dir string) error {
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+func Fix(dir string) error { return def.Fix(dir) }
+
+func (in *Instance) Fix(dir string) error {
+	migrations, err := in.CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
