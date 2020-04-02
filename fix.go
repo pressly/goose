@@ -40,7 +40,7 @@ func (in *Instance) Fix(dir string) error {
 			return err
 		}
 
-		log.Printf("RENAMED %s => %s", filepath.Base(oldPath), filepath.Base(newPath))
+		in.log.Printf("RENAMED %s => %s", filepath.Base(oldPath), filepath.Base(newPath))
 		version++
 	}
 

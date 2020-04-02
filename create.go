@@ -18,6 +18,11 @@ type tmplVars struct {
 
 // Create writes a new blank migration file.
 func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, migrationType string) error {
+	return def.CreateWithTemplate(db, dir, tmpl, name, migrationType)
+}
+
+// Create writes a new blank migration file.
+func (in *Instance) CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, migrationType string) error {
 	version := time.Now().Format(timestampFormat)
 	filename := fmt.Sprintf("%v_%v.%v", version, snakeCase(name), migrationType)
 
@@ -48,13 +53,18 @@ func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, m
 		return errors.Wrap(err, "failed to execute tmpl")
 	}
 
-	log.Printf("Created new file: %s\n", f.Name())
+	in.log.Printf("Created new file: %s\n", f.Name())
 	return nil
 }
 
 // Create writes a new blank migration file.
 func Create(db *sql.DB, dir, name, migrationType string) error {
-	return CreateWithTemplate(db, dir, nil, name, migrationType)
+	return def.Create(db, dir, name, migrationType)
+}
+
+// Create writes a new blank migration file.
+func (in *Instance) Create(db *sql.DB, dir, name, migrationType string) error {
+	return in.CreateWithTemplate(db, dir, nil, name, migrationType)
 }
 
 var sqlMigrationTemplate = template.Must(template.New("goose.sql-migration").Parse(`-- +goose Up

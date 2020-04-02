@@ -28,8 +28,8 @@ type stateMachine parserState
 func (s *stateMachine) Get() parserState {
 	return parserState(*s)
 }
-func (s *stateMachine) Set(new parserState) {
-	verboseInfo("StateMachine: %v => %v", *s, new)
+func (s *stateMachine) Set(in *Instance, new parserState) {
+	in.verboseInfo("StateMachine: %v => %v", *s, new)
 	*s = stateMachine(new)
 }
 
@@ -53,7 +53,7 @@ var bufferPool = sync.Pool{
 // within a statement. For these cases, we provide the explicit annotations
 // 'StatementBegin' and 'StatementEnd' to allow the script to
 // tell us to ignore semicolons.
-func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool, err error) {
+func (in *Instance) parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool, err error) {
 	var buf bytes.Buffer
 	scanBuf := bufferPool.Get().([]byte)
 	defer bufferPool.Put(scanBuf)
@@ -66,8 +66,8 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		if verbose {
-			log.Println(line)
+		if in.verbose {
+			in.log.Println(line)
 		}
 
 		if strings.HasPrefix(line, "--") {
@@ -77,7 +77,7 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 			case "+goose Up":
 				switch stateMachine.Get() {
 				case start:
-					stateMachine.Set(gooseUp)
+					stateMachine.Set(in, gooseUp)
 				default:
 					return nil, false, errors.Errorf("duplicate '-- +goose Up' annotations; stateMachine=%v, see https://github.com/pressly/goose#sql-migrations", stateMachine)
 				}
@@ -86,7 +86,7 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 			case "+goose Down":
 				switch stateMachine.Get() {
 				case gooseUp, gooseStatementEndUp:
-					stateMachine.Set(gooseDown)
+					stateMachine.Set(in, gooseDown)
 				default:
 					return nil, false, errors.Errorf("must start with '-- +goose Up' annotation, stateMachine=%v, see https://github.com/pressly/goose#sql-migrations", stateMachine)
 				}
@@ -95,9 +95,9 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 			case "+goose StatementBegin":
 				switch stateMachine.Get() {
 				case gooseUp, gooseStatementEndUp:
-					stateMachine.Set(gooseStatementBeginUp)
+					stateMachine.Set(in, gooseStatementBeginUp)
 				case gooseDown, gooseStatementEndDown:
-					stateMachine.Set(gooseStatementBeginDown)
+					stateMachine.Set(in, gooseStatementBeginDown)
 				default:
 					return nil, false, errors.Errorf("'-- +goose StatementBegin' must be defined after '-- +goose Up' or '-- +goose Down' annotation, stateMachine=%v, see https://github.com/pressly/goose#sql-migrations", stateMachine)
 				}
@@ -106,9 +106,9 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 			case "+goose StatementEnd":
 				switch stateMachine.Get() {
 				case gooseStatementBeginUp:
-					stateMachine.Set(gooseStatementEndUp)
+					stateMachine.Set(in, gooseStatementEndUp)
 				case gooseStatementBeginDown:
-					stateMachine.Set(gooseStatementEndDown)
+					stateMachine.Set(in, gooseStatementEndDown)
 				default:
 					return nil, false, errors.New("'-- +goose StatementEnd' must be defined after '-- +goose StatementBegin', see https://github.com/pressly/goose#sql-migrations")
 				}
@@ -119,14 +119,14 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 
 			default:
 				// Ignore comments.
-				verboseInfo("StateMachine: ignore comment")
+				in.verboseInfo("StateMachine: ignore comment")
 				continue
 			}
 		}
 
 		// Ignore empty lines.
 		if matchEmptyLines.MatchString(line) {
-			verboseInfo("StateMachine: ignore empty line")
+			in.verboseInfo("StateMachine: ignore empty line")
 			continue
 		}
 
@@ -144,13 +144,13 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 		case gooseUp, gooseStatementBeginUp, gooseStatementEndUp:
 			if !direction /*down*/ {
 				buf.Reset()
-				verboseInfo("StateMachine: ignore down")
+				in.verboseInfo("StateMachine: ignore down")
 				continue
 			}
 		case gooseDown, gooseStatementBeginDown, gooseStatementEndDown:
 			if direction /*up*/ {
 				buf.Reset()
-				verboseInfo("StateMachine: ignore up")
+				in.verboseInfo("StateMachine: ignore up")
 				continue
 			}
 		default:
@@ -162,24 +162,24 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 			if endsWithSemicolon(line) {
 				stmts = append(stmts, buf.String())
 				buf.Reset()
-				verboseInfo("StateMachine: store simple Up query")
+				in.verboseInfo("StateMachine: store simple Up query")
 			}
 		case gooseDown:
 			if endsWithSemicolon(line) {
 				stmts = append(stmts, buf.String())
 				buf.Reset()
-				verboseInfo("StateMachine: store simple Down query")
+				in.verboseInfo("StateMachine: store simple Down query")
 			}
 		case gooseStatementEndUp:
 			stmts = append(stmts, buf.String())
 			buf.Reset()
-			verboseInfo("StateMachine: store Up statement")
-			stateMachine.Set(gooseUp)
+			in.verboseInfo("StateMachine: store Up statement")
+			stateMachine.Set(in, gooseUp)
 		case gooseStatementEndDown:
 			stmts = append(stmts, buf.String())
 			buf.Reset()
-			verboseInfo("StateMachine: store Down statement")
-			stateMachine.Set(gooseDown)
+			in.verboseInfo("StateMachine: store Down statement")
+			stateMachine.Set(in, gooseDown)
 		}
 	}
 	if err := scanner.Err(); err != nil {

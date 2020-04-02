@@ -14,12 +14,14 @@ var (
 	minVersion         = int64(0)
 	maxVersion         = int64((1 << 63) - 1)
 	timestampFormat    = "20060102150405"
-	verbose            = false
 )
 
 // SetVerbose set the goose verbosity mode
-func SetVerbose(v bool) {
-	verbose = v
+func SetVerbose(v bool) { def.SetVerbose(v) }
+
+// SetVerbose set the goose verbosity mode
+func (in *Instance) SetVerbose(v bool) {
+	in.verbose = v
 }
 
 // Run runs a goose command.
@@ -59,7 +61,7 @@ func (in *Instance) Run(command string, db *sql.DB, dir string, args ...string) 
 		if len(args) == 2 {
 			migrationType = args[1]
 		}
-		if err := Create(db, dir, args[0], migrationType); err != nil {
+		if err := in.Create(db, dir, args[0], migrationType); err != nil {
 			return err
 		}
 	case "down":

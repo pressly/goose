@@ -304,8 +304,6 @@ func (in *Instance) EnsureDBVersion(db *sql.DB) (int64, error) {
 
 // Create the db version table
 // and insert the initial 0 value into it
-func createVersionTable(db *sql.DB) error { return def.createVersionTable(db) }
-
 func (in *Instance) createVersionTable(db *sql.DB) error {
 	txn, err := db.Begin()
 	if err != nil {

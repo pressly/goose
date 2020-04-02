@@ -14,7 +14,7 @@ func (in *Instance) Version(db *sql.DB, dir string) error {
 		return err
 	}
 
-	log.Printf("goose: version %v\n", current)
+	in.log.Printf("goose: version %v\n", current)
 	return nil
 }
 

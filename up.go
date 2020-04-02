@@ -23,7 +23,7 @@ func (in *Instance) UpTo(db *sql.DB, dir string, version int64) error {
 		next, err := migrations.Next(current)
 		if err != nil {
 			if err == ErrNoNextVersion {
-				log.Printf("goose: no migrations to run. current version: %d\n", current)
+				in.log.Printf("goose: no migrations to run. current version: %d\n", current)
 				return nil
 			}
 			return err
@@ -61,7 +61,7 @@ func (in *Instance) UpByOne(db *sql.DB, dir string) error {
 	next, err := migrations.Next(currentVersion)
 	if err != nil {
 		if err == ErrNoNextVersion {
-			log.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
+			in.log.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
 		}
 		return err
 	}

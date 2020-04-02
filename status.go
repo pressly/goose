@@ -24,8 +24,8 @@ func (in *Instance) Status(db *sql.DB, dir string) error {
 		return errors.Wrap(err, "failed to ensure DB version")
 	}
 
-	log.Println("    Applied At                  Migration")
-	log.Println("    =======================================")
+	in.log.Println("    Applied At                  Migration")
+	in.log.Println("    =======================================")
 	for _, migration := range migrations {
 		if err := in.printMigrationStatus(db, migration.Version, filepath.Base(migration.Source)); err != nil {
 			return errors.Wrap(err, "failed to print status")
@@ -33,10 +33,6 @@ func (in *Instance) Status(db *sql.DB, dir string) error {
 	}
 
 	return nil
-}
-
-func printMigrationStatus(db *sql.DB, version int64, script string) error {
-	return def.printMigrationStatus(db, version, script)
 }
 
 func (in *Instance) printMigrationStatus(db *sql.DB, version int64, script string) error {
@@ -56,6 +52,6 @@ func (in *Instance) printMigrationStatus(db *sql.DB, version int64, script strin
 		appliedAt = "Pending"
 	}
 
-	log.Printf("    %-24s -- %v\n", appliedAt, script)
+	in.log.Printf("    %-24s -- %v\n", appliedAt, script)
 	return nil
 }

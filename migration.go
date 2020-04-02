@@ -64,7 +64,7 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 		}
 		defer f.Close()
 
-		statements, useTx, err := parseSQLMigration(f, direction)
+		statements, useTx, err := m.in.parseSQLMigration(f, direction)
 		if err != nil {
 			return errors.Wrapf(err, "ERROR %v: failed to parse SQL migration file", filepath.Base(m.Source))
 		}
@@ -74,9 +74,9 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 		}
 
 		if len(statements) > 0 {
-			log.Println("OK   ", filepath.Base(m.Source))
+			m.in.log.Println("OK   ", filepath.Base(m.Source))
 		} else {
-			log.Println("EMPTY", filepath.Base(m.Source))
+			m.in.log.Println("EMPTY", filepath.Base(m.Source))
 		}
 
 	case ".go":
@@ -118,9 +118,9 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 		}
 
 		if fn != nil {
-			log.Println("OK   ", filepath.Base(m.Source))
+			m.in.log.Println("OK   ", filepath.Base(m.Source))
 		} else {
-			log.Println("EMPTY", filepath.Base(m.Source))
+			m.in.log.Println("EMPTY", filepath.Base(m.Source))
 		}
 
 		return nil

@@ -9,6 +9,8 @@ type Instance struct {
 	dialect                SQLDialect
 	registeredGoMigrations map[int64]*Migration
 	tableName              string
+	log                    Logger
+	verbose                bool
 }
 
 // NewInstance creates and returns new goose instance.
@@ -17,5 +19,7 @@ func NewInstance() *Instance {
 	in.dialect = &PostgresDialect{tableName: in.TableName}
 	in.registeredGoMigrations = make(map[int64]*Migration)
 	in.tableName = "goose_db_version"
+	in.log = &stdLogger{}
+	in.verbose = false
 	return in
 }

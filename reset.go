@@ -34,8 +34,6 @@ func (in *Instance) Reset(db *sql.DB, dir string) error {
 	return nil
 }
 
-func dbMigrationsStatus(db *sql.DB) (map[int64]bool, error) { return def.dbMigrationsStatus(db) }
-
 func (in *Instance) dbMigrationsStatus(db *sql.DB) (map[int64]bool, error) {
 	rows, err := in.GetDialect().dbVersionQuery(db)
 	if err != nil {
