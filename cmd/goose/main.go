@@ -85,6 +85,7 @@ Drivers:
     sqlite3
     mssql
     redshift
+    clickhouse
 
 Examples:
     goose sqlite3 ./foo.db status
@@ -98,6 +99,7 @@ Examples:
     goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
     goose tidb "user:password@/dbname?parseTime=true" status
     goose mssql "sqlserver://user:password@dbname:1433?database=master" status
+    goose clickhouse "tcp://127.0.0.1:9000" status
 
 Options:
 `
