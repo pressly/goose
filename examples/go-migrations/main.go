@@ -33,6 +33,12 @@ func main() {
 		log.Fatalf("goose: failed to open DB: %v\n", err)
 	}
 
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Fatalf("goose: failed to close DB: %v\n", err)
+		}
+	}()
+
 	arguments := []string{}
 	if len(args) > 3 {
 		arguments = append(arguments, args[3:]...)
