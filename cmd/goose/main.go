@@ -36,13 +36,6 @@ func main() {
 		return
 	}
 
-	tls := *certfile != ""
-	if tls {
-		if err := registerTLSConfig(*certfile); err != nil {
-			log.Fatalf("goose run: %v", err)
-		}
-	}
-
 	switch args[0] {
 	case "create":
 		if err := goose.Run("create", nil, *dir, args[1:]...); err != nil {
@@ -63,7 +56,7 @@ func main() {
 
 	driver, dbstring, command := args[0], args[1], args[2]
 
-	db, err := goose.OpenDBWithDriver(driver, normalizeDBString(driver, dbstring, tls))
+	db, err := goose.OpenDBWithDriver(driver, normalizeDBString(driver, dbstring, *certfile))
 	if err != nil {
 		log.Fatalf("-dbstring=%q: %v\n", dbstring, err)
 	}

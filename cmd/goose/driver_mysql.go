@@ -17,10 +17,16 @@ import (
 // the parameter `parseTime` set to true. This allows internal goose logic
 // to assume that DATETIME/DATE/TIMESTAMP can be scanned into the time.Time
 // type.
-func normalizeDBString(driver string, str string, tls bool) string {
+func normalizeDBString(driver string, str string, certfile string) string {
 	if driver == "mysql" {
+		var isTLS = certfile != ""
+		if isTLS {
+			if err := registerTLSConfig(certfile); err != nil {
+				log.Fatalf("goose run: %v", err)
+			}
+		}
 		var err error
-		str, err = normalizeMySQLDSN(str, tls)
+		str, err = normalizeMySQLDSN(str, isTLS)
 		if err != nil {
 			log.Fatalf("failed to normalize MySQL connection string: %v", err)
 		}

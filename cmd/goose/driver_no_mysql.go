@@ -7,10 +7,6 @@ import (
 	_ "github.com/ziutek/mymysql/godrv"
 )
 
-func normalizeDBString(driver string, str string, tls bool) string {
+func normalizeDBString(driver string, str string, certfile string) string {
 	return str
-}
-
-func registerTLSConfig(_ string) error {
-	return nil
 }
