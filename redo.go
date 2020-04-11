@@ -5,13 +5,16 @@ import (
 )
 
 // Redo rolls back the most recently applied migration, then runs it again.
-func Redo(db *sql.DB, dir string) error {
-	currentVersion, err := GetDBVersion(db)
+func Redo(db *sql.DB, dir string) error { return def.Redo(db, dir) }
+
+// Redo rolls back the most recently applied migration, then runs it again.
+func (in *Instance) Redo(db *sql.DB, dir string) error {
+	currentVersion, err := in.GetDBVersion(db)
 	if err != nil {
 		return err
 	}
 
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+	migrations, err := in.CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}

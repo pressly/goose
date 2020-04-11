@@ -15,11 +15,11 @@ import (
 //
 // All statements following an Up or Down directive are grouped together
 // until another direction directive is found.
-func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direction bool) error {
+func (in *Instance) runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direction bool) error {
 	if useTx {
 		// TRANSACTION.
 
-		verboseInfo("Begin transaction")
+		in.verboseInfo("Begin transaction")
 
 		tx, err := db.Begin()
 		if err != nil {
@@ -27,29 +27,29 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 		}
 
 		for _, query := range statements {
-			verboseInfo("Executing statement: %s\n", clearStatement(query))
+			in.verboseInfo("Executing statement: %s\n", clearStatement(query))
 			if _, err = tx.Exec(query); err != nil {
-				verboseInfo("Rollback transaction")
+				in.verboseInfo("Rollback transaction")
 				tx.Rollback()
 				return errors.Wrapf(err, "failed to execute SQL query %q", clearStatement(query))
 			}
 		}
 
 		if direction {
-			if _, err := tx.Exec(GetDialect().insertVersionSQL(), v, direction); err != nil {
-				verboseInfo("Rollback transaction")
+			if _, err := tx.Exec(in.GetDialect().insertVersionSQL(), v, direction); err != nil {
+				in.verboseInfo("Rollback transaction")
 				tx.Rollback()
 				return errors.Wrap(err, "failed to insert new goose version")
 			}
 		} else {
-			if _, err := tx.Exec(GetDialect().deleteVersionSQL(), v); err != nil {
-				verboseInfo("Rollback transaction")
+			if _, err := tx.Exec(in.GetDialect().deleteVersionSQL(), v); err != nil {
+				in.verboseInfo("Rollback transaction")
 				tx.Rollback()
 				return errors.Wrap(err, "failed to delete goose version")
 			}
 		}
 
-		verboseInfo("Commit transaction")
+		in.verboseInfo("Commit transaction")
 		if err := tx.Commit(); err != nil {
 			return errors.Wrap(err, "failed to commit transaction")
 		}
@@ -59,12 +59,12 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 
 	// NO TRANSACTION.
 	for _, query := range statements {
-		verboseInfo("Executing statement: %s", clearStatement(query))
+		in.verboseInfo("Executing statement: %s", clearStatement(query))
 		if _, err := db.Exec(query); err != nil {
 			return errors.Wrapf(err, "failed to execute SQL query %q", clearStatement(query))
 		}
 	}
-	if _, err := db.Exec(GetDialect().insertVersionSQL(), v, direction); err != nil {
+	if _, err := db.Exec(in.GetDialect().insertVersionSQL(), v, direction); err != nil {
 		return errors.Wrap(err, "failed to insert new goose version")
 	}
 
@@ -76,9 +76,9 @@ const (
 	resetColor = "\033[00m"
 )
 
-func verboseInfo(s string, args ...interface{}) {
-	if verbose {
-		log.Printf(grayColor+s+resetColor, args...)
+func (in *Instance) verboseInfo(s string, args ...interface{}) {
+	if in.verbose {
+		in.log.Printf(grayColor+s+resetColor, args...)
 	}
 }
 
