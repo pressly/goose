@@ -151,7 +151,7 @@ func CollectMigrations(dirpath string, current, target int64) (Migrations, error
 	var migrations Migrations
 
 	// SQL migration files.
-	sqlMigrationFiles, err := filepath.Glob(dirpath + "/**.sql")
+	sqlMigrationFiles, err := filepath.Glob(dirpath + "/*.sql")
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +178,7 @@ func CollectMigrations(dirpath string, current, target int64) (Migrations, error
 	}
 
 	// Go migration files
-	goMigrationFiles, err := filepath.Glob(dirpath + "/**.go")
+	goMigrationFiles, err := filepath.Glob(dirpath + "/*.go")
 	if err != nil {
 		return nil, err
 	}
