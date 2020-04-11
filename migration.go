@@ -24,7 +24,7 @@ type Migration struct {
 	Version    int64
 	Next       int64  // next version, or -1 if none
 	Previous   int64  // previous version, -1 if none
-	Source     string // path to .sql script
+	Source     string // path to .sql script or go file
 	Registered bool
 	UpFn       func(*sql.Tx) error // Up go migration function
 	DownFn     func(*sql.Tx) error // Down go migration function

@@ -12,6 +12,7 @@ import (
 var (
 	flags    = flag.NewFlagSet("goose", flag.ExitOnError)
 	dir      = flags.String("dir", ".", "directory with migration files")
+	table    = flags.String("table", "goose_db_version", "migrations table name")
 	verbose  = flags.Bool("v", false, "enable verbose mode")
 	help     = flags.Bool("h", false, "print help")
 	version  = flags.Bool("version", false, "print version")
@@ -29,6 +30,7 @@ func main() {
 	if *verbose {
 		goose.SetVerbose(true)
 	}
+	goose.SetTableName(*table)
 
 	args := flags.Args()
 	if len(args) == 0 || *help {
@@ -60,6 +62,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("-dbstring=%q: %v\n", dbstring, err)
 	}
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Fatalf("goose: failed to close DB: %v\n", err)
+		}
+	}()
 
 	arguments := []string{}
 	if len(args) > 3 {

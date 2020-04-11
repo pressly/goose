@@ -4,13 +4,11 @@ import (
 	"database/sql"
 	"fmt"
 	"strconv"
-	"sync"
 )
 
 const VERSION = "v2.7.0-rc3"
 
 var (
-	duplicateCheckOnce sync.Once
 	minVersion         = int64(0)
 	maxVersion         = int64((1 << 63) - 1)
 	timestampFormat    = "20060102150405"
