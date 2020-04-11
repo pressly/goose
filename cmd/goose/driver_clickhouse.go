@@ -1,4 +1,4 @@
-// +build !no_sqlite3
+// +build !no_clickhouse
 
 package main
 
