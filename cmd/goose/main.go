@@ -10,12 +10,12 @@ import (
 )
 
 var (
-	flags   = flag.NewFlagSet("goose", flag.ExitOnError)
-	dir     = flags.String("dir", ".", "directory with migration files")
-	verbose = flags.Bool("v", false, "enable verbose mode")
-	help    = flags.Bool("h", false, "print help")
-	version = flags.Bool("version", false, "print version")
-	sslCA   = flags.String("ssl-ca", "", "file path to root CA's certificates in pem format (only support on mysql)")
+	flags    = flag.NewFlagSet("goose", flag.ExitOnError)
+	dir      = flags.String("dir", ".", "directory with migration files")
+	verbose  = flags.Bool("v", false, "enable verbose mode")
+	help     = flags.Bool("h", false, "print help")
+	version  = flags.Bool("version", false, "print version")
+	certfile = flags.String("ssl-ca", "", "file path to root CA's certificates in pem format (only support on mysql)")
 )
 
 func main() {
@@ -36,9 +36,9 @@ func main() {
 		return
 	}
 
-	tls := *sslCA != ""
+	tls := *certfile != ""
 	if tls {
-		if err := registerTLSConfig(*sslCA); err != nil {
+		if err := registerTLSConfig(*certfile); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
 	}
