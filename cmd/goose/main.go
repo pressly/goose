@@ -11,7 +11,7 @@ import (
 
 var (
 	flags   = flag.NewFlagSet("goose", flag.ExitOnError)
-	dir     = flags.String("dir", "", "directory with migration files")
+	dir     = flags.String("dir", ".", "directory with migration files")
 	table   = flags.String("table", "goose_db_version", "migrations table name")
 	verbose = flags.Bool("v", false, "enable verbose mode")
 	help    = flags.Bool("h", false, "print help")
