@@ -51,6 +51,7 @@ func main() {
 		return
 	}
 
+	args = mergeArgs(args)
 	if len(args) < 3 {
 		flags.Usage()
 		return
@@ -78,6 +79,24 @@ func main() {
 	}
 }
 
+const (
+	envGooseDriver   = "GOOSE_DRIVER"
+	envGooseDBString = "GOOSE_DBSTRING"
+)
+
+func mergeArgs(args []string) []string {
+	if len(args) < 1 {
+		return args
+	}
+	if d := os.Getenv(envGooseDriver); d != "" {
+		args = append([]string{d}, args...)
+	}
+	if d := os.Getenv(envGooseDBString); d != "" {
+		args = append([]string{args[0], d}, args[1:]...)
+	}
+	return args
+}
+
 func usage() {
 	fmt.Println(usagePrefix)
 	flags.PrintDefaults()
@@ -87,12 +106,21 @@ func usage() {
 var (
 	usagePrefix = `Usage: goose [OPTIONS] DRIVER DBSTRING COMMAND
 
+or
+
+Set environment key
+GOOSE_DRIVER=DRIVER
+GOOSE_DBSTRING=DBSTRING
+
+Usage: goose [OPTIONS] COMMAND
+
 Drivers:
     postgres
     mysql
     sqlite3
     mssql
     redshift
+    clickhouse
 
 Examples:
     goose sqlite3 ./foo.db status
@@ -106,6 +134,13 @@ Examples:
     goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
     goose tidb "user:password@/dbname?parseTime=true" status
     goose mssql "sqlserver://user:password@dbname:1433?database=master" status
+    goose clickhouse "tcp://127.0.0.1:9000" status
+
+    GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose status
+    GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose create init sql
+    GOOSE_DRIVER=postgres GOOSE_DBSTRING="user=postgres dbname=postgres sslmode=disable" goose status
+    GOOSE_DRIVER=mysql GOOSE_DBSTRING="user:password@/dbname" goose status
+    GOOSE_DRIVER=redshift GOOSE_DBSTRING="postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" goose status
 
 Options:
 `
