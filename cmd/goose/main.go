@@ -16,7 +16,7 @@ var (
 	verbose  = flags.Bool("v", false, "enable verbose mode")
 	help     = flags.Bool("h", false, "print help")
 	version  = flags.Bool("version", false, "print version")
-	certfile = flags.String("ssl-ca", "", "file path to root CA's certificates in pem format (only support on mysql)")
+	certfile = flags.String("certfile", "", "file path to root CA's certificates in pem format (only support on mysql)")
 )
 
 func main() {
