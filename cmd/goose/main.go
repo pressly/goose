@@ -10,12 +10,13 @@ import (
 )
 
 var (
-	flags   = flag.NewFlagSet("goose", flag.ExitOnError)
-	dir     = flags.String("dir", ".", "directory with migration files")
-	table   = flags.String("table", "goose_db_version", "migrations table name")
-	verbose = flags.Bool("v", false, "enable verbose mode")
-	help    = flags.Bool("h", false, "print help")
-	version = flags.Bool("version", false, "print version")
+	flags    = flag.NewFlagSet("goose", flag.ExitOnError)
+	dir      = flags.String("dir", ".", "directory with migration files")
+	table    = flags.String("table", "goose_db_version", "migrations table name")
+	verbose  = flags.Bool("v", false, "enable verbose mode")
+	help     = flags.Bool("h", false, "print help")
+	version  = flags.Bool("version", false, "print version")
+	certfile = flags.String("certfile", "", "file path to root CA's certificates in pem format (only support on mysql)")
 )
 
 func main() {
@@ -58,7 +59,7 @@ func main() {
 
 	driver, dbstring, command := args[0], args[1], args[2]
 
-	db, err := goose.OpenDBWithDriver(driver, normalizeDBString(driver, dbstring))
+	db, err := goose.OpenDBWithDriver(driver, normalizeDBString(driver, dbstring, *certfile))
 	if err != nil {
 		log.Fatalf("-dbstring=%q: %v\n", dbstring, err)
 	}

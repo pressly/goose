@@ -7,6 +7,6 @@ import (
 	_ "github.com/ziutek/mymysql/godrv"
 )
 
-func normalizeDBString(driver string, str string) string {
+func normalizeDBString(driver string, str string, certfile string) string {
 	return str
 }
