@@ -145,7 +145,7 @@ func AddNamedMigration(filename string, up func(*sql.Tx) error, down func(*sql.T
 // migrations folder and go func registry, and key them by version.
 func CollectMigrations(dirpath string, current, target int64) (Migrations, error) {
 	if _, err := os.Stat(dirpath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("%s directory does not exists", dirpath)
+		return nil, fmt.Errorf("%s directory does not exist", dirpath)
 	}
 
 	var migrations Migrations
