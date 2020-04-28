@@ -1,0 +1,6 @@
+dev:
+  username: dbuser
+  password: secret-dev
+local:
+  username: dbuser
+  password: secret-local

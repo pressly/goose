@@ -12,8 +12,11 @@ import (
 	"path"
 )
 
-var fs = afero.NewOsFs()
-var IsNotExist = errors.New("credentials do not exist")
+var (
+	fs         = afero.NewOsFs()
+	ganderDir  string
+	IsNotExist = errors.New("credentials do not exist")
+)
 
 const dirName = "gander"
 
@@ -24,43 +27,56 @@ type Credentials struct {
 	Password string
 }
 
+func init() {
+	usrDir, err := os.UserConfigDir()
+	if err != nil {
+		panic(fmt.Errorf("failed to locate user dir, %v", err))
+	}
+
+	ganderDir = path.Join(usrDir, dirName)
+}
+
 func Save(proj project.Project, environment env.Environment, credentials Credentials) error {
-	pc, err := loadProCreds(proj)
+	pc, err := loadProjCreds(proj)
 	if err != nil {
 		return err
 	}
 
 	pc[environment.Name] = credentials
 
-	usrDir, err := os.UserConfigDir()
-	if err != nil {
-		return err
-	}
-
-	ganderCfg := path.Join(usrDir, dirName)
-	credPath := path.Join(ganderCfg, proj.Name)
+	credPath := path.Join(ganderDir, proj.Name)
 
 	var file afero.File
 	if exists, err := afero.Exists(fs, credPath); err != nil {
 		return err
 	} else if exists {
-		file, err = fs.Open(credPath)
+		file, err = fs.OpenFile(credPath, os.O_TRUNC|os.O_WRONLY, 0)
 	} else {
-		if err := fs.MkdirAll(ganderCfg, os.ModeDir|os.ModePerm); err != nil {
+		if err := fs.MkdirAll(ganderDir, os.ModeDir|os.ModePerm); err != nil {
 			return fmt.Errorf("unable to create config directory, %w", err)
 		}
 		file, err = fs.Create(credPath)
+		if err != nil {
+			return err
+		}
 	}
 
+	yaml, err := yaml.Marshal(pc)
 	if err != nil {
 		return err
 	}
 
-	return yaml.NewEncoder(file).Encode(pc)
+	if _, err = file.Write(yaml); err != nil {
+		return err
+	}
+	if err := file.Close(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func Get(proj project.Project, environment env.Environment) (Credentials, error) {
-	pc, err := loadProCreds(proj)
+	pc, err := loadProjCreds(proj)
 	if err != nil {
 		return Credentials{}, err
 	}
@@ -72,14 +88,10 @@ func Get(proj project.Project, environment env.Environment) (Credentials, error)
 	}
 }
 
-func loadProCreds(proj project.Project) (projectCreds, error) {
+func loadProjCreds(proj project.Project) (projectCreds, error) {
 	pc := make(map[string]Credentials)
-	usrDir, err := os.UserConfigDir()
-	if err != nil {
-		return pc, err
-	}
 
-	credPath := path.Join(usrDir, dirName, proj.Name)
+	credPath := path.Join(ganderDir, proj.Name)
 	if exists, err := afero.Exists(fs, credPath); err != nil {
 		return pc, err
 	} else if exists {
@@ -95,4 +107,3 @@ func loadProCreds(proj project.Project) (projectCreds, error) {
 		return pc, nil
 	}
 }
-

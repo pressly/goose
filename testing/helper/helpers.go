@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/spf13/afero"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -39,7 +38,7 @@ func Equals(tb testing.TB, exp, act interface{}) {
 }
 
 func MustReadAll(tb testing.TB, fs afero.Fs, fileName string) []byte {
-	f, err := os.Open(fileName)
+	f, err := fs.Open(fileName)
 	if err != nil {
 		fmt.Printf("failed to opend file %v", err)
 		tb.FailNow()

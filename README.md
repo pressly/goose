@@ -215,7 +215,7 @@ language plpgsql;
 1. Create your own gander binary, see [example](./examples/go-migrations)
 2. Import `github.com/geniusmonkey/gander`
 3. Register your migration functions
-4. Run gander command, ie. `gander.Up(db *sql.DB, dir string)`
+4. Run gander command, ie. `Up(db *sql.DB, dir string)`
 
 A [sample Go migration 00002_users_add_email.go file](./example/migrations-go/00002_rename_root.go) looks like:
 
@@ -229,7 +229,7 @@ import (
 )
 
 func init() {
-	gander.AddMigration(Up, Down)
+	AddMigration(Up, Down)
 }
 
 func Up(tx *sql.Tx) error {

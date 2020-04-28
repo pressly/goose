@@ -39,6 +39,10 @@ func Execute() {
 }
 
 func init() {
+
+}
+
+func setupProject(cmd *cobra.Command, args []string) {
 	var err error
 	var dir string
 	if d, err := os.Getwd(); err != nil {
@@ -54,6 +58,8 @@ func init() {
 }
 
 func setup(cmd *cobra.Command, args []string) {
+	setupProject(cmd, args)
+
 	if proj == nil {
 		log.Fatalf("not a gander project")
 	}

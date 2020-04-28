@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"flag"
 	"github.com/geniusmonkey/gander"
+	"github.com/geniusmonkey/gander/migration"
 	"log"
 	"os"
 
@@ -31,12 +32,12 @@ func main() {
 
 	switch args[0] {
 	case "create":
-		if err := gander.Run("create", nil, *dir, args[1:]...); err != nil {
+		if err := Run("create", nil, *dir, args[1:]...); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
 		return
 	case "fix":
-		if err := gander.Run("fix", nil, *dir); err != nil {
+		if err := Run("fix", nil, *dir); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
 		return
@@ -56,7 +57,7 @@ func main() {
 
 	switch driver {
 	case "postgres", "mysql", "sqlite3", "redshift":
-		if err := gander.SetDialect(driver); err != nil {
+		if err := migration.SetDialect(driver); err != nil {
 			log.Fatal(err)
 		}
 	default:
@@ -83,7 +84,7 @@ func main() {
 		arguments = append(arguments, args[3:]...)
 	}
 
-	if err := gander.Run(command, db, *dir, arguments...); err != nil {
+	if err := Run(command, db, *dir, arguments...); err != nil {
 		log.Fatalf("goose run: %v", err)
 	}
 }

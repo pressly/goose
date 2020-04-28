@@ -4,9 +4,9 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/apex/log"
-	"github.com/geniusmonkey/gander"
 	"github.com/geniusmonkey/gander/creds"
 	"github.com/geniusmonkey/gander/env"
+	"github.com/geniusmonkey/gander/migration"
 	"github.com/geniusmonkey/gander/project"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
@@ -17,7 +17,7 @@ var sqlDb *sql.DB
 
 func Setup(project project.Project, env env.Environment, cred creds.Credentials) {
 	var err error
-	if err = gander.SetDialect(project.Driver); err != nil {
+	if err = migration.SetDialect(project.Driver); err != nil {
 		log.Fatalf("failed to set dialect %s, %v", project.Driver, err)
 	}
 

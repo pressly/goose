@@ -1,0 +1,3 @@
+local:
+  username: dbuser
+  password: secret-local

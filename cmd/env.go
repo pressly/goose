@@ -13,9 +13,10 @@ var envCmd = &cobra.Command{
 }
 
 var envAddCmd = &cobra.Command{
-	Use:   "add",
+	Use:   "add [name]",
 	Short: "add a new env variable",
 	Args:  cobra.ExactArgs(1),
+	PreRun: setupProject,
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 		e, err := driver.DefaultEnv(proj.Driver)
@@ -33,6 +34,7 @@ var envRmCmd = &cobra.Command{
 	Use:   "rm",
 	Short: "remove a environment",
 	Args:  cobra.ExactArgs(1),
+	PreRun: setup,
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 		if err := env.Remove(*proj, name); err != nil {

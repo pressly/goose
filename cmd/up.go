@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/geniusmonkey/gander"
 	"github.com/geniusmonkey/gander/db"
+	"github.com/geniusmonkey/gander/migration"
 	"github.com/spf13/cobra"
 	"log"
 )
@@ -17,9 +17,9 @@ var upCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
 		if upTo == 0 {
-			err = gander.Up(db.Get(), proj.MigrationDir())
+			err = migration.Up(db.Get(), proj.MigrationDir())
 		} else {
-			err = gander.UpTo(db.Get(), proj.MigrationDir(), upTo)
+			err = migration.UpTo(db.Get(), proj.MigrationDir(), upTo)
 		}
 
 		if err != nil {

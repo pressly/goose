@@ -2,11 +2,11 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/apex/log"
 	"github.com/geniusmonkey/gander/creds"
 	"github.com/geniusmonkey/gander/env"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
-	"log"
 )
 
 var credsCmd = &cobra.Command{
@@ -34,7 +34,10 @@ var credsAddCmd = &cobra.Command{
 		password := string(bytePassword)
 
 		c := creds.Credentials{Username: username, Password: password}
-		creds.Save(*proj, e, c)
+		err = creds.Save(*proj, e, c)
+		if err != nil {
+			log.Fatalf("failed to save creds, %v", err)
+		}
 	},
 }
 

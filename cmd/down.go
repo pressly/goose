@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/geniusmonkey/gander"
 	"github.com/geniusmonkey/gander/db"
+	"github.com/geniusmonkey/gander/migration"
 	"github.com/spf13/cobra"
 	"log"
 )
@@ -17,9 +17,9 @@ var downCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
 		if downTo == 0 {
-			err = gander.Down(db.Get(), proj.MigrationDir())
+			err = migration.Down(db.Get(), proj.MigrationDir())
 		} else {
-			err = gander.DownTo(db.Get(), proj.MigrationDir(), downTo)
+			err = migration.DownTo(db.Get(), proj.MigrationDir(), downTo)
 		}
 
 		if err != nil {
