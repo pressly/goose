@@ -22,6 +22,7 @@ type MigrationRecord struct {
 // Migration struct.
 type Migration struct {
 	Version    int64
+	Verbose    string
 	Next       int64  // next version, or -1 if none
 	Previous   int64  // previous version, -1 if none
 	Source     string // path to .sql script or go file
@@ -64,7 +65,7 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 			return errors.Wrapf(err, "ERROR %v: failed to parse SQL migration file", filepath.Base(m.Source))
 		}
 
-		if err := runSQLMigration(db, statements, useTx, m.Version, direction); err != nil {
+		if err := runSQLMigration(db, statements, useTx, m.Version, m.Verbose, direction); err != nil {
 			return errors.Wrapf(err, "ERROR %v: failed to run SQL migration", filepath.Base(m.Source))
 		}
 
@@ -97,7 +98,7 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 		}
 
 		if direction {
-			if _, err := tx.Exec(GetDialect().insertVersionSQL(), m.Version, direction); err != nil {
+			if _, err := tx.Exec(GetDialect().insertVersionSQL(), m.Version, m.Verbose, direction); err != nil {
 				tx.Rollback()
 				return errors.Wrap(err, "ERROR failed to execute transaction")
 			}
@@ -127,22 +128,30 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 // NumericComponent looks for migration scripts with names in the form:
 // XXX_descriptivename.ext where XXX specifies the version number
 // and ext specifies the type of migration
-func NumericComponent(name string) (int64, error) {
+func NumericComponent(name string) (int64, string, error) {
 	base := filepath.Base(name)
 
-	if ext := filepath.Ext(base); ext != ".go" && ext != ".sql" {
-		return 0, errors.New("not a recognized migration file type")
+	var ext string
+	if ext = filepath.Ext(base); ext != ".go" && ext != ".sql" {
+		return 0, "", errors.New("not a recognized migration file type")
 	}
 
-	idx := strings.Index(base, "_")
-	if idx < 0 {
-		return 0, errors.New("no separator found")
+	seperatorIdx := strings.Index(base, "_")
+	if seperatorIdx < 0 {
+		return 0, "", errors.New("no separator found")
 	}
 
-	n, e := strconv.ParseInt(base[:idx], 10, 64)
-	if e == nil && n <= 0 {
-		return 0, errors.New("migration IDs must be greater than zero")
+	removedExt := base[:strings.Index(base, ext)]
+	splat := strings.Split(removedExt, "_")
+	verboseName := splat[0]
+	if len(splat) > 1 {
+		verboseName = strings.Join(splat[1:], "_")
 	}
 
-	return n, e
+	n, err := strconv.ParseInt(base[:seperatorIdx], 10, 64)
+	if err == nil && n <= 0 {
+		return 0, "", errors.New("migration IDs must be greater than zero")
+	}
+
+	return n, verboseName, err
 }
