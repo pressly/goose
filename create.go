@@ -16,9 +16,38 @@ type tmplVars struct {
 	CamelName string
 }
 
+var (
+	sequential = false
+)
+
+// SetSequential set whether to use sequential versioning instead of timestamp based versioning
+func SetSequential(s bool) {
+	sequential = s
+}
+
 // Create writes a new blank migration file.
 func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, migrationType string) error {
-	version := time.Now().Format(timestampFormat)
+	var version string
+	if sequential {
+		migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+		if err != nil {
+			return err
+		}
+
+		vMigrations, err := migrations.versioned()
+		if err != nil {
+			return err
+		}
+
+		if last, err := vMigrations.Last(); err == nil {
+			version = fmt.Sprintf(seqVersionTemplate, last.Version+1)
+		} else {
+			version = fmt.Sprintf(seqVersionTemplate, int64(1))
+		}
+	} else {
+		version = time.Now().Format(timestampFormat)
+	}
+
 	filename := fmt.Sprintf("%v_%v.%v", version, snakeCase(name), migrationType)
 
 	if tmpl == nil {
