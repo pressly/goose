@@ -17,6 +17,7 @@ var credsAddCmd = &cobra.Command{
 	Use:   "add [env name] [username]",
 	Short: "add environment password for this project",
 	Args:  cobra.ExactArgs(2),
+	PreRun: setupProject,
 	Run: func(cmd *cobra.Command, args []string) {
 		envName := args[0]
 		username := args[1]

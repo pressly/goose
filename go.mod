@@ -1,9 +1,7 @@
 module github.com/geniusmonkey/gander
 
 require (
-	github.com/BurntSushi/toml v0.3.1
 	github.com/apex/log v1.1.1
-	github.com/fatih/color v1.7.0
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/gosimple/slug v1.9.0
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect

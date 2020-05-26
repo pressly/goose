@@ -15,7 +15,8 @@ import (
 
 //var cfgFile string
 var (
-	proj *project.Project
+	proj       *project.Project
+	projectDir string
 	//environment *env.Environment
 )
 
@@ -39,19 +40,19 @@ func Execute() {
 }
 
 func init() {
-
+	rootCmd.PersistentFlags().StringVarP(&projectDir, "project", "p", "./", "location of the project")
 }
 
 func setupProject(cmd *cobra.Command, args []string) {
 	var err error
-	var dir string
-	if d, err := os.Getwd(); err != nil {
-		log.Fatal("failed to get project directory")
-	} else {
-		dir = d
-	}
+	//var dir string
+	//if d, err := os.Getwd(); err != nil {
+	//	log.Fatal("failed to get project directory")
+	//} else {
+	//	dir = d
+	//}
 
-	proj, err = project.Get(dir)
+	proj, err = project.Get(projectDir)
 	if err != nil && err != project.IsNotExists {
 		log.Fatalf("error while trying to load project directory: %v", err)
 	}
