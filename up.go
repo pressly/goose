@@ -7,17 +7,20 @@ import (
 // UpTo migrates up to a specific version.
 func UpTo(db *sql.DB, dir string, version int64) error {
 	migrations, err := CollectMigrations(dir, minVersion, version)
+	log.Printf("TEST-DEBUG: %v\n", migrations.String())
 	if err != nil {
 		return err
 	}
 
 	for {
 		current, err := GetDBVersion(db)
+		log.Printf("TEST-DEBUG GetDBVersion: %v\n", current)
 		if err != nil {
 			return err
 		}
 
 		next, err := migrations.Next(current)
+		log.Printf("TEST-DEBUG migrations.Next: %v\n", next.String())
 		if err != nil {
 			if err == ErrNoNextVersion {
 				log.Printf("goose: no migrations to run. current version: %d\n", current)

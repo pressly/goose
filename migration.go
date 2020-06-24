@@ -36,6 +36,7 @@ func (m *Migration) String() string {
 
 // Up runs an up migration.
 func (m *Migration) Up(db *sql.DB) error {
+	log.Printf("TEST-DEBUG Up: %v\n", m.String())
 	if err := m.run(db, true); err != nil {
 		return err
 	}
