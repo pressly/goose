@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"path/filepath"
 	"runtime"
 	"sort"
 	"time"
@@ -143,15 +142,16 @@ func AddNamedMigration(filename string, up func(*sql.Tx) error, down func(*sql.T
 
 // CollectMigrations returns all the valid looking migration scripts in the
 // migrations folder and go func registry, and key them by version.
-func CollectMigrations(dirpath string, current, target int64) (Migrations, error) {
-	if _, err := os.Stat(dirpath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("%s directory does not exist", dirpath)
+func CollectMigrations(opts *options, current, target int64) (Migrations, error) {
+	_, err := opts.fileSystem.Open("/")
+	if os.IsNotExist(err) {
+		return nil, fmt.Errorf("%s directory does not exist", opts.dir)
 	}
 
 	var migrations Migrations
 
 	// SQL migration files.
-	sqlMigrationFiles, err := filepath.Glob(dirpath + "/*.sql")
+	sqlMigrationFiles, err := opts.listSQLFiles()
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +178,7 @@ func CollectMigrations(dirpath string, current, target int64) (Migrations, error
 	}
 
 	// Go migration files
-	goMigrationFiles, err := filepath.Glob(dirpath + "/*.go")
+	goMigrationFiles, err := opts.listGOFiles()
 	if err != nil {
 		return nil, err
 	}

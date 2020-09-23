@@ -8,12 +8,12 @@ import (
 )
 
 // Reset rolls back all migrations
-func Reset(db *sql.DB, dir string) error {
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+func Reset(opts *options) error {
+	migrations, err := CollectMigrations(opts, minVersion, maxVersion)
 	if err != nil {
 		return errors.Wrap(err, "failed to collect migrations")
 	}
-	statuses, err := dbMigrationsStatus(db)
+	statuses, err := dbMigrationsStatus(opts.db)
 	if err != nil {
 		return errors.Wrap(err, "failed to get status of migrations")
 	}
@@ -23,7 +23,7 @@ func Reset(db *sql.DB, dir string) error {
 		if !statuses[migration.Version] {
 			continue
 		}
-		if err = migration.Down(db); err != nil {
+		if err = migration.Down(opts.db); err != nil {
 			return errors.Wrap(err, "failed to db-down")
 		}
 	}

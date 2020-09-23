@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-func Fix(dir string) error {
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+func Fix(opts *options) error {
+	migrations, err := CollectMigrations(opts, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}

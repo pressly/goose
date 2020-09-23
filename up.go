@@ -1,18 +1,14 @@
 package goose
 
-import (
-	"database/sql"
-)
-
 // UpTo migrates up to a specific version.
-func UpTo(db *sql.DB, dir string, version int64) error {
-	migrations, err := CollectMigrations(dir, minVersion, version)
+func UpTo(opts *options, version int64) error {
+	migrations, err := CollectMigrations(opts, minVersion, version)
 	if err != nil {
 		return err
 	}
 
 	for {
-		current, err := GetDBVersion(db)
+		current, err := GetDBVersion(opts.db)
 		if err != nil {
 			return err
 		}
@@ -26,25 +22,25 @@ func UpTo(db *sql.DB, dir string, version int64) error {
 			return err
 		}
 
-		if err = next.Up(db); err != nil {
+		if err = next.Up(opts.db); err != nil {
 			return err
 		}
 	}
 }
 
 // Up applies all available migrations.
-func Up(db *sql.DB, dir string) error {
-	return UpTo(db, dir, maxVersion)
+func Up(opts *options) error {
+	return UpTo(opts, maxVersion)
 }
 
 // UpByOne migrates up by a single version.
-func UpByOne(db *sql.DB, dir string) error {
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+func UpByOne(opts *options) error {
+	migrations, err := CollectMigrations(opts, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
 
-	currentVersion, err := GetDBVersion(db)
+	currentVersion, err := GetDBVersion(opts.db)
 	if err != nil {
 		return err
 	}
@@ -57,7 +53,7 @@ func UpByOne(db *sql.DB, dir string) error {
 		return err
 	}
 
-	if err = next.Up(db); err != nil {
+	if err = next.Up(opts.db); err != nil {
 		return err
 	}
 

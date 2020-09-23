@@ -1,7 +1,6 @@
 package goose
 
 import (
-	"database/sql"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -17,7 +16,7 @@ type tmplVars struct {
 }
 
 // Create writes a new blank migration file.
-func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, migrationType string) error {
+func CreateWithTemplate(opts *options, tmpl *template.Template, name, migrationType string) error {
 	version := time.Now().Format(timestampFormat)
 	filename := fmt.Sprintf("%v_%v.%v", version, snakeCase(name), migrationType)
 
@@ -29,7 +28,7 @@ func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, m
 		}
 	}
 
-	path := filepath.Join(dir, filename)
+	path := filepath.Join(opts.dir, filename)
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		return errors.Wrap(err, "failed to create migration file")
 	}
@@ -53,8 +52,8 @@ func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, m
 }
 
 // Create writes a new blank migration file.
-func Create(db *sql.DB, dir, name, migrationType string) error {
-	return CreateWithTemplate(db, dir, nil, name, migrationType)
+func Create(opts *options, name, migrationType string) error {
+	return CreateWithTemplate(opts, nil, name, migrationType)
 }
 
 var sqlMigrationTemplate = template.Must(template.New("goose.sql-migration").Parse(`-- +goose Up

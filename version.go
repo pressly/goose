@@ -1,12 +1,8 @@
 package goose
 
-import (
-	"database/sql"
-)
-
 // Version prints the current version of the database.
-func Version(db *sql.DB, dir string) error {
-	current, err := GetDBVersion(db)
+func Version(opts *options) error {
+	current, err := GetDBVersion(opts.db)
 	if err != nil {
 		return err
 	}
