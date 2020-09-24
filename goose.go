@@ -6,6 +6,7 @@ import (
 	"strconv"
 )
 
+// VERSION is the current goose version
 const VERSION = "v2.7.0-rc3"
 
 var (
