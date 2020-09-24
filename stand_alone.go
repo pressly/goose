@@ -1,13 +1,16 @@
 package goose
 
+import "database/sql"
+
 // StandAlone contains wrapper methods to that can be configured and called from within go
 type StandAlone struct {
 	opts *options
 }
 
 // New creates a pointer StandAlone structure
-func New(opts *options) *StandAlone {
-	return &StandAlone{opts: opts}
+func New(dir string, db *sql.DB, opts ...Option) *StandAlone {
+	o := NewOptions(dir, db, opts...)
+	return &StandAlone{opts: o}
 }
 
 // Down rolls back a single migration from the current version 

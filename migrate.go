@@ -6,6 +6,7 @@ import (
 	"os"
 	"runtime"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -151,7 +152,7 @@ func CollectMigrations(opts *options, current, target int64) (Migrations, error)
 	var migrations Migrations
 
 	// SQL migration files.
-	sqlMigrationFiles, err := opts.listSQLFiles()
+	sqlMigrationFiles, err := listSQLFiles(opts)
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +179,7 @@ func CollectMigrations(opts *options, current, target int64) (Migrations, error)
 	}
 
 	// Go migration files
-	goMigrationFiles, err := opts.listGOFiles()
+	goMigrationFiles, err := listGOFiles(opts)
 	if err != nil {
 		return nil, err
 	}
@@ -316,4 +317,44 @@ func GetDBVersion(db *sql.DB) (int64, error) {
 	}
 
 	return version, nil
+}
+
+func listSQLFiles(opts *options) ([]string, error) {
+	out := []string{}
+	file, err := opts.fileSystem.Open("/")
+	if err != nil {
+		return out, err
+	}
+
+	files, err := file.Readdir(-1)
+	if err != nil {
+		return out, err
+	}
+
+	for _, f := range files {
+		if strings.HasSuffix(f.Name(), ".sql") {
+			out = append(out, f.Name())
+		}
+	}
+	return out, err
+}
+
+func listGOFiles(opts *options) ([]string, error) {
+	out := []string{}
+	file, err := opts.fileSystem.Open("/")
+	if err != nil {
+		return out, err
+	}
+
+	files, err := file.Readdir(-1)
+	if err != nil {
+		return out, err
+	}
+
+	for _, f := range files {
+		if strings.HasSuffix(f.Name(), ".go") {
+			out = append(out, f.Name())
+		}
+	}
+	return out, err
 }
