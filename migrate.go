@@ -143,16 +143,16 @@ func AddNamedMigration(filename string, up func(*sql.Tx) error, down func(*sql.T
 
 // CollectMigrations returns all the valid looking migration scripts in the
 // migrations folder and go func registry, and key them by version.
-func CollectMigrations(opts *options, current, target int64) (Migrations, error) {
-	_, err := opts.fileSystem.Open("/")
+func CollectMigrations(cfg *config, current, target int64) (Migrations, error) {
+	_, err := cfg.fileSystem.Open("/")
 	if os.IsNotExist(err) {
-		return nil, fmt.Errorf("%s directory does not exist", opts.dir)
+		return nil, fmt.Errorf("%s directory does not exist", cfg.dir)
 	}
 
 	var migrations Migrations
 
 	// SQL migration files.
-	sqlMigrationFiles, err := listSQLFiles(opts)
+	sqlMigrationFiles, err := listSQLFiles(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +179,7 @@ func CollectMigrations(opts *options, current, target int64) (Migrations, error)
 	}
 
 	// Go migration files
-	goMigrationFiles, err := listGOFiles(opts)
+	goMigrationFiles, err := listGOFiles(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -319,9 +319,9 @@ func GetDBVersion(db *sql.DB) (int64, error) {
 	return version, nil
 }
 
-func listSQLFiles(opts *options) ([]string, error) {
+func listSQLFiles(cfg *config) ([]string, error) {
 	out := []string{}
-	file, err := opts.fileSystem.Open("/")
+	file, err := cfg.fileSystem.Open("/")
 	if err != nil {
 		return out, err
 	}
@@ -339,9 +339,9 @@ func listSQLFiles(opts *options) ([]string, error) {
 	return out, err
 }
 
-func listGOFiles(opts *options) ([]string, error) {
+func listGOFiles(cfg *config) ([]string, error) {
 	out := []string{}
-	file, err := opts.fileSystem.Open("/")
+	file, err := cfg.fileSystem.Open("/")
 	if err != nil {
 		return out, err
 	}

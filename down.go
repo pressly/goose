@@ -5,13 +5,13 @@ import (
 )
 
 // Down rolls back a single migration from the current version.
-func Down(opts *options) error {
-	currentVersion, err := GetDBVersion(opts.db)
+func Down(cfg *config) error {
+	currentVersion, err := GetDBVersion(cfg.db)
 	if err != nil {
 		return err
 	}
 
-	migrations, err := CollectMigrations(opts, minVersion, maxVersion)
+	migrations, err := CollectMigrations(cfg, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
@@ -21,18 +21,18 @@ func Down(opts *options) error {
 		return fmt.Errorf("no migration %v", currentVersion)
 	}
 
-	return current.Down(opts)
+	return current.Down(cfg)
 }
 
 // DownTo rolls back migrations to a specific version.
-func DownTo(opts *options, version int64) error {
-	migrations, err := CollectMigrations(opts, minVersion, maxVersion)
+func DownTo(cfg *config, version int64) error {
+	migrations, err := CollectMigrations(cfg, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
 
 	for {
-		currentVersion, err := GetDBVersion(opts.db)
+		currentVersion, err := GetDBVersion(cfg.db)
 		if err != nil {
 			return err
 		}
@@ -48,7 +48,7 @@ func DownTo(opts *options, version int64) error {
 			return nil
 		}
 
-		if err = current.Down(opts); err != nil {
+		if err = current.Down(cfg); err != nil {
 			return err
 		}
 	}

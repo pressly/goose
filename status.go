@@ -9,22 +9,22 @@ import (
 )
 
 // Status prints the status of all migrations.
-func Status(opts *options) error {
+func Status(cfg *config) error {
 	// collect all migrations
-	migrations, err := CollectMigrations(opts, minVersion, maxVersion)
+	migrations, err := CollectMigrations(cfg, minVersion, maxVersion)
 	if err != nil {
 		return errors.Wrap(err, "failed to collect migrations")
 	}
 
 	// must ensure that the version table exists if we're running on a pristine DB
-	if _, err := EnsureDBVersion(opts.db); err != nil {
+	if _, err := EnsureDBVersion(cfg.db); err != nil {
 		return errors.Wrap(err, "failed to ensure DB version")
 	}
 
 	log.Println("    Applied At                  Migration")
 	log.Println("    =======================================")
 	for _, migration := range migrations {
-		if err := printMigrationStatus(opts.db, migration.Version, filepath.Base(migration.Source)); err != nil {
+		if err := printMigrationStatus(cfg.db, migration.Version, filepath.Base(migration.Source)); err != nil {
 			return errors.Wrap(err, "failed to print status")
 		}
 	}

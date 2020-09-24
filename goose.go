@@ -22,7 +22,7 @@ func SetVerbose(v bool) {
 
 // Run runs a goose command.
 func Run(command string, db *sql.DB, dir string, args ...string) error {
-	opts := NewOptions(dir, db)
+	opts := newConfig(dir, db)
 	switch command {
 	case "up":
 		if err := Up(opts); err != nil {

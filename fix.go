@@ -7,8 +7,9 @@ import (
 	"strings"
 )
 
-func Fix(opts *options) error {
-	migrations, err := CollectMigrations(opts, minVersion, maxVersion)
+// Fix will rename migration files to fix the order
+func Fix(cfg *config) error {
+	migrations, err := CollectMigrations(cfg, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}

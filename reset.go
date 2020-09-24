@@ -8,12 +8,12 @@ import (
 )
 
 // Reset rolls back all migrations
-func Reset(opts *options) error {
-	migrations, err := CollectMigrations(opts, minVersion, maxVersion)
+func Reset(cfg *config) error {
+	migrations, err := CollectMigrations(cfg, minVersion, maxVersion)
 	if err != nil {
 		return errors.Wrap(err, "failed to collect migrations")
 	}
-	statuses, err := dbMigrationsStatus(opts.db)
+	statuses, err := dbMigrationsStatus(cfg.db)
 	if err != nil {
 		return errors.Wrap(err, "failed to get status of migrations")
 	}
@@ -23,7 +23,7 @@ func Reset(opts *options) error {
 		if !statuses[migration.Version] {
 			continue
 		}
-		if err = migration.Down(opts); err != nil {
+		if err = migration.Down(cfg); err != nil {
 			return errors.Wrap(err, "failed to db-down")
 		}
 	}

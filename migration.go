@@ -34,25 +34,25 @@ func (m *Migration) String() string {
 }
 
 // Up runs an up migration.
-func (m *Migration) Up(opts *options) error {
-	if err := m.run(opts, true); err != nil {
+func (m *Migration) Up(cfg *config) error {
+	if err := m.run(cfg, true); err != nil {
 		return err
 	}
 	return nil
 }
 
 // Down runs a down migration.
-func (m *Migration) Down(opts *options) error {
-	if err := m.run(opts, false); err != nil {
+func (m *Migration) Down(cfg *config) error {
+	if err := m.run(cfg, false); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (m *Migration) run(opts *options, direction bool) error {
+func (m *Migration) run(cfg *config, direction bool) error {
 	switch filepath.Ext(m.Source) {
 	case ".sql":
-		f, err := opts.fileSystem.Open(m.Source)
+		f, err := cfg.fileSystem.Open(m.Source)
 		if err != nil {
 			return errors.Wrapf(err, "ERROR %v: failed to open SQL migration file", filepath.Base(m.Source))
 		}
@@ -63,7 +63,7 @@ func (m *Migration) run(opts *options, direction bool) error {
 			return errors.Wrapf(err, "ERROR %v: failed to parse SQL migration file", filepath.Base(m.Source))
 		}
 
-		if err := runSQLMigration(opts.db, statements, useTx, m.Version, direction); err != nil {
+		if err := runSQLMigration(cfg.db, statements, useTx, m.Version, direction); err != nil {
 			return errors.Wrapf(err, "ERROR %v: failed to run SQL migration", filepath.Base(m.Source))
 		}
 
@@ -77,7 +77,7 @@ func (m *Migration) run(opts *options, direction bool) error {
 		if !m.Registered {
 			return errors.Errorf("ERROR %v: failed to run Go migration: Go functions must be registered and built into a custom binary (see https://github.com/pressly/goose/tree/master/examples/go-migrations)", m.Source)
 		}
-		tx, err := opts.db.Begin()
+		tx, err := cfg.db.Begin()
 		if err != nil {
 			return errors.Wrap(err, "ERROR failed to begin transaction")
 		}

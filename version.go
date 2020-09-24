@@ -1,8 +1,8 @@
 package goose
 
 // Version prints the current version of the database.
-func Version(opts *options) error {
-	current, err := GetDBVersion(opts.db)
+func Version(cfg *config) error {
+	current, err := GetDBVersion(cfg.db)
 	if err != nil {
 		return err
 	}

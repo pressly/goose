@@ -1,39 +1,15 @@
 package goose
 
-import (
-	"database/sql"
-	"fmt"
-	"net/http"
-)
+import "net/http"
 
-type options struct {
-	dir string
-	db	*sql.DB
-	lockDB	bool
-	fileSystem http.FileSystem
-}
-
-type Option func(*options)
-
-func NewOptions(dir string, db *sql.DB, opts ...Option) *options {
-	o := &options{
-		dir: dir,
-		db: db,
-	}
-	if dir != "" {
-		o.fileSystem = http.Dir(dir)
-	}
-	for _, opt := range opts {
-		opt(o)
-	}
-	return o
-}
+// Option function that takes a config and sets a property on it
+type Option func(*config)
 
 // WithFileSystem overrides the default fs with a different implementation
 // this can be used with packages like vfsgen that support the http.FileSystem
 // interface
 func WithFileSystem(fs http.FileSystem) Option {
-	return func(opts *options) {
+	return func(opts *config) {
 		opts.fileSystem = fs
 	}
 }
@@ -43,8 +19,7 @@ func WithFileSystem(fs http.FileSystem) Option {
 // if this is the initial migration. This will not raise an error it will continue
 // migration without a lock.
 func WithLockDB(lockDB bool) Option {
-	return func(opts *options) {
+	return func(opts *config) {
 		opts.lockDB = lockDB
-		fmt.Println("LockDB")
 	}
 }

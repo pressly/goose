@@ -15,8 +15,8 @@ type tmplVars struct {
 	CamelName string
 }
 
-// Create writes a new blank migration file.
-func CreateWithTemplate(opts *options, tmpl *template.Template, name, migrationType string) error {
+// CreateWithTemplate writes a new blank migration file.
+func CreateWithTemplate(cfg *config, tmpl *template.Template, name, migrationType string) error {
 	version := time.Now().Format(timestampFormat)
 	filename := fmt.Sprintf("%v_%v.%v", version, snakeCase(name), migrationType)
 
@@ -28,7 +28,7 @@ func CreateWithTemplate(opts *options, tmpl *template.Template, name, migrationT
 		}
 	}
 
-	path := filepath.Join(opts.dir, filename)
+	path := filepath.Join(cfg.dir, filename)
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		return errors.Wrap(err, "failed to create migration file")
 	}
@@ -52,8 +52,8 @@ func CreateWithTemplate(opts *options, tmpl *template.Template, name, migrationT
 }
 
 // Create writes a new blank migration file.
-func Create(opts *options, name, migrationType string) error {
-	return CreateWithTemplate(opts, nil, name, migrationType)
+func Create(cfg *config, name, migrationType string) error {
+	return CreateWithTemplate(cfg, nil, name, migrationType)
 }
 
 var sqlMigrationTemplate = template.Must(template.New("goose.sql-migration").Parse(`-- +goose Up

@@ -1,13 +1,13 @@
 package goose
 
 // Redo rolls back the most recently applied migration, then runs it again.
-func Redo(opts *options) error {
-	currentVersion, err := GetDBVersion(opts.db)
+func Redo(cfg *config) error {
+	currentVersion, err := GetDBVersion(cfg.db)
 	if err != nil {
 		return err
 	}
 
-	migrations, err := CollectMigrations(opts, minVersion, maxVersion)
+	migrations, err := CollectMigrations(cfg, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
@@ -17,11 +17,11 @@ func Redo(opts *options) error {
 		return err
 	}
 
-	if err := current.Down(opts); err != nil {
+	if err := current.Down(cfg); err != nil {
 		return err
 	}
 
-	if err := current.Up(opts); err != nil {
+	if err := current.Up(cfg); err != nil {
 		return err
 	}
 
