@@ -15,16 +15,16 @@ type config struct {
 
 
 func newConfig(dir string, db *sql.DB, opts ...Option) *config {
-	o := &config{
+	cfg := &config{
 		dir: dir,
 		db: db,
 	}
 	if dir != "" {
-		o.fileSystem = http.Dir(dir)
+		cfg.fileSystem = http.Dir(dir)
 	}
 	for _, opt := range opts {
-		opt(o)
+		opt(cfg)
 	}
-	return o
+	return cfg
 }
 
