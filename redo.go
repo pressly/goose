@@ -17,11 +17,11 @@ func Redo(opts *options) error {
 		return err
 	}
 
-	if err := current.Down(opts.db); err != nil {
+	if err := current.Down(opts); err != nil {
 		return err
 	}
 
-	if err := current.Up(opts.db); err != nil {
+	if err := current.Up(opts); err != nil {
 		return err
 	}
 

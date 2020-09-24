@@ -21,7 +21,7 @@ func Down(opts *options) error {
 		return fmt.Errorf("no migration %v", currentVersion)
 	}
 
-	return current.Down(opts.db)
+	return current.Down(opts)
 }
 
 // DownTo rolls back migrations to a specific version.
@@ -48,7 +48,7 @@ func DownTo(opts *options, version int64) error {
 			return nil
 		}
 
-		if err = current.Down(opts.db); err != nil {
+		if err = current.Down(opts); err != nil {
 			return err
 		}
 	}

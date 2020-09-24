@@ -22,7 +22,7 @@ func UpTo(opts *options, version int64) error {
 			return err
 		}
 
-		if err = next.Up(opts.db); err != nil {
+		if err = next.Up(opts); err != nil {
 			return err
 		}
 	}
@@ -53,7 +53,7 @@ func UpByOne(opts *options) error {
 		return err
 	}
 
-	if err = next.Up(opts.db); err != nil {
+	if err = next.Up(opts); err != nil {
 		return err
 	}
 

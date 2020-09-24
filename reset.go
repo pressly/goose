@@ -23,7 +23,7 @@ func Reset(opts *options) error {
 		if !statuses[migration.Version] {
 			continue
 		}
-		if err = migration.Down(opts.db); err != nil {
+		if err = migration.Down(opts); err != nil {
 			return errors.Wrap(err, "failed to db-down")
 		}
 	}
