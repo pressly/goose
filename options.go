@@ -13,13 +13,3 @@ func WithFileSystem(fs http.FileSystem) Option {
 		opts.fileSystem = fs
 	}
 }
-
-// WithLockDB will attempt an exclusive lock on the migration table to keep other
-// migrations from running until it's complete. There may not be a migration table
-// if this is the initial migration. This will not raise an error it will continue
-// migration without a lock.
-func WithLockDB(lockDB bool) Option {
-	return func(opts *config) {
-		opts.lockDB = lockDB
-	}
-}

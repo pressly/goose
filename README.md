@@ -259,6 +259,58 @@ func Down(tx *sql.Tx) error {
 }
 ```
 
+## Embedded migrations
+
+You can embed your migration directory into your binary with a tool like vfsgen and then pass your goose a http.FileSystem
+This allows your to handle your migration from with in your binary without depending on external files.
+
+1. Create either SQL or GO goose migration
+2. Import `github.com/pressly/goose`
+3. Call goose.New with a goose.WithFileSystem() option
+4. call Up() method on the struct returned by goose.New()
+
+A [sample Go migration app](./examples/fs-migrations) looks like:
+
+```go
+package main
+
+import (
+	"database/sql"
+	"fmt"
+	"log"
+
+	_ "github.com/lib/pq"
+
+	"github.com/pressly/goose"
+
+	"github.com/pressly/goose/examples/fs-migrations/postgres"
+	// import migrations in order to register any .go migrations
+	_ "github.com/pressly/goose/examples/fs-migrations/postgres/migrations"
+)
+
+const (
+	host     = "localhost"
+	port     = 5432
+	user     = "postgres"
+	password = "postgres"
+	dbname   = "fs_migrate"
+)
+
+func main() {
+	dbConnectionString := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
+	db, err := sql.Open("postgres", dbConnectionString)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	g := goose.New("./postgres/migrations", db, goose.WithFileSystem(postgres.Migrations))
+	if err := g.Up(); err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
 # Hybrid Versioning
 Please, read the [versioning problem](https://github.com/pressly/goose/issues/63#issuecomment-428681694) first.
 
