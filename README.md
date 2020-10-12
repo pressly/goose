@@ -269,7 +269,7 @@ This allows your to handle your migration from with in your binary without depen
 3. Call goose.New with a goose.WithFileSystem() option
 4. call Up() method on the struct returned by goose.New()
 
-A [sample Go migration app](./examples/fs-migrations) looks like:
+A [sample Go migration app](./examples/fs-migrations) using [vfsgen](https://github.com/shurcooL/vfsgen) looks like:
 
 ```go
 package main
