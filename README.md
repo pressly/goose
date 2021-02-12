@@ -41,11 +41,12 @@ For a lite version of the binary without DB connection dependent commands, use t
 Usage: goose [OPTIONS] DRIVER DBSTRING COMMAND
 
 Drivers:
-    postgres
-    mysql
-    sqlite3
     mssql
+    mysql
+    postgres
     redshift
+    snowflake
+    sqlite3
 
 Examples:
     goose sqlite3 ./foo.db status
@@ -59,6 +60,7 @@ Examples:
     goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
     goose tidb "user:password@/dbname?parseTime=true" status
     goose mssql "sqlserver://user:password@dbname:1433?database=master" status
+    goose snowflake "username:password@account/database/schema?role=role&warehouse=warehouse" status
 
 Options:
 

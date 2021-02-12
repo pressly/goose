@@ -119,12 +119,13 @@ GOOSE_DBSTRING=DBSTRING
 Usage: goose [OPTIONS] COMMAND
 
 Drivers:
-    postgres
-    mysql
-    sqlite3
-    mssql
-    redshift
     clickhouse
+    mssql
+    mysql
+    postgres
+    redshift
+	snowflake
+    sqlite3
 
 Examples:
     goose sqlite3 ./foo.db status
@@ -139,12 +140,14 @@ Examples:
     goose tidb "user:password@/dbname?parseTime=true" status
     goose mssql "sqlserver://user:password@dbname:1433?database=master" status
     goose clickhouse "tcp://127.0.0.1:9000" status
+    goose snowflake "username:password@account/database/schema?role=role&warehouse=warehouse" status
 
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose status
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose create init sql
     GOOSE_DRIVER=postgres GOOSE_DBSTRING="user=postgres dbname=postgres sslmode=disable" goose status
     GOOSE_DRIVER=mysql GOOSE_DBSTRING="user:password@/dbname" goose status
     GOOSE_DRIVER=redshift GOOSE_DBSTRING="postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" goose status
+    GOOSE_DRIVER=snowflake GOOSE_DB_STRING="username:password@account/database/schema?role=role&warehouse=warehouse" goose status
 
 Options:
 `
