@@ -1,6 +1,7 @@
 package goose
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -293,7 +294,10 @@ func createVersionTable(db *sql.DB) error {
 
 	d := GetDialect()
 
-	if _, err := txn.Exec(d.createVersionTableSQL()); err != nil {
+	if _, err := txn.ExecContext(d.getContext(context.Background()), d.createVersionTableSQL()); err != nil {
+		if err := d.rollbackCreateVersionTable(txn); err != nil {
+			panic(fmt.Sprintf("goose: unable to rollback version table creation: %v", err))
+		}
 		txn.Rollback()
 		return err
 	}
@@ -301,6 +305,9 @@ func createVersionTable(db *sql.DB) error {
 	version := 0
 	applied := true
 	if _, err := txn.Exec(d.insertVersionSQL(), version, applied); err != nil {
+		if err := d.rollbackCreateVersionTable(txn); err != nil {
+			panic(fmt.Sprintf("goose: unable to rollback version table creation: %v", err))
+		}
 		txn.Rollback()
 		return err
 	}
