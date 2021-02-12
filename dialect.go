@@ -1,6 +1,7 @@
 package goose
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 )
@@ -13,6 +14,8 @@ type SQLDialect interface {
 	deleteVersionSQL() string      // sql string to delete version
 	migrationSQL() string          // sql string to retrieve migrations
 	dbVersionQuery(db *sql.DB) (*sql.Rows, error)
+	getContext(baseContext context.Context) context.Context
+	rollbackCreateVersionTable(txn *sql.Tx) error
 }
 
 var dialect SQLDialect = &PostgresDialect{}
@@ -25,20 +28,22 @@ func GetDialect() SQLDialect {
 // SetDialect sets the SQLDialect
 func SetDialect(d string) error {
 	switch d {
-	case "postgres":
-		dialect = &PostgresDialect{}
-	case "mysql":
-		dialect = &MySQLDialect{}
-	case "sqlite3":
-		dialect = &Sqlite3Dialect{}
-	case "mssql":
-		dialect = &SqlServerDialect{}
-	case "redshift":
-		dialect = &RedshiftDialect{}
-	case "tidb":
-		dialect = &TiDBDialect{}
 	case "clickhouse":
 		dialect = &ClickHouseDialect{}
+	case "mssql":
+		dialect = &SqlServerDialect{}
+	case "mysql":
+		dialect = &MySQLDialect{}
+	case "postgres":
+		dialect = &PostgresDialect{}
+	case "redshift":
+		dialect = &RedshiftDialect{}
+	case "snowflake":
+		dialect = &SnowflakeDialect{}
+	case "sqlite3":
+		dialect = &Sqlite3Dialect{}
+	case "tidb":
+		dialect = &TiDBDialect{}
 	default:
 		return fmt.Errorf("%q: unknown dialect", d)
 	}
@@ -76,13 +81,19 @@ func (pg PostgresDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	return rows, err
 }
 
-func (m PostgresDialect) migrationSQL() string {
+func (pg PostgresDialect) migrationSQL() string {
 	return fmt.Sprintf("SELECT tstamp, is_applied FROM %s WHERE version_id=$1 ORDER BY tstamp DESC LIMIT 1", TableName())
 }
 
 func (pg PostgresDialect) deleteVersionSQL() string {
 	return fmt.Sprintf("DELETE FROM %s WHERE version_id=$1;", TableName())
 }
+
+func (pg PostgresDialect) getContext(baseContext context.Context) context.Context {
+	return baseContext
+}
+
+func (pg PostgresDialect) rollbackCreateVersionTable(txn *sql.Tx) error { return nil }
 
 ////////////////////////////
 // MySQL
@@ -121,6 +132,12 @@ func (m MySQLDialect) migrationSQL() string {
 func (m MySQLDialect) deleteVersionSQL() string {
 	return fmt.Sprintf("DELETE FROM %s WHERE version_id=?;", TableName())
 }
+
+func (m MySQLDialect) getContext(baseContext context.Context) context.Context {
+	return baseContext
+}
+
+func (m MySQLDialect) rollbackCreateVersionTable(txn *sql.Tx) error { return nil }
 
 ////////////////////////////
 // MSSQL
@@ -172,6 +189,12 @@ func (m SqlServerDialect) deleteVersionSQL() string {
 	return fmt.Sprintf("DELETE FROM %s WHERE version_id=@p1;", TableName())
 }
 
+func (m SqlServerDialect) getContext(baseContext context.Context) context.Context {
+	return baseContext
+}
+
+func (m SqlServerDialect) rollbackCreateVersionTable(txn *sql.Tx) error { return nil }
+
 ////////////////////////////
 // sqlite3
 ////////////////////////////
@@ -209,6 +232,12 @@ func (m Sqlite3Dialect) deleteVersionSQL() string {
 	return fmt.Sprintf("DELETE FROM %s WHERE version_id=?;", TableName())
 }
 
+func (m Sqlite3Dialect) getContext(baseContext context.Context) context.Context {
+	return baseContext
+}
+
+func (m Sqlite3Dialect) rollbackCreateVersionTable(txn *sql.Tx) error { return nil }
+
 ////////////////////////////
 // Redshift
 ////////////////////////////
@@ -239,13 +268,19 @@ func (rs RedshiftDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	return rows, err
 }
 
-func (m RedshiftDialect) migrationSQL() string {
+func (rs RedshiftDialect) migrationSQL() string {
 	return fmt.Sprintf("SELECT tstamp, is_applied FROM %s WHERE version_id=$1 ORDER BY tstamp DESC LIMIT 1", TableName())
 }
 
 func (rs RedshiftDialect) deleteVersionSQL() string {
 	return fmt.Sprintf("DELETE FROM %s WHERE version_id=$1;", TableName())
 }
+
+func (rs RedshiftDialect) getContext(baseContext context.Context) context.Context {
+	return baseContext
+}
+
+func (rs RedshiftDialect) rollbackCreateVersionTable(txn *sql.Tx) error { return nil }
 
 ////////////////////////////
 // TiDB
@@ -285,6 +320,12 @@ func (m TiDBDialect) deleteVersionSQL() string {
 	return fmt.Sprintf("DELETE FROM %s WHERE version_id=?;", TableName())
 }
 
+func (m TiDBDialect) getContext(baseContext context.Context) context.Context {
+	return baseContext
+}
+
+func (m TiDBDialect) rollbackCreateVersionTable(txn *sql.Tx) error { return nil }
+
 ////////////////////////////
 // ClickHouse
 ////////////////////////////
@@ -322,3 +363,9 @@ func (m ClickHouseDialect) migrationSQL() string {
 func (m ClickHouseDialect) deleteVersionSQL() string {
 	return fmt.Sprintf("ALTER TABLE %s DELETE WHERE version_id = ?", TableName())
 }
+
+func (m ClickHouseDialect) getContext(baseContext context.Context) context.Context {
+	return baseContext
+}
+
+func (m ClickHouseDialect) rollbackCreateVersionTable(txn *sql.Tx) error { return nil }
