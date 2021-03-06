@@ -8,18 +8,18 @@ import (
 )
 
 // Reset rolls back all migrations
-func Reset(db *sql.DB, dir string) error {
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
-	if err != nil {
-		return errors.Wrap(err, "failed to collect migrations")
-	}
+func (ms Migrations) Reset(db *sql.DB) error {
+	msCopy := make(Migrations, len(ms))
+	copy(msCopy, ms)
+
 	statuses, err := dbMigrationsStatus(db)
 	if err != nil {
 		return errors.Wrap(err, "failed to get status of migrations")
 	}
-	sort.Sort(sort.Reverse(migrations))
 
-	for _, migration := range migrations {
+	sort.Sort(sort.Reverse(msCopy))
+
+	for _, migration := range msCopy {
 		if !statuses[migration.Version] {
 			continue
 		}
@@ -29,6 +29,16 @@ func Reset(db *sql.DB, dir string) error {
 	}
 
 	return nil
+}
+
+// Reset rolls back all migrations
+func Reset(db *sql.DB, dir string) error {
+	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+	if err != nil {
+		return errors.Wrap(err, "failed to collect migrations")
+	}
+
+	return migrations.Reset(db)
 }
 
 func dbMigrationsStatus(db *sql.DB) (map[int64]bool, error) {

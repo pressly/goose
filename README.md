@@ -220,6 +220,39 @@ language plpgsql;
 -- +goose StatementEnd
 ```
 
+## Embedded sql migrations
+Go 1.16 introduced new feature: [compile-time embedding](https://golang.org/pkg/embed/) files into binary and
+corresponding [filesystem abstraction](https://golang.org/pkg/io/fs/).
+
+Package `github.com/pressly/goose/iofs` allows to run migrations using this filesystem abstraction.
+
+Example usage (assuming sql migrations placed in `migrations` directory):
+```go
+package migrations
+
+import (
+    "embed"
+
+    "github.com/pressly/goose"
+    "github.com/pressly/goose/iofs"
+)
+
+//go:embed migrations
+var migrations embed.FS
+
+func main() {
+    // setup database
+
+    if err := goose.Up(db, migrations, "migrations"); err != nil {
+        panic(err)
+    }
+
+    // run app
+}
+```
+
+For more detailed usage see `iofs/iofs_test.go`.
+
 ## Go Migrations
 
 1. Create your own goose binary, see [example](./examples/go-migrations)

@@ -3,6 +3,7 @@ package goose
 import (
 	"database/sql"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -21,13 +22,14 @@ type MigrationRecord struct {
 
 // Migration struct.
 type Migration struct {
-	Version    int64
-	Next       int64  // next version, or -1 if none
-	Previous   int64  // previous version, -1 if none
-	Source     string // path to .sql script or go file
-	Registered bool
-	UpFn       func(*sql.Tx) error // Up go migration function
-	DownFn     func(*sql.Tx) error // Down go migration function
+	Version      int64
+	Next         int64         // next version, or -1 if none
+	Previous     int64         // previous version, -1 if none
+	Source       string        // path to .sql script or go file
+	SourceReader io.ReadCloser // optional reader of .sql script
+	Registered   bool
+	UpFn         func(*sql.Tx) error // Up go migration function
+	DownFn       func(*sql.Tx) error // Down go migration function
 }
 
 func (m *Migration) String() string {
@@ -53,13 +55,20 @@ func (m *Migration) Down(db *sql.DB) error {
 func (m *Migration) run(db *sql.DB, direction bool) error {
 	switch filepath.Ext(m.Source) {
 	case ".sql":
-		f, err := os.Open(m.Source)
-		if err != nil {
-			return errors.Wrapf(err, "ERROR %v: failed to open SQL migration file", filepath.Base(m.Source))
-		}
-		defer f.Close()
+		rd := m.SourceReader
 
-		statements, useTx, err := parseSQLMigration(f, direction)
+		if rd == nil {
+			f, err := os.Open(m.Source)
+			if err != nil {
+				return errors.Wrapf(err, "ERROR %v: failed to open SQL migration file", filepath.Base(m.Source))
+			}
+
+			rd = f
+		}
+
+		defer rd.Close()
+
+		statements, useTx, err := parseSQLMigration(rd, direction)
 		if err != nil {
 			return errors.Wrapf(err, "ERROR %v: failed to parse SQL migration file", filepath.Base(m.Source))
 		}

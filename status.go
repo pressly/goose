@@ -9,13 +9,7 @@ import (
 )
 
 // Status prints the status of all migrations.
-func Status(db *sql.DB, dir string) error {
-	// collect all migrations
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
-	if err != nil {
-		return errors.Wrap(err, "failed to collect migrations")
-	}
-
+func (ms Migrations) Status(db *sql.DB) error {
 	// must ensure that the version table exists if we're running on a pristine DB
 	if _, err := EnsureDBVersion(db); err != nil {
 		return errors.Wrap(err, "failed to ensure DB version")
@@ -23,13 +17,24 @@ func Status(db *sql.DB, dir string) error {
 
 	log.Println("    Applied At                  Migration")
 	log.Println("    =======================================")
-	for _, migration := range migrations {
+	for _, migration := range ms {
 		if err := printMigrationStatus(db, migration.Version, filepath.Base(migration.Source)); err != nil {
 			return errors.Wrap(err, "failed to print status")
 		}
 	}
 
 	return nil
+}
+
+// Status prints the status of all migrations.
+func Status(db *sql.DB, dir string) error {
+	// collect all migrations
+	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+	if err != nil {
+		return errors.Wrap(err, "failed to collect migrations")
+	}
+
+	return migrations.Status(db)
 }
 
 func printMigrationStatus(db *sql.DB, version int64, script string) error {
