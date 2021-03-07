@@ -8,7 +8,7 @@ jobs:
     timeout-minutes: 10
     env:
       GOPATH: ${{ github.workspace }}
-      GO111MODULE: off
+      GO111MODULE: auto
 
     strategy:
       matrix:
@@ -29,4 +29,5 @@ jobs:
       - name: Test
         run: |
           mkdir -p bin
+          go get -d -t ./...
           go test -v ./...
