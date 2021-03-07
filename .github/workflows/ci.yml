@@ -4,17 +4,14 @@ on: [push, pull_request]
 
 jobs:
   test:
-    name: Run Go tests
+    name: Run unit tests
     timeout-minutes: 10
     env:
-      GOPATH: ${{ github.workspace }}
-      GO111MODULE: auto
+      GO111MODULE: off
 
     strategy:
       matrix:
-        # go-version: [1.14.x, 1.15.x, 1.16.x]
-        go-version: [1.12.x]
-        # os: [ubuntu-latest, macos-latest, windows-latest]
+        go-version: [1.14.x, 1.15.x, 1.16.x]
         os: [ubuntu-latest]
 
     runs-on: ${{ matrix.os }}
@@ -26,8 +23,9 @@ jobs:
           go-version: ${{ matrix.go-version }}
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Test
+      - name: Fetch deps
+        run: go get -d ./...
+      - name: Run tests
         run: |
           mkdir -p bin
-          go get -d -t ./...
           go test -v ./...
