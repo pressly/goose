@@ -7,7 +7,6 @@ jobs:
     name: Run Go tests
     timeout-minutes: 10
     env:
-      GOPATH: ${{ github.workspace }}
       GO111MODULE: off
 
     strategy:
