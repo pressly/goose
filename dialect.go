@@ -293,14 +293,14 @@ func (m TiDBDialect) deleteVersionSQL() string {
 type ClickHouseDialect struct{}
 
 func (m ClickHouseDialect) createVersionTableSQL() string {
-	return `
-    CREATE TABLE goose_db_version (
+	return fmt.Sprintf(`
+    CREATE TABLE %s (
       version_id Int64,
       is_applied UInt8,
       date Date default now(),
       tstamp DateTime default now()
     ) Engine = MergeTree(date, (date), 8192)
-	`
+	`, TableName())
 }
 
 func (m ClickHouseDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
