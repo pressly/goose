@@ -1,6 +1,7 @@
 package goose
 
 import (
+	"context"
 	"database/sql"
 	"sort"
 
@@ -8,7 +9,7 @@ import (
 )
 
 // Reset rolls back all migrations
-func Reset(db *sql.DB, dir string) error {
+func ResetCtx(ctx context.Context, db *sql.DB, dir string) error {
 	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return errors.Wrap(err, "failed to collect migrations")
@@ -23,12 +24,17 @@ func Reset(db *sql.DB, dir string) error {
 		if !statuses[migration.Version] {
 			continue
 		}
-		if err = migration.Down(db); err != nil {
+		if err = migration.DownCtx(ctx, db); err != nil {
 			return errors.Wrap(err, "failed to db-down")
 		}
 	}
 
 	return nil
+}
+
+// Reset rolls back all migrations
+func Reset(ctx context.Context, db *sql.DB, dir string) error {
+	return ResetCtx(context.Background(), db, dir)
 }
 
 func dbMigrationsStatus(db *sql.DB) (map[int64]bool, error) {

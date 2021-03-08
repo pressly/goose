@@ -1,6 +1,7 @@
 package goose
 
 import (
+	"context"
 	"database/sql"
 	"regexp"
 
@@ -15,13 +16,13 @@ import (
 //
 // All statements following an Up or Down directive are grouped together
 // until another direction directive is found.
-func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direction bool) error {
+func runSQLMigration(ctx context.Context, db *sql.DB, statements []string, useTx bool, v int64, direction bool) error {
 	if useTx {
 		// TRANSACTION.
 
 		verboseInfo("Begin transaction")
 
-		tx, err := db.Begin()
+		tx, err := db.BeginTx(ctx, nil)
 		if err != nil {
 			return errors.Wrap(err, "failed to begin transaction")
 		}

@@ -1,6 +1,7 @@
 package goose
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -34,9 +35,22 @@ func (m *Migration) String() string {
 	return fmt.Sprintf(m.Source)
 }
 
+// UpCtx runs an up migration.
+func (m *Migration) UpCtx(ctx context.Context, db *sql.DB) error {
+	if err := m.run(ctx, db, true); err != nil {
+		return err
+	}
+	return nil
+}
+
 // Up runs an up migration.
 func (m *Migration) Up(db *sql.DB) error {
-	if err := m.run(db, true); err != nil {
+	return m.UpCtx(context.Background(), db)
+}
+
+// DownCtx runs a down migration.
+func (m *Migration) DownCtx(ctx context.Context, db *sql.DB) error {
+	if err := m.run(ctx, db, false); err != nil {
 		return err
 	}
 	return nil
@@ -44,13 +58,10 @@ func (m *Migration) Up(db *sql.DB) error {
 
 // Down runs a down migration.
 func (m *Migration) Down(db *sql.DB) error {
-	if err := m.run(db, false); err != nil {
-		return err
-	}
-	return nil
+	return m.DownCtx(context.Background(), db)
 }
 
-func (m *Migration) run(db *sql.DB, direction bool) error {
+func (m *Migration) run(ctx context.Context, db *sql.DB, direction bool) error {
 	switch filepath.Ext(m.Source) {
 	case ".sql":
 		f, err := os.Open(m.Source)
@@ -64,7 +75,7 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 			return errors.Wrapf(err, "ERROR %v: failed to parse SQL migration file", filepath.Base(m.Source))
 		}
 
-		if err := runSQLMigration(db, statements, useTx, m.Version, direction); err != nil {
+		if err := runSQLMigration(ctx, db, statements, useTx, m.Version, direction); err != nil {
 			return errors.Wrapf(err, "ERROR %v: failed to run SQL migration", filepath.Base(m.Source))
 		}
 
@@ -78,7 +89,7 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 		if !m.Registered {
 			return errors.Errorf("ERROR %v: failed to run Go migration: Go functions must be registered and built into a custom binary (see https://github.com/pressly/goose/tree/master/examples/go-migrations)", m.Source)
 		}
-		tx, err := db.Begin()
+		tx, err := db.BeginTx(ctx, nil)
 		if err != nil {
 			return errors.Wrap(err, "ERROR failed to begin transaction")
 		}
