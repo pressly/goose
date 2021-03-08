@@ -45,7 +45,7 @@ func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, m
 			version = fmt.Sprintf(seqVersionTemplate, int64(1))
 		}
 	} else {
-		version = time.Now().Format(timestampFormat)
+		version = time.Now().UTC().Format(timestampFormat)
 	}
 
 	filename := fmt.Sprintf("%v_%v.%v", version, snakeCase(name), migrationType)
