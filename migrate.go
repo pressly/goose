@@ -131,14 +131,14 @@ func AddMigration(up func(*sql.Tx) error, down func(*sql.Tx) error) {
 
 // AddNamedMigration : Add a named migration.
 func AddNamedMigration(filename string, up func(*sql.Tx) error, down func(*sql.Tx) error) {
-	v, _ := NumericComponent(filename)
-	migration := &Migration{Version: v, Next: -1, Previous: -1, Registered: true, UpFn: up, DownFn: down, Source: filename}
+	version, verbose, _ := NumericComponent(filename)
+	migration := &Migration{Version: version, Verbose:verbose, Next: -1, Previous: -1, Registered: true, UpFn: up, DownFn: down, Source: filename}
 
-	if existing, ok := registeredGoMigrations[v]; ok {
+	if existing, ok := registeredGoMigrations[version]; ok {
 		panic(fmt.Sprintf("failed to add migration %q: version conflicts with %q", filename, existing.Source))
 	}
 
-	registeredGoMigrations[v] = migration
+	registeredGoMigrations[version] = migration
 }
 
 // CollectMigrations returns all the valid looking migration scripts in the
@@ -156,23 +156,23 @@ func CollectMigrations(dirpath string, current, target int64) (Migrations, error
 		return nil, err
 	}
 	for _, file := range sqlMigrationFiles {
-		v, err := NumericComponent(file)
+		version, verbose, err := NumericComponent(file)
 		if err != nil {
 			return nil, err
 		}
-		if versionFilter(v, current, target) {
-			migration := &Migration{Version: v, Next: -1, Previous: -1, Source: file}
+		if versionFilter(version, current, target) {
+			migration := &Migration{Version: version, Verbose: verbose, Next: -1, Previous: -1, Source: file}
 			migrations = append(migrations, migration)
 		}
 	}
 
 	// Go migrations registered via goose.AddMigration().
 	for _, migration := range registeredGoMigrations {
-		v, err := NumericComponent(migration.Source)
+		version, _, err := NumericComponent(migration.Source)
 		if err != nil {
 			return nil, err
 		}
-		if versionFilter(v, current, target) {
+		if versionFilter(version, current, target) {
 			migrations = append(migrations, migration)
 		}
 	}
@@ -183,18 +183,18 @@ func CollectMigrations(dirpath string, current, target int64) (Migrations, error
 		return nil, err
 	}
 	for _, file := range goMigrationFiles {
-		v, err := NumericComponent(file)
+		version, verbose, err := NumericComponent(file)
 		if err != nil {
 			continue // Skip any files that don't have version prefix.
 		}
 
 		// Skip migrations already existing migrations registered via goose.AddMigration().
-		if _, ok := registeredGoMigrations[v]; ok {
+		if _, ok := registeredGoMigrations[version]; ok {
 			continue
 		}
 
-		if versionFilter(v, current, target) {
-			migration := &Migration{Version: v, Next: -1, Previous: -1, Source: file, Registered: false}
+		if versionFilter(version, current, target) {
+			migration := &Migration{Version: version, Verbose: verbose, Next: -1, Previous: -1, Source: file, Registered: false}
 			migrations = append(migrations, migration)
 		}
 	}
@@ -299,8 +299,9 @@ func createVersionTable(db *sql.DB) error {
 	}
 
 	version := 0
+	verbose := "initial"
 	applied := true
-	if _, err := txn.Exec(d.insertVersionSQL(), version, applied); err != nil {
+	if _, err := txn.Exec(d.insertVersionSQL(), version, verbose, applied); err != nil {
 		txn.Rollback()
 		return err
 	}

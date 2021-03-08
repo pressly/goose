@@ -57,6 +57,7 @@ func (pg PostgresDialect) createVersionTableSQL() string {
 	return fmt.Sprintf(`CREATE TABLE %s (
             	id serial NOT NULL,
                 version_id bigint NOT NULL,
+                version_verbose varchar(255) NOT NULL,
                 is_applied boolean NOT NULL,
                 tstamp timestamp NULL default now(),
                 PRIMARY KEY(id)
@@ -64,7 +65,7 @@ func (pg PostgresDialect) createVersionTableSQL() string {
 }
 
 func (pg PostgresDialect) insertVersionSQL() string {
-	return fmt.Sprintf("INSERT INTO %s (version_id, is_applied) VALUES ($1, $2);", TableName())
+	return fmt.Sprintf("INSERT INTO %s (version_id, version_verbose, is_applied) VALUES ($1, $2, $3);", TableName())
 }
 
 func (pg PostgresDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
@@ -95,6 +96,7 @@ func (m MySQLDialect) createVersionTableSQL() string {
 	return fmt.Sprintf(`CREATE TABLE %s (
                 id serial NOT NULL,
                 version_id bigint NOT NULL,
+                version_verbose varchar(255) NOT NULL,
                 is_applied boolean NOT NULL,
                 tstamp timestamp NULL default now(),
                 PRIMARY KEY(id)
@@ -102,7 +104,7 @@ func (m MySQLDialect) createVersionTableSQL() string {
 }
 
 func (m MySQLDialect) insertVersionSQL() string {
-	return fmt.Sprintf("INSERT INTO %s (version_id, is_applied) VALUES (?, ?);", TableName())
+	return fmt.Sprintf("INSERT INTO %s (version_id, version_verbose, is_applied) VALUES (?, ?, ?);", TableName())
 }
 
 func (m MySQLDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
@@ -133,6 +135,7 @@ func (m SqlServerDialect) createVersionTableSQL() string {
 	return fmt.Sprintf(`CREATE TABLE %s (
                 id INT NOT NULL IDENTITY(1,1) PRIMARY KEY,
                 version_id BIGINT NOT NULL,
+                version_verbose VARCHAR(255) NOT NULL,
                 is_applied BIT NOT NULL,
                 tstamp DATETIME NULL DEFAULT CURRENT_TIMESTAMP
             );`, TableName())
@@ -183,13 +186,14 @@ func (m Sqlite3Dialect) createVersionTableSQL() string {
 	return fmt.Sprintf(`CREATE TABLE %s (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 version_id INTEGER NOT NULL,
+                version_verbose VARCHAR(255) NOT NULL,
                 is_applied INTEGER NOT NULL,
                 tstamp TIMESTAMP DEFAULT (datetime('now'))
             );`, TableName())
 }
 
 func (m Sqlite3Dialect) insertVersionSQL() string {
-	return fmt.Sprintf("INSERT INTO %s (version_id, is_applied) VALUES (?, ?);", TableName())
+	return fmt.Sprintf("INSERT INTO %s (version_id, version_verbose, is_applied) VALUES (?, ?, ?);", TableName())
 }
 
 func (m Sqlite3Dialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
@@ -220,6 +224,7 @@ func (rs RedshiftDialect) createVersionTableSQL() string {
 	return fmt.Sprintf(`CREATE TABLE %s (
             	id integer NOT NULL identity(1, 1),
                 version_id bigint NOT NULL,
+                version_verbose varchar(255) NOT NULL,
                 is_applied boolean NOT NULL,
                 tstamp timestamp NULL default sysdate,
                 PRIMARY KEY(id)
@@ -258,6 +263,7 @@ func (m TiDBDialect) createVersionTableSQL() string {
 	return fmt.Sprintf(`CREATE TABLE %s (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT UNIQUE,
                 version_id bigint NOT NULL,
+                version_verbose varchar(255) NOT NULL,
                 is_applied boolean NOT NULL,
                 tstamp timestamp NULL default now(),
                 PRIMARY KEY(id)
@@ -296,6 +302,7 @@ func (m ClickHouseDialect) createVersionTableSQL() string {
 	return `
     CREATE TABLE goose_db_version (
       version_id Int64,
+      version_verbose String,
       is_applied UInt8,
       date Date default now(),
       tstamp DateTime default now()
@@ -312,7 +319,7 @@ func (m ClickHouseDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 }
 
 func (m ClickHouseDialect) insertVersionSQL() string {
-	return fmt.Sprintf("INSERT INTO %s (version_id, is_applied) VALUES (?, ?)", TableName())
+	return fmt.Sprintf("INSERT INTO %s (version_id, version_verbose, is_applied) VALUES (?, ?, ?)", TableName())
 }
 
 func (m ClickHouseDialect) migrationSQL() string {
