@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/pressly/goose"
+	"github.com/quinnwinterfluid/goose"
 )
 
 var (
@@ -154,6 +154,7 @@ Commands:
     up                   Migrate the DB to the most recent version available
     up-by-one            Migrate the DB up by 1
     up-to VERSION        Migrate the DB to a specific VERSION
+    up-all               Migrate all migrations that have not been run
     down                 Roll back the version by 1
     down-to VERSION      Roll back to a specific VERSION
     redo                 Re-run the latest migration
