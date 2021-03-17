@@ -7,6 +7,11 @@ import (
 
 // Down rolls back a single migration from the current version.
 func Down(db *sql.DB, dir string) error {
+	if err := GetDialect().lock(db);err!=nil{
+		return err
+	}
+	defer GetDialect().unlock(db)
+
 	currentVersion, err := GetDBVersion(db)
 	if err != nil {
 		return err
@@ -32,7 +37,12 @@ func DownTo(db *sql.DB, dir string, version int64) error {
 		return err
 	}
 
-	for {
+	loop := func()error{
+		if err := GetDialect().lock(db);err != nil{
+			return err
+		}
+		defer GetDialect().unlock(db)
+
 		currentVersion, err := GetDBVersion(db)
 		if err != nil {
 			return err
@@ -41,15 +51,26 @@ func DownTo(db *sql.DB, dir string, version int64) error {
 		current, err := migrations.Current(currentVersion)
 		if err != nil {
 			log.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
-			return nil
+			return ErrNoCurrentVersion
 		}
 
 		if current.Version <= version {
 			log.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
-			return nil
+			return ErrNoNextVersion
 		}
 
 		if err = current.Down(db); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	for {
+		if err := loop();err!=nil{
+			if err == ErrNoNextVersion || err == ErrNoCurrentVersion{
+				return nil
+			}
 			return err
 		}
 	}

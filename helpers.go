@@ -2,6 +2,8 @@ package goose
 
 import (
 	"bytes"
+	"fmt"
+	"hash/crc32"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -81,4 +83,13 @@ func snakeCase(str string) string {
 
 func isAlphaNum(r rune) bool {
 	return unicode.IsLetter(r) || unicode.IsNumber(r)
+}
+
+const advisoryLockIDSalt uint = 1486364155
+
+// GenerateAdvisoryLockId inspired by rails migrations, see https://goo.gl/8o9bCT
+func generateAdvisoryLockId(schemaname string) (string, error) { // nolint: golint
+	sum := crc32.ChecksumIEEE([]byte(schemaname))
+	sum = sum * uint32(advisoryLockIDSalt)
+	return fmt.Sprint(sum), nil
 }

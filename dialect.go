@@ -1,8 +1,12 @@
 package goose
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+	mssql "github.com/denisenkom/go-mssqldb"
+
+	"github.com/pkg/errors"
 )
 
 // SQLDialect abstracts the details of specific SQL dialects
@@ -13,6 +17,8 @@ type SQLDialect interface {
 	deleteVersionSQL() string      // sql string to delete version
 	migrationSQL() string          // sql string to retrieve migrations
 	dbVersionQuery(db *sql.DB) (*sql.Rows, error)
+	lock(db *sql.DB)error
+	unlock(db *sql.DB)error
 }
 
 var dialect SQLDialect = &PostgresDialect{}
@@ -51,7 +57,9 @@ func SetDialect(d string) error {
 ////////////////////////////
 
 // PostgresDialect struct.
-type PostgresDialect struct{}
+type PostgresDialect struct{
+	isLocked bool
+}
 
 func (pg PostgresDialect) createVersionTableSQL() string {
 	return fmt.Sprintf(`CREATE TABLE %s (
@@ -84,12 +92,52 @@ func (pg PostgresDialect) deleteVersionSQL() string {
 	return fmt.Sprintf("DELETE FROM %s WHERE version_id=$1;", TableName())
 }
 
+func(pg PostgresDialect)lock(db *sql.DB)error{
+	if pg.isLocked {
+		return errors.New(TableName()+" is locked")
+	}
+
+	aid, err := generateAdvisoryLockId(TableName())
+	if err != nil {
+		return err
+	}
+
+	// This will wait indefinitely until the lock can be acquired.
+	query := `SELECT pg_advisory_lock($1)`
+	if _, err := db.ExecContext(context.Background(), query, aid); err != nil {
+		return fmt.Errorf("try lock failed, err: %s",err.Error())
+	}
+
+	pg.isLocked = true
+	return nil
+}
+
+func(pg PostgresDialect)unlock(db *sql.DB)error{
+	if !pg.isLocked {
+		return nil
+	}
+
+	aid, err := generateAdvisoryLockId(TableName())
+	if err != nil {
+		return err
+	}
+
+	query := `SELECT pg_advisory_unlock($1)`
+	if _, err := db.ExecContext(context.Background(), query, aid); err != nil {
+		return fmt.Errorf("try unlock failed, err: %s",err.Error())
+	}
+	pg.isLocked = false
+	return nil
+}
+
 ////////////////////////////
 // MySQL
 ////////////////////////////
 
 // MySQLDialect struct.
-type MySQLDialect struct{}
+type MySQLDialect struct{
+	isLocked bool
+}
 
 func (m MySQLDialect) createVersionTableSQL() string {
 	return fmt.Sprintf(`CREATE TABLE %s (
@@ -122,12 +170,68 @@ func (m MySQLDialect) deleteVersionSQL() string {
 	return fmt.Sprintf("DELETE FROM %s WHERE version_id=?;", TableName())
 }
 
+func(m MySQLDialect)lock(db *sql.DB)error{
+	if m.isLocked {
+		return errors.New(TableName() + " is locked")
+	}
+
+	aid, err := generateAdvisoryLockId(TableName())
+	if err != nil {
+		return err
+	}
+
+	query := "SELECT GET_LOCK(?, 10)"
+	var success bool
+	if err := db.QueryRowContext(context.Background(), query, aid).Scan(&success); err != nil {
+		return fmt.Errorf("try lock failed, err: %s",err.Error())
+	}
+
+	if success {
+		m.isLocked = true
+		return nil
+	}
+
+	return fmt.Errorf("try lock failed, no error")
+}
+
+func(m MySQLDialect)unlock(db *sql.DB)error{
+	if !m.isLocked {
+		return nil
+	}
+
+	aid, err := generateAdvisoryLockId(TableName())
+	if err != nil {
+		return err
+	}
+
+	query := `SELECT RELEASE_LOCK(?)`
+	if _, err := db.ExecContext(context.Background(), query, aid); err != nil {
+		return fmt.Errorf("try unlock failed, err: %s",err.Error())
+	}
+
+	// NOTE: RELEASE_LOCK could return NULL or (or 0 if the code is changed),
+	// in which case isLocked should be true until the timeout expires -- synchronizing
+	// these states is likely not worth trying to do; reconsider the necessity of isLocked.
+
+	m.isLocked = false
+	return nil
+}
+
 ////////////////////////////
 // MSSQL
 ////////////////////////////
 
 // SqlServerDialect struct.
-type SqlServerDialect struct{}
+type SqlServerDialect struct{
+	isLocked bool
+}
+
+var lockErrorMap = map[mssql.ReturnStatus]string{
+	-1:   "The lock request timed out.",
+	-2:   "The lock request was canceled.",
+	-3:   "The lock request was chosen as a deadlock victim.",
+	-999: "Parameter validation or other call error.",
+}
 
 func (m SqlServerDialect) createVersionTableSQL() string {
 	return fmt.Sprintf(`CREATE TABLE %s (
@@ -172,6 +276,54 @@ func (m SqlServerDialect) deleteVersionSQL() string {
 	return fmt.Sprintf("DELETE FROM %s WHERE version_id=@p1;", TableName())
 }
 
+func(m SqlServerDialect)lock(db *sql.DB)error{
+	if m.isLocked {
+		return errors.New(TableName() + " is locked")
+	}
+
+	aid, err := generateAdvisoryLockId(TableName())
+	if err != nil {
+		return err
+	}
+
+	// This will either obtain the lock immediately and return true,
+	// or return false if the lock cannot be acquired immediately.
+	// MS Docs: sp_getapplock: https://docs.microsoft.com/en-us/sql/relational-databases/system-stored-procedures/sp-getapplock-transact-sql?view=sql-server-2017
+	query := `EXEC sp_getapplock @Resource = @p1, @LockMode = 'Update', @LockOwner = 'Session', @LockTimeout = 0`
+
+	var status mssql.ReturnStatus
+	if _, err = db.ExecContext(context.Background(), query, aid, &status); err == nil && status > -1 {
+		m.isLocked = true
+		return nil
+	} else if err != nil {
+		fmt.Errorf("try lock failed, err: %s",err.Error())
+	} else {
+		return fmt.Errorf("try lock failed, err: %s", lockErrorMap[status])
+	}
+
+	return nil
+}
+
+func(m SqlServerDialect)unlock(db *sql.DB)error{
+	if !m.isLocked {
+		return nil
+	}
+
+	aid, err := generateAdvisoryLockId(TableName())
+	if err != nil {
+		return err
+	}
+
+	// MS Docs: sp_releaseapplock: https://docs.microsoft.com/en-us/sql/relational-databases/system-stored-procedures/sp-releaseapplock-transact-sql?view=sql-server-2017
+	query := `EXEC sp_releaseapplock @Resource = @p1, @LockOwner = 'Session'`
+	if _, err := db.ExecContext(context.Background(), query, aid); err != nil {
+		return fmt.Errorf("try unlock failed, err: %s",err.Error())
+	}
+	m.isLocked = false
+
+	return nil
+}
+
 ////////////////////////////
 // sqlite3
 ////////////////////////////
@@ -207,6 +359,14 @@ func (m Sqlite3Dialect) migrationSQL() string {
 
 func (m Sqlite3Dialect) deleteVersionSQL() string {
 	return fmt.Sprintf("DELETE FROM %s WHERE version_id=?;", TableName())
+}
+
+func(m Sqlite3Dialect)lock(db *sql.DB)error{
+	return nil
+}
+
+func(m Sqlite3Dialect)unlock(db *sql.DB)error{
+	return nil
 }
 
 ////////////////////////////
@@ -247,12 +407,23 @@ func (rs RedshiftDialect) deleteVersionSQL() string {
 	return fmt.Sprintf("DELETE FROM %s WHERE version_id=$1;", TableName())
 }
 
+func(rs RedshiftDialect)lock(db *sql.DB)error{
+	return nil
+}
+
+func(rs RedshiftDialect)unlock(db *sql.DB)error{
+	return nil
+}
+
+
 ////////////////////////////
 // TiDB
 ////////////////////////////
 
 // TiDBDialect struct.
-type TiDBDialect struct{}
+type TiDBDialect struct{
+	isLocked bool
+}
 
 func (m TiDBDialect) createVersionTableSQL() string {
 	return fmt.Sprintf(`CREATE TABLE %s (
@@ -283,6 +454,53 @@ func (m TiDBDialect) migrationSQL() string {
 
 func (m TiDBDialect) deleteVersionSQL() string {
 	return fmt.Sprintf("DELETE FROM %s WHERE version_id=?;", TableName())
+}
+
+func(m TiDBDialect)lock(db *sql.DB)error{
+	if m.isLocked {
+		return errors.New(TableName() + " is locked")
+	}
+
+	aid, err := generateAdvisoryLockId(TableName())
+	if err != nil {
+		return err
+	}
+
+	query := "SELECT GET_LOCK(?, 10)"
+	var success bool
+	if err := db.QueryRowContext(context.Background(), query, aid).Scan(&success); err != nil {
+		return fmt.Errorf("try lock failed, err: %s",err.Error())
+	}
+
+	if success {
+		m.isLocked = true
+		return nil
+	}
+
+	return fmt.Errorf("try lock failed, no error")
+}
+
+func(m TiDBDialect)unlock(db *sql.DB)error{
+	if !m.isLocked {
+		return nil
+	}
+
+	aid, err := generateAdvisoryLockId(TableName())
+	if err != nil {
+		return err
+	}
+
+	query := `SELECT RELEASE_LOCK(?)`
+	if _, err := db.ExecContext(context.Background(), query, aid); err != nil {
+		return fmt.Errorf("try unlock failed, err: %s",err.Error())
+	}
+
+	// NOTE: RELEASE_LOCK could return NULL or (or 0 if the code is changed),
+	// in which case isLocked should be true until the timeout expires -- synchronizing
+	// these states is likely not worth trying to do; reconsider the necessity of isLocked.
+
+	m.isLocked = false
+	return nil
 }
 
 ////////////////////////////
@@ -321,4 +539,12 @@ func (m ClickHouseDialect) migrationSQL() string {
 
 func (m ClickHouseDialect) deleteVersionSQL() string {
 	return fmt.Sprintf("ALTER TABLE %s DELETE WHERE version_id = ?", TableName())
+}
+
+func(m ClickHouseDialect)lock(db *sql.DB)error{
+	return nil
+}
+
+func(m ClickHouseDialect)unlock(db *sql.DB)error{
+	return nil
 }

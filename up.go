@@ -11,7 +11,12 @@ func UpTo(db *sql.DB, dir string, version int64) error {
 		return err
 	}
 
-	for {
+	loop := func()error{
+		if err := GetDialect().lock(db);err!=nil{
+			return err
+		}
+		defer GetDialect().unlock(db)
+
 		current, err := GetDBVersion(db)
 		if err != nil {
 			return err
@@ -21,12 +26,22 @@ func UpTo(db *sql.DB, dir string, version int64) error {
 		if err != nil {
 			if err == ErrNoNextVersion {
 				log.Printf("goose: no migrations to run. current version: %d\n", current)
-				return nil
 			}
 			return err
 		}
 
 		if err = next.Up(db); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	for {
+		if err := loop();err!=nil{
+			if err == ErrNoNextVersion {
+				return nil
+			}
 			return err
 		}
 	}
@@ -43,6 +58,11 @@ func UpByOne(db *sql.DB, dir string) error {
 	if err != nil {
 		return err
 	}
+
+	if err:=GetDialect().lock(db);err!=nil{
+		return err
+	}
+	defer GetDialect().unlock(db)
 
 	currentVersion, err := GetDBVersion(db)
 	if err != nil {
