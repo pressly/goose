@@ -9,10 +9,10 @@ import (
 const VERSION = "v2.7.0-rc3"
 
 var (
-	minVersion         = int64(0)
-	maxVersion         = int64((1 << 63) - 1)
-	timestampFormat    = "20060102150405"
-	verbose            = false
+	minVersion      = int64(0)
+	maxVersion      = int64((1 << 63) - 1)
+	timestampFormat = "20060102150405"
+	verbose         = false
 )
 
 // SetVerbose set the goose verbosity mode
@@ -41,6 +41,10 @@ func Run(command string, db *sql.DB, dir string, args ...string) error {
 			return fmt.Errorf("version must be a number (got '%s')", args[0])
 		}
 		if err := UpTo(db, dir, version); err != nil {
+			return err
+		}
+	case "up-all":
+		if err := UpAll(db, dir); err != nil {
 			return err
 		}
 	case "create":

@@ -63,3 +63,27 @@ func UpByOne(db *sql.DB, dir string) error {
 
 	return nil
 }
+
+// UpAll runs all migrations that have not been run
+func UpAll(db *sql.DB, dir string) error {
+	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+	if err != nil {
+		return err
+	}
+
+	for _, m := range migrations {
+		isApplied, err := IsApplied(db, m.Version)
+		if err != nil {
+			return err
+		}
+
+		// if migration has not been applied, run migration
+		if !isApplied {
+			if err := m.Up(db); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}

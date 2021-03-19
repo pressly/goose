@@ -146,3 +146,17 @@ func NumericComponent(name string) (int64, error) {
 
 	return n, e
 }
+
+// Return true if migration has been applied, false otherwise
+func IsApplied(db *sql.DB, version int64) (bool, error) {
+	q := GetDialect().migrationSQL()
+
+	var row MigrationRecord
+
+	err := db.QueryRow(q, version).Scan(&row.TStamp, &row.IsApplied)
+	if err != nil && err != sql.ErrNoRows {
+		return false, errors.Wrap(err, "failed to query latest migration")
+	}
+
+	return row.IsApplied, nil
+}

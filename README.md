@@ -75,6 +75,7 @@ Commands:
     up                   Migrate the DB to the most recent version available
     up-by-one            Migrate the DB up by 1
     up-to VERSION        Migrate the DB to a specific VERSION
+    up-all               Migrate all migrations that have not been run
     down                 Roll back the version by 1
     down-to VERSION      Roll back to a specific VERSION
     redo                 Re-run the latest migration
@@ -121,6 +122,14 @@ Migrate up a single migration from the current version
 
     $ goose up-by-one
     $ OK    20170614145246_change_type.sql
+
+## up-all
+
+Migrate all migrations that have not been run
+
+    $ goose up-to 20170506082420
+    $ OK    20170506082420_create_table.sql
+    $ OK    20170506082840_next.sql
 
 ## down
 
