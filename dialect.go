@@ -299,7 +299,7 @@ func (m ClickHouseDialect) createVersionTableSQL() string {
       is_applied UInt8,
       date Date default now(),
       tstamp DateTime default now()
-    ) Engine = MergeTree(date, (date), 8192)
+    ) Engine = MergeTree() ORDER BY (tstamp);
 	`
 }
 
