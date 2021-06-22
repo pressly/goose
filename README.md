@@ -68,6 +68,7 @@ Options:
     	migrations table name (default "goose_db_version")
   -h	print help
   -v	enable verbose mode
+  -n	retrieve the N most recent migrations
   -version
     	print version
 
