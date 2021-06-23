@@ -87,12 +87,12 @@ func (ms Migrations) LastN(n int) (Migrations, error) {
 		return nil, ErrNoNextVersion
 	}
 
-	start := len(ms) - n - 1
+	start := len(ms) - n
 	if start < 0 {
 		start = 0
 	}
 
-	return ms[start : len(ms)-1], nil
+	return ms[start:], nil
 }
 
 // Versioned gets versioned migrations.
