@@ -18,6 +18,7 @@ var (
 	version    = flags.Bool("version", false, "print version")
 	certfile   = flags.String("certfile", "", "file path to root CA's certificates in pem format (only support on mysql)")
 	sequential = flags.Bool("s", false, "use sequential numbering for new migrations")
+	recent     = flags.Int("n", 0, "retrieve the N most recent migrations")
 )
 
 func main() {
@@ -33,6 +34,9 @@ func main() {
 	}
 	if *sequential {
 		goose.SetSequential(true)
+	}
+	if *recent > 0 {
+		goose.SetRecentLimit(*recent)
 	}
 	goose.SetTableName(*table)
 
