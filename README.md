@@ -4,6 +4,8 @@ Goose is a database migration tool. Manage your database schema by creating incr
 
 [![GoDoc Widget]][GoDoc] [![Travis Widget]][Travis]
 
+Starting with [v3.0.0](https://github.com/pressly/goose/releases/tag/v3.0.0) this project adds Go module support, but maintains backwards compataibility with older `v2.x.y` tags.
+
 ### Goals of this fork
 
 `github.com/pressly/goose` is a fork of `bitbucket.org/liamstask/goose` with the following changes:
