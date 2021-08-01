@@ -10,8 +10,6 @@ jobs:
   test:
     name: Run unit tests
     timeout-minutes: 10
-    env:
-      GO111MODULE: off
 
     strategy:
       matrix:
