@@ -293,14 +293,16 @@ func createVersionTable(db *sql.DB) error {
 
 	d := GetDialect()
 
-	if _, err := txn.Exec(d.createVersionTableSQL()); err != nil {
-		txn.Rollback()
-		return err
+	for _, stmt := range d.createVersionTableSQL() {
+		if _, err := txn.Exec(stmt); err != nil {
+			txn.Rollback()
+			return err
+		}
 	}
 
-	version := 0
+	version := int64(0)
 	applied := true
-	if _, err := txn.Exec(d.insertVersionSQL(), version, applied); err != nil {
+	if err := d.insertVersion(txn, version, applied); err != nil {
 		txn.Rollback()
 		return err
 	}

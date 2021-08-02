@@ -97,7 +97,7 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 		}
 
 		if direction {
-			if _, err := tx.Exec(GetDialect().insertVersionSQL(), m.Version, direction); err != nil {
+			if err := GetDialect().insertVersion(tx, m.Version, direction); err != nil {
 				tx.Rollback()
 				return errors.Wrap(err, "ERROR failed to execute transaction")
 			}
