@@ -3,6 +3,7 @@ package goose
 import (
 	"database/sql/driver"
 	"fmt"
+	"strings"
 )
 
 type booler bool
@@ -11,8 +12,11 @@ func (b *booler) Scan(src interface{}) error {
 	switch x := src.(type) {
 	case int:
 		*b = x == 1
+	case int64:
+		*b = x == 1
 	case string:
-		*b = x == "Y"
+		v := strings.ToLower(x)
+		*b = (v == "y") || (v == "yes") || (v == "t") || (v == "true")
 	case bool:
 		*b = booler(x)
 	default:

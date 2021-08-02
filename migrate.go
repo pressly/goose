@@ -250,9 +250,15 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 	toSkip := make([]int64, 0)
 
 	for rows.Next() {
-		var row MigrationRecord
-		if err = rows.Scan(&row.VersionID, &row.IsApplied); err != nil {
+		var version int64
+		var applied booler
+		if err = rows.Scan(&version, &applied); err != nil {
 			return 0, errors.Wrap(err, "failed to scan row")
+		}
+		// there's no other need for using MigrationRecord, but readability.
+		var row = MigrationRecord{
+			VersionID: version,
+			IsApplied: bool(applied),
 		}
 
 		// have we already marked this version to be skipped?
