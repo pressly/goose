@@ -35,11 +35,17 @@ func Status(db *sql.DB, dir string) error {
 func printMigrationStatus(db *sql.DB, version int64, script string) error {
 	q := GetDialect().migrationSQL()
 
-	var row MigrationRecord
-
-	err := db.QueryRow(q, version).Scan(&row.TStamp, &row.IsApplied)
+	var (
+		ts        time.Time
+		isApplied booler
+	)
+	err := db.QueryRow(q, version).Scan(&ts, &isApplied)
 	if err != nil && err != sql.ErrNoRows {
 		return errors.Wrap(err, "failed to query the latest migration")
+	}
+	var row = MigrationRecord{
+		TStamp:    ts,
+		IsApplied: bool(isApplied),
 	}
 
 	var appliedAt string
