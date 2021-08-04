@@ -10,8 +10,6 @@ jobs:
   test:
     name: Run unit tests
     timeout-minutes: 10
-    env:
-      GO111MODULE: off
 
     strategy:
       matrix:
@@ -27,9 +25,9 @@ jobs:
           go-version: ${{ matrix.go-version }}
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Fetch deps
-        run: go get -d ./...
       - name: Run tests
         run: |
           mkdir -p bin
+          go vet ./...
           go test -v ./...
+          go build ./...
