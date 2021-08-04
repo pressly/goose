@@ -45,9 +45,7 @@ func SetDialect(d string) error {
 		dialect = &TiDBDialect{}
 	case "clickhouse":
 		dialect = &ClickHouseDialect{}
-	case "oracle":
-		fallthrough
-	case "godror":
+	case "oracle", "godror":
 		dialect = &OracleDialect{}
 	default:
 		return fmt.Errorf("%q: unknown dialect", d)
@@ -382,7 +380,7 @@ func (m OracleDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 }
 
 func (m OracleDialect) migrationSQL() string {
-	return fmt.Sprintf("SELECT tstamp, is_applied FROM %s WHERE version_id=:1 ORDER BY tstamp DESC LIMIT 1", TableName())
+	return fmt.Sprintf("SELECT tstamp, is_applied FROM %s WHERE version_id=:1 AND ROWNUM=1 ORDER BY tstamp DESC", TableName())
 }
 
 func (m OracleDialect) deleteVersionSQL() string {

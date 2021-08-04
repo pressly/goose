@@ -22,7 +22,7 @@ func OpenDBWithDriver(driver string, dbstring string) (*sql.DB, error) {
 	}
 
 	switch driver {
-	case "postgres", "sqlite3", "mysql", "sqlserver", "clickhouse", "oracle":
+	case "postgres", "sqlite3", "mysql", "sqlserver", "clickhouse", "oracle", "godror":
 		return sql.Open(driver, dbstring)
 	default:
 		return nil, fmt.Errorf("unsupported driver %s", driver)
