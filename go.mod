@@ -6,8 +6,10 @@ require (
 	github.com/ClickHouse/clickhouse-go v1.4.5
 	github.com/denisenkom/go-mssqldb v0.10.0
 	github.com/go-sql-driver/mysql v1.6.0
+	github.com/godror/godror v0.25.3
 	github.com/lib/pq v1.10.2
 	github.com/mattn/go-sqlite3 v1.14.8
 	github.com/pkg/errors v0.9.1
+	github.com/sijms/go-ora/v2 v2.1.22
 	github.com/ziutek/mymysql v1.5.4
 )

@@ -46,6 +46,9 @@ Drivers:
     sqlite3
     mssql
     redshift
+    clickhouse
+    oracle
+    godror
 
 Examples:
     goose sqlite3 ./foo.db status
@@ -59,6 +62,9 @@ Examples:
     goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
     goose tidb "user:password@/dbname?parseTime=true" status
     goose mssql "sqlserver://user:password@dbname:1433?database=master" status
+    goose clickhouse "tcp://127.0.0.1:9000" status
+	goose oracle "oracle://user:pass@server/service_name" status
+	goose godror 'user="scott" password="tiger" connectString="dbhost:1521/orclpdb1" status
 
 Options:
 
@@ -154,8 +160,6 @@ Print the status of all migrations:
     $   Sun Jan  6 11:25:03 2013 -- 001_basics.sql
     $   Sun Jan  6 11:25:03 2013 -- 002_next.sql
     $   Pending                  -- 003_and_again.go
-
-Note: for MySQL [parseTime flag](https://github.com/go-sql-driver/mysql#parsetime) must be enabled.
 
 ## version
 
@@ -265,6 +269,39 @@ Please, read the [versioning problem](https://github.com/pressly/goose/issues/63
 We strongly recommend adopting a hybrid versioning approach, using both timestamps and sequential numbers. Migrations created during the development process are timestamped and sequential versions are ran on production. We believe this method will prevent the problem of conflicting versions when writing software in a team environment.
 
 To help you adopt this approach, `create` will use the current timestamp as the migration version. When you're ready to deploy your migrations in a production environment, we also provide a helpful `fix` command to convert your migrations into sequential order, while preserving the timestamp ordering. We recommend running `fix` in the CI pipeline, and only when the migrations are ready for production.
+
+# Important Driver Notes
+
+## MySQL
+
+For running `status` command on MySQL databases [parseTime
+flag](https://github.com/go-sql-driver/mysql#parsetime) must be enabled.
+
+## Oracle
+Goose supports migrations for Oracle Database by means of the the following
+implementation of Oracle drivers:
+
+* "godror" - supplied by
+  [github.com/godror/godror](https://github.com/godror/godror).  It requires
+  CGO_ENABLED=1 and Oracle Instant Client libraries to run (*see below*).  It is
+  using Anthony Tuininga's excellent OCI wrapper,
+  [ODPI-C](https://www.github.com/oracle/odpi).
+* "oracle" - pure Go Oracle driver, supplied by
+  [github.com/sijms/go-ora/v2](github.com/sijms/go-ora).
+
+
+Some usage aspects are described below in this section.
+
+### godror
+To use the driver, one must specify the path to the Oracle Instant Client
+libraries in the connection string, i.e.
+```
+user="larry" password="nopwnag3" connectString="localhost:1521/orcl" libDir="/Users/you/Downloads/instantclient_19_8"
+```
+
+For detailed guide and alternative ways to specify the connection string, please
+see the [package doc](https://godror.github.io/godror/doc/connection.html)
+
 
 ## License
 
