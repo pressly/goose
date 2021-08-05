@@ -54,7 +54,7 @@ func Test_booler_Value(t *testing.T) {
 		wantErr bool
 	}{
 		{"true", booler(true), driver.Value("Y"), false},
-		{"true", booler(false), driver.Value("N"), false},
+		{"false", booler(false), driver.Value("N"), false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
