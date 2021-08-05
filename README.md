@@ -63,19 +63,19 @@ Examples:
     goose tidb "user:password@/dbname?parseTime=true" status
     goose mssql "sqlserver://user:password@dbname:1433?database=master" status
     goose clickhouse "tcp://127.0.0.1:9000" status
-	goose oracle "oracle://user:pass@server/service_name" status
-	goose godror 'user="scott" password="tiger" connectString="dbhost:1521/orclpdb1" status
+    goose oracle "oracle://user:pass@server/service_name" status
+    goose godror 'user="scott" password="tiger" connectString="dbhost:1521/orclpdb1" status
 
 Options:
 
   -dir string
-    	directory with migration files (default ".")
+        directory with migration files (default ".")
   -table string
-    	migrations table name (default "goose_db_version")
+        migrations table name (default "goose_db_version")
   -h	print help
   -v	enable verbose mode
   -version
-    	print version
+        print version
 
 Commands:
     up                   Migrate the DB to the most recent version available
@@ -237,29 +237,29 @@ A [sample Go migration 00002_users_add_email.go file](./examples/go-migrations/0
 package migrations
 
 import (
-	"database/sql"
+    "database/sql"
 
-	"github.com/pressly/goose"
+    "github.com/pressly/goose"
 )
 
 func init() {
-	goose.AddMigration(Up, Down)
+    goose.AddMigration(Up, Down)
 }
 
 func Up(tx *sql.Tx) error {
-	_, err := tx.Exec("UPDATE users SET username='admin' WHERE username='root';")
-	if err != nil {
-		return err
-	}
-	return nil
+    _, err := tx.Exec("UPDATE users SET username='admin' WHERE username='root';")
+    if err != nil {
+        return err
+    }
+    return nil
 }
 
 func Down(tx *sql.Tx) error {
-	_, err := tx.Exec("UPDATE users SET username='root' WHERE username='admin';")
-	if err != nil {
-		return err
-	}
-	return nil
+    _, err := tx.Exec("UPDATE users SET username='root' WHERE username='admin';")
+    if err != nil {
+        return err
+    }
+    return nil
 }
 ```
 
