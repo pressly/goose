@@ -3,7 +3,6 @@ package goose
 import (
 	"database/sql"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -53,7 +52,7 @@ func (m *Migration) Down(db *sql.DB) error {
 func (m *Migration) run(db *sql.DB, direction bool) error {
 	switch filepath.Ext(m.Source) {
 	case ".sql":
-		f, err := os.Open(m.Source)
+		f, err := baseFS.Open(m.Source)
 		if err != nil {
 			return errors.Wrapf(err, "ERROR %v: failed to open SQL migration file", filepath.Base(m.Source))
 		}

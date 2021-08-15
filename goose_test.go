@@ -1,12 +1,18 @@
 package goose
 
 import (
+	"database/sql"
+	"embed"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func TestDefaultBinary(t *testing.T) {
@@ -92,4 +98,83 @@ func TestCustomBinary(t *testing.T) {
 			t.Fatalf("%s:\n%v\n\n%s", err, cmd, out)
 		}
 	}
+}
+
+//go:embed examples/sql-migrations/*.sql
+var migrations embed.FS
+
+func TestEmbeddedMigrations(t *testing.T) {
+	// not using t.Parallel here to avoid races
+
+	db, err := sql.Open("sqlite3", "sql_embed.db")
+	if err != nil {
+		t.Fatalf("Database open failed: %s", err)
+	}
+
+	db.SetMaxOpenConns(1)
+
+	// decouple from existing structure
+	fsys, err := fs.Sub(migrations, "examples/sql-migrations")
+	if err != nil {
+		t.Fatalf("SubFS make failed: %s", err)
+	}
+
+	SetBaseFS(fsys)
+	SetDialect("sqlite3")
+	t.Cleanup(func() { SetBaseFS(nil) })
+
+	t.Run("Migration cycle", func(t *testing.T) {
+		if err := Up(db, ""); err != nil {
+			t.Errorf("Failed to run 'up' migrations: %s", err)
+		}
+
+		ver, err := GetDBVersion(db)
+		if err != nil {
+			t.Fatalf("Failed to get migrations version: %s", err)
+		}
+
+		if ver != 3 {
+			t.Errorf("Expected version 3 after 'up', got %d", ver)
+		}
+
+		if err := Reset(db, ""); err != nil {
+			t.Errorf("Failed to run 'down' migrations: %s", err)
+		}
+
+		ver, err = GetDBVersion(db)
+		if err != nil {
+			t.Fatalf("Failed to get migrations version: %s", err)
+		}
+
+		if ver != 0 {
+			t.Errorf("Expected version 0 after 'reset', got %d", ver)
+		}
+	})
+
+	t.Run("Create uses os fs", func(t *testing.T) {
+		tmpDir, err := os.MkdirTemp("", "test_create_osfs")
+		if err != nil {
+			t.Fatalf("Create temp dir failed: %s", err)
+		}
+
+		t.Cleanup(func() { os.RemoveAll(tmpDir) })
+
+		if err := Create(db, tmpDir, "test", "sql"); err != nil {
+			t.Errorf("Failed to create migration: %s", err)
+		}
+
+		paths, _ := filepath.Glob(filepath.Join(tmpDir, "*test.sql"))
+		if len(paths) == 0 {
+			t.Errorf("Failed to find created migration")
+		}
+
+		if err := Fix(tmpDir); err != nil {
+			t.Errorf("Failed to 'fix' migrations: %s", err)
+		}
+
+		_, err = os.Stat(filepath.Join(tmpDir, "00001_test.sql"))
+		if err != nil {
+			t.Errorf("Failed to locate fixed migration: %s", err)
+		}
+	})
 }
