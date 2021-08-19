@@ -10,7 +10,8 @@ import (
 const seqVersionTemplate = "%05v"
 
 func Fix(dir string) error {
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+	// always use osFS here because it's modifying operation
+	migrations, err := collectMigrationsFS(osFS{}, dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}

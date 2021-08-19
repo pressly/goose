@@ -29,7 +29,8 @@ func SetSequential(s bool) {
 func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, migrationType string) error {
 	var version string
 	if sequential {
-		migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+		// always use DirFS here because it's modifying operation
+		migrations, err := collectMigrationsFS(osFS{}, dir, minVersion, maxVersion)
 		if err != nil {
 			return err
 		}
