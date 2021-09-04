@@ -1,5 +1,9 @@
 # goose [![Goose CI](https://github.com/pressly/goose/actions/workflows/ci.yml/badge.svg)](https://github.com/pressly/goose/actions/workflows/ci.yml) [![Go Reference](https://pkg.go.dev/badge/github.com/pressly/goose/v3.svg)](https://pkg.go.dev/github.com/pressly/goose/v3)
 
+<p align="center">
+  <img src="assets/goose_logo.png" width="125"">
+</p>
+
 Goose is a database migration tool. Manage your database schema by creating incremental SQL changes or Go functions.
 
 Starting with [v3.0.0](https://github.com/pressly/goose/releases/tag/v3.0.0) this project adds Go module support, but maintains backwards compataibility with older `v2.x.y` tags.
