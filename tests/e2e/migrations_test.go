@@ -1,4 +1,4 @@
-package postgres_test
+package e2e
 
 import (
 	"database/sql"
@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	_ "github.com/lib/pq"
 	"github.com/matryer/is"
 	"github.com/pressly/goose/v3"
 )
@@ -15,10 +14,9 @@ func TestMigrateUp(t *testing.T) {
 	t.Parallel()
 	is := is.New(t)
 
-	db, err := newDockerDatabase(t, dialectPostgres, 0)
+	db, err := newDockerDB(t)
 	is.NoErr(err)
-	goose.SetDialect(dialectPostgres)
-	migrationsDir := filepath.Join("testdata", "migrations")
+	goose.SetDialect(*dialect)
 	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
 	is.NoErr(err)
 	is.True(len(migrations) != 0)
@@ -41,10 +39,9 @@ func TestMigrateUpTo(t *testing.T) {
 	const (
 		upToVersion int64 = 2
 	)
-	db, err := newDockerDatabase(t, dialectPostgres, 0)
+	db, err := newDockerDB(t)
 	is.NoErr(err)
-	goose.SetDialect(dialectPostgres)
-	migrationsDir := filepath.Join("testdata", "migrations")
+	goose.SetDialect(*dialect)
 	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
 	is.NoErr(err)
 	is.True(len(migrations) != 0)
@@ -65,10 +62,9 @@ func TestMigrateUpByOne(t *testing.T) {
 	t.Parallel()
 	is := is.New(t)
 
-	db, err := newDockerDatabase(t, dialectPostgres, 0)
+	db, err := newDockerDB(t)
 	is.NoErr(err)
-	goose.SetDialect(dialectPostgres)
-	migrationsDir := filepath.Join("testdata", "migrations")
+	goose.SetDialect(*dialect)
 	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
 	is.NoErr(err)
 	is.True(len(migrations) != 0)
@@ -96,10 +92,9 @@ func TestMigrateFull(t *testing.T) {
 	t.Parallel()
 	is := is.New(t)
 
-	db, err := newDockerDatabase(t, dialectPostgres, 0)
+	db, err := newDockerDB(t)
 	is.NoErr(err)
-	goose.SetDialect(dialectPostgres)
-	migrationsDir := filepath.Join("testdata", "migrations")
+	goose.SetDialect(*dialect)
 	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
 	is.NoErr(err)
 	is.True(len(migrations) != 0)
@@ -167,9 +162,14 @@ func getCurrentGooseVersion(db *sql.DB, gooseTable string) (int64, error) {
 }
 
 func getTableNames(db *sql.DB) ([]string, error) {
-	rows, err := db.Query(
-		`SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name`,
-	)
+	var query string
+	switch *dialect {
+	case dialectPostgres:
+		query = `SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name`
+	case dialectMySQL:
+		query = `SELECT table_name FROM INFORMATION_SCHEMA.tables WHERE TABLE_TYPE='BASE TABLE' ORDER BY table_name`
+	}
+	rows, err := db.Query(query)
 	if err != nil {
 		return nil, err
 	}
