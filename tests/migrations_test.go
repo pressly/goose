@@ -103,6 +103,22 @@ func TestMigrateFull(t *testing.T) {
 	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
 	is.NoErr(err)
 	is.True(len(migrations) != 0)
+	// test retrieving invalid current goose migrations. goose cannot return a migration
+	// if the supplied "current" version is non-existent or 0.
+	_, err = migrations.Current(20160813)
+	is.Equal(err, goose.ErrNoCurrentVersion)
+	_, err = migrations.Current(0)
+	is.Equal(err, goose.ErrNoCurrentVersion)
+	// verify the first migration1. This should not change if more migrations are added
+	// in the future.
+	migration1, err := migrations.Current(1)
+	is.NoErr(err)
+	is.Equal(migration1.Version, int64(1))
+	is.Equal(migration1.Source, filepath.Join(migrationsDir, "00001_a.sql"))
+	is.Equal(migration1.Registered, false) // expecting false for .sql migrations
+	is.Equal(migration1.Previous, int64(-1))
+	is.Equal(migration1.Next, int64(2))
+
 	// Apply all up migrations
 	{
 		err = goose.Up(db, migrationsDir)
