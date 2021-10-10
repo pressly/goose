@@ -51,18 +51,18 @@ var (
 	// migrationsDir is a global the points to a ./testdata/{dialect}/migrations folder.
 	// It is set by TestMain based on the current dialect.
 	migrationsDir = ""
-)
 
-// known tables are the tables (including goose table) created by
-// running all migration files. If you add a table, make sure to
-// add to this list and keep it in order.
-var knownTables = []string{
-	"goose_db_version",
-	"issues",
-	"owners",
-	"repos",
-	"stargazers",
-}
+	// known tables are the tables (including goose table) created by
+	// running all migration files. If you add a table, make sure to
+	// add to this list and keep it in order.
+	knownTables = []string{
+		"goose_db_version",
+		"issues",
+		"owners",
+		"repos",
+		"stargazers",
+	}
+)
 
 func TestMain(m *testing.M) {
 	flag.Parse()
@@ -70,7 +70,7 @@ func TestMain(m *testing.M) {
 	switch *dialect {
 	case dialectPostgres, dialectMySQL:
 	default:
-		log.Printf("invalid dialect: %q", *dialect)
+		log.Printf("dialect not supported: %q", *dialect)
 		os.Exit(1)
 	}
 	migrationsDir = filepath.Join("testdata", *dialect, "migrations")
