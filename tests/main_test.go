@@ -34,6 +34,16 @@ var (
 	}
 )
 
+// Known tables are all the tables created through the migration files.
+// If you add a table, make sure to add to this list and keep it in order.
+var knownTables = []string{
+	"goose_db_version",
+	"issues",
+	"owners",
+	"repos",
+	"stargazers",
+}
+
 func TestMain(m *testing.M) {
 	flag.Parse()
 

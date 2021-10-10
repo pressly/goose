@@ -132,7 +132,7 @@ func TestMigrateFull(t *testing.T) {
 		is.Equal(gotVersion, currentVersion) // incorrect database version
 		tables, err := getTableNames(db)
 		is.NoErr(err)
-		is.Equal(tables, []string{"goose_db_version", "owners", "repos"})
+		is.Equal(tables, knownTables)
 	}
 	{
 		// Apply 1 down migration
