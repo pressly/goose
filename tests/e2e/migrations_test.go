@@ -114,8 +114,8 @@ func TestMigrateFull(t *testing.T) {
 	is.Equal(migration1.Previous, int64(-1))
 	is.Equal(migration1.Next, int64(2))
 
-	// Apply all up migrations
 	{
+		// Apply all up migrations
 		err = goose.Up(db, migrationsDir)
 		is.NoErr(err)
 		currentVersion, err := goose.GetDBVersion(db)
@@ -138,7 +138,7 @@ func TestMigrateFull(t *testing.T) {
 		is.Equal(gotVersion, migrations[len(migrations)-1].Version-1) // incorrect database version
 	}
 	{
-		// Migrate everything else down. Should only be left with a single table:
+		// Migrate all remaining migrations down. Should only be left with a single table:
 		// the default goose table
 		err := goose.DownTo(db, migrationsDir, 0)
 		is.NoErr(err)
@@ -147,7 +147,7 @@ func TestMigrateFull(t *testing.T) {
 		is.Equal(gotVersion, int64(0))
 		tables, err := getTableNames(db)
 		is.NoErr(err)
-		is.Equal(tables, []string{"goose_db_version"})
+		is.Equal(tables, []string{goose.TableName()})
 	}
 }
 
