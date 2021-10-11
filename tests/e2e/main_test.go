@@ -48,8 +48,8 @@ var (
 )
 
 var (
-	// migrationsDir is a global the points to a ./testdata/{dialect}/migrations folder.
-	// It is set by TestMain based on the current dialect.
+	// migrationsDir is a global that points to a ./testdata/{dialect}/migrations folder.
+	// It is set in TestMain based on the current dialect.
 	migrationsDir = ""
 
 	// known tables are the tables (including goose table) created by
@@ -103,7 +103,7 @@ func newDockerDB(t *testing.T) (*sql.DB, error) {
 }
 
 func newDockerPostgresDB(t *testing.T, bindPort int) (*sql.DB, error) {
-	var (
+	const (
 		dbUsername = "postgres"
 		dbPassword = "password1"
 		dbHost     = "localhost"
@@ -181,7 +181,7 @@ func newDockerPostgresDB(t *testing.T, bindPort int) (*sql.DB, error) {
 }
 
 func newDockerMariaDB(t *testing.T, bindPort int) (*sql.DB, error) {
-	var (
+	const (
 		dbUsername = "tester"
 		dbPassword = "password1"
 		dbHost     = "localhost"
@@ -244,7 +244,9 @@ func newDockerMariaDB(t *testing.T, bindPort int) (*sql.DB, error) {
 	)
 	var db *sql.DB
 	// Exponential backoff-retry, because the application in the container
-	// might not be ready to accept connections yet.
+	// might not be ready to accept connections yet. Add an extra sleep
+	// because mariadb containers take much longer to startup.
+	time.Sleep(5 * time.Second)
 	if err := pool.Retry(func() error {
 		var err error
 		db, err = sql.Open(dialectMySQL, dsn)
