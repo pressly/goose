@@ -258,8 +258,5 @@ func newDockerMariaDB(t *testing.T, bindPort int) (*sql.DB, error) {
 	); err != nil {
 		return nil, fmt.Errorf("could not connect to docker database: %v", err)
 	}
-	db.SetConnMaxLifetime(time.Minute * 5)
-	db.SetMaxIdleConns(0)
-	db.SetMaxOpenConns(5)
 	return db, nil
 }
