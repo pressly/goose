@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime/debug"
 
 	"github.com/pressly/goose/v3"
 )
@@ -21,7 +22,7 @@ var (
 )
 
 var (
-	GOOSE_VERSION = "development"
+	gooseVersion = ""
 )
 
 func main() {
@@ -29,7 +30,10 @@ func main() {
 	flags.Parse(os.Args[1:])
 
 	if *version {
-		fmt.Println(GOOSE_VERSION)
+		if buildInfo, ok := debug.ReadBuildInfo(); ok && buildInfo != nil && gooseVersion == "" {
+			gooseVersion = buildInfo.Main.Version
+		}
+		fmt.Printf("goose version:%s\n", gooseVersion)
 		return
 	}
 	if *verbose {
