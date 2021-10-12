@@ -26,7 +26,10 @@ checksum:
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
 changelog:
+  use: github
   sort: asc
+  # Commit messages matching the regexp listed here will be removed from
+  # the changelog.
   filters:
     exclude:
       - "^docs:"
