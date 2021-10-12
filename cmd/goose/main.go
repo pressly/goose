@@ -20,12 +20,16 @@ var (
 	sequential = flags.Bool("s", false, "use sequential numbering for new migrations")
 )
 
+var (
+	GOOSE_VERSION = "development"
+)
+
 func main() {
 	flags.Usage = usage
 	flags.Parse(os.Args[1:])
 
 	if *version {
-		fmt.Println(goose.VERSION)
+		fmt.Println(GOOSE_VERSION)
 		return
 	}
 	if *verbose {
