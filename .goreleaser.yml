@@ -20,6 +20,7 @@ archives:
       386: i386
       amd64: x86_64
     name_template: "{{ tolower .Binary }}_{{ tolower .Os }}_{{ tolower .Arch }}"
+    format: binary
 checksum:
   name_template: "checksums.txt"
 snapshot:
