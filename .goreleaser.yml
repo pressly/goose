@@ -1,7 +1,14 @@
 # Documentation at https://goreleaser.com
+project_name: goose
+
+gomod:
+  proxy: true
+
 builds:
   - env:
       - CGO_ENABLED=0
+    main: ./cmd/goose
+    binary: goose
     goos:
       - linux
       - windows
@@ -9,22 +16,29 @@ builds:
     goarch:
       - amd64
       - arm64
-    main: ./cmd/goose
     # Custom ldflags templates.
     # Default is `-s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser`.
     ldflags:
-      - -s -w -X main.GOOSE_VERSION={{.Version}}
-    binary: goose
+      - -s -w
+
+# You can disable this pipe in order to not upload any artifacts.
+# Defaults to false.
+release:
+  disable: false
+
 archives:
   - replacements:
       386: i386
       amd64: x86_64
     name_template: "{{ tolower .Binary }}_{{ tolower .Os }}_{{ tolower .Arch }}"
     format: binary
+
 checksum:
   name_template: "checksums.txt"
+
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
+
 changelog:
   use: github
   sort: asc
@@ -34,3 +48,4 @@ changelog:
     exclude:
       - "^docs:"
       - "^test:"
+# TODO(mf): add docker support?
