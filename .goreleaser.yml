@@ -1,0 +1,32 @@
+# Documentation at https://goreleaser.com
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    main: ./cmd/goose
+    # Custom ldflags templates.
+    # Default is `-s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser`.
+    ldflags:
+      - -s -w -X main.GOOSE_VERSION={{.Version}}
+    binary: goose
+archives:
+  - replacements:
+      386: i386
+      amd64: x86_64
+    name_template: "{{ tolower .Binary }}_{{ tolower .Os }}_{{ tolower .Arch }}"
+checksum:
+  name_template: "checksums.txt"
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
