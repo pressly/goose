@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime/debug"
 
 	"github.com/pressly/goose/v3"
 )
@@ -20,12 +21,19 @@ var (
 	sequential = flags.Bool("s", false, "use sequential numbering for new migrations")
 )
 
+var (
+	gooseVersion = ""
+)
+
 func main() {
 	flags.Usage = usage
 	flags.Parse(os.Args[1:])
 
 	if *version {
-		fmt.Println(goose.VERSION)
+		if buildInfo, ok := debug.ReadBuildInfo(); ok && buildInfo != nil && gooseVersion == "" {
+			gooseVersion = buildInfo.Main.Version
+		}
+		fmt.Printf("goose version:%s\n", gooseVersion)
 		return
 	}
 	if *verbose {
