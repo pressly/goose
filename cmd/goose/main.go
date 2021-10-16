@@ -87,10 +87,6 @@ func main() {
 		arguments = append(arguments, args[3:]...)
 	}
 	if *allowMissing {
-		if err := goose.Run(command, db, *dir, arguments...); err != nil {
-			log.Fatalf("goose run: %v", err)
-		}
-	} else {
 		if err := goose.RunWithOptions(
 			command,
 			db,
@@ -98,6 +94,11 @@ func main() {
 			arguments,
 			goose.WithAllowMissing(),
 		); err != nil {
+			log.Fatalf("goose run: %v", err)
+		}
+	} else {
+		// Default behaviour.
+		if err := goose.Run(command, db, *dir, arguments...); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
 	}
