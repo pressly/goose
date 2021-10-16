@@ -86,21 +86,19 @@ func main() {
 	if len(args) > 3 {
 		arguments = append(arguments, args[3:]...)
 	}
+
+	options := []goose.OptionsFunc{}
 	if *allowMissing {
-		if err := goose.RunWithOptions(
-			command,
-			db,
-			*dir,
-			arguments,
-			goose.WithAllowMissing(),
-		); err != nil {
-			log.Fatalf("goose run: %v", err)
-		}
-	} else {
-		// Default behaviour.
-		if err := goose.Run(command, db, *dir, arguments...); err != nil {
-			log.Fatalf("goose run: %v", err)
-		}
+		options = append(options, goose.WithAllowMissing())
+	}
+	if err := goose.RunWithOptions(
+		command,
+		db,
+		*dir,
+		arguments,
+		options...,
+	); err != nil {
+		log.Fatalf("goose run: %v", err)
 	}
 }
 
