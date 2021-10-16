@@ -68,7 +68,7 @@ func TestMigrateUpByOne(t *testing.T) {
 	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
 	is.NoErr(err)
 	is.True(len(migrations) != 0)
-	// Migrate up to the second migration
+	// Apply all migrations one-by-one.
 	var counter int
 	for {
 		err := goose.UpByOne(db, migrationsDir)
@@ -155,6 +155,16 @@ func getCurrentGooseVersion(db *sql.DB, gooseTable string) (int64, error) {
 	var gotVersion int64
 	if err := db.QueryRow(
 		fmt.Sprintf("select max(version_id) from %s", gooseTable),
+	).Scan(&gotVersion); err != nil {
+		return 0, err
+	}
+	return gotVersion, nil
+}
+
+func getGooseVersionCount(db *sql.DB, gooseTable string) (int64, error) {
+	var gotVersion int64
+	if err := db.QueryRow(
+		fmt.Sprintf("SELECT count(*) FROM %s WHERE version_id > 0", gooseTable),
 	).Scan(&gotVersion); err != nil {
 		return 0, err
 	}
