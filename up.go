@@ -2,6 +2,7 @@ package goose
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"sort"
 )
@@ -66,7 +67,10 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 		}
 		next, err := foundMigrations.Next(current)
 		if err != nil {
-			break
+			if errors.Is(err, ErrNoNextVersion) {
+				break
+			}
+			return fmt.Errorf("failed to find next migration: %v", err)
 		}
 
 		if err = next.Up(db); err != nil {
