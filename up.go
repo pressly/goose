@@ -73,14 +73,13 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 			return fmt.Errorf("failed to find next migration: %v", err)
 		}
 
-		if err = next.Up(db); err != nil {
+		if err := next.Up(db); err != nil {
 			return err
 		}
 		if option.applyUpByOne {
 			return nil
 		}
 	}
-
 	// At this point there are no more migrations to apply. But we need to maintain
 	// the following behaviour:
 	// UpByOne returns an error to signifiying there are no more migrations.
@@ -129,11 +128,12 @@ func upWithMissing(
 			current, missing.Version)
 	}
 
-	// The database versions may be out-of-order due to applying missing migrations.
+	// We can no longer rely on the database version_id to be sequential because
+	// out-of-order migrations get applied before newer collected migrations.
 
 	for _, found := range foundMigrations {
 		// TODO(mf): instead of relying on this lookup, consider hitting
-		// the database directly.
+		// the database directly?
 		if lookupApplied[found.Version] {
 			continue
 		}
@@ -148,7 +148,6 @@ func upWithMissing(
 	if err != nil {
 		return err
 	}
-
 	// At this point there are no more migrations to apply. But we need to maintain
 	// the following behaviour:
 	// UpByOne returns an error to signifiying there are no more migrations.
