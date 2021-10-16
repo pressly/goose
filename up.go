@@ -55,7 +55,8 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 			missingMigrations,
 			foundMigrations,
 			dbMigrations,
-			option)
+			option,
+		)
 	}
 
 	var current int64
@@ -72,7 +73,6 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 			}
 			return fmt.Errorf("failed to find next migration: %v", err)
 		}
-
 		if err := next.Up(db); err != nil {
 			return err
 		}
@@ -82,7 +82,7 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 	}
 	// At this point there are no more migrations to apply. But we need to maintain
 	// the following behaviour:
-	// UpByOne returns an error to signifiying there are no more migrations.
+	// UpByOne returns an error to signifying there are no more migrations.
 	// Up and UpTo return nil
 	log.Printf("goose: no migrations to run. current version: %d\n", current)
 	if option.applyUpByOne {
@@ -134,6 +134,9 @@ func upWithMissing(
 	for _, found := range foundMigrations {
 		// TODO(mf): instead of relying on this lookup, consider hitting
 		// the database directly?
+		// Alternatively, we can skip a bunch migrations and start the cursor
+		// at a version that represents 100% applied migrations. But this is
+		// risky, and we should aim to keep this logic simple.
 		if lookupApplied[found.Version] {
 			continue
 		}
@@ -150,7 +153,7 @@ func upWithMissing(
 	}
 	// At this point there are no more migrations to apply. But we need to maintain
 	// the following behaviour:
-	// UpByOne returns an error to signifiying there are no more migrations.
+	// UpByOne returns an error to signifying there are no more migrations.
 	// Up and UpTo return nil
 	log.Printf("goose: no migrations to run. current version: %d\n", current)
 	if option.applyUpByOne {
