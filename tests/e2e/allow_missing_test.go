@@ -29,7 +29,7 @@ func TestNotAllowMissing(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(current, int64(7))
 
-	// Developer B - migration 6
+	// Developer B - migration 6 (missing) and 8 (new)
 	// This should raise an error. By default goose does not allow out-of-order (missing)
 	// migrations, which means halt if a missing migration is detected.
 	err = goose.Up(db, migrationsDir)
@@ -39,48 +39,6 @@ func TestNotAllowMissing(t *testing.T) {
 	current, err = goose.GetDBVersion(db)
 	is.NoErr(err)
 	is.Equal(current, int64(7))
-}
-
-func TestAllowMissingUp(t *testing.T) {
-	t.Parallel()
-	is := is.New(t)
-
-	// Create and apply first 5 migrations.
-	db := setupAllowMissingTestDB(t, 5)
-
-	/*
-		Developer A and B simultaneously check out the "main" currently on version 5.
-		Developer A mistakenly creates migration 7 and commits.
-		Developer B did not pull the latest changes and commits migration 6. Oops.
-
-		If goose is set to allow missing migrations, then 6 should be applied
-		after 7.
-	*/
-
-	// Developer A - migration 7 (mistakenly applied)
-	{
-		migrations, err := goose.CollectMigrations(migrationsDir, 0, 7)
-		is.NoErr(err)
-		err = migrations[6].Up(db)
-		is.NoErr(err)
-		current, err := goose.GetDBVersion(db)
-		is.NoErr(err)
-		is.Equal(current, int64(7))
-	}
-	// Developer B - migration 6
-	{
-		// By default, attempting to apply this migration will raise an error.
-		// If goose is set to "allow missing" migrations then it should get applied.
-		err := goose.Up(db, migrationsDir, goose.WithAllowMissing())
-		is.True(err == nil) // Applying out-of-order migration should return no error when allow-missing=true
-		count, err := getGooseVersionCount(db, goose.TableName())
-		is.NoErr(err)
-		is.Equal(count, int64(8)) // Expecting count of migrations to be 8
-
-		current, err := goose.GetDBVersion(db)
-		is.NoErr(err)
-		is.Equal(current, int64(8)) // Expecting max(version_id) to be 8
-	}
 }
 
 func TestNowAllowMissingUpByOne(t *testing.T) {
@@ -123,6 +81,115 @@ func TestNowAllowMissingUpByOne(t *testing.T) {
 		current, err := goose.GetDBVersion(db)
 		is.NoErr(err)
 		is.Equal(current, int64(7)) // Expecting max(version_id) to be 7
+	}
+}
+
+func TestAllowMissingUp(t *testing.T) {
+	t.Parallel()
+	is := is.New(t)
+
+	// Create and apply first 5 migrations.
+	db := setupAllowMissingTestDB(t, 5)
+
+	/*
+		Developer A and B simultaneously check out the "main" currently on version 5.
+		Developer A mistakenly creates migration 7 and commits.
+		Developer B did not pull the latest changes and commits migration 6. Oops.
+
+		If goose is set to allow missing migrations, then 6 should be applied
+		after 7.
+	*/
+
+	// Developer A - migration 7 (mistakenly applied)
+	{
+		migrations, err := goose.CollectMigrations(migrationsDir, 0, 7)
+		is.NoErr(err)
+		err = migrations[6].Up(db)
+		is.NoErr(err)
+		current, err := goose.GetDBVersion(db)
+		is.NoErr(err)
+		is.Equal(current, int64(7))
+	}
+	// Developer B - migration 6 (missing) and 8 (new)
+	{
+		// By default, attempting to apply this migration will raise an error.
+		// If goose is set to "allow missing" migrations then it should get applied.
+		err := goose.Up(db, migrationsDir, goose.WithAllowMissing())
+		is.True(err == nil) // Applying out-of-order migration should return no error when allow-missing=true
+		count, err := getGooseVersionCount(db, goose.TableName())
+		is.NoErr(err)
+		is.Equal(count, int64(8)) // Expecting count of migrations to be 8
+
+		current, err := goose.GetDBVersion(db)
+		is.NoErr(err)
+		is.Equal(current, int64(8)) // Expecting max(version_id) to be 8
+	}
+}
+
+func TestMigrateOutOfOrderDown(t *testing.T) {
+	t.Parallel()
+	is := is.New(t)
+
+	const (
+		maxVersion = 8
+	)
+	// Create and apply first 5 migrations.
+	db := setupAllowMissingTestDB(t, 5)
+
+	// Developer A - migration 7 (mistakenly applied)
+	{
+		migrations, err := goose.CollectMigrations(migrationsDir, 0, maxVersion-1)
+		is.NoErr(err)
+		err = migrations[6].Up(db)
+		is.NoErr(err)
+		current, err := goose.GetDBVersion(db)
+		is.NoErr(err)
+		is.Equal(current, int64(maxVersion-1))
+	}
+	// Developer B - migration 6 (missing) and 8 (new)
+	{
+		// 6
+		err := goose.UpByOne(db, migrationsDir, goose.WithAllowMissing())
+		is.True(err == nil)
+		// 8
+		err = goose.UpByOne(db, migrationsDir, goose.WithAllowMissing())
+		is.True(err == nil)
+
+		count, err := getGooseVersionCount(db, goose.TableName())
+		is.NoErr(err)
+		is.Equal(count, int64(maxVersion)) // Expecting count of migrations to be 8
+		current, err := goose.GetDBVersion(db)
+		is.NoErr(err)
+		is.Equal(current, int64(maxVersion)) // Expecting max(version_id) to be 8
+	}
+	// The order in the database is expected to be:
+	// 1,2,3,4,5,7,6,8
+	// So migrating down should be the reverse order:
+	// 8,6,7,5,4,3,2,1
+	//
+	// Migrate down by one. Expecting 6.
+	{
+		err := goose.Down(db, migrationsDir)
+		is.NoErr(err)
+		current, err := goose.GetDBVersion(db)
+		is.NoErr(err)
+		is.Equal(current, int64(6)) // Expecting max(version) to be 6
+	}
+	// Migrate down by one. Expecting 7.
+	{
+		err := goose.Down(db, migrationsDir)
+		is.NoErr(err)
+		current, err := goose.GetDBVersion(db)
+		is.NoErr(err)
+		is.Equal(current, int64(7)) // Expecting max(version) to be 7
+	}
+	// Migrate down by one. Expecting 5.
+	{
+		err := goose.Down(db, migrationsDir)
+		is.NoErr(err)
+		current, err := goose.GetDBVersion(db)
+		is.NoErr(err)
+		is.Equal(current, int64(5)) // Expecting max(version) to be 5
 	}
 }
 
