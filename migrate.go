@@ -21,6 +21,9 @@ var (
 	MaxVersion int64 = 9223372036854775807 // max(int64)
 
 	registeredGoMigrations = map[int64]*Migration{}
+
+	// recent with value of 0 is no limit
+	recent = 0
 )
 
 // Migrations slice.
@@ -76,6 +79,20 @@ func (ms Migrations) Last() (*Migration, error) {
 	}
 
 	return ms[len(ms)-1], nil
+}
+
+// Last gets the last migration.
+func (ms Migrations) LastN(n int) (Migrations, error) {
+	if len(ms) == 0 {
+		return nil, ErrNoNextVersion
+	}
+
+	start := len(ms) - n
+	if start < 0 {
+		start = 0
+	}
+
+	return ms[start:], nil
 }
 
 // Versioned gets versioned migrations.
@@ -194,6 +211,13 @@ func collectMigrationsFS(fsys fs.FS, dirpath string, current, target int64) (Mig
 		if versionFilter(v, current, target) {
 			migration := &Migration{Version: v, Next: -1, Previous: -1, Source: file, Registered: false}
 			migrations = append(migrations, migration)
+		}
+	}
+
+	if recent > 0 {
+		migrations, err = migrations.LastN(recent)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -320,4 +344,8 @@ func GetDBVersion(db *sql.DB) (int64, error) {
 	}
 
 	return version, nil
+}
+
+func SetRecentLimit(r int) {
+	recent = r
 }
