@@ -29,6 +29,7 @@ Goose supports [embedding SQL migrations](#embedded-sql-migrations), which means
       thus no driver `panic()` conflict within your codebase!
     - goose pkg doesn't have any vendor dependencies anymore
 - We use timestamped migrations by default but recommend a hybrid approach of using timestamps in the development process and sequential versions in production.
+- Supports missing (out-of-order) migrations with the `-allow-missing` flag, or if using as a library supply the functional option `goose.WithAllowMissing()` to Up, UpTo or UpByOne.
 
 # Install
 
@@ -67,12 +68,14 @@ Examples:
     goose mssql "sqlserver://user:password@dbname:1433?database=master" status
 
 Options:
-
+  -allow-missing
+        applies missing (out-of-order) migrations
   -dir string
     	directory with migration files (default ".")
   -table string
     	migrations table name (default "goose_db_version")
   -h	print help
+  -s    use sequential numbering for new migrations
   -v	enable verbose mode
   -version
     	print version
@@ -308,7 +311,9 @@ func Down(tx *sql.Tx) error {
 # Hybrid Versioning
 Please, read the [versioning problem](https://github.com/pressly/goose/issues/63#issuecomment-428681694) first.
 
-We strongly recommend adopting a hybrid versioning approach, using both timestamps and sequential numbers. Migrations created during the development process are timestamped and sequential versions are ran on production. We believe this method will prevent the problem of conflicting versions when writing software in a team environment.
+By default, if you attempt to apply missing (out-of-order) migrations `goose` will raise an error. However, If you want to apply these missing migrations pass goose the `-allow-missing` flag, or if using as a library supply the functional option `goose.WithAllowMissing()` to Up, UpTo or UpByOne.
+
+However, we strongly recommend adopting a hybrid versioning approach, using both timestamps and sequential numbers. Migrations created during the development process are timestamped and sequential versions are ran on production. We believe this method will prevent the problem of conflicting versions when writing software in a team environment.
 
 To help you adopt this approach, `create` will use the current timestamp as the migration version. When you're ready to deploy your migrations in a production environment, we also provide a helpful `fix` command to convert your migrations into sequential order, while preserving the timestamp ordering. We recommend running `fix` in the CI pipeline, and only when the migrations are ready for production.
 
