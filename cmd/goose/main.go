@@ -11,14 +11,15 @@ import (
 )
 
 var (
-	flags      = flag.NewFlagSet("goose", flag.ExitOnError)
-	dir        = flags.String("dir", ".", "directory with migration files")
-	table      = flags.String("table", "goose_db_version", "migrations table name")
-	verbose    = flags.Bool("v", false, "enable verbose mode")
-	help       = flags.Bool("h", false, "print help")
-	version    = flags.Bool("version", false, "print version")
-	certfile   = flags.String("certfile", "", "file path to root CA's certificates in pem format (only support on mysql)")
-	sequential = flags.Bool("s", false, "use sequential numbering for new migrations")
+	flags        = flag.NewFlagSet("goose", flag.ExitOnError)
+	dir          = flags.String("dir", ".", "directory with migration files")
+	table        = flags.String("table", "goose_db_version", "migrations table name")
+	verbose      = flags.Bool("v", false, "enable verbose mode")
+	help         = flags.Bool("h", false, "print help")
+	version      = flags.Bool("version", false, "print version")
+	certfile     = flags.String("certfile", "", "file path to root CA's certificates in pem format (only support on mysql)")
+	sequential   = flags.Bool("s", false, "use sequential numbering for new migrations")
+	allowMissing = flags.Bool("allow-missing", false, "applies missing (out-of-order) migrations")
 )
 
 var (
@@ -86,7 +87,17 @@ func main() {
 		arguments = append(arguments, args[3:]...)
 	}
 
-	if err := goose.Run(command, db, *dir, arguments...); err != nil {
+	options := []goose.OptionsFunc{}
+	if *allowMissing {
+		options = append(options, goose.WithAllowMissing())
+	}
+	if err := goose.RunWithOptions(
+		command,
+		db,
+		*dir,
+		arguments,
+		options...,
+	); err != nil {
 		log.Fatalf("goose run: %v", err)
 	}
 }

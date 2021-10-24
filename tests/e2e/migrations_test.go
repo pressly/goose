@@ -10,7 +10,7 @@ import (
 	"github.com/pressly/goose/v3"
 )
 
-func TestMigrateUp(t *testing.T) {
+func TestMigrateUpWithReset(t *testing.T) {
 	t.Parallel()
 	is := is.New(t)
 
@@ -30,6 +30,48 @@ func TestMigrateUp(t *testing.T) {
 	gotVersion, err := getCurrentGooseVersion(db, goose.TableName())
 	is.NoErr(err)
 	is.Equal(gotVersion, currentVersion) // incorrect database version
+
+	// Migrate everything down using Reset.
+	err = goose.Reset(db, migrationsDir)
+	is.NoErr(err)
+	currentVersion, err = goose.GetDBVersion(db)
+	is.NoErr(err)
+	is.Equal(currentVersion, int64(0))
+}
+
+func TestMigrateUpWithRedo(t *testing.T) {
+	t.Parallel()
+	is := is.New(t)
+
+	db, err := newDockerDB(t)
+	is.NoErr(err)
+	goose.SetDialect(*dialect)
+	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
+	is.NoErr(err)
+	is.True(len(migrations) != 0)
+	startingVersion, err := goose.EnsureDBVersion(db)
+	is.NoErr(err)
+	is.Equal(startingVersion, int64(0))
+	// Migrate all
+	for _, migration := range migrations {
+		err = migration.Up(db)
+		is.NoErr(err)
+		currentVersion, err := goose.GetDBVersion(db)
+		is.NoErr(err)
+		is.True(currentVersion == migration.Version)
+
+		// Redo the previous Up migration and re-apply it.
+		err = goose.Redo(db, migrationsDir)
+		is.NoErr(err)
+		currentVersion, err = goose.GetDBVersion(db)
+		is.NoErr(err)
+		is.True(currentVersion == migration.Version)
+	}
+	// Once everything is tested the version should match the highest testdata version
+	maxVersion := migrations[len(migrations)-1].Version
+	currentVersion, err := goose.GetDBVersion(db)
+	is.NoErr(err)
+	is.Equal(currentVersion, maxVersion)
 }
 
 func TestMigrateUpTo(t *testing.T) {
@@ -68,7 +110,7 @@ func TestMigrateUpByOne(t *testing.T) {
 	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
 	is.NoErr(err)
 	is.True(len(migrations) != 0)
-	// Migrate up to the second migration
+	// Apply all migrations one-by-one.
 	var counter int
 	for {
 		err := goose.UpByOne(db, migrationsDir)
@@ -155,6 +197,16 @@ func getCurrentGooseVersion(db *sql.DB, gooseTable string) (int64, error) {
 	var gotVersion int64
 	if err := db.QueryRow(
 		fmt.Sprintf("select max(version_id) from %s", gooseTable),
+	).Scan(&gotVersion); err != nil {
+		return 0, err
+	}
+	return gotVersion, nil
+}
+
+func getGooseVersionCount(db *sql.DB, gooseTable string) (int64, error) {
+	var gotVersion int64
+	if err := db.QueryRow(
+		fmt.Sprintf("SELECT count(*) FROM %s WHERE version_id > 0", gooseTable),
 	).Scan(&gotVersion); err != nil {
 		return 0, err
 	}
