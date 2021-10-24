@@ -84,7 +84,7 @@ func TestNowAllowMissingUpByOne(t *testing.T) {
 	}
 }
 
-func TestAllowMissingUp(t *testing.T) {
+func TestAllowMissingUpWithReset(t *testing.T) {
 	t.Parallel()
 	is := is.New(t)
 
@@ -132,6 +132,13 @@ func TestAllowMissingUp(t *testing.T) {
 		is.NoErr(err)
 		is.Equal(current, maxVersionID) // Expecting max(version_id) to be highest version in testdata
 	}
+
+	// Migrate everything down using Reset.
+	err := goose.Reset(db, migrationsDir)
+	is.NoErr(err)
+	currentVersion, err := goose.GetDBVersion(db)
+	is.NoErr(err)
+	is.Equal(currentVersion, int64(0))
 }
 
 func TestAllowMissingUpByOne(t *testing.T) {

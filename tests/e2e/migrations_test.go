@@ -10,7 +10,7 @@ import (
 	"github.com/pressly/goose/v3"
 )
 
-func TestMigrateUp(t *testing.T) {
+func TestMigrateUpWithReset(t *testing.T) {
 	t.Parallel()
 	is := is.New(t)
 
@@ -30,6 +30,13 @@ func TestMigrateUp(t *testing.T) {
 	gotVersion, err := getCurrentGooseVersion(db, goose.TableName())
 	is.NoErr(err)
 	is.Equal(gotVersion, currentVersion) // incorrect database version
+
+	// Migrate everything down using Reset.
+	err = goose.Reset(db, migrationsDir)
+	is.NoErr(err)
+	currentVersion, err = goose.GetDBVersion(db)
+	is.NoErr(err)
+	is.Equal(currentVersion, int64(0))
 }
 
 func TestMigrateUpTo(t *testing.T) {
