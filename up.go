@@ -129,7 +129,7 @@ func upWithMissing(
 	}
 
 	// We can no longer rely on the database version_id to be sequential because
-	// out-of-order migrations get applied before newer collected migrations.
+	// missing (out-of-order) migrations get applied before newer migrations.
 
 	for _, found := range foundMigrations {
 		// TODO(mf): instead of relying on this lookup, consider hitting

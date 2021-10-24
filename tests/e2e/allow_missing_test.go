@@ -30,7 +30,7 @@ func TestNotAllowMissing(t *testing.T) {
 	is.Equal(current, int64(7))
 
 	// Developer B - migration 6 (missing) and 8 (new)
-	// This should raise an error. By default goose does not allow out-of-order (missing)
+	// This should raise an error. By default goose does not allow missing (out-of-order)
 	// migrations, which means halt if a missing migration is detected.
 	err = goose.Up(db, migrationsDir)
 	is.True(err != nil) // error: found 1 missing migrations
@@ -115,14 +115,22 @@ func TestAllowMissingUp(t *testing.T) {
 		// By default, attempting to apply this migration will raise an error.
 		// If goose is set to "allow missing" migrations then it should get applied.
 		err := goose.Up(db, migrationsDir, goose.WithAllowMissing())
-		is.True(err == nil) // Applying out-of-order migration should return no error when allow-missing=true
+		is.True(err == nil) // Applying missing migration should return no error when allow-missing=true
+
+		// Avoid hard-coding total and max, instead resolve it from the testdata migrations.
+		// In other words, we applied 1..5,7,6,8 and this test shouldn't care
+		// about migration 9 and onwards.
+		allMigrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
+		is.True(err == nil)
+		maxVersionID := allMigrations[len(allMigrations)-1].Version
+
 		count, err := getGooseVersionCount(db, goose.TableName())
 		is.NoErr(err)
-		is.Equal(count, int64(8)) // Expecting count of migrations to be 8
+		is.Equal(count, int64(len(allMigrations))) // Count should be all testdata migrations (all applied)
 
 		current, err := goose.GetDBVersion(db)
 		is.NoErr(err)
-		is.Equal(current, int64(8)) // Expecting max(version_id) to be 8
+		is.Equal(current, maxVersionID) // Expecting max(version_id) to be highest version in testdata
 	}
 }
 
@@ -182,7 +190,7 @@ func TestAllowMissingUpByOne(t *testing.T) {
 	}
 }
 
-func TestMigrateOutOfOrderDown(t *testing.T) {
+func TestMigrateAllowMissingDown(t *testing.T) {
 	t.Parallel()
 	is := is.New(t)
 
