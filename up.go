@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 )
 
 type options struct {
@@ -46,7 +47,13 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 	// and skip missing migrations altogether. At the moment this is not supported,
 	// but leaving this comment because that's where that logic will be handled.
 	if len(missingMigrations) > 0 && !option.allowMissing {
-		return fmt.Errorf("error: found %d missing migrations", len(missingMigrations))
+		var collected []string
+		for _, m := range missingMigrations {
+			output := fmt.Sprintf("version %d: %s", m.Version, m.Source)
+			collected = append(collected, output)
+		}
+		return fmt.Errorf("error: found %d missing migrations:\n\t%s",
+			len(missingMigrations), strings.Join(collected, "\n\t"))
 	}
 
 	if option.allowMissing {
