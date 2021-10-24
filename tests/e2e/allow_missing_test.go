@@ -41,6 +41,50 @@ func TestNotAllowMissing(t *testing.T) {
 	is.Equal(current, int64(7))
 }
 
+func TestAllowMissingUpWithRedo(t *testing.T) {
+	t.Parallel()
+	is := is.New(t)
+
+	// Create and apply first 5 migrations.
+	db := setupTestDB(t, 5)
+
+	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
+	is.NoErr(err)
+	is.True(len(migrations) != 0)
+
+	// Migration 7
+	{
+		migrations, err := goose.CollectMigrations(migrationsDir, 0, 7)
+		is.NoErr(err)
+		err = migrations[6].Up(db)
+		is.NoErr(err)
+		current, err := goose.GetDBVersion(db)
+		is.NoErr(err)
+		is.Equal(current, int64(7))
+
+		// Redo the previous Up migration and re-apply it.
+		err = goose.Redo(db, migrationsDir)
+		is.NoErr(err)
+		currentVersion, err := goose.GetDBVersion(db)
+		is.NoErr(err)
+		is.True(currentVersion == migrations[6].Version)
+	}
+	// Migration 6
+	{
+		err = goose.UpByOne(db, migrationsDir, goose.WithAllowMissing())
+		is.NoErr(err)
+		currentVersion, err := goose.GetDBVersion(db)
+		is.NoErr(err)
+		is.Equal(currentVersion, int64(6))
+
+		err = goose.Redo(db, migrationsDir)
+		is.NoErr(err)
+		currentVersion, err = goose.GetDBVersion(db)
+		is.NoErr(err)
+		is.Equal(currentVersion, int64(6))
+	}
+}
+
 func TestNowAllowMissingUpByOne(t *testing.T) {
 	t.Parallel()
 	is := is.New(t)
@@ -115,13 +159,13 @@ func TestAllowMissingUpWithReset(t *testing.T) {
 		// By default, attempting to apply this migration will raise an error.
 		// If goose is set to "allow missing" migrations then it should get applied.
 		err := goose.Up(db, migrationsDir, goose.WithAllowMissing())
-		is.True(err == nil) // Applying missing migration should return no error when allow-missing=true
+		is.NoErr(err) // Applying missing migration should return no error when allow-missing=true
 
 		// Avoid hard-coding total and max, instead resolve it from the testdata migrations.
 		// In other words, we applied 1..5,7,6,8 and this test shouldn't care
 		// about migration 9 and onwards.
 		allMigrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
-		is.True(err == nil)
+		is.NoErr(err)
 		maxVersionID := allMigrations[len(allMigrations)-1].Version
 
 		count, err := getGooseVersionCount(db, goose.TableName())
@@ -169,9 +213,8 @@ func TestAllowMissingUpByOne(t *testing.T) {
 	}
 	// Developer B - migration 6
 	{
-		// By default, this should raise an error.
 		err := goose.UpByOne(db, migrationsDir, goose.WithAllowMissing())
-		is.True(err == nil)
+		is.NoErr(err)
 
 		count, err := getGooseVersionCount(db, goose.TableName())
 		is.NoErr(err)
@@ -185,7 +228,7 @@ func TestAllowMissingUpByOne(t *testing.T) {
 	{
 		// By default, this should raise an error.
 		err := goose.UpByOne(db, migrationsDir, goose.WithAllowMissing())
-		is.True(err == nil)
+		is.NoErr(err)
 
 		count, err := getGooseVersionCount(db, goose.TableName())
 		is.NoErr(err)
@@ -221,10 +264,10 @@ func TestMigrateAllowMissingDown(t *testing.T) {
 	{
 		// 6
 		err := goose.UpByOne(db, migrationsDir, goose.WithAllowMissing())
-		is.True(err == nil)
+		is.NoErr(err)
 		// 8
 		err = goose.UpByOne(db, migrationsDir, goose.WithAllowMissing())
-		is.True(err == nil)
+		is.NoErr(err)
 
 		count, err := getGooseVersionCount(db, goose.TableName())
 		is.NoErr(err)

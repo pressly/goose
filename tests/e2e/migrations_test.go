@@ -39,6 +39,41 @@ func TestMigrateUpWithReset(t *testing.T) {
 	is.Equal(currentVersion, int64(0))
 }
 
+func TestMigrateUpWithRedo(t *testing.T) {
+	t.Parallel()
+	is := is.New(t)
+
+	db, err := newDockerDB(t)
+	is.NoErr(err)
+	goose.SetDialect(*dialect)
+	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
+	is.NoErr(err)
+	is.True(len(migrations) != 0)
+	startingVersion, err := goose.EnsureDBVersion(db)
+	is.NoErr(err)
+	is.Equal(startingVersion, int64(0))
+	// Migrate all
+	for _, migration := range migrations {
+		err = migration.Up(db)
+		is.NoErr(err)
+		currentVersion, err := goose.GetDBVersion(db)
+		is.NoErr(err)
+		is.True(currentVersion == migration.Version)
+
+		// Redo the previous Up migration and re-apply it.
+		err = goose.Redo(db, migrationsDir)
+		is.NoErr(err)
+		currentVersion, err = goose.GetDBVersion(db)
+		is.NoErr(err)
+		is.True(currentVersion == migration.Version)
+	}
+	// Once everything is tested the version should match the highest testdata version
+	maxVersion := migrations[len(migrations)-1].Version
+	currentVersion, err := goose.GetDBVersion(db)
+	is.NoErr(err)
+	is.Equal(currentVersion, maxVersion)
+}
+
 func TestMigrateUpTo(t *testing.T) {
 	t.Parallel()
 	is := is.New(t)
