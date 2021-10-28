@@ -26,7 +26,14 @@ func TestDefaultBinary(t *testing.T) {
 		"./bin/goose -dir=examples/sql-migrations sqlite3 sql.db status",
 		"./bin/goose --version",
 	}
-	defer os.Remove("./bin/goose") // clean up
+	t.Cleanup(func() {
+		if err := os.Remove("./bin/goose"); err != nil {
+			t.Logf("failed to remove %s resources: %v", t.Name(), err)
+		}
+		if err := os.Remove("./sql.db"); err != nil {
+			t.Logf("failed to remove %s resources: %v", t.Name(), err)
+		}
+	})
 
 	for _, cmd := range commands {
 		args := strings.Split(cmd, " ")
@@ -52,9 +59,14 @@ func TestLiteBinary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	defer os.RemoveAll(dir)             // clean up
-	defer os.Remove("./bin/lite-goose") // clean up
+	t.Cleanup(func() {
+		if err := os.RemoveAll(dir); err != nil {
+			t.Logf("failed to remove %s resources: %v", t.Name(), err)
+		}
+		if err := os.Remove("./bin/lite-goose"); err != nil {
+			t.Logf("failed to remove %s resources: %v", t.Name(), err)
+		}
+	})
 
 	// this has to be done outside of the loop
 	// since go only supports space separated tags list.
@@ -90,6 +102,11 @@ func TestCustomBinary(t *testing.T) {
 		"./bin/custom-goose -dir=examples/go-migrations sqlite3 go.db down",
 		"./bin/custom-goose -dir=examples/go-migrations sqlite3 go.db status",
 	}
+	t.Cleanup(func() {
+		if err := os.Remove("./go.db"); err != nil {
+			t.Logf("failed to remove %s resouces: %v", t.Name(), err)
+		}
+	})
 
 	for _, cmd := range commands {
 		args := strings.Split(cmd, " ")
@@ -105,11 +122,15 @@ var migrations embed.FS
 
 func TestEmbeddedMigrations(t *testing.T) {
 	// not using t.Parallel here to avoid races
-
 	db, err := sql.Open("sqlite3", "sql_embed.db")
 	if err != nil {
 		t.Fatalf("Database open failed: %s", err)
 	}
+	t.Cleanup(func() {
+		if err := os.Remove("./sql_embed.db"); err != nil {
+			t.Logf("failed to remove %s resouces: %v", t.Name(), err)
+		}
+	})
 
 	db.SetMaxOpenConns(1)
 
