@@ -3,7 +3,7 @@
 See [this example](../go-migrations) for Go migrations.
 
 ```bash
-$ go get -u github.com/pressly/goose/cmd/goose
+$ go install github.com/pressly/goose/v3/cmd/goose@latest
 ```
 
 ```bash
