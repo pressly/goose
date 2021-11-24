@@ -33,7 +33,7 @@ Goose supports [embedding SQL migrations](#embedded-sql-migrations), which means
 
 # Install
 
-    $ go get -u github.com/pressly/goose/v3/cmd/goose
+    $ go install github.com/pressly/goose/v3/cmd/goose@latest
 
 This will install the `goose` binary to your `$GOPATH/bin` directory.
 
