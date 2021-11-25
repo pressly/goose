@@ -53,6 +53,8 @@ Drivers:
     sqlite3
     mssql
     redshift
+    tidb
+    clickhouse
 
 Examples:
     goose sqlite3 ./foo.db status
@@ -70,15 +72,17 @@ Examples:
 Options:
   -allow-missing
         applies missing (out-of-order) migrations
+  -certfile string
+        file path to root CA's certificates in pem format (only support on mysql)
   -dir string
-    	directory with migration files (default ".")
-  -table string
-    	migrations table name (default "goose_db_version")
-  -h	print help
+        directory with migration files (default ".")
+  -h    print help
   -s    use sequential numbering for new migrations
-  -v	enable verbose mode
+  -table string
+        migrations table name (default "goose_db_version")
+  -v    enable verbose mode
   -version
-    	print version
+        print version
 
 Commands:
     up                   Migrate the DB to the most recent version available
