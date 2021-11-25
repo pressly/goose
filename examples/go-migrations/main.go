@@ -27,7 +27,7 @@ func main() {
 
 	dbstring, command := args[1], args[2]
 
-	db, err := goose.OpenDBWithDriver("sqlite3", dbstring)
+	db, err := goose.OpenDBWithDriver("sqlite", dbstring)
 	if err != nil {
 		log.Fatalf("goose: failed to open DB: %v\n", err)
 	}
