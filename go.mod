@@ -10,9 +10,9 @@ require (
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/lib/pq v1.10.3
 	github.com/matryer/is v1.4.0
-	github.com/mattn/go-sqlite3 v1.14.8
 	github.com/ory/dockertest/v3 v3.8.0
 	github.com/pkg/errors v0.9.1
 	github.com/ziutek/mymysql v1.5.4
 	golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f // indirect
+	modernc.org/sqlite v1.14.1
 )
