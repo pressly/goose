@@ -1,3 +1,4 @@
+//go:build !no_postgres
 // +build !no_postgres
 
 package main

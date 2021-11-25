@@ -1,3 +1,4 @@
+//go:build !no_mssql
 // +build !no_mssql
 
 package main

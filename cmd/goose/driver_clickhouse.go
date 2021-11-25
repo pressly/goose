@@ -1,3 +1,4 @@
+//go:build !no_clickhouse
 // +build !no_clickhouse
 
 package main
