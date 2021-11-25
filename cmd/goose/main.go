@@ -143,7 +143,7 @@ Drivers:
     sqlite3
     mssql
     redshift
-	tidb
+    tidb
     clickhouse
 
 Examples:
