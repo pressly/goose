@@ -29,7 +29,7 @@ func SetDialect(d string) error {
 		dialect = &PostgresDialect{}
 	case "mysql":
 		dialect = &MySQLDialect{}
-	case "sqlite3":
+	case "sqlite3", "sqlite":
 		dialect = &Sqlite3Dialect{}
 	case "mssql":
 		dialect = &SqlServerDialect{}

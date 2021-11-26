@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 func TestDefaultBinary(t *testing.T) {
@@ -122,7 +122,7 @@ var migrations embed.FS
 
 func TestEmbeddedMigrations(t *testing.T) {
 	// not using t.Parallel here to avoid races
-	db, err := sql.Open("sqlite3", "sql_embed.db")
+	db, err := sql.Open("sqlite", "sql_embed.db")
 	if err != nil {
 		t.Fatalf("Database open failed: %s", err)
 	}
