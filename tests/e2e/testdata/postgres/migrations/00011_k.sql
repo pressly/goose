@@ -22,7 +22,5 @@ CREATE UNIQUE INDEX ON matview_stargazers_day (stargazer_repo_id, stars_day, rep
 
 REFRESH MATERIALIZED VIEW CONCURRENTLY matview_stargazers_day;
 
-RAISE EXCEPTION 'cannot have a negative salary';
-
 -- +goose Down
 DROP MATERIALIZED VIEW IF EXISTS matview_stargazers_day;
