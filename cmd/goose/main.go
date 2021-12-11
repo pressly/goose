@@ -20,6 +20,8 @@ var (
 	certfile     = flags.String("certfile", "", "file path to root CA's certificates in pem format (only support on mysql)")
 	sequential   = flags.Bool("s", false, "use sequential numbering for new migrations")
 	allowMissing = flags.Bool("allow-missing", false, "applies missing (out-of-order) migrations")
+	sslcert      = flags.String("ssl-cert", "", "file path to SSL certificates in pem format (only support on mysql)")
+	sslkey       = flags.String("ssl-key", "", "file path to SSL key in pem format (only support on mysql)")
 )
 
 var (
@@ -78,7 +80,7 @@ func main() {
 	if driver == "sqlite3" {
 		driver = "sqlite"
 	}
-	db, err := goose.OpenDBWithDriver(driver, normalizeDBString(driver, dbstring, *certfile))
+	db, err := goose.OpenDBWithDriver(driver, normalizeDBString(driver, dbstring, *certfile, *sslcert, *sslkey))
 	if err != nil {
 		log.Fatalf("-dbstring=%q: %v\n", dbstring, err)
 	}
