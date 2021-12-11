@@ -1,4 +1,5 @@
 -- +goose NO TRANSACTION
+
 -- +goose Up
 DROP INDEX IF EXISTS owners_owner_name_idx;
 

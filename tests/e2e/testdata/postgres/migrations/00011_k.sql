@@ -20,7 +20,7 @@ ORDER BY
 
 CREATE UNIQUE INDEX ON matview_stargazers_day (stargazer_repo_id, stars_day, repo_owner_id, repo_full_name);
 
-REFRESH MATERIALIZED VIEW CONCURRENTLY matview_stargazers_day;
+REFRESH MATERIALIZED VIEW CONCURRENTLY matview_stargazers_day WITH DATA;
 
 -- +goose Down
 DROP MATERIALIZED VIEW IF EXISTS matview_stargazers_day;
