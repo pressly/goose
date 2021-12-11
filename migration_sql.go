@@ -64,8 +64,14 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 			return errors.Wrapf(err, "failed to execute SQL query %q", clearStatement(query))
 		}
 	}
-	if _, err := db.Exec(GetDialect().insertVersionSQL(), v, direction); err != nil {
-		return errors.Wrap(err, "failed to insert new goose version")
+	if direction {
+		if _, err := db.Exec(GetDialect().insertVersionSQL(), v, direction); err != nil {
+			return errors.Wrap(err, "failed to insert new goose version")
+		}
+	} else {
+		if _, err := db.Exec(GetDialect().deleteVersionSQL(), v); err != nil {
+			return errors.Wrap(err, "failed to delete goose version")
+		}
 	}
 
 	return nil
