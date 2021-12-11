@@ -52,6 +52,44 @@ func TestDefaultBinary(t *testing.T) {
 	}
 }
 
+func TestIssue293(t *testing.T) {
+	t.Parallel()
+	// https://github.com/pressly/goose/issues/293
+	commands := []string{
+		"go build -o ./bin/goose293 ./cmd/goose",
+		"./bin/goose293 -dir=examples/sql-migrations sqlite3 issue_293.db up",
+		"./bin/goose293 -dir=examples/sql-migrations sqlite3 issue_293.db version",
+		"./bin/goose293 -dir=examples/sql-migrations sqlite3 issue_293.db down",
+		"./bin/goose293 -dir=examples/sql-migrations sqlite3 issue_293.db down",
+		"./bin/goose293 -dir=examples/sql-migrations sqlite3 issue_293.db version",
+		"./bin/goose293 -dir=examples/sql-migrations sqlite3 issue_293.db up",
+		"./bin/goose293 -dir=examples/sql-migrations sqlite3 issue_293.db status",
+	}
+	t.Cleanup(func() {
+		if err := os.Remove("./bin/goose293"); err != nil {
+			t.Logf("failed to remove %s resources: %v", t.Name(), err)
+		}
+		if err := os.Remove("./issue_293.db"); err != nil {
+			t.Logf("failed to remove %s resources: %v", t.Name(), err)
+		}
+	})
+	for _, cmd := range commands {
+		args := strings.Split(cmd, " ")
+		command := args[0]
+		var params []string
+		if len(args) > 1 {
+			params = args[1:]
+		}
+
+		cmd := exec.Command(command, params...)
+		cmd.Env = os.Environ()
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("%s:\n%v\n\n%s", err, cmd, out)
+		}
+	}
+}
+
 func TestLiteBinary(t *testing.T) {
 	t.Parallel()
 
