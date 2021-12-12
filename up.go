@@ -108,6 +108,8 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 	return nil
 }
 
+// upToNoVersioning applies up migrations up to, and including, the
+// target version.
 func upToNoVersioning(db *sql.DB, migrations Migrations, version int64) error {
 	var finalVersion int64
 	for _, current := range migrations {
@@ -120,7 +122,7 @@ func upToNoVersioning(db *sql.DB, migrations Migrations, version int64) error {
 		}
 		finalVersion = current.Version
 	}
-	log.Printf("goose: current version: %d\n", finalVersion)
+	log.Printf("goose: up to current file version: %d\n", finalVersion)
 	return nil
 }
 

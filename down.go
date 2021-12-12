@@ -19,7 +19,7 @@ func Down(db *sql.DB, dir string, opts ...OptionsFunc) error {
 		if len(migrations) == 0 {
 			return nil
 		}
-		return downNoVersioning(db, migrations, migrations[len(migrations)-1].Version)
+		return downToNoVersioning(db, migrations, migrations[len(migrations)-1].Version)
 	}
 	currentVersion, err := GetDBVersion(db)
 	if err != nil {
@@ -43,7 +43,7 @@ func DownTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 		return err
 	}
 	if option.noVersioning {
-		return downNoVersioning(db, migrations, version)
+		return downToNoVersioning(db, migrations, version)
 	}
 
 	for {
@@ -69,11 +69,9 @@ func DownTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 	}
 }
 
-func downNoVersioning(db *sql.DB, migrations Migrations, version int64) error {
-	// TODO(mf): we're not tracking the seed migrations in the database,
-	// which means subsequent "down" operations will always start from the
-	// highest seed file.
-	// Also, should target version always be 0 and error otherwise?
+// downToNoVersioning applies down migrations down to, but not including, the
+// target version.
+func downToNoVersioning(db *sql.DB, migrations Migrations, version int64) error {
 	var finalVersion int64
 	for i := len(migrations) - 1; i >= 0; i-- {
 		if version >= migrations[i].Version {
@@ -85,6 +83,6 @@ func downNoVersioning(db *sql.DB, migrations Migrations, version int64) error {
 			return err
 		}
 	}
-	log.Printf("goose: current version: %d\n", finalVersion)
+	log.Printf("goose: down to current file version: %d\n", finalVersion)
 	return nil
 }
