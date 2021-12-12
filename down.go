@@ -3,7 +3,6 @@ package goose
 import (
 	"database/sql"
 	"fmt"
-	"sort"
 )
 
 // Down rolls back a single migration from the current version.
@@ -75,21 +74,17 @@ func downNoVersioning(db *sql.DB, migrations Migrations, version int64) error {
 	// which means subsequent "down" operations will always start from the
 	// highest seed file.
 	// Also, should target version always be 0 and error otherwise?
-	sort.Sort(sort.Reverse(migrations))
-
 	var finalVersion int64
-	for _, current := range migrations {
-		if current.Version <= version {
-			log.Printf("goose: current version: %d\n", current.Version)
-			return nil
+	for i := len(migrations) - 1; i >= 0; i-- {
+		if version >= migrations[i].Version {
+			finalVersion = migrations[i].Version
+			break
 		}
-		current.noVersioning = true
-		if err := current.Down(db); err != nil {
+		migrations[i].noVersioning = true
+		if err := migrations[i].Down(db); err != nil {
 			return err
 		}
-		finalVersion = current.Version
 	}
-	finalVersion--
 	log.Printf("goose: current version: %d\n", finalVersion)
 	return nil
 }
