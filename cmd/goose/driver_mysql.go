@@ -65,21 +65,15 @@ func registerTLSConfig(pemfile string, sslcert string, sslkey string) error {
 		return fmt.Errorf("failed to append PEM: %q", pemfile)
 	}
 
+	tlsConfig := &tls.Config{
+		RootCAs: rootCertPool,
+	}
 	if sslcert != "" && sslkey != "" {
-		clientCert := make([]tls.Certificate, 0, 1)
-		certs, err := tls.LoadX509KeyPair(sslcert, sslkey)
+		cert, err := tls.LoadX509KeyPair(sslcert, sslkey)
 		if err != nil {
 			return fmt.Errorf("failed to load x509 keypair: %w", err)
 		}
-		clientCert = append(clientCert, certs)
-
-		return mysql.RegisterTLSConfig(tlsConfigKey, &tls.Config{
-			RootCAs: rootCertPool,
-			Certificates: clientCert,
-		})
+		tlsConfig.Certificates = append(tlsConfig.Certificates, cert)
 	}
-
-	return mysql.RegisterTLSConfig(tlsConfigKey, &tls.Config{
-		RootCAs: rootCertPool,
-	})
+	return mysql.RegisterTLSConfig(tlsConfigKey, tlsConfig)
 }
