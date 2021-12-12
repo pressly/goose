@@ -316,12 +316,12 @@ func Down(tx *sql.Tx) error {
 }
 ```
 
-# Build
+# Development
 
-Binary files are build using docker
+This can be used to build local `goose` binaries without having the latest Go version installed locally.
 
 ```bash
-DOCKER_BUILDKIT=1  docker build --output bin .
+DOCKER_BUILDKIT=1  docker build -f Dockerfile.local --output bin .
 ```
 
 # Hybrid Versioning

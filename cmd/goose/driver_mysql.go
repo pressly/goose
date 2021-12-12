@@ -69,8 +69,7 @@ func registerTLSConfig(pemfile string, sslcert string, sslkey string) error {
 		clientCert := make([]tls.Certificate, 0, 1)
 		certs, err := tls.LoadX509KeyPair(sslcert, sslkey)
 		if err != nil {
-			log.Fatalf("Error in load x509 keypair: %v", err)
-			return err
+			return fmt.Errorf("failed to load x509 keypair: %w", err)
 		}
 		clientCert = append(clientCert, certs)
 
