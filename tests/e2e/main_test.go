@@ -51,6 +51,8 @@ var (
 	// migrationsDir is a global that points to a ./testdata/{dialect}/migrations folder.
 	// It is set in TestMain based on the current dialect.
 	migrationsDir = ""
+	// seedDir is similar to migrationsDir but contains seed data
+	seedDir = ""
 
 	// known tables are the tables (including goose table) created by
 	// running all migration files. If you add a table, make sure to
@@ -74,6 +76,7 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 	migrationsDir = filepath.Join("testdata", *dialect, "migrations")
+	seedDir = filepath.Join("testdata", *dialect, "seed")
 
 	exitCode := m.Run()
 	// Useful for debugging test services.

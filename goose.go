@@ -81,7 +81,7 @@ func run(command string, db *sql.DB, dir string, args []string, options ...Optio
 			return err
 		}
 	case "down":
-		if err := Down(db, dir); err != nil {
+		if err := Down(db, dir, options...); err != nil {
 			return err
 		}
 	case "down-to":
@@ -93,7 +93,7 @@ func run(command string, db *sql.DB, dir string, args []string, options ...Optio
 		if err != nil {
 			return fmt.Errorf("version must be a number (got '%s')", args[0])
 		}
-		if err := DownTo(db, dir, version); err != nil {
+		if err := DownTo(db, dir, version, options...); err != nil {
 			return err
 		}
 	case "fix":
