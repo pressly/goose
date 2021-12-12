@@ -74,6 +74,10 @@ Options:
         applies missing (out-of-order) migrations
   -certfile string
         file path to root CA's certificates in pem format (only support on mysql)
+  -sslcert string
+        file path to SSL certificates in pem format (only support on mysql)
+  -sslkey string
+        file path to SSL key in pem format (only support on mysql)
   -dir string
         directory with migration files (default ".")
   -h    print help
@@ -239,7 +243,7 @@ language plpgsql;
 Go 1.16 introduced new feature: [compile-time embedding](https://pkg.go.dev/embed/) files into binary and
 corresponding [filesystem abstraction](https://pkg.go.dev/io/fs/).
 
-This feature can be used only for applying existing migrations. Modifying operations such as 
+This feature can be used only for applying existing migrations. Modifying operations such as
 `fix` and `create` will continue to operate on OS filesystem even if using embedded files. This is expected
 behaviour because `io/fs` interfaces allows read-only access.
 
@@ -250,7 +254,7 @@ package main
 import (
     "database/sql"
     "embed"
-    
+
     "github.com/pressly/goose/v3"
 )
 
@@ -258,8 +262,8 @@ import (
 var embedMigrations embed.FS
 
 func main() {
-    var db *sql.DB 
-    // setup database 
+    var db *sql.DB
+    // setup database
 
     goose.SetBaseFS(embedMigrations)
 
@@ -310,6 +314,14 @@ func Down(tx *sql.Tx) error {
 	}
 	return nil
 }
+```
+
+# Development
+
+This can be used to build local `goose` binaries without having the latest Go version installed locally.
+
+```bash
+DOCKER_BUILDKIT=1  docker build -f Dockerfile.local --output bin .
 ```
 
 # Hybrid Versioning

@@ -19,11 +19,11 @@ import (
 // the parameter `parseTime` set to true. This allows internal goose logic
 // to assume that DATETIME/DATE/TIMESTAMP can be scanned into the time.Time
 // type.
-func normalizeDBString(driver string, str string, certfile string) string {
+func normalizeDBString(driver string, str string, certfile string, sslcert string, sslkey string) string {
 	if driver == "mysql" {
 		var isTLS = certfile != ""
 		if isTLS {
-			if err := registerTLSConfig(certfile); err != nil {
+			if err := registerTLSConfig(certfile, sslcert, sslkey); err != nil {
 				log.Fatalf("goose run: %v", err)
 			}
 		}
@@ -55,7 +55,7 @@ func normalizeMySQLDSN(dsn string, tls bool) (string, error) {
 	return config.FormatDSN(), nil
 }
 
-func registerTLSConfig(pemfile string) error {
+func registerTLSConfig(pemfile string, sslcert string, sslkey string) error {
 	rootCertPool := x509.NewCertPool()
 	pem, err := ioutil.ReadFile(pemfile)
 	if err != nil {
@@ -64,7 +64,16 @@ func registerTLSConfig(pemfile string) error {
 	if ok := rootCertPool.AppendCertsFromPEM(pem); !ok {
 		return fmt.Errorf("failed to append PEM: %q", pemfile)
 	}
-	return mysql.RegisterTLSConfig(tlsConfigKey, &tls.Config{
+
+	tlsConfig := &tls.Config{
 		RootCAs: rootCertPool,
-	})
+	}
+	if sslcert != "" && sslkey != "" {
+		cert, err := tls.LoadX509KeyPair(sslcert, sslkey)
+		if err != nil {
+			return fmt.Errorf("failed to load x509 keypair: %w", err)
+		}
+		tlsConfig.Certificates = append(tlsConfig.Certificates, cert)
+	}
+	return mysql.RegisterTLSConfig(tlsConfigKey, tlsConfig)
 }
