@@ -101,11 +101,11 @@ func run(command string, db *sql.DB, dir string, args []string, options ...Optio
 			return err
 		}
 	case "redo":
-		if err := Redo(db, dir); err != nil {
+		if err := Redo(db, dir, options...); err != nil {
 			return err
 		}
 	case "reset":
-		if err := Reset(db, dir); err != nil {
+		if err := Reset(db, dir, options...); err != nil {
 			return err
 		}
 	case "status":
