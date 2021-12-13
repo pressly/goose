@@ -6,7 +6,7 @@ SELECT
 	'seed-user-' || i,
 	(SELECT('{user,organization}'::owner_type []) [MOD(i, 2)+1])
 FROM
-	generate_series(101, 150) s (i);
+	generate_series(101, 250) s (i);
 
 -- +goose Down
 DELETE FROM owners where owner_name LIKE 'seed-user-%' AND owner_id > 100;
