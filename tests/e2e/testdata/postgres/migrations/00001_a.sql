@@ -9,7 +9,7 @@ CREATE TABLE owners (
 );
 
 CREATE TABLE IF NOT EXISTS repos (
-    repo_id bigint UNIQUE NOT NULL,
+    repo_id BIGSERIAL NOT NULL,
     repo_full_name text NOT NULL,
     repo_owner_id bigint NOT NULL REFERENCES owners(owner_id) ON DELETE CASCADE,
 

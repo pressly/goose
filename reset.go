@@ -8,11 +8,19 @@ import (
 )
 
 // Reset rolls back all migrations
-func Reset(db *sql.DB, dir string) error {
+func Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
+	option := &options{}
+	for _, f := range opts {
+		f(option)
+	}
 	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return errors.Wrap(err, "failed to collect migrations")
 	}
+	if option.noVersioning {
+		return DownTo(db, dir, minVersion, opts...)
+	}
+
 	statuses, err := dbMigrationsStatus(db)
 	if err != nil {
 		return errors.Wrap(err, "failed to get status of migrations")

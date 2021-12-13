@@ -81,7 +81,7 @@ func run(command string, db *sql.DB, dir string, args []string, options ...Optio
 			return err
 		}
 	case "down":
-		if err := Down(db, dir); err != nil {
+		if err := Down(db, dir, options...); err != nil {
 			return err
 		}
 	case "down-to":
@@ -93,7 +93,7 @@ func run(command string, db *sql.DB, dir string, args []string, options ...Optio
 		if err != nil {
 			return fmt.Errorf("version must be a number (got '%s')", args[0])
 		}
-		if err := DownTo(db, dir, version); err != nil {
+		if err := DownTo(db, dir, version, options...); err != nil {
 			return err
 		}
 	case "fix":
@@ -101,19 +101,19 @@ func run(command string, db *sql.DB, dir string, args []string, options ...Optio
 			return err
 		}
 	case "redo":
-		if err := Redo(db, dir); err != nil {
+		if err := Redo(db, dir, options...); err != nil {
 			return err
 		}
 	case "reset":
-		if err := Reset(db, dir); err != nil {
+		if err := Reset(db, dir, options...); err != nil {
 			return err
 		}
 	case "status":
-		if err := Status(db, dir); err != nil {
+		if err := Status(db, dir, options...); err != nil {
 			return err
 		}
 	case "version":
-		if err := Version(db, dir); err != nil {
+		if err := Version(db, dir, options...); err != nil {
 			return err
 		}
 	default:

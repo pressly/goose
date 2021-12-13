@@ -20,13 +20,14 @@ type MigrationRecord struct {
 
 // Migration struct.
 type Migration struct {
-	Version    int64
-	Next       int64  // next version, or -1 if none
-	Previous   int64  // previous version, -1 if none
-	Source     string // path to .sql script or go file
-	Registered bool
-	UpFn       func(*sql.Tx) error // Up go migration function
-	DownFn     func(*sql.Tx) error // Down go migration function
+	Version      int64
+	Next         int64  // next version, or -1 if none
+	Previous     int64  // previous version, -1 if none
+	Source       string // path to .sql script or go file
+	Registered   bool
+	UpFn         func(*sql.Tx) error // Up go migration function
+	DownFn       func(*sql.Tx) error // Down go migration function
+	noVersioning bool
 }
 
 func (m *Migration) String() string {
@@ -63,7 +64,7 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 			return errors.Wrapf(err, "ERROR %v: failed to parse SQL migration file", filepath.Base(m.Source))
 		}
 
-		if err := runSQLMigration(db, statements, useTx, m.Version, direction); err != nil {
+		if err := runSQLMigration(db, statements, useTx, m.Version, direction, m.noVersioning); err != nil {
 			return errors.Wrapf(err, "ERROR %v: failed to run SQL migration", filepath.Base(m.Source))
 		}
 
@@ -94,16 +95,17 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 				return errors.Wrapf(err, "ERROR %v: failed to run Go migration function %T", filepath.Base(m.Source), fn)
 			}
 		}
-
-		if direction {
-			if _, err := tx.Exec(GetDialect().insertVersionSQL(), m.Version, direction); err != nil {
-				tx.Rollback()
-				return errors.Wrap(err, "ERROR failed to execute transaction")
-			}
-		} else {
-			if _, err := tx.Exec(GetDialect().deleteVersionSQL(), m.Version); err != nil {
-				tx.Rollback()
-				return errors.Wrap(err, "ERROR failed to execute transaction")
+		if !m.noVersioning {
+			if direction {
+				if _, err := tx.Exec(GetDialect().insertVersionSQL(), m.Version, direction); err != nil {
+					tx.Rollback()
+					return errors.Wrap(err, "ERROR failed to execute transaction")
+				}
+			} else {
+				if _, err := tx.Exec(GetDialect().deleteVersionSQL(), m.Version); err != nil {
+					tx.Rollback()
+					return errors.Wrap(err, "ERROR failed to execute transaction")
+				}
 			}
 		}
 

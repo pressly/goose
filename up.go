@@ -11,6 +11,7 @@ import (
 type options struct {
 	allowMissing bool
 	applyUpByOne bool
+	noVersioning bool
 }
 
 type OptionsFunc func(o *options)
@@ -19,21 +20,38 @@ func WithAllowMissing() OptionsFunc {
 	return func(o *options) { o.allowMissing = true }
 }
 
+func WithNoVersioning() OptionsFunc {
+	return func(o *options) { o.noVersioning = true }
+}
+
 func withApplyUpByOne() OptionsFunc {
 	return func(o *options) { o.applyUpByOne = true }
 }
 
 // UpTo migrates up to a specific version.
 func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
-	if _, err := EnsureDBVersion(db); err != nil {
-		return err
-	}
 	option := &options{}
 	for _, f := range opts {
 		f(option)
 	}
 	foundMigrations, err := CollectMigrations(dir, minVersion, version)
 	if err != nil {
+		return err
+	}
+
+	if option.noVersioning {
+		if len(foundMigrations) == 0 {
+			return nil
+		}
+		if option.applyUpByOne {
+			// For up-by-one this means keep re-applying the first
+			// migration over and over.
+			version = foundMigrations[0].Version
+		}
+		return upToNoVersioning(db, foundMigrations, version)
+	}
+
+	if _, err := EnsureDBVersion(db); err != nil {
 		return err
 	}
 	dbMigrations, err := listAllDBVersions(db)
@@ -95,6 +113,24 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 	if option.applyUpByOne {
 		return ErrNoNextVersion
 	}
+	return nil
+}
+
+// upToNoVersioning applies up migrations up to, and including, the
+// target version.
+func upToNoVersioning(db *sql.DB, migrations Migrations, version int64) error {
+	var finalVersion int64
+	for _, current := range migrations {
+		if current.Version > version {
+			break
+		}
+		current.noVersioning = true
+		if err := current.Up(db); err != nil {
+			return err
+		}
+		finalVersion = current.Version
+	}
+	log.Printf("goose: up to current file version: %d\n", finalVersion)
 	return nil
 }
 

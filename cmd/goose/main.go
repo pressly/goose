@@ -22,6 +22,7 @@ var (
 	allowMissing = flags.Bool("allow-missing", false, "applies missing (out-of-order) migrations")
 	sslcert      = flags.String("ssl-cert", "", "file path to SSL certificates in pem format (only support on mysql)")
 	sslkey       = flags.String("ssl-key", "", "file path to SSL key in pem format (only support on mysql)")
+	noVersioning = flags.Bool("no-versioning", false, "apply migration commands with no versioning, in file order, from directory pointed to")
 )
 
 var (
@@ -98,6 +99,9 @@ func main() {
 	options := []goose.OptionsFunc{}
 	if *allowMissing {
 		options = append(options, goose.WithAllowMissing())
+	}
+	if *noVersioning {
+		options = append(options, goose.WithNoVersioning())
 	}
 	if err := goose.RunWithOptions(
 		command,
