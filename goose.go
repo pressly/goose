@@ -109,11 +109,11 @@ func run(command string, db *sql.DB, dir string, args []string, options ...Optio
 			return err
 		}
 	case "status":
-		if err := Status(db, dir); err != nil {
+		if err := Status(db, dir, options...); err != nil {
 			return err
 		}
 	case "version":
-		if err := Version(db, dir); err != nil {
+		if err := Version(db, dir, options...); err != nil {
 			return err
 		}
 	default:

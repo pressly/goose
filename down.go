@@ -19,7 +19,9 @@ func Down(db *sql.DB, dir string, opts ...OptionsFunc) error {
 		if len(migrations) == 0 {
 			return nil
 		}
-		return downToNoVersioning(db, migrations, migrations[len(migrations)-1].Version)
+		currentVersion := migrations[len(migrations)-1].Version
+		// Migrate only the latest migration down.
+		return downToNoVersioning(db, migrations, currentVersion-1)
 	}
 	currentVersion, err := GetDBVersion(db)
 	if err != nil {
