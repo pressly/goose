@@ -40,6 +40,14 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 	}
 
 	if option.noVersioning {
+		if len(foundMigrations) == 0 {
+			return nil
+		}
+		if option.applyUpByOne {
+			// For up-by-one this means keep re-applying the first
+			// migration over and over.
+			version = foundMigrations[0].Version
+		}
 		return upToNoVersioning(db, foundMigrations, version)
 	}
 
