@@ -20,7 +20,7 @@ test-e2e-mysql:
 	go test -v ./tests/e2e -dialect=mysql
 
 test-e2e-ydb:
-	YDB_ANONYMOUS_CREDENTIALS=1 go test -v ./tests/e2e -dialect=ydb
+	YDB_ANONYMOUS_CREDENTIALS=1 YDB_SSL_ROOT_CERTIFICATES_FILE=/tmp/ydb_certs/ca.pem go test -v ./tests/e2e -dialect=ydb
 
 docker-cleanup:
 	docker stop -t=0 $$(docker ps --filter="label=goose_test" -aq)
