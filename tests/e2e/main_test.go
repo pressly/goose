@@ -321,9 +321,7 @@ func newDockerYDB(t *testing.T, bindPort int) (*sql.DB, error) {
 	)
 	var db *sql.DB
 	// Exponential backoff-retry, because the application in the container
-	// might not be ready to accept connections yet. Add an extra sleep
-	// because mariadb containers take much longer to startup.
-	time.Sleep(5 * time.Second)
+	// might not be ready to accept connections yet.
 	if err := pool.Retry(func() error {
 		var err error
 		db, err = sql.Open(dialectYDB, dsn)
