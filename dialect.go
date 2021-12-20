@@ -331,7 +331,8 @@ func (m ClickHouseDialect) deleteVersionSQL() string {
 type YDBDialect struct{}
 
 func (m YDBDialect) createVersionTableSQL() string {
-	return fmt.Sprintf(`CREATE TABLE %s (
+	return fmt.Sprintf(`--ydb:scheme
+    CREATE TABLE %s (
       version_id Int64,
       is_applied UInt8,
       tstamp DateTime,
