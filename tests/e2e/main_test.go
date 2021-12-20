@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"context"
 	"database/sql"
 	"flag"
 	"fmt"
@@ -18,7 +17,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
-	"github.com/ydb-platform/ydb-go-sql"
+	_ "github.com/ydb-platform/ydb-go-sql"
 
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
