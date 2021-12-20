@@ -157,6 +157,7 @@ Drivers:
     redshift
     tidb
     clickhouse
+    ydb
 
 Examples:
     goose sqlite3 ./foo.db status
@@ -171,6 +172,7 @@ Examples:
     goose tidb "user:password@/dbname?parseTime=true" status
     goose mssql "sqlserver://user:password@dbname:1433?database=master" status
     goose clickhouse "tcp://127.0.0.1:9000" status
+    goose ydb "grpc://127.0.0.1/?database=master&token={token}" status
 
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose status
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose create init sql

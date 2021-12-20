@@ -12,6 +12,7 @@ require (
 	github.com/matryer/is v1.4.0
 	github.com/ory/dockertest/v3 v3.8.0
 	github.com/pkg/errors v0.9.1
+	github.com/ydb-platform/ydb-go-sql v0.0.1-alpha // indirect
 	github.com/ziutek/mymysql v1.5.4
 	golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f // indirect
 	modernc.org/sqlite v1.14.1
