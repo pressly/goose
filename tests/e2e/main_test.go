@@ -292,7 +292,7 @@ func newDockerYDB(t *testing.T, bindPort int) (*sql.DB, error) {
 		Labels:       map[string]string{"goose_test": "1"},
 		PortBindings: make(map[docker.Port][]docker.PortBinding),
 		Mounts:       []string{certsDirectory + ":/ydb_certs"},
-		Cmd:          []string{"-h", "localhost"},
+		//Cmd:          []string{"-h", "localhost"},
 	}
 	if bindPort > 0 {
 		options.PortBindings[docker.Port("2135/tcp")] = []docker.PortBinding{
