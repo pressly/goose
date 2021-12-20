@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"strconv"
 	"syscall"
@@ -269,6 +270,13 @@ func newDockerMariaDB(t *testing.T, bindPort int) (*sql.DB, error) {
 }
 
 func newDockerYDB(t *testing.T, bindPort int) (*sql.DB, error) {
+	const (
+		certsDirectory = "/tmp/ydb_certs"
+	)
+
+	os.Setenv("YDB_ANONYMOUS_CREDENTIALS", "1")
+	os.Setenv("YDB_SSL_ROOT_CERTIFICATES_FILE", path.Join(certsDirectory, "ca.pem"))
+
 	// Uses a sensible default on windows (tcp/http) and linux/osx (socket).
 	pool, err := dockertest.NewPool("")
 	if err != nil {
@@ -283,7 +291,7 @@ func newDockerYDB(t *testing.T, bindPort int) (*sql.DB, error) {
 		},
 		Labels:       map[string]string{"goose_test": "1"},
 		PortBindings: make(map[docker.Port][]docker.PortBinding),
-		Mounts:       []string{"/tmp/ydb_certs:/ydb_certs"},
+		Mounts:       []string{certsDirectory + ":/ydb_certs"},
 		Hostname:     "localhost",
 	}
 	if bindPort > 0 {
@@ -297,7 +305,6 @@ func newDockerYDB(t *testing.T, bindPort int) (*sql.DB, error) {
 		func(config *docker.HostConfig) {
 			// Set AutoRemove to true so that stopped container goes away by itself.
 			config.AutoRemove = true
-			// config.PortBindings = options.PortBindings
 			config.RestartPolicy = docker.RestartPolicy{Name: "no"}
 		},
 	)
@@ -316,7 +323,7 @@ func newDockerYDB(t *testing.T, bindPort int) (*sql.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to start resource: %v", err)
 	}
-	// YDB DSN: grpcs://host:port/?database=/dbname&token=token
+	// YDB DSN: grpc://host:port/?database=/dbname&token=token
 	dsn := fmt.Sprintf("grpcs://localhost:%s/?database=/local",
 		container.GetPort("2135/tcp"), // Fetch port dynamically assigned to container
 	)
