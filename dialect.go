@@ -356,5 +356,5 @@ func (m YDBDialect) migrationSQL() string {
 }
 
 func (m YDBDialect) deleteVersionSQL() string {
-	return fmt.Sprintf("ALTER TABLE %s DELETE WHERE version_id = ?", TableName())
+	return fmt.Sprintf("DELETE FROM %s WHERE version_id = ?", TableName())
 }
