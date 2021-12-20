@@ -1,5 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
+--ydb:SCHEME
 CREATE TABLE IF NOT EXISTS stargazers (
     stargazer_repo_id Uint64,
     stargazer_owner_id Uint64,
@@ -10,5 +11,6 @@ CREATE TABLE IF NOT EXISTS stargazers (
 
 -- +goose Down
 -- +goose StatementBegin
+--ydb:SCHEME
 DROP TABLE stargazers;
 -- +goose StatementEnd

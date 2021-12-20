@@ -1,5 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
+--ydb:SCHEME
 CREATE TABLE owners (
     owner_id Uint64,
     owner_name Utf8,
@@ -16,6 +17,7 @@ CREATE TABLE repos (
 
 -- +goose Down
 -- +goose StatementBegin
+--ydb:SCHEME
 DROP TABLE IF EXISTS repos;
 DROP TABLE IF EXISTS owners;
 -- +goose StatementEnd

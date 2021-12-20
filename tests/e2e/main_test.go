@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"database/sql"
 	"flag"
 	"fmt"
@@ -120,6 +121,7 @@ func newDockerPostgresDB(t *testing.T, bindPort int) (*sql.DB, error) {
 	)
 	// Uses a sensible default on windows (tcp/http) and linux/osx (socket).
 	pool, err := dockertest.NewPool("")
+	pool.MaxWait = 5 * time.Minute
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to docker: %v", err)
 	}
@@ -359,7 +361,9 @@ func newDockerYDB(t *testing.T, bindPort int) (*sql.DB, error) {
 		if err != nil {
 			return err
 		}
-		return db.Ping()
+		ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
+		defer cancel()
+		return db.PingContext(ctx)
 	},
 	); err != nil {
 		return nil, fmt.Errorf("could not connect to docker database: %v", err)

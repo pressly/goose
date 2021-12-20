@@ -1,5 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
+--ydb:SCHEME
 CREATE TABLE issues (
     issue_id Uint64,
     issue_created_by Uint64,
@@ -11,5 +12,6 @@ CREATE TABLE issues (
 
 -- +goose Down
 -- +goose StatementBegin
+--ydb:SCHEME
 DROP TABLE issues;
 -- +goose StatementEnd
