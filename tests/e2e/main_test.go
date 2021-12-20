@@ -316,7 +316,9 @@ func newDockerYDB(t *testing.T, bindPort int) (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to start resource: %v", err)
 	}
 	// YDB DSN: grpcs://host:port/?database=/dbname&token=token
-	dsn := "grpcs://localhost:2135/?database=/local"
+	dsn := fmt.Sprintf("grpcs://localhost:%s/?database=/local",
+		container.GetPort("2135/tcp"), // Fetch port dynamically assigned to container
+	)
 	var db *sql.DB
 	// Exponential backoff-retry, because the application in the container
 	// might not be ready to accept connections yet. Add an extra sleep
