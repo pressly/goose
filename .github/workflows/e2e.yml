@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dialect: ["postgres", "mysql"]
+        dialect: ["postgres", "mysql", "ydb"]
 
     steps:
       - name: Install Go

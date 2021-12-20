@@ -11,13 +11,16 @@ dist:
 test-packages:
 	go test -v $$(go list ./... | grep -v -e /tests -e /bin -e /cmd -e /examples)
 
-test-e2e: test-e2e-postgres test-e2e-mysql
+test-e2e: test-e2e-postgres test-e2e-mysql test-e2e-ydb
 
 test-e2e-postgres:
 	go test -v ./tests/e2e -dialect=postgres
 
 test-e2e-mysql:
 	go test -v ./tests/e2e -dialect=mysql
+
+test-e2e-ydb:
+	YDB_ANONYMOUS_CREDENTIALS=1 go test -v ./tests/e2e -dialect=ydb
 
 docker-cleanup:
 	docker stop -t=0 $$(docker ps --filter="label=goose_test" -aq)

@@ -15,6 +15,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
+	_ "github.com/ydb-platform/ydb-go-sql"
 
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
@@ -23,6 +24,7 @@ import (
 const (
 	dialectPostgres = "postgres"
 	dialectMySQL    = "mysql"
+	dialectYDB      = "ydb"
 )
 
 // Flags.
@@ -70,7 +72,7 @@ func TestMain(m *testing.M) {
 	flag.Parse()
 
 	switch *dialect {
-	case dialectPostgres, dialectMySQL:
+	case dialectPostgres, dialectMySQL, dialectYDB:
 	default:
 		log.Printf("dialect not supported: %q", *dialect)
 		os.Exit(1)
@@ -101,6 +103,8 @@ func newDockerDB(t *testing.T) (*sql.DB, error) {
 		return newDockerPostgresDB(t, *bindPort)
 	case dialectMySQL:
 		return newDockerMariaDB(t, *bindPort)
+	case dialectYDB:
+		return newDockerYDB(t, *bindPort)
 	}
 	return nil, fmt.Errorf("unsupported dialect: %q", *dialect)
 }
@@ -253,6 +257,74 @@ func newDockerMariaDB(t *testing.T, bindPort int) (*sql.DB, error) {
 	if err := pool.Retry(func() error {
 		var err error
 		db, err = sql.Open(dialectMySQL, dsn)
+		if err != nil {
+			return err
+		}
+		return db.Ping()
+	},
+	); err != nil {
+		return nil, fmt.Errorf("could not connect to docker database: %v", err)
+	}
+	return db, nil
+}
+
+func newDockerYDB(t *testing.T, bindPort int) (*sql.DB, error) {
+	// Uses a sensible default on windows (tcp/http) and linux/osx (socket).
+	pool, err := dockertest.NewPool("")
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to docker: %v", err)
+	}
+	options := &dockertest.RunOptions{
+		Repository: "cr.yandex/yc/yandex-docker-local-ydb",
+		Tag:        "latest",
+		Env: []string{
+			"YDB_LOCAL_SURVIVE_RESTART=true",
+			"YDB_USE_IN_MEMORY_PDISKS=true",
+		},
+		Labels:       map[string]string{"goose_test": "1"},
+		PortBindings: make(map[docker.Port][]docker.PortBinding),
+		Mounts:       []string{"/tmp/ydb_certs:/ydb_certs"},
+	}
+	if bindPort > 0 {
+		options.PortBindings[docker.Port("2135/tcp")] = []docker.PortBinding{
+			{HostPort: strconv.Itoa(bindPort)},
+		}
+	}
+
+	container, err := pool.RunWithOptions(
+		options,
+		func(config *docker.HostConfig) {
+			// Set AutoRemove to true so that stopped container goes away by itself.
+			config.AutoRemove = true
+			// config.PortBindings = options.PortBindings
+			config.RestartPolicy = docker.RestartPolicy{Name: "no"}
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create docker container: %v", err)
+	}
+	t.Cleanup(func() {
+		if *debug {
+			// User must manually delete the Docker container.
+			return
+		}
+		if err := pool.Purge(container); err != nil {
+			log.Printf("failed to purge resource: %v", err)
+		}
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to start resource: %v", err)
+	}
+	// YDB DSN: grpcs://host:port/?database=/dbname&token=token
+	dsn := "grpcs://localhost:2135/?database=/local"
+	var db *sql.DB
+	// Exponential backoff-retry, because the application in the container
+	// might not be ready to accept connections yet. Add an extra sleep
+	// because mariadb containers take much longer to startup.
+	time.Sleep(5 * time.Second)
+	if err := pool.Retry(func() error {
+		var err error
+		db, err = sql.Open(dialectYDB, dsn)
 		if err != nil {
 			return err
 		}
