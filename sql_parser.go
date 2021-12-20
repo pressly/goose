@@ -118,9 +118,7 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 				continue
 
 			default:
-				// Ignore comments.
-				verboseInfo("StateMachine: ignore comment")
-				continue
+				// Do not ignore comments.
 			}
 		}
 

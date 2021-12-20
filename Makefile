@@ -20,7 +20,7 @@ test-e2e-mysql:
 	go test -v ./tests/e2e -dialect=mysql
 
 test-e2e-ydb:
-	go test -v ./tests/e2e -dialect=ydb
+	YDB_LOG_SEVERITY_LEVEL=error go test -v ./tests/e2e -dialect=ydb
 
 docker-cleanup:
 	docker stop -t=0 $$(docker ps --filter="label=goose_test" -aq)

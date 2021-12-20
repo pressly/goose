@@ -235,8 +235,12 @@ github.com/ydb-platform/ydb-go-genproto v0.0.0-20211103074319-526e57659e16 h1:qX
 github.com/ydb-platform/ydb-go-genproto v0.0.0-20211103074319-526e57659e16/go.mod h1:cc138nptTn9eKptCQl/grxP6pBKpo/bnXDiOxuVZtps=
 github.com/ydb-platform/ydb-go-sdk/v3 v3.5.0-rc0 h1:wMqMaICInLPv7sskSZbLBCb4RC8DvflOIhmUGazU1lI=
 github.com/ydb-platform/ydb-go-sdk/v3 v3.5.0-rc0/go.mod h1:6/fgm6mEM8ctxSBKJDd9FhOXg0y3Ftgva4R4FvnUjRs=
+github.com/ydb-platform/ydb-go-sdk/v3 v3.5.0-rc2 h1:YpCFP8Kqd228nr9owL4lApse0ZZTlFI+E6iqZk7KjL4=
+github.com/ydb-platform/ydb-go-sdk/v3 v3.5.0-rc2/go.mod h1:6/fgm6mEM8ctxSBKJDd9FhOXg0y3Ftgva4R4FvnUjRs=
 github.com/ydb-platform/ydb-go-sql v0.0.1-alpha h1:9cvK8AygsPk/nSdoqRwYBjG2bO6I5Kq/HsvVKWechZo=
 github.com/ydb-platform/ydb-go-sql v0.0.1-alpha/go.mod h1:L/IucBM92jhNQCig61H7HRU8kJ2Qonxm38Aa/as5Zrs=
+github.com/ydb-platform/ydb-go-sql v0.0.1-alpha.0.20211220175225-116c85aeaf62 h1:B5FTFYt/J/fCMQix5vyAc5aJVT4TLLa83+TZowBFlws=
+github.com/ydb-platform/ydb-go-sql v0.0.1-alpha.0.20211220175225-116c85aeaf62/go.mod h1:smWk9hJv4ySUGuQKdWVrtD7VvnWx7z8pjTwQwaap0Nc=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/ziutek/mymysql v1.5.4 h1:GB0qdRGsTwQSBVYuVShFBKaXSnSnYYC2d9knnE1LHFs=
