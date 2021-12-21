@@ -305,8 +305,8 @@ func newDockerYDB(t *testing.T, bindPort int) (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to connect to docker: %v", err)
 	}
 	options := &dockertest.RunOptions{
-		Repository: "cr.yandex/yc/yandex-docker-local-ydb",
-		Tag:        "latest",
+		Repository:   "cr.yandex/yc/yandex-docker-local-ydb",
+		Tag:          "latest",
 		ExposedPorts: []string{fmt.Sprintf("%d/tcp", bindPort)},
 		Env: []string{
 			"YDB_LOCAL_SURVIVE_RESTART=true",
@@ -320,7 +320,7 @@ func newDockerYDB(t *testing.T, bindPort int) (*sql.DB, error) {
 		PortBindings: make(map[docker.Port][]docker.PortBinding),
 		Mounts:       []string{certsDirectory + ":/ydb_certs"},
 		Hostname:     "localhost",
-		Cmd: []string{"/local_ydb", "deploy", "--ydb-working-dir", "/ydb_data", "--ydb-binary-path", "/ydb_server", "--fixed-ports"},
+		Cmd:          []string{"/local_ydb", "deploy", "--ydb-working-dir", "/ydb_data", "--ydb-binary-path", "/ydb_server", "--fixed-ports"},
 	}
 
 	options.PortBindings[docker.Port(fmt.Sprintf("%d/tcp", bindPort))] = []docker.PortBinding{
@@ -354,14 +354,16 @@ func newDockerYDB(t *testing.T, bindPort int) (*sql.DB, error) {
 	dsn := fmt.Sprintf("grpcs://localhost:%d/?database=/local", bindPort)
 	var db *sql.DB
 	// Exponential backoff-retry, because the application in the container
-	// might not be ready to accept connections yet.
+	// might not be ready to accept connections yet. Add an extra sleep
+	// because ydb containers take much longer to startup.
+	time.Sleep(10 * time.Second)
 	if err := pool.Retry(func() error {
 		var err error
 		db, err = sql.Open(dialectYDB, dsn)
 		if err != nil {
 			return err
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		return db.PingContext(ctx)
 	},

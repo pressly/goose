@@ -1,5 +1,5 @@
+-- +goose NO TRANSACTION
 -- +goose Up
--- +goose StatementBegin
 --ydb:SCHEME
 CREATE TABLE issues (
     issue_id Uint64,
@@ -8,10 +8,7 @@ CREATE TABLE issues (
     issue_created_at DateTime,
     issue_description Utf8
 );
--- +goose StatementEnd
 
 -- +goose Down
--- +goose StatementBegin
 --ydb:SCHEME
 DROP TABLE issues;
--- +goose StatementEnd

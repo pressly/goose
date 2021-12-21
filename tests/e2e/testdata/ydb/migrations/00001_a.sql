@@ -1,5 +1,5 @@
+-- +goose NO TRANSACTION
 -- +goose Up
--- +goose StatementBegin
 --ydb:SCHEME
 CREATE TABLE owners (
     owner_id Uint64,
@@ -15,13 +15,10 @@ CREATE TABLE repos (
     repo_full_name Utf8,
     PRIMARY KEY (repo_id)
 );
--- +goose StatementEnd
 
 -- +goose Down
--- +goose StatementBegin
 --ydb:SCHEME
 DROP TABLE IF EXISTS repos;
 
 --ydb:SCHEME
 DROP TABLE IF EXISTS owners;
--- +goose StatementEnd
