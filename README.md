@@ -40,11 +40,13 @@ This will install the `goose` binary to your `$GOPATH/bin` directory.
 
 For a lite version of the binary without DB connection dependent commands, use the exclusive build tags:
 
-    $ go build -tags='no_postgres no_mysql no_sqlite3' -i -o goose ./cmd/goose
+    $ go build -tags='no_postgres no_mysql no_sqlite3' -o goose ./cmd/goose
 
 For macOS users `goose` is available as a [Homebrew Formulae](https://formulae.brew.sh/formula/goose#default):
 
-    $ brew install goose 
+    $ brew install goose
+
+See the docs for more [installation instructions](https://pressly.github.io/goose/installation/).
 
 # Usage
 
