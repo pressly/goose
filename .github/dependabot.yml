@@ -4,14 +4,14 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "monthly"
+      interval: "weekly"
       day: "saturday"
     assignees:
       - "mfridman"
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
-      interval: "monthly"
+      interval: "weekly"
       day: "saturday"
     assignees:
       - "mfridman"
