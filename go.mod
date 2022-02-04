@@ -14,5 +14,5 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/ziutek/mymysql v1.5.4
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
-	modernc.org/sqlite v1.14.5
+	modernc.org/sqlite v1.14.6
 )
