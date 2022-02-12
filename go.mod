@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
-	github.com/ClickHouse/clickhouse-go v1.5.3
+	github.com/ClickHouse/clickhouse-go v1.5.4
 	github.com/containerd/continuity v0.2.2 // indirect
 	github.com/denisenkom/go-mssqldb v0.12.0
 	github.com/go-sql-driver/mysql v1.6.0
