@@ -15,3 +15,7 @@ updates:
       day: "saturday"
     assignees:
       - "mfridman"
+    ignore:
+      # For deps, ignore all patch updates
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
