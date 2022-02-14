@@ -48,6 +48,7 @@ func DownTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 		return downToNoVersioning(db, migrations, version)
 	}
 
+	var appliedMigration bool
 	for {
 		currentVersion, err := GetDBVersion(db)
 		if err != nil {
@@ -61,13 +62,19 @@ func DownTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 		}
 
 		if current.Version <= version {
-			log.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
+			if appliedMigration {
+				log.Printf("goose: successfully migrated database to version: %d\n", currentVersion)
+			} else {
+				log.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
+			}
 			return nil
 		}
 
 		if err = current.Down(db); err != nil {
 			return err
 		}
+
+		appliedMigration = true
 	}
 }
 

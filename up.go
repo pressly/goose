@@ -84,6 +84,7 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 		)
 	}
 
+	var appliedMigration bool
 	var current int64
 	for {
 		var err error
@@ -101,6 +102,7 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 		if err := next.Up(db); err != nil {
 			return err
 		}
+		appliedMigration = true
 		if option.applyUpByOne {
 			return nil
 		}
@@ -109,7 +111,11 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 	// the following behaviour:
 	// UpByOne returns an error to signifying there are no more migrations.
 	// Up and UpTo return nil
-	log.Printf("goose: no migrations to run. current version: %d\n", current)
+	if appliedMigration {
+		log.Printf("goose: successfully migrated database to version: %d\n", current)
+	} else {
+		log.Printf("goose: no migrations to run. current version: %d\n", current)
+	}
 	if option.applyUpByOne {
 		return ErrNoNextVersion
 	}
@@ -174,6 +180,7 @@ func upWithMissing(
 	// We can no longer rely on the database version_id to be sequential because
 	// missing (out-of-order) migrations get applied before newer migrations.
 
+	var appliedMigration bool
 	for _, found := range foundMigrations {
 		// TODO(mf): instead of relying on this lookup, consider hitting
 		// the database directly?
@@ -186,6 +193,7 @@ func upWithMissing(
 		if err := found.Up(db); err != nil {
 			return err
 		}
+		appliedMigration = true
 		if option.applyUpByOne {
 			return nil
 		}
@@ -198,7 +206,11 @@ func upWithMissing(
 	// the following behaviour:
 	// UpByOne returns an error to signifying there are no more migrations.
 	// Up and UpTo return nil
-	log.Printf("goose: no migrations to run. current version: %d\n", current)
+	if appliedMigration {
+		log.Printf("goose: successfully migrated database to version: %d\n", current)
+	} else {
+		log.Printf("goose: no migrations to run. current version: %d\n", current)
+	}
 	if option.applyUpByOne {
 		return ErrNoNextVersion
 	}
