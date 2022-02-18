@@ -56,8 +56,12 @@ func DownTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 
 		current, err := migrations.Current(currentVersion)
 		if err != nil {
-			log.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
-			return nil
+			if currentVersion == 0 {
+				log.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
+				return nil
+			}
+			log.Printf("goose: migration file not found for current version (%d), error: %s,\n", currentVersion, err)
+			return err
 		}
 
 		if current.Version <= version {
