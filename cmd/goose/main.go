@@ -1,11 +1,14 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
 	"runtime/debug"
+	"text/template"
 
 	"github.com/pressly/goose/v3"
 )
@@ -55,6 +58,11 @@ func main() {
 	}
 
 	switch args[0] {
+	case "init":
+		if err := gooseInit(*dir); err != nil {
+			log.Fatalf("goose run: %v", err)
+		}
+		return
 	case "create":
 		if err := goose.Run("create", nil, *dir, args[1:]...); err != nil {
 			log.Fatalf("goose run: %v", err)
@@ -196,3 +204,49 @@ Commands:
     fix                  Apply sequential ordering to migrations
 `
 )
+
+var sqlMigrationTemplate = template.Must(template.New("goose.sql-migration").Parse(`-- Thank you for giving goose a try!
+-- 
+-- This file was automatically created running goose init. If you're familiar with goose
+-- feel free to remove/rename this file, write some SQL and goose up. Briefly,
+-- 
+-- Documentation can be found here: https://pressly.github.io/goose
+--
+-- A single goose .sql file holds both Up and Down migrations.
+-- 
+-- All goose .sql files are expected to have a -- +goose Up directive.
+-- The -- +goose Down directive is optional, but recommended, and must come after the Up directive.
+-- 
+-- The -- +goose NO TRANSACTION directive may be added to the top of the file to run statements 
+-- outside a transaction. Both Up and Down migrations within this file will be run without a transaction.
+-- 
+-- More complex statements that have semicolons within them must be annotated with 
+-- the -- +goose StatementBegin and -- +goose StatementEnd directives to be properly recognized.
+-- 
+-- Use GitHub issues for reporting bugs and requesting features, enjoy!
+
+-- +goose Up
+SELECT 'up SQL query';
+
+-- +goose Down
+SELECT 'down SQL query';
+`))
+
+// initDir will create a directory with an empty SQL migration file.
+func gooseInit(dir string) error {
+	if dir == "" || dir == "." {
+		dir = "migrations"
+	}
+	_, err := os.Stat(dir)
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+	case err == nil, errors.Is(err, fs.ErrExist):
+		return fmt.Errorf("directory already exists: %s", dir)
+	default:
+		return err
+	}
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+	return goose.CreateWithTemplate(nil, dir, sqlMigrationTemplate, "initial", "sql")
+}
