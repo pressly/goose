@@ -256,7 +256,10 @@ This feature can be used only for applying existing migrations. Modifying operat
 `fix` and `create` will continue to operate on OS filesystem even if using embedded files. This is expected
 behaviour because `io/fs` interfaces allows read-only access.
 
-Example usage (assuming sql migrations placed in `migrations` directory):
+Make sure to configure the correct SQL dialect, see [dialect.go](./dialect.go) for supported SQL dialects.
+
+Example usage, assuming that SQL migrations are placed in the `migrations` directory:
+
 ```go
 package main
 
@@ -275,6 +278,10 @@ func main() {
     // setup database
 
     goose.SetBaseFS(embedMigrations)
+
+    if err := goose.SetDialect("postgres"); err != nil {
+        panic(err)
+    }
 
     if err := goose.Up(db, "migrations"); err != nil {
         panic(err)
