@@ -5,7 +5,6 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -93,14 +92,8 @@ func TestIssue293(t *testing.T) {
 func TestLiteBinary(t *testing.T) {
 	t.Parallel()
 
-	dir, err := ioutil.TempDir("", "tmptest")
-	if err != nil {
-		t.Fatal(err)
-	}
+	dir := t.TempDir()
 	t.Cleanup(func() {
-		if err := os.RemoveAll(dir); err != nil {
-			t.Logf("failed to remove %s resources: %v", t.Name(), err)
-		}
 		if err := os.Remove("./bin/lite-goose"); err != nil {
 			t.Logf("failed to remove %s resources: %v", t.Name(), err)
 		}
@@ -211,12 +204,7 @@ func TestEmbeddedMigrations(t *testing.T) {
 	})
 
 	t.Run("Create uses os fs", func(t *testing.T) {
-		tmpDir, err := os.MkdirTemp("", "test_create_osfs")
-		if err != nil {
-			t.Fatalf("Create temp dir failed: %s", err)
-		}
-
-		t.Cleanup(func() { os.RemoveAll(tmpDir) })
+		tmpDir := t.TempDir()
 
 		if err := Create(db, tmpDir, "test", "sql"); err != nil {
 			t.Errorf("Failed to create migration: %s", err)

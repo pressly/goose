@@ -13,12 +13,7 @@ import (
 func TestSequential(t *testing.T) {
 	t.Parallel()
 
-	dir, err := ioutil.TempDir("", "tmptest")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	defer os.RemoveAll(dir)               // clean up
+	dir := t.TempDir()
 	defer os.Remove("./bin/create-goose") // clean up
 
 	commands := []string{
