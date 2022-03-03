@@ -12,9 +12,14 @@ type options struct {
 	allowMissing bool
 	applyUpByOne bool
 	noVersioning bool
+	onlyNew      bool
 }
 
 type OptionsFunc func(o *options)
+
+func WithOnlyNew() OptionsFunc {
+	return func(o *options) { o.onlyNew = true }
+}
 
 func WithAllowMissing() OptionsFunc {
 	return func(o *options) { o.allowMissing = true }
@@ -61,10 +66,7 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 
 	missingMigrations := findMissingMigrations(dbMigrations, foundMigrations)
 
-	// feature(mf): It is very possible someone may want to apply ONLY new migrations
-	// and skip missing migrations altogether. At the moment this is not supported,
-	// but leaving this comment because that's where that logic will be handled.
-	if len(missingMigrations) > 0 && !option.allowMissing {
+	if len(missingMigrations) > 0 && !option.allowMissing && !option.onlyNew {
 		var collected []string
 		for _, m := range missingMigrations {
 			output := fmt.Sprintf("version %d: %s", m.Version, m.Source)

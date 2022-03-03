@@ -26,6 +26,7 @@ var (
 	sslcert      = flags.String("ssl-cert", "", "file path to SSL certificates in pem format (only support on mysql)")
 	sslkey       = flags.String("ssl-key", "", "file path to SSL key in pem format (only support on mysql)")
 	noVersioning = flags.Bool("no-versioning", false, "apply migration commands with no versioning, in file order, from directory pointed to")
+	onlyNew      = flags.Bool("only-new", false, "apply migration commands with only new migrations right after current")
 )
 
 var (
@@ -110,6 +111,9 @@ func main() {
 	}
 	if *noVersioning {
 		options = append(options, goose.WithNoVersioning())
+	}
+	if *onlyNew {
+		options = append(options, goose.WithOnlyNew())
 	}
 	if err := goose.RunWithOptions(
 		command,

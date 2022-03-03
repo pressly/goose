@@ -77,6 +77,8 @@ Examples:
 
 Options:
 
+  -only-new
+        apply migration commands with only new migrations right after current
   -allow-missing
     	applies missing (out-of-order) migrations
   -certfile string
