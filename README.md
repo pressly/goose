@@ -6,7 +6,7 @@
 
 Goose is a database migration tool. Manage your database schema by creating incremental SQL changes or Go functions.
 
-Starting with [v3.0.0](https://github.com/pressly/goose/releases/tag/v3.0.0) this project adds Go module support, but maintains backwards compataibility with older `v2.x.y` tags.
+Starting with [v3.0.0](https://github.com/pressly/goose/releases/tag/v3.0.0) this project adds Go module support, but maintains backwards compatibility with older `v2.x.y` tags.
 
 Goose supports [embedding SQL migrations](#embedded-sql-migrations), which means you'll need go1.16 and up. If using go1.15 or lower, then pin [v3.0.1](https://github.com/pressly/goose/releases/tag/v3.0.1).
 
