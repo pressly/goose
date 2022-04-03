@@ -20,5 +20,5 @@ require (
 	golang.org/x/sys v0.0.0-20220315194320-039c03cc5b86 // indirect
 	golang.org/x/tools v0.1.10 // indirect
 	lukechampine.com/uint128 v1.2.0 // indirect
-	modernc.org/sqlite v1.14.8
+	modernc.org/sqlite v1.15.4
 )
