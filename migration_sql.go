@@ -2,9 +2,8 @@ package goose
 
 import (
 	"database/sql"
+	"fmt"
 	"regexp"
-
-	"github.com/pkg/errors"
 )
 
 // Run a migration specified in raw SQL.
@@ -23,7 +22,7 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 
 		tx, err := db.Begin()
 		if err != nil {
-			return errors.Wrap(err, "failed to begin transaction")
+			return fmt.Errorf("failed to begin transaction: %w", err)
 		}
 
 		for _, query := range statements {
@@ -31,7 +30,7 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 			if _, err = tx.Exec(query); err != nil {
 				verboseInfo("Rollback transaction")
 				tx.Rollback()
-				return errors.Wrapf(err, "failed to execute SQL query %q", clearStatement(query))
+				return fmt.Errorf("failed to execute SQL query %q: %w", clearStatement(query), err)
 			}
 		}
 
@@ -40,20 +39,20 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 				if _, err := tx.Exec(GetDialect().insertVersionSQL(), v, direction); err != nil {
 					verboseInfo("Rollback transaction")
 					tx.Rollback()
-					return errors.Wrap(err, "failed to insert new goose version")
+					return fmt.Errorf("failed to insert new goose version: %w", err)
 				}
 			} else {
 				if _, err := tx.Exec(GetDialect().deleteVersionSQL(), v); err != nil {
 					verboseInfo("Rollback transaction")
 					tx.Rollback()
-					return errors.Wrap(err, "failed to delete goose version")
+					return fmt.Errorf("failed to delete goose version: %w", err)
 				}
 			}
 		}
 
 		verboseInfo("Commit transaction")
 		if err := tx.Commit(); err != nil {
-			return errors.Wrap(err, "failed to commit transaction")
+			return fmt.Errorf("failed to commit transaction: %w", err)
 		}
 
 		return nil
@@ -63,17 +62,17 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 	for _, query := range statements {
 		verboseInfo("Executing statement: %s", clearStatement(query))
 		if _, err := db.Exec(query); err != nil {
-			return errors.Wrapf(err, "failed to execute SQL query %q", clearStatement(query))
+			return fmt.Errorf("failed to execute SQL query %q: %w", clearStatement(query), err)
 		}
 	}
 	if !noVersioning {
 		if direction {
 			if _, err := db.Exec(GetDialect().insertVersionSQL(), v, direction); err != nil {
-				return errors.Wrap(err, "failed to insert new goose version")
+				return fmt.Errorf("failed to insert new goose version: %w", err)
 			}
 		} else {
 			if _, err := db.Exec(GetDialect().deleteVersionSQL(), v); err != nil {
-				return errors.Wrap(err, "failed to delete goose version")
+				return fmt.Errorf("failed to delete goose version: %w", err)
 			}
 		}
 	}

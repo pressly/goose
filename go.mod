@@ -13,7 +13,6 @@ require (
 	github.com/matryer/is v1.4.0
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/ory/dockertest/v3 v3.8.1
-	github.com/pkg/errors v0.9.1
 	github.com/ziutek/mymysql v1.5.4
 	golang.org/x/crypto v0.0.0-20220315160706-3147a52a75dd // indirect
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
