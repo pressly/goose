@@ -310,13 +310,13 @@ func (m ClickHouseDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 }
 
 func (m ClickHouseDialect) insertVersionSQL() string {
-	return fmt.Sprintf("INSERT INTO %s (version_id, is_applied) VALUES (?, ?)", TableName())
+	return fmt.Sprintf("INSERT INTO %s (version_id, is_applied) VALUES ($1, $2)", TableName())
 }
 
 func (m ClickHouseDialect) migrationSQL() string {
-	return fmt.Sprintf("SELECT tstamp, is_applied FROM %s WHERE version_id = ? ORDER BY tstamp DESC LIMIT 1", TableName())
+	return fmt.Sprintf("SELECT tstamp, is_applied FROM %s WHERE version_id = $1 ORDER BY tstamp DESC LIMIT 1", TableName())
 }
 
 func (m ClickHouseDialect) deleteVersionSQL() string {
-	return fmt.Sprintf("ALTER TABLE %s DELETE WHERE version_id = ?", TableName())
+	return fmt.Sprintf("ALTER TABLE %s DELETE WHERE version_id = $1", TableName())
 }
