@@ -15,7 +15,7 @@ import (
 
 var (
 	flags        = flag.NewFlagSet("goose", flag.ExitOnError)
-	dir          = flags.String("dir", ".", "directory with migration files")
+	dir          = flags.String("dir", defaultMigrationDir, "directory with migration files")
 	table        = flags.String("table", "goose_db_version", "migrations table name")
 	verbose      = flags.Bool("v", false, "enable verbose mode")
 	help         = flags.Bool("h", false, "print help")
@@ -27,7 +27,6 @@ var (
 	sslkey       = flags.String("ssl-key", "", "file path to SSL key in pem format (only support on mysql)")
 	noVersioning = flags.Bool("no-versioning", false, "apply migration commands with no versioning, in file order, from directory pointed to")
 )
-
 var (
 	gooseVersion = ""
 )
@@ -55,6 +54,11 @@ func main() {
 	if len(args) == 0 || *help {
 		flags.Usage()
 		return
+	}
+	// The -dir option has not been set, check whether the env variable is set
+	// before defaulting to ".".
+	if *dir == defaultMigrationDir && os.Getenv(envGooseMigrationDir) != "" {
+		*dir = os.Getenv(envGooseMigrationDir)
 	}
 
 	switch args[0] {
@@ -123,8 +127,13 @@ func main() {
 }
 
 const (
-	envGooseDriver   = "GOOSE_DRIVER"
-	envGooseDBString = "GOOSE_DBSTRING"
+	envGooseDriver       = "GOOSE_DRIVER"
+	envGooseDBString     = "GOOSE_DBSTRING"
+	envGooseMigrationDir = "GOOSE_MIGRATION_DIR"
+)
+
+const (
+	defaultMigrationDir = "."
 )
 
 func mergeArgs(args []string) []string {
@@ -234,7 +243,7 @@ SELECT 'down SQL query';
 
 // initDir will create a directory with an empty SQL migration file.
 func gooseInit(dir string) error {
-	if dir == "" || dir == "." {
+	if dir == "" || dir == defaultMigrationDir {
 		dir = "migrations"
 	}
 	_, err := os.Stat(dir)
