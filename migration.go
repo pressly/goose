@@ -137,7 +137,7 @@ func NumericComponent(name string) (int64, error) {
 
 	idx := strings.Index(base, "_")
 	if idx < 0 {
-		return 0, errors.New("no separator found")
+		return 0, errors.New("no filename separator '_' found")
 	}
 
 	n, e := strconv.ParseInt(base[:idx], 10, 64)

@@ -156,7 +156,7 @@ func collectMigrationsFS(fsys fs.FS, dirpath string, current, target int64) (Mig
 	for _, file := range sqlMigrationFiles {
 		v, err := NumericComponent(file)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("could not parse SQL migration file %q: %w", file, err)
 		}
 		if versionFilter(v, current, target) {
 			migration := &Migration{Version: v, Next: -1, Previous: -1, Source: file}
@@ -168,7 +168,7 @@ func collectMigrationsFS(fsys fs.FS, dirpath string, current, target int64) (Mig
 	for _, migration := range registeredGoMigrations {
 		v, err := NumericComponent(migration.Source)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("could not parse go migration file %q: %w", migration.Source, err)
 		}
 		if versionFilter(v, current, target) {
 			migrations = append(migrations, migration)
