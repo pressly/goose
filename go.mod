@@ -19,5 +19,5 @@ require (
 	golang.org/x/tools v0.1.10 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	lukechampine.com/uint128 v1.2.0 // indirect
-	modernc.org/sqlite v1.16.0
+	modernc.org/sqlite v1.17.0
 )
