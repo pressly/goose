@@ -27,7 +27,7 @@ func TestNotAllowMissing(t *testing.T) {
 	is.NoErr(err)
 	current, err := goose.GetDBVersion(db)
 	is.NoErr(err)
-	is.Equal(current, int64(7))
+	is.Equal(current, int64(8))
 
 	// Developer B - migration 6 (missing) and 8 (new)
 	// This should raise an error. By default goose does not allow missing (out-of-order)
