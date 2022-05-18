@@ -11,8 +11,6 @@ import (
 
 func TestNotAllowMissing(t *testing.T) {
 	t.Parallel()
-	is := is.New(t)
-
 	// Create and apply first 5 migrations.
 	db := setupTestDB(t, 5)
 
@@ -22,23 +20,39 @@ func TestNotAllowMissing(t *testing.T) {
 
 	// Developer A - migration 7 (mistakenly applied)
 	migrations, err := goose.CollectMigrations(migrationsDir, 0, 7)
-	is.NoErr(err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	err = migrations[6].Up(db)
-	is.NoErr(err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	current, err := goose.GetDBVersion(db)
-	is.NoErr(err)
-	is.Equal(current, int64(8))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if current != 8 {
+		t.Fatalf("got %d: want: %d", current, 8)
+	}
 
 	// Developer B - migration 6 (missing) and 8 (new)
 	// This should raise an error. By default goose does not allow missing (out-of-order)
 	// migrations, which means halt if a missing migration is detected.
 	err = goose.Up(db, migrationsDir)
-	is.True(err != nil) // error: found 1 missing migrations
-	is.True(strings.Contains(err.Error(), "missing migrations"))
+	if err == nil {
+		t.Fatal("expecting error: found 1 missing migrations")
+	}
+	if !strings.Contains(err.Error(), "missing migrations") {
+		t.Fatalf("errors string does not contain: %q", "missing migrations")
+	}
 	// Confirm db version is unchanged.
 	current, err = goose.GetDBVersion(db)
-	is.NoErr(err)
-	is.Equal(current, int64(7))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if current != 7 {
+		t.Fatalf("got %d: want: %d", current, 7)
+	}
 }
 
 func TestAllowMissingUpWithRedo(t *testing.T) {
