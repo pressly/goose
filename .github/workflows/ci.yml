@@ -32,12 +32,12 @@ jobs:
             echo "Please format Go code by running: go fmt ./..."
             exit 1
           fi
-      - name: Run tests
-        run: |
-          mkdir -p bin
-          go vet ./...
-          go build ./...
-          make test-packages
+      # - name: Run tests
+      #   run: |
+      #     mkdir -p bin
+      #     go vet ./...
+      #     go build ./...
+      #     make test-packages
       - name: Run json tests
         run: |
          go test -v -json -count=1 ./tests/e2e  -dialect=postgres
