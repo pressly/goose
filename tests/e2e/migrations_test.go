@@ -117,7 +117,7 @@ func TestMigrateUpByOne(t *testing.T) {
 		counter++
 		if counter > len(migrations) {
 			if !errors.Is(err, goose.ErrNoNextVersion) {
-				t.Fatalf("incorrect error: got:%s want:%s", err, goose.ErrNoNextVersion)
+				t.Fatalf("incorrect error: got:%v want:%v", err, goose.ErrNoNextVersion)
 			}
 			break
 		}
@@ -145,11 +145,11 @@ func TestMigrateFull(t *testing.T) {
 	// if the supplied "current" version is non-existent or 0.
 	_, err = migrations.Current(20160813)
 	if !errors.Is(err, goose.ErrNoCurrentVersion) {
-		t.Fatalf("incorrect error: got:%s want:%s", err, goose.ErrNoCurrentVersion)
+		t.Fatalf("incorrect error: got:%v want:%v", err, goose.ErrNoCurrentVersion)
 	}
 	_, err = migrations.Current(0)
 	if !errors.Is(err, goose.ErrNoCurrentVersion) {
-		t.Fatalf("incorrect error: got:%s want:%s", err, goose.ErrNoCurrentVersion)
+		t.Fatalf("incorrect error: got:%v want:%v", err, goose.ErrNoCurrentVersion)
 	}
 	// verify the first migration1. This should not change if more migrations are added
 	// in the future.
@@ -181,8 +181,8 @@ func TestMigrateFull(t *testing.T) {
 		tables, err := getTableNames(db)
 		check.NoError(t, err)
 		if !reflect.DeepEqual(tables, knownTables) {
-			t.Log(tables)
-			t.Logf("known tables: %v", tables)
+			t.Logf("got tables: %v", tables)
+			t.Logf("known tables: %v", knownTables)
 			t.Fatal("failed to match tables")
 		}
 	}
@@ -204,9 +204,9 @@ func TestMigrateFull(t *testing.T) {
 		check.Number(t, gotVersion, 0)
 		tables, err := getTableNames(db)
 		check.NoError(t, err)
-		knownTables := []string{goose.TableName()}
+		knownTables := []string{goose.TableName() + "sd"}
 		if !reflect.DeepEqual(tables, knownTables) {
-			t.Log(tables)
+			t.Logf("got tables: %v", tables)
 			t.Logf("known tables: %v", knownTables)
 			t.Fatal("failed to match tables")
 		}

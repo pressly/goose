@@ -158,6 +158,7 @@ func TestAllowMissingUpWithReset(t *testing.T) {
 		// By default, attempting to apply this migration will raise an error.
 		// If goose is set to "allow missing" migrations then it should get applied.
 		err := goose.Up(db, migrationsDir, goose.WithAllowMissing())
+		// Applying missing migration should return no error when allow-missing=true
 		check.NoError(t, err)
 
 		// Avoid hard-coding total and max, instead resolve it from the testdata migrations.
