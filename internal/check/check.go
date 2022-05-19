@@ -25,7 +25,7 @@ func HasError(t *testing.T, err error) {
 func IsError(t *testing.T, err, target error) {
 	t.Helper()
 	if !errors.Is(err, target) {
-		t.Fatalf("expecting specific error:\ngot:%v\nwant:%s", err, target)
+		t.Fatalf("expecting specific error:\ngot: %v\nwant: %v", err, target)
 
 	}
 }
@@ -41,14 +41,7 @@ func Number(t *testing.T, got, want interface{}) {
 		t.Fatal(err)
 	}
 	if gotNumber != wantNumber {
-		t.Fatalf("unexpected value: got:%d want:%d ", gotNumber, wantNumber)
-	}
-}
-
-func Bool(t *testing.T, got, want bool) {
-	t.Helper()
-	if got != want {
-		t.Fatalf("unexpected boolean value: got:%t want:%t ", got, want)
+		t.Fatalf("unexpected number value: got:%d want:%d ", gotNumber, wantNumber)
 	}
 }
 
@@ -59,14 +52,21 @@ func NumberNotZero(t *testing.T, got interface{}) {
 		t.Fatal(err)
 	}
 	if gotNumber == 0 {
-		t.Fatalf("unexpected value: got:%d want non-zero ", gotNumber)
+		t.Fatalf("unexpected number value: got:%d want non-zero ", gotNumber)
+	}
+}
+
+func Bool(t *testing.T, got, want bool) {
+	t.Helper()
+	if got != want {
+		t.Fatalf("unexpected boolean value: got:%t want:%t", got, want)
 	}
 }
 
 func Contains(t *testing.T, got, want string) {
 	t.Helper()
 	if !strings.Contains(got, want) {
-		t.Errorf("failed to find substring %q in the value %q", got, want)
+		t.Errorf("failed to find substring %q in string value %q", got, want)
 	}
 }
 
@@ -75,5 +75,5 @@ func reflectToInt64(v interface{}) (int64, error) {
 	case int, int8, int16, int32, int64:
 		return reflect.ValueOf(typ).Int(), nil
 	}
-	return 0, fmt.Errorf("invalid number: must be type int64: got:%T", v)
+	return 0, fmt.Errorf("invalid number: must be int64 type: got:%T", v)
 }
