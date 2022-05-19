@@ -204,7 +204,7 @@ func TestMigrateFull(t *testing.T) {
 		check.Number(t, gotVersion, 0)
 		tables, err := getTableNames(db)
 		check.NoError(t, err)
-		knownTables := []string{goose.TableName() + "sd"}
+		knownTables := []string{goose.TableName()}
 		if !reflect.DeepEqual(tables, knownTables) {
 			t.Logf("got tables: %v", tables)
 			t.Logf("known tables: %v", knownTables)
