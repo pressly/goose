@@ -8,8 +8,8 @@ require (
 	github.com/denisenkom/go-mssqldb v0.12.0
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
+	github.com/google/go-cmp v0.5.7 // indirect
 	github.com/lib/pq v1.10.4
-	github.com/matryer/is v1.4.0
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/ory/dockertest/v3 v3.8.2-0.20220414165644-e38b9742dc7d
 	github.com/pkg/errors v0.9.1
