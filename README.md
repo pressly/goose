@@ -1,4 +1,4 @@
-# goose [![Goose CI](https://github.com/pressly/goose/actions/workflows/ci.yml/badge.svg)](https://github.com/pressly/goose/actions/workflows/ci.yml) [![Go Reference](https://pkg.go.dev/badge/github.com/pressly/goose/v3.svg)](https://pkg.go.dev/github.com/pressly/goose/v3)
+# goose [![Goose CI](https://github.com/openbasehq/goose/actions/workflows/ci.yml/badge.svg)](https://github.com/openbasehq/goose/actions/workflows/ci.yml) [![Go Reference](https://pkg.go.dev/badge/github.com/openbasehq/goose/v3.svg)](https://pkg.go.dev/github.com/openbasehq/goose/v3)
 
 <p align="center">
   <img src="assets/goose_logo.png" width="125"">
@@ -6,13 +6,13 @@
 
 Goose is a database migration tool. Manage your database schema by creating incremental SQL changes or Go functions.
 
-Starting with [v3.0.0](https://github.com/pressly/goose/releases/tag/v3.0.0) this project adds Go module support, but maintains backwards compatibility with older `v2.x.y` tags.
+Starting with [v3.0.0](https://github.com/openbasehq/goose/releases/tag/v3.0.0) this project adds Go module support, but maintains backwards compatibility with older `v2.x.y` tags.
 
-Goose supports [embedding SQL migrations](#embedded-sql-migrations), which means you'll need go1.16 and up. If using go1.15 or lower, then pin [v3.0.1](https://github.com/pressly/goose/releases/tag/v3.0.1).
+Goose supports [embedding SQL migrations](#embedded-sql-migrations), which means you'll need go1.16 and up. If using go1.15 or lower, then pin [v3.0.1](https://github.com/openbasehq/goose/releases/tag/v3.0.1).
 
 ### Goals of this fork
 
-`github.com/pressly/goose` is a fork of `bitbucket.org/liamstask/goose` with the following changes:
+`github.com/openbasehq/goose` is a fork of `bitbucket.org/liamstask/goose` with the following changes:
 - No config files
 - [Default goose binary](./cmd/goose/main.go) can migrate SQL files only
 - Go migrations:
@@ -34,7 +34,7 @@ Goose supports [embedding SQL migrations](#embedded-sql-migrations), which means
 
 # Install
 
-    $ go install github.com/pressly/goose/v3/cmd/goose@latest
+    $ go install github.com/openbasehq/goose/v3/cmd/goose@latest
 
 This will install the `goose` binary to your `$GOPATH/bin` directory.
 
@@ -267,7 +267,7 @@ import (
     "database/sql"
     "embed"
 
-    "github.com/pressly/goose/v3"
+    "github.com/openbasehq/goose/v3"
 )
 
 //go:embed migrations/*.sql
@@ -296,7 +296,7 @@ Note that we pass `"migrations"` as directory argument in `Up` because embedding
 ## Go Migrations
 
 1. Create your own goose binary, see [example](./examples/go-migrations)
-2. Import `github.com/pressly/goose`
+2. Import `github.com/openbasehq/goose`
 3. Register your migration functions
 4. Run goose command, ie. `goose.Up(db *sql.DB, dir string)`
 
@@ -308,7 +308,7 @@ package migrations
 import (
 	"database/sql"
 
-	"github.com/pressly/goose/v3"
+	"github.com/openbasehq/goose/v3"
 )
 
 func init() {
@@ -341,7 +341,7 @@ DOCKER_BUILDKIT=1  docker build -f Dockerfile.local --output bin .
 ```
 
 # Hybrid Versioning
-Please, read the [versioning problem](https://github.com/pressly/goose/issues/63#issuecomment-428681694) first.
+Please, read the [versioning problem](https://github.com/openbasehq/goose/issues/63#issuecomment-428681694) first.
 
 By default, if you attempt to apply missing (out-of-order) migrations `goose` will raise an error. However, If you want to apply these missing migrations pass goose the `-allow-missing` flag, or if using as a library supply the functional option `goose.WithAllowMissing()` to Up, UpTo or UpByOne.
 
