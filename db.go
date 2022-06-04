@@ -8,7 +8,13 @@ import (
 // OpenDBWithDriver creates a connection to a database, and modifies goose
 // internals to be compatible with the supplied driver by calling SetDialect.
 func OpenDBWithDriver(driver string, dbstring string) (*sql.DB, error) {
-	if err := SetDialect(driver); err != nil {
+	return defaultProvider.OpenDBWithDriver(driver, dbstring)
+}
+
+// OpenDBWithDriver creates a connection to a database, and modifies goose
+// internals to be compatible with the supplied driver by calling SetDialect.
+func (p *Provider) OpenDBWithDriver(driver string, dbstring string) (*sql.DB, error) {
+	if err := p.SetDialect(driver); err != nil {
 		return nil, err
 	}
 

@@ -7,11 +7,13 @@ import (
 
 // Down rolls back a single migration from the current version.
 func Down(db *sql.DB, dir string, opts ...OptionsFunc) error {
-	option := &options{}
-	for _, f := range opts {
-		f(option)
-	}
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+	return defaultProvider.Down(db, dir, opts...)
+}
+
+// Down rolls back a single migration from the current version.
+func (p *Provider) Down(db *sql.DB, dir string, opts ...OptionsFunc) error {
+	option := applyOptions(opts)
+	migrations, err := p.CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
@@ -21,9 +23,9 @@ func Down(db *sql.DB, dir string, opts ...OptionsFunc) error {
 		}
 		currentVersion := migrations[len(migrations)-1].Version
 		// Migrate only the latest migration down.
-		return downToNoVersioning(db, migrations, currentVersion-1)
+		return downToNoVersioning(p, db, migrations, currentVersion-1)
 	}
-	currentVersion, err := GetDBVersion(db)
+	currentVersion, err := p.GetDBVersion(db)
 	if err != nil {
 		return err
 	}
@@ -31,45 +33,47 @@ func Down(db *sql.DB, dir string, opts ...OptionsFunc) error {
 	if err != nil {
 		return fmt.Errorf("no migration %v", currentVersion)
 	}
-	return current.Down(db)
+	return current.DownWithProvider(p, db)
 }
 
 // DownTo rolls back migrations to a specific version.
 func DownTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
-	option := &options{}
-	for _, f := range opts {
-		f(option)
-	}
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+	return defaultProvider.DownTo(db, dir, version, opts...)
+}
+
+// DownTo rolls back migrations to a specific version.
+func (p *Provider) DownTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
+	option := applyOptions(opts)
+	migrations, err := p.CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
 	if option.noVersioning {
-		return downToNoVersioning(db, migrations, version)
+		return downToNoVersioning(p, db, migrations, version)
 	}
 
 	for {
-		currentVersion, err := GetDBVersion(db)
+		currentVersion, err := p.GetDBVersion(db)
 		if err != nil {
 			return err
 		}
 
 		if currentVersion == 0 {
-			log.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
+			p.log.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
 			return nil
 		}
 		current, err := migrations.Current(currentVersion)
 		if err != nil {
-			log.Printf("goose: migration file not found for current version (%d), error: %s\n", currentVersion, err)
+			p.log.Printf("goose: migration file not found for current version (%d), error: %s\n", currentVersion, err)
 			return err
 		}
 
 		if current.Version <= version {
-			log.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
+			p.log.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
 			return nil
 		}
 
-		if err = current.Down(db); err != nil {
+		if err = current.DownWithProvider(p, db); err != nil {
 			return err
 		}
 	}
@@ -77,7 +81,10 @@ func DownTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 
 // downToNoVersioning applies down migrations down to, but not including, the
 // target version.
-func downToNoVersioning(db *sql.DB, migrations Migrations, version int64) error {
+func downToNoVersioning(p *Provider, db *sql.DB, migrations Migrations, version int64) error {
+	if p == nil {
+		p = defaultProvider
+	}
 	var finalVersion int64
 	for i := len(migrations) - 1; i >= 0; i-- {
 		if version >= migrations[i].Version {
@@ -85,10 +92,10 @@ func downToNoVersioning(db *sql.DB, migrations Migrations, version int64) error 
 			break
 		}
 		migrations[i].noVersioning = true
-		if err := migrations[i].Down(db); err != nil {
+		if err := migrations[i].DownWithProvider(p, db); err != nil {
 			return err
 		}
 	}
-	log.Printf("goose: down to current file version: %d\n", finalVersion)
+	p.log.Printf("goose: down to current file version: %d\n", finalVersion)
 	return nil
 }

@@ -8,11 +8,13 @@ import (
 
 // Reset rolls back all migrations
 func Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
-	option := &options{}
-	for _, f := range opts {
-		f(option)
-	}
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+	return defaultProvider.Reset(db, dir, opts...)
+}
+
+// Reset rolls back all migrations
+func (p *Provider) Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
+	option := applyOptions(opts)
+	migrations, err := p.CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return fmt.Errorf("failed to collect migrations: %w", err)
 	}
@@ -20,7 +22,7 @@ func Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
 		return DownTo(db, dir, minVersion, opts...)
 	}
 
-	statuses, err := dbMigrationsStatus(db)
+	statuses, err := dbMigrationsStatus(p.dialect, db)
 	if err != nil {
 		return fmt.Errorf("failed to get status of migrations: %w", err)
 	}
@@ -30,7 +32,7 @@ func Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
 		if !statuses[migration.Version] {
 			continue
 		}
-		if err = migration.Down(db); err != nil {
+		if err = migration.DownWithProvider(p, db); err != nil {
 			return fmt.Errorf("failed to db-down: %w", err)
 		}
 	}
@@ -38,8 +40,8 @@ func Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
 	return nil
 }
 
-func dbMigrationsStatus(db *sql.DB) (map[int64]bool, error) {
-	rows, err := GetDialect().dbVersionQuery(db)
+func dbMigrationsStatus(dialect SQLDialect, db *sql.DB) (map[int64]bool, error) {
+	rows, err := dialect.dbVersionQuery(db)
 	if err != nil {
 		return map[int64]bool{}, nil
 	}

@@ -30,7 +30,9 @@ func (s *stateMachine) Get() parserState {
 	return parserState(*s)
 }
 func (s *stateMachine) Set(new parserState) {
-	verboseInfo("StateMachine: %v => %v", *s, new)
+	// Do not want to break contract, so for this one, we will just
+	// use the defaultProvider
+	defaultProvider.verboseInfo("StateMachine: %v => %v", *s, new)
 	*s = stateMachine(new)
 }
 
@@ -44,7 +46,7 @@ var bufferPool = sync.Pool{
 	},
 }
 
-// Split given SQL script into individual statements and return
+// parseSQLMigration will split the given SQL-script into individual statements and return
 // SQL statements for given direction (up=true, down=false).
 //
 // The base case is to simply split on semicolons, as these
@@ -54,7 +56,10 @@ var bufferPool = sync.Pool{
 // within a statement. For these cases, we provide the explicit annotations
 // 'StatementBegin' and 'StatementEnd' to allow the script to
 // tell us to ignore semicolons.
-func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool, err error) {
+func parseSQLMigration(p *Provider, r io.Reader, direction bool) (stmts []string, useTx bool, err error) {
+	if p == nil {
+		p = defaultProvider
+	}
 	var buf bytes.Buffer
 	scanBuf := bufferPool.Get().([]byte)
 	defer bufferPool.Put(scanBuf)
@@ -67,8 +72,8 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		if verbose {
-			log.Println(line)
+		if p.verbose {
+			p.log.Println(line)
 		}
 
 		if strings.HasPrefix(line, "--") {
@@ -120,14 +125,14 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 
 			default:
 				// Ignore comments.
-				verboseInfo("StateMachine: ignore comment")
+				p.verboseInfo("StateMachine: ignore comment")
 				continue
 			}
 		}
 
 		// Ignore empty lines.
 		if matchEmptyLines.MatchString(line) {
-			verboseInfo("StateMachine: ignore empty line")
+			p.verboseInfo("StateMachine: ignore empty line")
 			continue
 		}
 
@@ -145,13 +150,13 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 		case gooseUp, gooseStatementBeginUp, gooseStatementEndUp:
 			if !direction /*down*/ {
 				buf.Reset()
-				verboseInfo("StateMachine: ignore down")
+				p.verboseInfo("StateMachine: ignore down")
 				continue
 			}
 		case gooseDown, gooseStatementBeginDown, gooseStatementEndDown:
 			if direction /*up*/ {
 				buf.Reset()
-				verboseInfo("StateMachine: ignore up")
+				p.verboseInfo("StateMachine: ignore up")
 				continue
 			}
 		default:
@@ -163,23 +168,23 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 			if endsWithSemicolon(line) {
 				stmts = append(stmts, buf.String())
 				buf.Reset()
-				verboseInfo("StateMachine: store simple Up query")
+				p.verboseInfo("StateMachine: store simple Up query")
 			}
 		case gooseDown:
 			if endsWithSemicolon(line) {
 				stmts = append(stmts, buf.String())
 				buf.Reset()
-				verboseInfo("StateMachine: store simple Down query")
+				p.verboseInfo("StateMachine: store simple Down query")
 			}
 		case gooseStatementEndUp:
 			stmts = append(stmts, buf.String())
 			buf.Reset()
-			verboseInfo("StateMachine: store Up statement")
+			p.verboseInfo("StateMachine: store Up statement")
 			stateMachine.Set(gooseUp)
 		case gooseStatementEndDown:
 			stmts = append(stmts, buf.String())
 			buf.Reset()
-			verboseInfo("StateMachine: store Down statement")
+			p.verboseInfo("StateMachine: store Down statement")
 			stateMachine.Set(gooseDown)
 		}
 	}

@@ -9,9 +9,14 @@ import (
 
 const seqVersionTemplate = "%05v"
 
-func Fix(dir string) error {
+func Fix(dir string) error { return defaultProvider.Fix(dir) }
+
+func (p *Provider) Fix(dir string) error {
+	if p.baseDir != "" && (dir == "" || dir == ".") {
+		dir = p.baseDir
+	}
 	// always use osFS here because it's modifying operation
-	migrations, err := collectMigrationsFS(osFS{}, dir, minVersion, maxVersion)
+	migrations, err := p.collectMigrationsFS(osFS{}, dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
@@ -32,13 +37,17 @@ func Fix(dir string) error {
 		version = last.Version + 1
 	}
 
+	seqVerTemplate := p.seqVersionTemplate
+	if seqVerTemplate == "" {
+		seqVerTemplate = seqVersionTemplate
+	}
 	// fix filenames by replacing timestamps with sequential versions
 	for _, tsm := range tsMigrations {
 		oldPath := tsm.Source
 		newPath := strings.Replace(
 			oldPath,
 			fmt.Sprintf("%d", tsm.Version),
-			fmt.Sprintf(seqVersionTemplate, version),
+			fmt.Sprintf(seqVerTemplate, version),
 			1,
 		)
 
@@ -46,7 +55,7 @@ func Fix(dir string) error {
 			return err
 		}
 
-		log.Printf("RENAMED %s => %s", filepath.Base(oldPath), filepath.Base(newPath))
+		p.log.Printf("RENAMED %s => %s", filepath.Base(oldPath), filepath.Base(newPath))
 		version++
 	}
 

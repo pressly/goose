@@ -6,11 +6,13 @@ import (
 
 // Redo rolls back the most recently applied migration, then runs it again.
 func Redo(db *sql.DB, dir string, opts ...OptionsFunc) error {
-	option := &options{}
-	for _, f := range opts {
-		f(option)
-	}
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+	return defaultProvider.Redo(db, dir, opts...)
+}
+
+// Redo rolls back the most recently applied migration, then runs it again.
+func (p *Provider) Redo(db *sql.DB, dir string, opts ...OptionsFunc) error {
+	option := applyOptions(opts)
+	migrations, err := p.CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
 		return err
 	}
@@ -23,7 +25,7 @@ func Redo(db *sql.DB, dir string, opts ...OptionsFunc) error {
 		}
 		currentVersion = migrations[len(migrations)-1].Version
 	} else {
-		if currentVersion, err = GetDBVersion(db); err != nil {
+		if currentVersion, err = p.GetDBVersion(db); err != nil {
 			return err
 		}
 	}
@@ -34,10 +36,10 @@ func Redo(db *sql.DB, dir string, opts ...OptionsFunc) error {
 	}
 	current.noVersioning = option.noVersioning
 
-	if err := current.Down(db); err != nil {
+	if err := current.DownWithProvider(p, db); err != nil {
 		return err
 	}
-	if err := current.Up(db); err != nil {
+	if err := current.UpWithProvider(p, db); err != nil {
 		return err
 	}
 	return nil

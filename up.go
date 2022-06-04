@@ -2,10 +2,11 @@ package goose
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 type options struct {
@@ -28,13 +29,22 @@ func withApplyUpByOne() OptionsFunc {
 	return func(o *options) { o.applyUpByOne = true }
 }
 
-// UpTo migrates up to a specific version.
-func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
-	option := &options{}
+func applyOptions(opts []OptionsFunc) *options {
+	option := new(options)
 	for _, f := range opts {
 		f(option)
 	}
-	foundMigrations, err := CollectMigrations(dir, minVersion, version)
+	return option
+}
+
+// UpTo migrates up to a specific version.
+func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
+	return defaultProvider.UpTo(db, dir, version, opts...)
+}
+
+func (p *Provider) UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) (err error) {
+	option := applyOptions(opts)
+	foundMigrations, err := p.CollectMigrations(dir, minVersion, version)
 	if err != nil {
 		return err
 	}
@@ -48,13 +58,14 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 			// migration over and over.
 			version = foundMigrations[0].Version
 		}
-		return upToNoVersioning(db, foundMigrations, version)
+		return p.upToNoVersioning(db, foundMigrations, version)
 	}
 
-	if _, err := EnsureDBVersion(db); err != nil {
+	if _, err := p.EnsureDBVersion(db); err != nil {
 		return err
 	}
-	dbMigrations, err := listAllDBVersions(db)
+	//dbMigrations, err := listAllDBVersions(p.dialect, db)
+	dbMigrations, err := listAllDBVersions(p.dialect, db)
 	if err != nil {
 		return err
 	}
@@ -75,7 +86,7 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 	}
 
 	if option.allowMissing {
-		return upWithMissing(
+		return p.upWithMissing(
 			db,
 			missingMigrations,
 			foundMigrations,
@@ -86,8 +97,8 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 
 	var current int64
 	for {
-		var err error
-		current, err = GetDBVersion(db)
+		p.log.Println("GetDBVersion")
+		current, err = p.GetDBVersion(db)
 		if err != nil {
 			return err
 		}
@@ -98,7 +109,7 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 			}
 			return fmt.Errorf("failed to find next migration: %v", err)
 		}
-		if err := next.Up(db); err != nil {
+		if err := next.UpWithProvider(p, db); err != nil {
 			return err
 		}
 		if option.applyUpByOne {
@@ -109,7 +120,7 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 	// the following behaviour:
 	// UpByOne returns an error to signifying there are no more migrations.
 	// Up and UpTo return nil
-	log.Printf("goose: no migrations to run. current version: %d\n", current)
+	p.log.Printf("goose: no migrations to run. current version: %d\n", current)
 	if option.applyUpByOne {
 		return ErrNoNextVersion
 	}
@@ -118,23 +129,23 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 
 // upToNoVersioning applies up migrations up to, and including, the
 // target version.
-func upToNoVersioning(db *sql.DB, migrations Migrations, version int64) error {
+func (p *Provider) upToNoVersioning(db *sql.DB, migrations Migrations, version int64) error {
 	var finalVersion int64
 	for _, current := range migrations {
 		if current.Version > version {
 			break
 		}
 		current.noVersioning = true
-		if err := current.Up(db); err != nil {
+		if err := current.UpWithProvider(p, db); err != nil {
 			return err
 		}
 		finalVersion = current.Version
 	}
-	log.Printf("goose: up to current file version: %d\n", finalVersion)
+	p.log.Printf("goose: up to current file version: %d\n", finalVersion)
 	return nil
 }
 
-func upWithMissing(
+func (p *Provider) upWithMissing(
 	db *sql.DB,
 	missingMigrations Migrations,
 	foundMigrations Migrations,
@@ -148,7 +159,7 @@ func upWithMissing(
 
 	// Apply all missing migrations first.
 	for _, missing := range missingMigrations {
-		if err := missing.Up(db); err != nil {
+		if err := missing.UpWithProvider(p, db); err != nil {
 			return err
 		}
 		// Apply one migration and return early.
@@ -159,7 +170,7 @@ func upWithMissing(
 		// want to keep it as a safe-guard. Maybe we should instead have
 		// the underlying query (if possible) return the current version as
 		// part of the same transaction.
-		current, err := GetDBVersion(db)
+		current, err := p.GetDBVersion(db)
 		if err != nil {
 			return err
 		}
@@ -183,14 +194,14 @@ func upWithMissing(
 		if lookupApplied[found.Version] {
 			continue
 		}
-		if err := found.Up(db); err != nil {
+		if err := found.UpWithProvider(p, db); err != nil {
 			return err
 		}
 		if option.applyUpByOne {
 			return nil
 		}
 	}
-	current, err := GetDBVersion(db)
+	current, err := p.GetDBVersion(db)
 	if err != nil {
 		return err
 	}
@@ -198,7 +209,7 @@ func upWithMissing(
 	// the following behaviour:
 	// UpByOne returns an error to signifying there are no more migrations.
 	// Up and UpTo return nil
-	log.Printf("goose: no migrations to run. current version: %d\n", current)
+	p.log.Printf("goose: no migrations to run. current version: %d\n", current)
 	if option.applyUpByOne {
 		return ErrNoNextVersion
 	}
@@ -207,21 +218,32 @@ func upWithMissing(
 
 // Up applies all available migrations.
 func Up(db *sql.DB, dir string, opts ...OptionsFunc) error {
-	return UpTo(db, dir, maxVersion, opts...)
+	return defaultProvider.UpTo(db, dir, maxVersion, opts...)
+}
+
+// Up applies all available migrations.
+func (p *Provider) Up(db *sql.DB, dir string, opts ...OptionsFunc) error {
+	return p.UpTo(db, dir, maxVersion, opts...)
 }
 
 // UpByOne migrates up by a single version.
 func UpByOne(db *sql.DB, dir string, opts ...OptionsFunc) error {
 	opts = append(opts, withApplyUpByOne())
-	return UpTo(db, dir, maxVersion, opts...)
+	return defaultProvider.UpTo(db, dir, maxVersion, opts...)
+}
+
+// UpByOne migrates up by a single version.
+func (p *Provider) UpByOne(db *sql.DB, dir string, opts ...OptionsFunc) error {
+	opts = append(opts, withApplyUpByOne())
+	return p.UpTo(db, dir, maxVersion, opts...)
 }
 
 // listAllDBVersions returns a list of all migrations, ordered ascending.
 // TODO(mf): fairly cheap, but a nice-to-have is pagination support.
-func listAllDBVersions(db *sql.DB) (Migrations, error) {
-	rows, err := GetDialect().dbVersionQuery(db)
+func listAllDBVersions(dialect SQLDialect, db *sql.DB) (Migrations, error) {
+	rows, err := dialect.dbVersionQuery(db)
 	if err != nil {
-		return nil, createVersionTable(db)
+		return nil, createVersionTable(dialect, db)
 	}
 	var all Migrations
 	for rows.Next() {
@@ -247,7 +269,7 @@ func listAllDBVersions(db *sql.DB) (Migrations, error) {
 }
 
 // findMissingMigrations migrations returns all missing migrations.
-// A migrations is considered missing if it has a version less than the
+// A migration is considered missing if it has a version less than the
 // current known max version.
 func findMissingMigrations(knownMigrations, newMigrations Migrations) Migrations {
 	max := knownMigrations[len(knownMigrations)-1].Version
@@ -256,9 +278,9 @@ func findMissingMigrations(knownMigrations, newMigrations Migrations) Migrations
 		existing[known.Version] = true
 	}
 	var missing Migrations
-	for _, new := range newMigrations {
-		if !existing[new.Version] && new.Version < max {
-			missing = append(missing, new)
+	for _, newMigration := range newMigrations {
+		if !existing[newMigration.Version] && newMigration.Version < max {
+			missing = append(missing, newMigration)
 		}
 	}
 	sort.SliceStable(missing, func(i, j int) bool {

@@ -17,8 +17,11 @@ type Logger interface {
 
 // SetLogger sets the logger for package output
 func SetLogger(l Logger) {
-	log = l
+	defaultProvider.SetLogger(l)
 }
+
+// SetLogger sets the logger for package output
+func (p *Provider) SetLogger(l Logger) { p.log = l }
 
 // stdLogger is a default logger that outputs to a stdlib's log.std logger.
 type stdLogger struct{}

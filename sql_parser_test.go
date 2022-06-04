@@ -55,7 +55,7 @@ func TestSplitStatements(t *testing.T) {
 
 	for i, test := range tt {
 		// up
-		stmts, _, err := parseSQLMigration(strings.NewReader(test.sql), true)
+		stmts, _, err := parseSQLMigration(nil, strings.NewReader(test.sql), true)
 		if err != nil {
 			t.Error(fmt.Errorf("tt[%v] unexpected error: %w", i, err))
 		}
@@ -64,7 +64,7 @@ func TestSplitStatements(t *testing.T) {
 		}
 
 		// down
-		stmts, _, err = parseSQLMigration(strings.NewReader(test.sql), false)
+		stmts, _, err = parseSQLMigration(nil, strings.NewReader(test.sql), false)
 		if err != nil {
 			t.Error(fmt.Errorf("tt[%v] unexpected error: %w", i, err))
 		}
@@ -93,7 +93,7 @@ func TestUseTransactions(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		_, useTx, err := parseSQLMigration(f, true)
+		_, useTx, err := parseSQLMigration(nil, f, true)
 		if err != nil {
 			t.Error(err)
 		}
@@ -113,7 +113,7 @@ func TestParsingErrors(t *testing.T) {
 		downFirst,
 	}
 	for i, sql := range tt {
-		_, _, err := parseSQLMigration(strings.NewReader(sql), true)
+		_, _, err := parseSQLMigration(nil, strings.NewReader(sql), true)
 		if err == nil {
 			t.Errorf("expected error on tt[%v] %q", i, sql)
 		}

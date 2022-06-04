@@ -10,25 +10,38 @@ import (
 )
 
 type tmplVars struct {
-	Version   string
-	CamelName string
+	Version     string
+	CamelName   string
+	PackageName string
+	ProviderVar string
 }
-
-var (
-	sequential = false
-)
 
 // SetSequential set whether to use sequential versioning instead of timestamp based versioning
 func SetSequential(s bool) {
-	sequential = s
+	defaultProvider.SetSequential(s)
 }
 
-// Create writes a new blank migration file.
+// SetSequential set's whether to use sequential versioning instead of timestamp based versioning
+func (p *Provider) SetSequential(s bool) { p.sequential = s }
+
+// CreateWithTemplate writes a new blank migration file.
 func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, migrationType string) error {
-	var version string
-	if sequential {
+	return defaultProvider.CreateWithTemplate(db, dir, tmpl, name, migrationType)
+}
+
+// CreateWithTemplate writes a new blank migration file.
+func (p *Provider) CreateWithTemplate(_ *sql.DB, dir string, tmpl *template.Template, name, migrationType string) error {
+	timefn := p.timeFn
+	if p.timeFn == nil {
+		timefn = time.Now
+	}
+	version := timefn().Format(p.timestampFormat)
+	if p.baseDir != "" && (dir == "" || dir == ".") {
+		dir = p.baseDir
+	}
+	if p.sequential {
 		// always use DirFS here because it's modifying operation
-		migrations, err := collectMigrationsFS(osFS{}, dir, minVersion, maxVersion)
+		migrations, err := p.collectMigrationsFS(osFS{}, dir, minVersion, maxVersion)
 		if err != nil {
 			return err
 		}
@@ -43,8 +56,6 @@ func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, m
 		} else {
 			version = fmt.Sprintf(seqVersionTemplate, int64(1))
 		}
-	} else {
-		version = time.Now().Format(timestampFormat)
 	}
 
 	filename := fmt.Sprintf("%v_%v.%v", version, snakeCase(name), migrationType)
@@ -69,20 +80,27 @@ func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, m
 	defer f.Close()
 
 	vars := tmplVars{
-		Version:   version,
-		CamelName: camelCase(name),
+		PackageName: p.packageName,
+		ProviderVar: p.providerVarName,
+		Version:     version,
+		CamelName:   camelCase(name),
 	}
 	if err := tmpl.Execute(f, vars); err != nil {
 		return fmt.Errorf("failed to execute tmpl: %w", err)
 	}
 
-	log.Printf("Created new file: %s\n", f.Name())
+	p.log.Printf("Created new file: %s\n", f.Name())
 	return nil
 }
 
 // Create writes a new blank migration file.
 func Create(db *sql.DB, dir, name, migrationType string) error {
-	return CreateWithTemplate(db, dir, nil, name, migrationType)
+	return defaultProvider.Create(db, dir, name, migrationType)
+}
+
+// Create writes a new blank migration file.
+func (p *Provider) Create(db *sql.DB, dir, name, migrationType string) error {
+	return p.CreateWithTemplate(db, dir, nil, name, migrationType)
 }
 
 var sqlMigrationTemplate = template.Must(template.New("goose.sql-migration").Parse(`-- +goose Up
@@ -96,15 +114,19 @@ SELECT 'down SQL query';
 -- +goose StatementEnd
 `))
 
-var goSQLMigrationTemplate = template.Must(template.New("goose.go-migration").Parse(`package migrations
+var goSQLMigrationTemplate = template.Must(template.New("goose.go-migration").Parse(`package {{.PackageName}}
 
 import (
 	"database/sql"
-	"github.com/pressly/goose/v3"
+{{if eq .ProviderVar ""}}	"github.com/pressly/goose/v3" {{end}}
 )
 
 func init() {
+{{- if eq .ProviderVar "" }}
 	goose.AddMigration(up{{.CamelName}}, down{{.CamelName}})
+{{- else }}
+	{{.ProviderVar}}.AddMigration(up{{.CamelName}}, down{{.CamelName}})
+{{end }}
 }
 
 func up{{.CamelName}}(tx *sql.Tx) error {
