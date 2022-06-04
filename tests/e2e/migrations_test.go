@@ -13,7 +13,6 @@ import (
 )
 
 func TestMigrateUpWithReset(t *testing.T) {
-	t.Parallel()
 
 	db, err := newDockerDB(t)
 	check.NoError(t, err)
@@ -42,7 +41,6 @@ func TestMigrateUpWithReset(t *testing.T) {
 }
 
 func TestMigrateUpWithRedo(t *testing.T) {
-	t.Parallel()
 
 	db, err := newDockerDB(t)
 	check.NoError(t, err)
@@ -77,7 +75,6 @@ func TestMigrateUpWithRedo(t *testing.T) {
 }
 
 func TestMigrateUpTo(t *testing.T) {
-	t.Parallel()
 
 	const (
 		upToVersion int64 = 2
@@ -102,7 +99,6 @@ func TestMigrateUpTo(t *testing.T) {
 }
 
 func TestMigrateUpByOne(t *testing.T) {
-	t.Parallel()
 
 	db, err := newDockerDB(t)
 	check.NoError(t, err)
@@ -133,7 +129,6 @@ func TestMigrateUpByOne(t *testing.T) {
 }
 
 func TestMigrateFull(t *testing.T) {
-	t.Parallel()
 
 	db, err := newDockerDB(t)
 	check.NoError(t, err)

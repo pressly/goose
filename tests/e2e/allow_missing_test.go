@@ -9,7 +9,6 @@ import (
 )
 
 func TestNotAllowMissing(t *testing.T) {
-	t.Parallel()
 
 	// Create and apply first 5 migrations.
 	db := setupTestDB(t, 5)
@@ -40,7 +39,6 @@ func TestNotAllowMissing(t *testing.T) {
 }
 
 func TestAllowMissingUpWithRedo(t *testing.T) {
-	t.Parallel()
 
 	// Create and apply first 5 migrations.
 	db := setupTestDB(t, 5)
@@ -85,7 +83,6 @@ func TestAllowMissingUpWithRedo(t *testing.T) {
 }
 
 func TestNowAllowMissingUpByOne(t *testing.T) {
-	t.Parallel()
 
 	// Create and apply first 5 migrations.
 	db := setupTestDB(t, 5)
@@ -129,7 +126,6 @@ func TestNowAllowMissingUpByOne(t *testing.T) {
 }
 
 func TestAllowMissingUpWithReset(t *testing.T) {
-	t.Parallel()
 
 	// Create and apply first 5 migrations.
 	db := setupTestDB(t, 5)
@@ -188,7 +184,6 @@ func TestAllowMissingUpWithReset(t *testing.T) {
 }
 
 func TestAllowMissingUpByOne(t *testing.T) {
-	t.Parallel()
 
 	// Create and apply first 5 migrations.
 	db := setupTestDB(t, 5)
@@ -246,7 +241,6 @@ func TestAllowMissingUpByOne(t *testing.T) {
 }
 
 func TestMigrateAllowMissingDown(t *testing.T) {
-	t.Parallel()
 
 	const (
 		maxVersion = 8
@@ -337,7 +331,7 @@ func setupTestDB(t *testing.T, version int64) *sql.DB {
 		check.NoError(t, err)
 	}
 	// Verify the current DB version is the Nth migration. This will only
-	// work for sqeuentially applied migrations.
+	// work for sequentially applied migrations.
 	current, err = goose.GetDBVersion(db)
 	check.NoError(t, err)
 	check.Number(t, current, version)
