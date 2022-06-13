@@ -153,6 +153,11 @@ func collectMigrationsFS(fsys fs.FS, dirpath string, current, target int64) (Mig
 	if err != nil {
 		return nil, err
 	}
+
+	if len(sqlMigrationFiles)+len(registeredGoMigrations) == 0 {
+		return nil, fmt.Errorf("no migrations files in path: %s", dirpath)
+	}
+
 	for _, file := range sqlMigrationFiles {
 		v, err := NumericComponent(file)
 		if err != nil {
@@ -180,6 +185,7 @@ func collectMigrationsFS(fsys fs.FS, dirpath string, current, target int64) (Mig
 	if err != nil {
 		return nil, err
 	}
+
 	for _, file := range goMigrationFiles {
 		v, err := NumericComponent(file)
 		if err != nil {
