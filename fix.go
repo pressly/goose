@@ -1,6 +1,7 @@
 package goose
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,9 +11,10 @@ import (
 const seqVersionTemplate = "%05v"
 
 func Fix(dir string) error {
+	var noMigrationsError *NoMigrationsError
 	// always use osFS here because it's modifying operation
 	migrations, err := collectMigrationsFS(osFS{}, dir, minVersion, maxVersion)
-	if err != nil {
+	if err != nil && !errors.As(err, &noMigrationsError) {
 		return err
 	}
 

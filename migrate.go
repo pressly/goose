@@ -23,6 +23,15 @@ var (
 	registeredGoMigrations = map[int64]*Migration{}
 )
 
+// NoMigrationsError when migration files in path not found
+type NoMigrationsError struct {
+	path string
+}
+
+func (e *NoMigrationsError) Error() string {
+	return "no migration files in path: " + e.path
+}
+
 // Migrations slice.
 type Migrations []*Migration
 
@@ -153,6 +162,7 @@ func collectMigrationsFS(fsys fs.FS, dirpath string, current, target int64) (Mig
 	if err != nil {
 		return nil, err
 	}
+
 	for _, file := range sqlMigrationFiles {
 		v, err := NumericComponent(file)
 		if err != nil {
@@ -180,6 +190,7 @@ func collectMigrationsFS(fsys fs.FS, dirpath string, current, target int64) (Mig
 	if err != nil {
 		return nil, err
 	}
+
 	for _, file := range goMigrationFiles {
 		v, err := NumericComponent(file)
 		if err != nil {
@@ -198,6 +209,10 @@ func collectMigrationsFS(fsys fs.FS, dirpath string, current, target int64) (Mig
 	}
 
 	migrations = sortAndConnectMigrations(migrations)
+
+	if len(sqlMigrationFiles)+len(registeredGoMigrations) == 0 {
+		return migrations, &NoMigrationsError{path: dirpath}
+	}
 
 	return migrations, nil
 }
