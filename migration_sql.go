@@ -1,8 +1,10 @@
 package goose
 
 import (
+	"context"
 	"database/sql"
 	"regexp"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -16,6 +18,8 @@ import (
 // All statements following an Up or Down directive are grouped together
 // until another direction directive is found.
 func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direction bool, noVersioning bool) error {
+	ctx := context.TODO()
+
 	if useTx {
 		// TRANSACTION.
 
@@ -28,7 +32,7 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 
 		for _, query := range statements {
 			verboseInfo("Executing statement: %s\n", clearStatement(query))
-			if _, err = tx.Exec(query); err != nil {
+			if err = exec(ctx, tx, query); err != nil {
 				verboseInfo("Rollback transaction")
 				tx.Rollback()
 				return errors.Wrapf(err, "failed to execute SQL query %q", clearStatement(query))
@@ -37,13 +41,13 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 
 		if !noVersioning {
 			if direction {
-				if _, err := tx.Exec(GetDialect().insertVersionSQL(), v, direction); err != nil {
+				if err := exec(ctx, tx, GetDialect().insertVersionSQL(), v, direction); err != nil {
 					verboseInfo("Rollback transaction")
 					tx.Rollback()
 					return errors.Wrap(err, "failed to insert new goose version")
 				}
 			} else {
-				if _, err := tx.Exec(GetDialect().deleteVersionSQL(), v); err != nil {
+				if err := exec(ctx, tx, GetDialect().deleteVersionSQL(), v); err != nil {
 					verboseInfo("Rollback transaction")
 					tx.Rollback()
 					return errors.Wrap(err, "failed to delete goose version")
@@ -62,17 +66,17 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 	// NO TRANSACTION.
 	for _, query := range statements {
 		verboseInfo("Executing statement: %s", clearStatement(query))
-		if _, err := db.Exec(query); err != nil {
+		if err := exec(ctx, db, query); err != nil {
 			return errors.Wrapf(err, "failed to execute SQL query %q", clearStatement(query))
 		}
 	}
 	if !noVersioning {
 		if direction {
-			if _, err := db.Exec(GetDialect().insertVersionSQL(), v, direction); err != nil {
+			if err := exec(ctx, db, GetDialect().insertVersionSQL(), v, direction); err != nil {
 				return errors.Wrap(err, "failed to insert new goose version")
 			}
 		} else {
-			if _, err := db.Exec(GetDialect().deleteVersionSQL(), v); err != nil {
+			if err := exec(ctx, db, GetDialect().deleteVersionSQL(), v); err != nil {
 				return errors.Wrap(err, "failed to delete goose version")
 			}
 		}
@@ -95,9 +99,34 @@ func verboseInfo(s string, args ...interface{}) {
 var (
 	matchSQLComments = regexp.MustCompile(`(?m)^--.*$[\r\n]*`)
 	matchEmptyEOL    = regexp.MustCompile(`(?m)^$[\r\n]*`) // TODO: Duplicate
+
+	heartbeat = 1 * time.Minute
 )
 
 func clearStatement(s string) string {
 	s = matchSQLComments.ReplaceAllString(s, ``)
 	return matchEmptyEOL.ReplaceAllString(s, ``)
+}
+
+func exec(ctx context.Context, execer execerContext, query string, args ...interface{}) error {
+	start := time.Now()
+	errCh := make(chan error)
+
+	go func() {
+		_, err := execer.ExecContext(ctx, query, args...)
+		errCh <- err
+	}()
+
+	for {
+		select {
+		case err := <-errCh:
+			return err
+		case <-time.Tick(heartbeat):
+			verboseInfo("Executing long running statement is in progress: %s", time.Since(start))
+		}
+	}
+}
+
+type execerContext interface {
+	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 }
