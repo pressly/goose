@@ -1,8 +1,10 @@
 package goose
 
 import (
+	"context"
 	"database/sql"
 	"regexp"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -16,6 +18,26 @@ import (
 // All statements following an Up or Down directive are grouped together
 // until another direction directive is found.
 func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direction bool, noVersioning bool) error {
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if verbose {
+		go func() {
+			t := time.NewTicker(time.Minute)
+			defer t.Stop()
+
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-t.C:
+					verboseInfo("Migration still in progress")
+				}
+			}
+		}()
+	}
+
 	if useTx {
 		// TRANSACTION.
 
