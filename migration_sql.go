@@ -32,7 +32,7 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 
 		for _, query := range statements {
 			verboseInfo("Executing statement: %s\n", clearStatement(query))
-			if err = exec(ctx, tx, query); err != nil {
+			if err = execStmt(ctx, tx, query); err != nil {
 				verboseInfo("Rollback transaction")
 				tx.Rollback()
 				return errors.Wrapf(err, "failed to execute SQL query %q", clearStatement(query))
@@ -41,13 +41,13 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 
 		if !noVersioning {
 			if direction {
-				if err := exec(ctx, tx, GetDialect().insertVersionSQL(), v, direction); err != nil {
+				if err := execStmt(ctx, tx, GetDialect().insertVersionSQL(), v, direction); err != nil {
 					verboseInfo("Rollback transaction")
 					tx.Rollback()
 					return errors.Wrap(err, "failed to insert new goose version")
 				}
 			} else {
-				if err := exec(ctx, tx, GetDialect().deleteVersionSQL(), v); err != nil {
+				if err := execStmt(ctx, tx, GetDialect().deleteVersionSQL(), v); err != nil {
 					verboseInfo("Rollback transaction")
 					tx.Rollback()
 					return errors.Wrap(err, "failed to delete goose version")
@@ -66,17 +66,17 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 	// NO TRANSACTION.
 	for _, query := range statements {
 		verboseInfo("Executing statement: %s", clearStatement(query))
-		if err := exec(ctx, db, query); err != nil {
+		if err := execStmt(ctx, db, query); err != nil {
 			return errors.Wrapf(err, "failed to execute SQL query %q", clearStatement(query))
 		}
 	}
 	if !noVersioning {
 		if direction {
-			if err := exec(ctx, db, GetDialect().insertVersionSQL(), v, direction); err != nil {
+			if err := execStmt(ctx, db, GetDialect().insertVersionSQL(), v, direction); err != nil {
 				return errors.Wrap(err, "failed to insert new goose version")
 			}
 		} else {
-			if err := exec(ctx, db, GetDialect().deleteVersionSQL(), v); err != nil {
+			if err := execStmt(ctx, db, GetDialect().deleteVersionSQL(), v); err != nil {
 				return errors.Wrap(err, "failed to delete goose version")
 			}
 		}
@@ -108,7 +108,7 @@ func clearStatement(s string) string {
 	return matchEmptyEOL.ReplaceAllString(s, ``)
 }
 
-func exec(ctx context.Context, execer execerContext, query string, args ...interface{}) error {
+func execStmt(ctx context.Context, execer execerContext, query string, args ...interface{}) error {
 	start := time.Now()
 	errCh := make(chan error)
 
