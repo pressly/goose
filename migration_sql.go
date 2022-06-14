@@ -95,12 +95,14 @@ func execQuery(fn func(string, ...interface{}) (sql.Result, error), query string
 		ch <- err
 	}()
 
+	t := time.Now()
+
 	for {
 		select {
 		case err := <-ch:
 			return err
 		case <-time.Tick(time.Minute):
-			verboseInfo("Executing statement still in progress")
+			verboseInfo("Executing statement still in progress for %v", time.Since(t).Round(time.Second))
 		}
 	}
 }
