@@ -1,0 +1,24 @@
+/* body > div.md-container > main > div > div.md-content > article {
+  font-family: Verdana, sans-serif;
+  font-size: 0.8rem;
+} */
+
+.md-button--custom {
+  background: #0091eb;
+}
+
+.md-header__button.md-logo {
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.md-header__button.md-logo img,
+.md-header__button.md-logo svg {
+  height: 2rem;
+  width: 2rem;
+}
+
+/* body > div.md-container > nav > div > ul > li > a {
+} */
