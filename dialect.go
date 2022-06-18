@@ -293,7 +293,7 @@ func (m TiDBDialect) deleteVersionSQL() string {
 type ClickHouseDialect struct{}
 
 func (m ClickHouseDialect) createVersionTableSQL() string {
-	return fmt.Sprintf(`CREATE TABLE %s (
+	return fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
       version_id Int64,
       is_applied UInt8,
       date Date default now(),
@@ -310,7 +310,9 @@ func (m ClickHouseDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 }
 
 func (m ClickHouseDialect) insertVersionSQL() string {
-	return fmt.Sprintf("INSERT INTO %s (version_id, is_applied) VALUES ($1, $2)", TableName())
+	// Note, throughout the codebase is_applied is always true on inserts, so maybe hard-coding this
+	// is fine?
+	return fmt.Sprintf("INSERT INTO %s (version_id, is_applied) VALUES ($1, 1)", TableName())
 }
 
 func (m ClickHouseDialect) migrationSQL() string {
