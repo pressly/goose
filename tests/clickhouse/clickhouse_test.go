@@ -3,7 +3,6 @@ package clickhouse_test
 import (
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/internal/check"
@@ -27,11 +26,11 @@ func TestClickHouse(t *testing.T) {
 	err = goose.Up(db, migrationDir)
 	check.NoError(t, err)
 
-	time.Sleep(5 * time.Second)
-
-	currentVersion, err = goose.GetDBVersion(db)
-	check.NoError(t, err)
-	check.Number(t, currentVersion, 1)
+	for i := 0; i < 10; i++ {
+		currentVersion, err = goose.GetDBVersion(db)
+		check.NoError(t, err)
+		check.Number(t, currentVersion, 1)
+	}
 
 	// TODO(mf): figure out how down migrations are handled in ClickHouse.
 	// SETTINGS mutations_sync = 0 is the default, which means the operation
