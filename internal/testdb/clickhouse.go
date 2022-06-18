@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	CLICKHOUSE_IMAGE   = "yandex/clickhouse-server"
-	CLICKHOUSE_VERSION = "21.3-alpine"
+	CLICKHOUSE_IMAGE   = "clickhouse/clickhouse-server"
+	CLICKHOUSE_VERSION = "22-alpine"
 
 	CLICKHOUSE_DB                        = "clickdb"
 	CLICKHOUSE_USER                      = "clickuser"
@@ -91,7 +91,7 @@ func clickHouseOpenDB(address string, tlsConfig *tls.Config) *sql.DB {
 		Compression: &clickhouse.Compression{
 			Method: clickhouse.CompressionLZ4,
 		},
-		Debug: false,
+		// Debug: true,
 	})
 	db.SetMaxIdleConns(5)
 	db.SetMaxOpenConns(10)

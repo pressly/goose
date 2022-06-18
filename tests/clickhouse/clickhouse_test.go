@@ -1,16 +1,19 @@
 package clickhouse_test
 
 import (
-	"fmt"
+	"database/sql"
+	"errors"
 	"path/filepath"
 	"testing"
+	"time"
 
+	"github.com/avast/retry-go/v4"
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/internal/check"
 	"github.com/pressly/goose/v3/internal/testdb"
 )
 
-func TestClickHouse(t *testing.T) {
+func TestClickHouseUpDownOneMigration(t *testing.T) {
 	t.Parallel()
 
 	migrationDir := filepath.Join("testdata", "migrations")
@@ -20,26 +23,83 @@ func TestClickHouse(t *testing.T) {
 
 	goose.SetDialect("clickhouse")
 
+	retryCheckTableMutation := func(table string) func() error {
+		return func() error {
+			ok := checkTableMutation(t, db, table)
+			if !ok {
+				return errors.New("mutation not done for table: " + table)
+			}
+			return nil
+		}
+	}
+
+	/*
+		This test applies 1 up migration, asserts we have 1 entry in the
+		versions table, applies 1 down migration and asserts we have 0
+		versions.
+
+		ClickHouse performs UPDATES and DELETES asynchronously,
+		but we can best-effort check mutations and their progress retrying.
+
+		This is especially important for down migrations where we delete rows.
+
+		For the sake of testing, there might be a way to modifying the server
+		(or queries) to perform all operations synchronously?
+
+		Ref: https://clickhouse.com/docs/en/operations/system-tables/mutations/
+		Ref: https://clickhouse.com/docs/en/sql-reference/statements/alter/#mutations
+		Ref: https://clickhouse.com/blog/how-to-update-data-in-click-house/
+	*/
+
 	currentVersion, err := goose.GetDBVersion(db)
 	check.NoError(t, err)
 	check.Number(t, currentVersion, 0)
 
-	err = goose.Up(db, migrationDir)
+	err = goose.UpTo(db, migrationDir, 1)
+	check.NoError(t, err)
+	currentVersion, err = goose.GetDBVersion(db)
+	check.NoError(t, err)
+	check.Number(t, currentVersion, 1)
+
+	err = goose.Down(db, migrationDir)
+	check.NoError(t, err)
+	err = retry.Do(
+		retryCheckTableMutation(goose.TableName()),
+		retry.Delay(1*time.Second),
+	)
 	check.NoError(t, err)
 
-	q := fmt.Sprintf(`SELECT version_id, is_applied FROM %s ORDER BY tstamp DESC LIMIT 1`, goose.TableName())
-	var versionID int64
-	var isApplied bool
-	err = db.QueryRow(q).Scan(&versionID, &isApplied)
+	currentVersion, err = goose.GetDBVersion(db)
 	check.NoError(t, err)
-	check.Number(t, versionID, 1)
-	check.Bool(t, isApplied, true)
+	check.Number(t, currentVersion, 0)
+}
 
-	// TODO(mf): figure out how down migrations are handled in ClickHouse.
-	// SETTINGS mutations_sync = 0 is the default, which means the operation
-	// is done async. We care, because we want to test the down migration
-	// and confirm the table and migration history got removed.
-	//
-	// One option is to loop N times / seconds, checking to see if the
-	// operation has been completed. But there must be a better way.
+func checkTableMutation(t *testing.T, db *sql.DB, tableName string) bool {
+	t.Helper()
+	rows, err := db.Query(
+		`select mutation_id, command, is_done, create_time from system.mutations where table=$1`,
+		tableName,
+	)
+	check.NoError(t, err)
+
+	type result struct {
+		mutationID string    `db:"mutation_id"`
+		command    string    `db:"command"`
+		isDone     int64     `db:"is_done"`
+		createTime time.Time `db:"create_time"`
+	}
+	var results []result
+	for rows.Next() {
+		var r result
+		err = rows.Scan(&r.mutationID, &r.command, &r.isDone, &r.createTime)
+		check.NoError(t, err)
+		results = append(results, r)
+	}
+	if len(results) == 0 {
+		return true
+	}
+	check.Number(t, len(results), 1)
+	check.NoError(t, rows.Close())
+	check.NoError(t, rows.Err())
+	return results[0].isDone == 1
 }
