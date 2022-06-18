@@ -1,6 +1,7 @@
 package clickhouse_test
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -26,11 +27,13 @@ func TestClickHouse(t *testing.T) {
 	err = goose.Up(db, migrationDir)
 	check.NoError(t, err)
 
-	for i := 0; i < 10; i++ {
-		currentVersion, err = goose.GetDBVersion(db)
-		check.NoError(t, err)
-		check.Number(t, currentVersion, 1)
-	}
+	q := fmt.Sprintf(`SELECT version_id, is_applied FROM %s ORDER BY tstamp DESC LIMIT 1`, goose.TableName())
+	var versionID int64
+	var isApplied bool
+	err = db.QueryRow(q).Scan(&versionID, &isApplied)
+	check.NoError(t, err)
+	check.Number(t, versionID, 1)
+	check.Bool(t, isApplied, true)
 
 	// TODO(mf): figure out how down migrations are handled in ClickHouse.
 	// SETTINGS mutations_sync = 0 is the default, which means the operation
