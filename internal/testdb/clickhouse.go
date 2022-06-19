@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -22,13 +23,17 @@ const (
 	CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT = "1"
 )
 
-func newClickHouse() (*sql.DB, func(), error) {
+func newClickHouse(opts ...OptionsFunc) (*sql.DB, func(), error) {
+	option := &options{}
+	for _, f := range opts {
+		f(option)
+	}
 	// Uses a sensible default on windows (tcp/http) and linux/osx (socket).
 	pool, err := dockertest.NewPool("")
 	if err != nil {
 		return nil, nil, err
 	}
-	options := &dockertest.RunOptions{
+	runOptions := &dockertest.RunOptions{
 		Repository: CLICKHOUSE_IMAGE,
 		Tag:        CLICKHOUSE_VERSION,
 		Env: []string{
@@ -40,12 +45,16 @@ func newClickHouse() (*sql.DB, func(), error) {
 		Labels:       map[string]string{"goose_test": "1"},
 		PortBindings: make(map[docker.Port][]docker.PortBinding),
 	}
-	// Port 8123 is used for HTTP, but we're using the TCP protocol endpoint.
-	options.PortBindings[docker.Port("9000/tcp")] = []docker.PortBinding{
-		{HostPort: "9000"},
+	// Port 8123 is used for HTTP, but we're using the TCP protocol endpoint (port 9000).
+	// Ref: https://clickhouse.com/docs/en/interfaces/http/
+	// Ref: https://clickhouse.com/docs/en/interfaces/tcp/
+	if option.bindPort > 0 {
+		runOptions.PortBindings[docker.Port("9000/tcp")] = []docker.PortBinding{
+			{HostPort: strconv.Itoa(option.bindPort)},
+		}
 	}
 	container, err := pool.RunWithOptions(
-		options,
+		runOptions,
 		func(config *docker.HostConfig) {
 			// Set AutoRemove to true so that stopped container goes away by itself.
 			config.AutoRemove = true
