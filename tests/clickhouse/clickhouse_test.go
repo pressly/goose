@@ -152,7 +152,7 @@ func TestRemoteImportMigration(t *testing.T) {
 	// We may want to host this ourselves. Or just don't bother with SOURCE(HTTP(URL..
 	// and craft a long INSERT statement.
 
-	migrationDir := filepath.Join("testdata", "remote-migrations")
+	migrationDir := filepath.Join("testdata", "migrations-remote")
 	db, cleanup, err := testdb.NewClickHouse(testdb.WithBindPort(9000))
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
