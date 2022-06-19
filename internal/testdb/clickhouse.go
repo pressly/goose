@@ -69,14 +69,14 @@ func newClickHouse(opts ...OptionsFunc) (*sql.DB, func(), error) {
 			log.Printf("failed to purge resource: %v", err)
 		}
 	}
-	// Fetch port dynamically assigned to container
+	// Fetch port assigned to container
 	address := fmt.Sprintf("%s:%s", "localhost", container.GetPort("9000/tcp"))
 
 	var db *sql.DB
 	// Exponential backoff-retry, because the application in the container
 	// might not be ready to accept connections yet.
 	if err := pool.Retry(func() error {
-		db = clickHouseOpenDB(address, nil)
+		db = clickHouseOpenDB(address, nil, option.debug)
 		return db.Ping()
 	}); err != nil {
 		return nil, cleanup, fmt.Errorf("could not connect to docker database: %w", err)
@@ -84,7 +84,7 @@ func newClickHouse(opts ...OptionsFunc) (*sql.DB, func(), error) {
 	return db, cleanup, nil
 }
 
-func clickHouseOpenDB(address string, tlsConfig *tls.Config) *sql.DB {
+func clickHouseOpenDB(address string, tlsConfig *tls.Config, debug bool) *sql.DB {
 	db := clickhouse.OpenDB(&clickhouse.Options{
 		Addr: []string{address},
 		Auth: clickhouse.Auth{
@@ -100,7 +100,7 @@ func clickHouseOpenDB(address string, tlsConfig *tls.Config) *sql.DB {
 		Compression: &clickhouse.Compression{
 			Method: clickhouse.CompressionLZ4,
 		},
-		// Debug: true,
+		Debug: debug,
 	})
 	db.SetMaxIdleConns(5)
 	db.SetMaxOpenConns(10)
