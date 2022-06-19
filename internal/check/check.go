@@ -45,6 +45,13 @@ func Number(t *testing.T, got, want interface{}) {
 	}
 }
 
+func Equal(t *testing.T, got, want interface{}) {
+	t.Helper()
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("failed deep equal:\ngot:\t%v\nwant:\t%v\v", got, want)
+	}
+}
+
 func NumberNotZero(t *testing.T, got interface{}) {
 	t.Helper()
 	gotNumber, err := reflectToInt64(got)
@@ -76,4 +83,12 @@ func reflectToInt64(v interface{}) (int64, error) {
 		return reflect.ValueOf(typ).Int(), nil
 	}
 	return 0, fmt.Errorf("invalid number: must be int64 type: got:%T", v)
+}
+
+func reflectToStr(v interface{}) (string, error) {
+	switch typ := v.(type) {
+	case string:
+		return reflect.ValueOf(typ).String(), nil
+	}
+	return "", fmt.Errorf("invalid string: got:%T", v)
 }
