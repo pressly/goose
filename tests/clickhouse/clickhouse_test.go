@@ -138,6 +138,38 @@ func TestClickHouseFirstThree(t *testing.T) {
 	}
 }
 
+func TestRemoteImportMigration(t *testing.T) {
+	t.Parallel()
+	// TODO(mf): use TestMain and create a proper "long" or "remote" flag.
+	if !testing.Short() {
+		t.Skip("skipping test")
+	}
+	// This test is using a remote dataset from an s3 bucket:
+	// https://datasets-documentation.s3.eu-west-3.amazonaws.com/nyc-taxi/taxi_zone_lookup.csv
+	// From this tutorial: https://clickhouse.com/docs/en/tutorial/
+	// Note, these files are backed up in this repository in:
+	// 		tests/clickhouse/testdata/backup-files/taxi_zone_lookup.csv
+	// We may want to host this ourselves. Or just don't bother with SOURCE(HTTP(URL..
+	// and craft a long INSERT statement.
+
+	migrationDir := filepath.Join("testdata", "remote-migrations")
+	db, cleanup, err := testdb.NewClickHouse(testdb.WithBindPort(9000))
+	check.NoError(t, err)
+	t.Cleanup(cleanup)
+
+	goose.SetDialect("clickhouse")
+
+	err = goose.Up(db, migrationDir)
+	check.NoError(t, err)
+	_, err = goose.GetDBVersion(db)
+	check.NoError(t, err)
+
+	var count int
+	err = db.QueryRow(`SELECT count(*) FROM taxi_zone_dictionary`).Scan(&count)
+	check.NoError(t, err)
+	check.Number(t, count, 265)
+}
+
 func checkTableMutation(t *testing.T, db *sql.DB, tableName string) bool {
 	t.Helper()
 	rows, err := db.Query(
