@@ -35,13 +35,14 @@ func TestClickUpDownAll(t *testing.T) {
 
 	/*
 		This test applies all up migrations, asserts we have all the entries in
-		the versions table, applies all down migration and asserts we have 0
-		migration versions.
+		the versions table, applies all down migration and asserts we have zero
+		migrations applied.
 
 		ClickHouse performs UPDATES and DELETES asynchronously,
-		but we can best-effort check mutations and their progress retrying.
+		but we can best-effort check mutations and their progress.
 
-		This is especially important for down migrations where we delete rows.
+		This is especially important for down migrations where rows are deleted
+		from the versions table.
 
 		For the sake of testing, there might be a way to modifying the server
 		(or queries) to perform all operations synchronously?
@@ -193,6 +194,7 @@ func checkTableMutation(t *testing.T, db *sql.DB, tableName string) bool {
 	}
 	check.NoError(t, rows.Close())
 	check.NoError(t, rows.Err())
+	// No results means there are no mutations. Assume they are all done.
 	if len(results) == 0 {
 		return true
 	}
