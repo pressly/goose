@@ -6,11 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="The missing goose docs.">
+        <meta name="description" content="goose improves ClickHouse support. Bug fixes, improvements, full end-end tests and upgrade to ClickHouse/clickhouse-go v2 driver.">
       
       
       
-        <link rel="canonical" href="https://pressly.github.io/goose/blog/2021/out-of-order-migrations/">
+        <link rel="canonical" href="https://pressly.github.io/goose/blog/2022/improving-clickhouse/">
       
       
         
@@ -20,7 +20,7 @@
     
     
       
-        <title>Adding support for out-of-order migrations - pressly/goose</title>
+        <title>Improving ClickHouse support - pressly/goose</title>
       
     
     
@@ -59,11 +59,11 @@
       
         <meta  property="og:type"  content="website" >
       
-        <meta  property="og:title"  content="Adding support for out-of-order migrations - pressly/goose" >
+        <meta  property="og:title"  content="Improving ClickHouse support - pressly/goose" >
       
-        <meta  property="og:description"  content="The missing goose docs." >
+        <meta  property="og:description"  content="goose improves ClickHouse support. Bug fixes, improvements, full end-end tests and upgrade to ClickHouse/clickhouse-go v2 driver." >
       
-        <meta  property="og:image"  content="https://pressly.github.io/goose/assets/images/social/blog/2021/out-of-order-migrations.png" >
+        <meta  property="og:image"  content="https://pressly.github.io/goose/assets/images/social/blog/2022/improving-clickhouse.png" >
       
         <meta  property="og:image:type"  content="image/png" >
       
@@ -71,15 +71,15 @@
       
         <meta  property="og:image:height"  content="630" >
       
-        <meta  property="og:url"  content="https://pressly.github.io/goose/blog/2021/out-of-order-migrations/" >
+        <meta  property="og:url"  content="https://pressly.github.io/goose/blog/2022/improving-clickhouse/" >
       
         <meta  name="twitter:card"  content="summary_large_image" >
       
-        <meta  name="twitter:title"  content="Adding support for out-of-order migrations - pressly/goose" >
+        <meta  name="twitter:title"  content="Improving ClickHouse support - pressly/goose" >
       
-        <meta  name="twitter:description"  content="The missing goose docs." >
+        <meta  name="twitter:description"  content="goose improves ClickHouse support. Bug fixes, improvements, full end-end tests and upgrade to ClickHouse/clickhouse-go v2 driver." >
       
-        <meta  name="twitter:image"  content="https://pressly.github.io/goose/assets/images/social/blog/2021/out-of-order-migrations.png" >
+        <meta  name="twitter:image"  content="https://pressly.github.io/goose/assets/images/social/blog/2022/improving-clickhouse.png" >
       
     
     
@@ -124,7 +124,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#adding-support-for-out-of-order-migrations" class="md-skip">
+        <a href="#getting-started" class="md-skip">
           Skip to content
         </a>
       
@@ -156,7 +156,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Adding support for out-of-order migrations
+              Improving ClickHouse support
             
           </span>
         </div>
@@ -286,7 +286,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../welcome/" class="md-tabs__link md-tabs__link--active">
+        <a href="../../2021/welcome/" class="md-tabs__link md-tabs__link--active">
           
   
   Blog
@@ -547,19 +547,17 @@
                 
   
   
-    
-  
   
     
     
     
       
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
-          <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_1" type="checkbox" id="__nav_3_1" checked>
+          <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_3_1" type="checkbox" id="__nav_3_1" checked>
         
         
           <label class="md-nav__link" for="__nav_3_1">
@@ -585,7 +583,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../welcome/" class="md-nav__link">
+      <a href="../../2021/welcome/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -604,7 +602,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../embed-sql-migrations/" class="md-nav__link">
+      <a href="../../2021/embed-sql-migrations/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -623,7 +621,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../better-tests/" class="md-nav__link">
+      <a href="../../2021/better-tests/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -640,18 +638,9 @@
                 
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../2021/out-of-order-migrations/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -659,7 +648,6 @@
   </span>
 
       </a>
-      
     </li>
   
 
@@ -671,7 +659,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../no-version-migrations/" class="md-nav__link">
+      <a href="../../2021/no-version-migrations/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -690,7 +678,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../visualizing-up-down-commands/" class="md-nav__link">
+      <a href="../../2021/visualizing-up-down-commands/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -715,17 +703,19 @@
                 
   
   
+    
+  
   
     
     
     
       
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-          <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_3_2" type="checkbox" id="__nav_3_2" checked>
+          <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_2" type="checkbox" id="__nav_3_2" checked>
         
         
           <label class="md-nav__link" for="__nav_3_2">
@@ -749,9 +739,26 @@
                 
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../../2022/improving-clickhouse/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Improving ClickHouse support
+  </span>
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -759,6 +766,66 @@
   </span>
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#getting-started" class="md-nav__link">
+    <span class="md-ellipsis">
+      Getting started
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#confirm-migrations-clickhouse-client" class="md-nav__link">
+    <span class="md-ellipsis">
+      Confirm migrations clickhouse-client
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Confirm migrations clickhouse-client">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#show-tables" class="md-nav__link">
+    <span class="md-ellipsis">
+      Show tables
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#show-all-data-from-clickstream-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      Show all data from clickstream table
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -796,8 +863,56 @@
   
   
   
-    
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#getting-started" class="md-nav__link">
+    <span class="md-ellipsis">
+      Getting started
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#confirm-migrations-clickhouse-client" class="md-nav__link">
+    <span class="md-ellipsis">
+      Confirm migrations clickhouse-client
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Confirm migrations clickhouse-client">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#show-tables" class="md-nav__link">
+    <span class="md-ellipsis">
+      Show tables
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#show-all-data-from-clickstream-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      Show all data from clickstream table
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -814,41 +929,98 @@
 
 
 
-<h1 id="adding-support-for-out-of-order-migrations">Adding support for out-of-order migrations</h1>
-<p>Starting with <code>goose</code> <a href="https://github.com/pressly/goose/releases/tag/v3.3.0">v3.3.0</a> we added the ability to apply missing (out-of-order) migrations. Thanks for all the the community feedback over the years.</p>
-<p>Let's back it up, what are "missing" or "out-of-order" migrations?</p>
-<p>Suppose migration 1 and 4 are applied and then 2, 3, 5 are introduced. Prior to <a href="https://github.com/pressly/goose/releases/tag/v3.3.0">v3.3.0</a> <code>goose</code> would ignore migrations 2, 3 and apply only 5. Although this might seem odd, this is fairly consistent behaviour with other migration tools.</p>
-<p>However, many users were not satisfied with this behaviour, summarized as:</p>
+  <h1>Improving ClickHouse support</h1>
+
+<p><a href="https://clickhouse.com/">ClickHouse</a> is a an open-source column-oriented database that is well-suited for analytical workloads. Over the past few years we've seen more and more demand for improved ClickHouse support in goose.</p>
+<p>To summarize:</p>
 <ul>
-<li>migrations 2 and 3 are "silently" ignored</li>
-<li>unable to apply migrations 2 and 3 if newer versions have already been applied. To paraphrase this <a href="https://github.com/pressly/goose/issues/172#issuecomment-493645187">comment</a>:</li>
+<li>Upgraded to the latest <code>/v2</code> driver: <a href="https://github.com/ClickHouse/clickhouse-go">ClickHouse/clickhouse-go</a></li>
+<li>Full end-end tests against the docker image: <a href="https://hub.docker.com/r/clickhouse/clickhouse-server/">clickhouse/clickhouse-server</a></li>
+<li>Bug fixes and improvements</li>
 </ul>
-<blockquote>
-<p><em>I would very much prefer just to apply Bill's migration and call it a day.</em></p>
-</blockquote>
-<p>This comment from <a href="https://github.com/zmoazeni"><code>@zmoazeni</code></a> has stuck with me over the years.</p>
-<p>Given that <code>goose</code> maintains a full history of applied migrations in its <code>goose_db_version</code> table, we are able to resolve the database state against the migration files. And now, if missing (out-of-order) migrations are detected users can opt-in to apply them.</p>
+<div class="admonition danger">
+<p>The <code>/v2</code> driver <a href="https://github.com/ClickHouse/clickhouse-go/issues/525">changed the DSN format</a>, so be prepared for a breaking change. This is actually a good thing, because it brings the format in-line with other databases.</p>
+</div>
 <hr />
-<p>Internally within Pressly (acquired by <a href="https://www.alida.com/">Alida</a>) we suggested adopting the <a href="https://github.com/pressly/goose#hybrid-versioning">hybrid versioning approach</a>. Briefly, in development developers create <strong><em>timestamped</em></strong> migrations, and subsequently when that PR is merged into the <code>main</code> branch its converted into a <strong><em>sequential</em></strong> migration. This is done with the <code>goose fix</code> command.</p>
-<p>Then when a release is cut and rolled out to production only sequential migrations are applied. It was a solution to the problem that worked for our team. Yes, yes.. this does require developers to be rebasing/merging and resolving conflicts (if any) between migrations.</p>
-<figure>
-<p><img alt="hybrid versioning approach" src="../../../assets/hybrid-versioning-approach.png" width="550px;" /></p>
-</figure>
-<ul>
-<li>A timestamped version uses a time-based format (second resolution): <code>20060102150405</code></li>
-<li>A sequential version is typically a low number</li>
-</ul>
-<p>There should <em>never</em> (at least in our lifetime) be a collision between timestamped and sequential versions.</p>
-<p>Buttttt..... as we listened to community feedback, and saw the rise in the number of <code>goose</code> forks (mainly to support missing migrations), we decided the community was right. The hybrid versioning approach is not for everyone and it wasn't fair for us to impose this strict restriction.</p>
-<p>I think this <a href="https://github.com/pressly/goose/issues/262#issue-960391249">comment</a> summarized it well:</p>
-<blockquote>
-<p><em>We should meet users in the middle (lots of great feedback from the community) and give them the flexibility to use <code>goose</code> as they see fit. The responsibility will be shifted from the tool itself, to the end user.</em></p>
-</blockquote>
-<p>To recap, this is the new behaviour of <code>goose</code>:</p>
-<p>If you attempt to apply missing (out-of-order) migrations <code>goose</code> will raise an error (previously <code>goose</code> would ignore these migrations). However, if you do want to apply these missing migrations pass <code>goose</code> the <code>-allow-missing</code> flag, or if using as a library supply the functional option <code>goose.WithAllowMissing()</code> to Up, UpTo or UpByOne commands.</p>
-<p>More details can be found in the <a href="https://github.com/pressly/goose/releases/tag/v3.3.0">Changelog</a> and the <a href="https://github.com/pressly/goose/issues/262">issue #262</a>.</p>
-<p>Hope folks find this useful. More awesome things are planned for <code>goose</code> 🚀.</p>
-<p>ps. consider dropping <a href="https://github.com/pressly/goose">pressly/goose</a> a ⭐️ if you find this package useful.</p>
+<h3 id="getting-started">Getting started</h3>
+<p>Here's a quick tour of using goose against a running ClickHouse docker container.</p>
+<div class="highlight"><pre><span></span><code>docker run --rm -d <span class="se">\</span>
+    -e <span class="nv">CLICKHOUSE_DB</span><span class="o">=</span>clickdb <span class="se">\</span>
+    -e <span class="nv">CLICKHOUSE_USER</span><span class="o">=</span>clickuser <span class="se">\</span>
+    -e <span class="nv">CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT</span><span class="o">=</span><span class="m">1</span> <span class="se">\</span>
+    -e <span class="nv">CLICKHOUSE_PASSWORD</span><span class="o">=</span>password1 <span class="se">\</span>
+    -p <span class="m">9000</span>:9000/tcp clickhouse/clickhouse-server:22-alpine
+</code></pre></div>
+<p>Once the container is running, we'll apply 3 migrations with goose. For the sake of this demo, we're using migrations from <a href="http://github.com/pressly/goose">pressly/goose</a> repository.</p>
+<p>At the time of this writing, goose supports 3 environment variables:</p>
+<pre><code>GOOSE_DRIVER
+GOOSE_DBSTRING
+GOOSE_MIGRATION_DIR
+</code></pre>
+<p>We use them in the following command for convenience. Otherwise you'll need to set the driver and database connection strings as CLI parameters and the migration directory with the <code>-dir</code> flag.</p>
+<div class="highlight"><pre><span></span><code><span class="nv">GOOSE_DRIVER</span><span class="o">=</span>clickhouse <span class="se">\</span>
+    <span class="nv">GOOSE_DBSTRING</span><span class="o">=</span><span class="s2">&quot;tcp://clickuser:password1@localhost:9000/clickdb&quot;</span> <span class="se">\</span>
+    <span class="nv">GOOSE_MIGRATION_DIR</span><span class="o">=</span><span class="s2">&quot;tests/clickhouse/testdata/migrations&quot;</span> <span class="se">\</span>
+    goose up
+</code></pre></div>
+<p>Expected output following a successful migration.</p>
+<div class="highlight"><pre><span></span><code>2022/06/19 20:19:04 OK    00001_a.sql
+2022/06/19 20:19:04 OK    00002_b.sql
+2022/06/19 20:19:04 OK    00003_c.sql
+2022/06/19 20:19:04 goose: no migrations to run. current version: 3
+</code></pre></div>
+<hr />
+<h3 id="confirm-migrations-clickhouse-client">Confirm migrations clickhouse-client</h3>
+<p>We can now use the <a href="https://clickhouse.com/docs/en/interfaces/cli"><code>clickhouse-client</code></a> to poke around the server:</p>
+<h4 id="show-tables">Show tables</h4>
+<div class="highlight"><pre><span></span><code>clickhouse-client --vertical <span class="se">\</span>
+    --database clickdb --password password1 -u clickuser <span class="se">\</span>
+    -q <span class="s1">&#39;SHOW TABLES&#39;</span>
+</code></pre></div>
+<p>Our migrations created the <code>goose_db_version</code> table, which stores migration data, and 2 new user tables: <code>clickstream</code> and <code>trips</code>.</p>
+<div class="highlight"><pre><span></span><code>Row 1:
+──────
+name: clickstream
+
+Row 2:
+──────
+name: goose_db_version
+
+Row 3:
+──────
+name: trips
+</code></pre></div>
+<h4 id="show-all-data-from-clickstream-table">Show all data from <code>clickstream</code> table</h4>
+<p>We used the sample data from the <a href="https://clickhouse.com/learn/lessons/gettingstarted/">Getting Started with ClickHouse tutorial</a>.</p>
+<div class="highlight"><pre><span></span><code>clickhouse-client --vertical <span class="se">\</span>
+    --database clickdb --password password1 -u clickuser <span class="se">\</span>
+    -q <span class="s1">&#39;SELECT * FROM clickstream&#39;</span>
+</code></pre></div>
+<p>Output:</p>
+<div class="highlight"><pre><span></span><code>Row 1:
+──────
+customer_id:      customer3
+time_stamp:       2021-11-07
+click_event_type: checkout
+country_code:     
+source_id:        307493
+
+Row 2:
+──────
+customer_id:      customer2
+time_stamp:       2021-10-30
+click_event_type: remove_from_cart
+country_code:     
+source_id:        0
+
+Row 3:
+──────
+customer_id:      customer1
+time_stamp:       2021-10-02
+click_event_type: add_to_cart
+country_code:     US
+source_id:        568239
+</code></pre></div>
 
 
 
@@ -873,7 +1045,7 @@
     <nav class="md-footer__inner md-grid" aria-label="Footer" >
       
         
-        <a href="../better-tests/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Better tests with containers" rel="prev">
+        <a href="../../2021/visualizing-up-down-commands/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Visualizing goose up and down commands" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
           </div>
@@ -882,26 +1054,11 @@
               <span class="md-footer__direction">
                 Previous
               </span>
-              Better tests with containers
+              Visualizing goose up and down commands
             </div>
           </div>
         </a>
       
-      
-        
-        <a href="../no-version-migrations/" class="md-footer__link md-footer__link--next" aria-label="Next: Ad-hoc migrations with no versioning" rel="next">
-          <div class="md-footer__title">
-            <div class="md-ellipsis">
-              <span class="md-footer__direction">
-                Next
-              </span>
-              Ad-hoc migrations with no versioning
-            </div>
-          </div>
-          <div class="md-footer__button md-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4Z"/></svg>
-          </div>
-        </a>
       
     </nav>
   
