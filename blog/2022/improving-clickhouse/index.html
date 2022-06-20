@@ -790,13 +790,13 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#confirm-migrations-clickhouse-client" class="md-nav__link">
+  <a href="#check-migrations" class="md-nav__link">
     <span class="md-ellipsis">
-      Confirm migrations clickhouse-client
+      Check migrations
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Confirm migrations clickhouse-client">
+    <nav class="md-nav" aria-label="Check migrations">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -880,13 +880,13 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#confirm-migrations-clickhouse-client" class="md-nav__link">
+  <a href="#check-migrations" class="md-nav__link">
     <span class="md-ellipsis">
-      Confirm migrations clickhouse-client
+      Check migrations
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Confirm migrations clickhouse-client">
+    <nav class="md-nav" aria-label="Check migrations">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -942,7 +942,7 @@
 <p>The <code>/v2</code> driver <a href="https://github.com/ClickHouse/clickhouse-go/issues/525">changed the DSN format</a>, so be prepared for a breaking change. This is actually a good thing, because it brings the format in-line with other databases.</p>
 </div>
 <hr />
-<h3 id="getting-started">Getting started</h3>
+<h2 id="getting-started">Getting started</h2>
 <p>Here's a quick tour of using goose against a running ClickHouse docker container.</p>
 <div class="highlight"><pre><span></span><code>docker run --rm -d <span class="se">\</span>
     -e <span class="nv">CLICKHOUSE_DB</span><span class="o">=</span>clickdb <span class="se">\</span>
@@ -970,9 +970,9 @@ GOOSE_MIGRATION_DIR
 2022/06/19 20:19:04 goose: no migrations to run. current version: 3
 </code></pre></div>
 <hr />
-<h3 id="confirm-migrations-clickhouse-client">Confirm migrations clickhouse-client</h3>
+<h2 id="check-migrations">Check migrations</h2>
 <p>We can now use the <a href="https://clickhouse.com/docs/en/interfaces/cli"><code>clickhouse-client</code></a> to poke around the server:</p>
-<h4 id="show-tables">Show tables</h4>
+<h3 id="show-tables"><strong>Show tables</strong></h3>
 <div class="highlight"><pre><span></span><code>clickhouse-client --vertical <span class="se">\</span>
     --database clickdb --password password1 -u clickuser <span class="se">\</span>
     -q <span class="s1">&#39;SHOW TABLES&#39;</span>
@@ -990,7 +990,7 @@ Row 3:
 ──────
 name: trips
 </code></pre></div>
-<h4 id="show-all-data-from-clickstream-table">Show all data from <code>clickstream</code> table</h4>
+<h3 id="show-all-data-from-clickstream-table"><strong>Show all data from <code>clickstream</code> table</strong></h3>
 <p>We used the sample data from the <a href="https://clickhouse.com/learn/lessons/gettingstarted/">Getting Started with ClickHouse tutorial</a>.</p>
 <div class="highlight"><pre><span></span><code>clickhouse-client --vertical <span class="se">\</span>
     --database clickdb --password password1 -u clickuser <span class="se">\</span>
