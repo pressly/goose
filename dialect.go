@@ -293,7 +293,7 @@ func (m TiDBDialect) deleteVersionSQL() string {
 type ClickHouseDialect struct{}
 
 func (m ClickHouseDialect) createVersionTableSQL() string {
-	return fmt.Sprintf(`CREATE TABLE %s (
+	return fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
       version_id Int64,
       is_applied UInt8,
       date Date default now(),
@@ -310,7 +310,11 @@ func (m ClickHouseDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 }
 
 func (m ClickHouseDialect) insertVersionSQL() string {
-	return fmt.Sprintf("INSERT INTO %s (version_id, is_applied) VALUES ($1, $2)", TableName())
+	// Note, the second argument is_applied is hard-coded to 1 (true). This is to account for
+	// the /v2 ClickHouse driver not converting bool to uint8. This will hopefully be resolved
+	// upstream: https://github.com/ClickHouse/clickhouse-go/issues/621
+	// Throughout the codebase this value is always true, hence it has no effect.
+	return fmt.Sprintf("INSERT INTO %s (version_id, is_applied) VALUES ($1, 1)", TableName())
 }
 
 func (m ClickHouseDialect) migrationSQL() string {
