@@ -66,6 +66,10 @@ func newClickHouse(opts ...OptionsFunc) (*sql.DB, func(), error) {
 		return nil, nil, err
 	}
 	cleanup := func() {
+		if option.debug {
+			// User must manually delete the Docker container.
+			return
+		}
 		if err := pool.Purge(container); err != nil {
 			log.Printf("failed to purge resource: %v", err)
 		}
