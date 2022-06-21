@@ -28,6 +28,7 @@ type stateMachine parserState
 func (s *stateMachine) Get() parserState {
 	return parserState(*s)
 }
+
 func (s *stateMachine) Set(new parserState) {
 	verboseInfo("StateMachine: %v => %v", *s, new)
 	*s = stateMachine(new)
@@ -64,6 +65,7 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 	stateMachine := stateMachine(start)
 	useTx = true
 
+	firstLineFound := false
 	for scanner.Scan() {
 		line := scanner.Text()
 		if verbose {
@@ -71,6 +73,7 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 		}
 
 		if strings.HasPrefix(line, "--") {
+			firstLineFound = true
 			cmd := strings.TrimSpace(strings.TrimPrefix(line, "--"))
 
 			switch cmd {
@@ -124,8 +127,8 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 			}
 		}
 
-		// Ignore empty lines.
-		if matchEmptyLines.MatchString(line) {
+		// Ignore empty lines until first line is found.
+		if !firstLineFound && matchEmptyLines.MatchString(line) {
 			verboseInfo("StateMachine: ignore empty line")
 			continue
 		}
