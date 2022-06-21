@@ -8,26 +8,6 @@ import (
 	"strings"
 )
 
-type options struct {
-	allowMissing bool
-	applyUpByOne bool
-	noVersioning bool
-}
-
-type OptionsFunc func(o *options)
-
-func WithAllowMissing() OptionsFunc {
-	return func(o *options) { o.allowMissing = true }
-}
-
-func WithNoVersioning() OptionsFunc {
-	return func(o *options) { o.noVersioning = true }
-}
-
-func withApplyUpByOne() OptionsFunc {
-	return func(o *options) { o.applyUpByOne = true }
-}
-
 // UpTo migrates up to a specific version.
 func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 	option := &options{}
