@@ -154,7 +154,7 @@ func TestRemoteImportMigration(t *testing.T) {
 	// and craft a long INSERT statement.
 
 	migrationDir := filepath.Join("testdata", "migrations-remote")
-	db, cleanup, err := testdb.NewClickHouse(testdb.WithBindPort(9000))
+	db, cleanup, err := testdb.NewClickHouse()
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
 
