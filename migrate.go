@@ -2,14 +2,13 @@ package goose
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"io/fs"
 	"path"
 	"runtime"
 	"sort"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 var (
@@ -256,7 +255,7 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 	for rows.Next() {
 		var row MigrationRecord
 		if err = rows.Scan(&row.VersionID, &row.IsApplied); err != nil {
-			return 0, errors.Wrap(err, "failed to scan row")
+			return 0, fmt.Errorf("failed to scan row: %w", err)
 		}
 
 		// have we already marked this version to be skipped?
@@ -281,7 +280,7 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 		toSkip = append(toSkip, row.VersionID)
 	}
 	if err := rows.Err(); err != nil {
-		return 0, errors.Wrap(err, "failed to get next row")
+		return 0, fmt.Errorf("failed to get next row: %w", err)
 	}
 
 	return 0, ErrNoNextVersion

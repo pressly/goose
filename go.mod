@@ -9,7 +9,6 @@ require (
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/lib/pq v1.10.6
 	github.com/ory/dockertest/v3 v3.9.1
-	github.com/pkg/errors v0.9.1
 	github.com/ziutek/mymysql v1.5.4
 	modernc.org/sqlite v1.17.3
 )
@@ -39,6 +38,7 @@ require (
 	github.com/opencontainers/runc v1.1.2 // indirect
 	github.com/paulmach/orb v0.7.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect

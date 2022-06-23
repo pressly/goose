@@ -1,11 +1,10 @@
 package goose
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
-
-	"github.com/pkg/errors"
 )
 
 func TestSemicolons(t *testing.T) {
@@ -58,7 +57,7 @@ func TestSplitStatements(t *testing.T) {
 		// up
 		stmts, _, err := parseSQLMigration(strings.NewReader(test.sql), true)
 		if err != nil {
-			t.Error(errors.Wrapf(err, "tt[%v] unexpected error", i))
+			t.Error(fmt.Errorf("tt[%v] unexpected error: %w", i, err))
 		}
 		if len(stmts) != test.up {
 			t.Errorf("tt[%v] incorrect number of up stmts. got %v (%+v), want %v", i, len(stmts), stmts, test.up)
@@ -67,7 +66,7 @@ func TestSplitStatements(t *testing.T) {
 		// down
 		stmts, _, err = parseSQLMigration(strings.NewReader(test.sql), false)
 		if err != nil {
-			t.Error(errors.Wrapf(err, "tt[%v] unexpected error", i))
+			t.Error(fmt.Errorf("tt[%v] unexpected error: %w", i, err))
 		}
 		if len(stmts) != test.down {
 			t.Errorf("tt[%v] incorrect number of down stmts. got %v (%+v), want %v", i, len(stmts), stmts, test.down)

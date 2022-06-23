@@ -2,13 +2,12 @@ package goose
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 // MigrationRecord struct.
@@ -55,17 +54,17 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 	case ".sql":
 		f, err := baseFS.Open(m.Source)
 		if err != nil {
-			return errors.Wrapf(err, "ERROR %v: failed to open SQL migration file", filepath.Base(m.Source))
+			return fmt.Errorf("ERROR %v: failed to open SQL migration file: %w", filepath.Base(m.Source), err)
 		}
 		defer f.Close()
 
 		statements, useTx, err := parseSQLMigration(f, direction)
 		if err != nil {
-			return errors.Wrapf(err, "ERROR %v: failed to parse SQL migration file", filepath.Base(m.Source))
+			return fmt.Errorf("ERROR %v: failed to parse SQL migration file: %w", filepath.Base(m.Source), err)
 		}
 
 		if err := runSQLMigration(db, statements, useTx, m.Version, direction, m.noVersioning); err != nil {
-			return errors.Wrapf(err, "ERROR %v: failed to run SQL migration", filepath.Base(m.Source))
+			return fmt.Errorf("ERROR %v: failed to run SQL migration: %w", filepath.Base(m.Source), err)
 		}
 
 		if len(statements) > 0 {
@@ -76,11 +75,11 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 
 	case ".go":
 		if !m.Registered {
-			return errors.Errorf("ERROR %v: failed to run Go migration: Go functions must be registered and built into a custom binary (see https://github.com/pressly/goose/tree/master/examples/go-migrations)", m.Source)
+			return fmt.Errorf("ERROR %v: failed to run Go migration: Go functions must be registered and built into a custom binary (see https://github.com/pressly/goose/tree/master/examples/go-migrations)", m.Source)
 		}
 		tx, err := db.Begin()
 		if err != nil {
-			return errors.Wrap(err, "ERROR failed to begin transaction")
+			return fmt.Errorf("ERROR failed to begin transaction: %w", err)
 		}
 
 		fn := m.UpFn
@@ -92,25 +91,25 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 			// Run Go migration function.
 			if err := fn(tx); err != nil {
 				tx.Rollback()
-				return errors.Wrapf(err, "ERROR %v: failed to run Go migration function %T", filepath.Base(m.Source), fn)
+				return fmt.Errorf("ERROR %v: failed to run Go migration function %T: %w", filepath.Base(m.Source), fn, err)
 			}
 		}
 		if !m.noVersioning {
 			if direction {
 				if _, err := tx.Exec(GetDialect().insertVersionSQL(), m.Version, direction); err != nil {
 					tx.Rollback()
-					return errors.Wrap(err, "ERROR failed to execute transaction")
+					return fmt.Errorf("ERROR failed to execute transaction: %w", err)
 				}
 			} else {
 				if _, err := tx.Exec(GetDialect().deleteVersionSQL(), m.Version); err != nil {
 					tx.Rollback()
-					return errors.Wrap(err, "ERROR failed to execute transaction")
+					return fmt.Errorf("ERROR failed to execute transaction: %w", err)
 				}
 			}
 		}
 
 		if err := tx.Commit(); err != nil {
-			return errors.Wrap(err, "ERROR failed to commit transaction")
+			return fmt.Errorf("ERROR failed to commit transaction: %w", err)
 		}
 
 		if fn != nil {

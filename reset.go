@@ -2,9 +2,8 @@ package goose
 
 import (
 	"database/sql"
+	"fmt"
 	"sort"
-
-	"github.com/pkg/errors"
 )
 
 // Reset rolls back all migrations
@@ -15,7 +14,7 @@ func Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
 	}
 	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
 	if err != nil {
-		return errors.Wrap(err, "failed to collect migrations")
+		return fmt.Errorf("failed to collect migrations: %w", err)
 	}
 	if option.noVersioning {
 		return DownTo(db, dir, minVersion, opts...)
@@ -23,7 +22,7 @@ func Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
 
 	statuses, err := dbMigrationsStatus(db)
 	if err != nil {
-		return errors.Wrap(err, "failed to get status of migrations")
+		return fmt.Errorf("failed to get status of migrations: %w", err)
 	}
 	sort.Sort(sort.Reverse(migrations))
 
@@ -32,7 +31,7 @@ func Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
 			continue
 		}
 		if err = migration.Down(db); err != nil {
-			return errors.Wrap(err, "failed to db-down")
+			return fmt.Errorf("failed to db-down: %w", err)
 		}
 	}
 
@@ -54,7 +53,7 @@ func dbMigrationsStatus(db *sql.DB) (map[int64]bool, error) {
 	for rows.Next() {
 		var row MigrationRecord
 		if err = rows.Scan(&row.VersionID, &row.IsApplied); err != nil {
-			return nil, errors.Wrap(err, "failed to scan row")
+			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 
 		if _, ok := result[row.VersionID]; ok {
