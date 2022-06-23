@@ -20,7 +20,7 @@ func main() {
 	flags.Parse(os.Args[1:])
 	args := flags.Args()
 
-	if len(args) < 2 {
+	if len(args) < 3 {
 		flags.Usage()
 		return
 	}

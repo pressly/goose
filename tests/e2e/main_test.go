@@ -8,16 +8,13 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strconv"
 	"syscall"
 	"testing"
-	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
-
-	"github.com/ory/dockertest/v3"
-	"github.com/ory/dockertest/v3/docker"
+	"github.com/pressly/goose/v3/internal/check"
+	"github.com/pressly/goose/v3/internal/testdb"
 )
 
 const (
@@ -96,170 +93,24 @@ func TestMain(m *testing.M) {
 
 // newDockerDB starts a database container and returns a usable SQL connection.
 func newDockerDB(t *testing.T) (*sql.DB, error) {
+	options := []testdb.OptionsFunc{
+		testdb.WithBindPort(*bindPort),
+		testdb.WithDebug(*debug),
+	}
+	var (
+		db      *sql.DB
+		cleanup func()
+		err     error
+	)
 	switch *dialect {
 	case dialectPostgres:
-		return newDockerPostgresDB(t, *bindPort)
+		db, cleanup, err = testdb.NewPostgres(options...)
 	case dialectMySQL:
-		return newDockerMariaDB(t, *bindPort)
+		db, cleanup, err = testdb.NewMariaDB(options...)
+	default:
+		return nil, fmt.Errorf("unsupported dialect: %q", *dialect)
 	}
-	return nil, fmt.Errorf("unsupported dialect: %q", *dialect)
-}
-
-func newDockerPostgresDB(t *testing.T, bindPort int) (*sql.DB, error) {
-	const (
-		dbUsername = "postgres"
-		dbPassword = "password1"
-		dbHost     = "localhost"
-		dbName     = "testdb"
-	)
-	// Uses a sensible default on windows (tcp/http) and linux/osx (socket).
-	pool, err := dockertest.NewPool("")
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to docker: %v", err)
-	}
-	options := &dockertest.RunOptions{
-		Repository: "postgres",
-		Tag:        "14-alpine",
-		Env: []string{
-			"POSTGRES_USER=" + dbUsername,
-			"POSTGRES_PASSWORD=" + dbPassword,
-			"POSTGRES_DB=" + dbName,
-			"listen_addresses = '*'",
-		},
-		Labels:       map[string]string{"goose_test": "1"},
-		PortBindings: make(map[docker.Port][]docker.PortBinding),
-	}
-	if bindPort > 0 {
-		options.PortBindings[docker.Port("5432/tcp")] = []docker.PortBinding{
-			{HostPort: strconv.Itoa(bindPort)},
-		}
-	}
-
-	container, err := pool.RunWithOptions(
-		options,
-		func(config *docker.HostConfig) {
-			// Set AutoRemove to true so that stopped container goes away by itself.
-			config.AutoRemove = true
-			config.RestartPolicy = docker.RestartPolicy{Name: "no"}
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create docker container: %v", err)
-	}
-	t.Cleanup(func() {
-		if *debug {
-			// User must manually delete the Docker container.
-			return
-		}
-		if err := pool.Purge(container); err != nil {
-			log.Printf("failed to purge resource: %v", err)
-		}
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to start resource: %v", err)
-	}
-	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		dbHost,
-		container.GetPort("5432/tcp"), // Fetch port dynamically assigned to container
-		dbUsername,
-		dbPassword,
-		dbName,
-	)
-	var db *sql.DB
-	// Exponential backoff-retry, because the application in the container
-	// might not be ready to accept connections yet.
-	if err := pool.Retry(
-		func() error {
-			var err error
-			db, err = sql.Open(dialectPostgres, psqlInfo)
-			if err != nil {
-				return err
-			}
-			return db.Ping()
-		},
-	); err != nil {
-		return nil, fmt.Errorf("could not connect to docker database: %v", err)
-	}
-	return db, nil
-}
-
-func newDockerMariaDB(t *testing.T, bindPort int) (*sql.DB, error) {
-	const (
-		dbUsername = "tester"
-		dbPassword = "password1"
-		dbHost     = "localhost"
-		dbName     = "testdb"
-	)
-	// Uses a sensible default on windows (tcp/http) and linux/osx (socket).
-	pool, err := dockertest.NewPool("")
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to docker: %v", err)
-	}
-	options := &dockertest.RunOptions{
-		Repository: "mariadb",
-		Tag:        "10",
-		Env: []string{
-			"MARIADB_USER=" + dbUsername,
-			"MARIADB_PASSWORD=" + dbPassword,
-			"MARIADB_ROOT_PASSWORD=" + dbPassword,
-			"MARIADB_DATABASE=" + dbName,
-		},
-		Labels: map[string]string{"goose_test": "1"},
-		// PortBindings: make(map[docker.Port][]docker.PortBinding),
-	}
-	if bindPort > 0 {
-		options.PortBindings[docker.Port("3306/tcp")] = []docker.PortBinding{
-			{HostPort: strconv.Itoa(bindPort)},
-		}
-	}
-
-	container, err := pool.RunWithOptions(
-		options,
-		func(config *docker.HostConfig) {
-			// Set AutoRemove to true so that stopped container goes away by itself.
-			config.AutoRemove = true
-			// config.PortBindings = options.PortBindings
-			config.RestartPolicy = docker.RestartPolicy{Name: "no"}
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create docker container: %v", err)
-	}
-	t.Cleanup(func() {
-		if *debug {
-			// User must manually delete the Docker container.
-			return
-		}
-		if err := pool.Purge(container); err != nil {
-			log.Printf("failed to purge resource: %v", err)
-		}
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to start resource: %v", err)
-	}
-	// MySQL DSN: username:password@protocol(address)/dbname?param=value
-	dsn := fmt.Sprintf("%s:%s@(%s:%s)/%s?parseTime=true&multiStatements=true",
-		dbUsername,
-		dbPassword,
-		dbHost,
-		container.GetPort("3306/tcp"), // Fetch port dynamically assigned to container
-		dbName,
-	)
-	var db *sql.DB
-	// Exponential backoff-retry, because the application in the container
-	// might not be ready to accept connections yet. Add an extra sleep
-	// because mariadb containers take much longer to startup.
-	time.Sleep(5 * time.Second)
-	if err := pool.Retry(func() error {
-		var err error
-		db, err = sql.Open(dialectMySQL, dsn)
-		if err != nil {
-			return err
-		}
-		return db.Ping()
-	},
-	); err != nil {
-		return nil, fmt.Errorf("could not connect to docker database: %v", err)
-	}
+	check.NoError(t, err)
+	t.Cleanup(cleanup)
 	return db, nil
 }

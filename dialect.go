@@ -293,7 +293,7 @@ func (m TiDBDialect) deleteVersionSQL() string {
 type ClickHouseDialect struct{}
 
 func (m ClickHouseDialect) createVersionTableSQL() string {
-	return fmt.Sprintf(`CREATE TABLE %s (
+	return fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
       version_id Int64,
       is_applied UInt8,
       date Date default now(),
@@ -302,7 +302,7 @@ func (m ClickHouseDialect) createVersionTableSQL() string {
 }
 
 func (m ClickHouseDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
-	rows, err := db.Query(fmt.Sprintf("SELECT version_id, is_applied FROM %s ORDER BY tstamp DESC LIMIT 1", TableName()))
+	rows, err := db.Query(fmt.Sprintf("SELECT version_id, is_applied FROM %s ORDER BY version_id DESC", TableName()))
 	if err != nil {
 		return nil, err
 	}
@@ -310,13 +310,13 @@ func (m ClickHouseDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 }
 
 func (m ClickHouseDialect) insertVersionSQL() string {
-	return fmt.Sprintf("INSERT INTO %s (version_id, is_applied) VALUES (?, ?)", TableName())
+	return fmt.Sprintf("INSERT INTO %s (version_id, is_applied) VALUES ($1, $2)", TableName())
 }
 
 func (m ClickHouseDialect) migrationSQL() string {
-	return fmt.Sprintf("SELECT tstamp, is_applied FROM %s WHERE version_id = ? ORDER BY tstamp DESC LIMIT 1", TableName())
+	return fmt.Sprintf("SELECT tstamp, is_applied FROM %s WHERE version_id = $1 ORDER BY tstamp DESC LIMIT 1", TableName())
 }
 
 func (m ClickHouseDialect) deleteVersionSQL() string {
-	return fmt.Sprintf("ALTER TABLE %s DELETE WHERE version_id = ?", TableName())
+	return fmt.Sprintf("ALTER TABLE %s DELETE WHERE version_id = $1", TableName())
 }

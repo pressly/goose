@@ -19,5 +19,8 @@ test-e2e-postgres:
 test-e2e-mysql:
 	go test -v ./tests/e2e -dialect=mysql
 
+test-clickhouse:
+	go test -timeout=10m -count=1 -race -v ./tests/clickhouse -test.short
+
 docker-cleanup:
 	docker stop -t=0 $$(docker ps --filter="label=goose_test" -aq)
