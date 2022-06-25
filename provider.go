@@ -8,7 +8,6 @@ import (
 	"io/fs"
 	"path"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 )
@@ -32,9 +31,6 @@ func NewProvider(driverName, dbString, dir string, opts ...OptionsFunc) (*Provid
 		f(option)
 	}
 
-	if _, err := fs.Stat(option.filesystem, dir); errors.Is(err, fs.ErrNotExist) {
-		return nil, fmt.Errorf("%s directory does not exist", dir)
-	}
 	migrations, err := collectMigrations(option.filesystem, dir)
 	if err != nil {
 		return nil, err
@@ -54,27 +50,87 @@ func NewProvider(driverName, dbString, dir string, opts ...OptionsFunc) (*Provid
 }
 
 func collectMigrations(fsys fs.FS, dir string) (Migrations, error) {
-	var migrations Migrations
+	if _, err := fs.Stat(fsys, dir); errors.Is(err, fs.ErrNotExist) {
+		return nil, fmt.Errorf("%s directory does not exist", dir)
+	}
+
+	var unorderedMigrations Migrations
 
 	// Collect all SQL migration files.
 	sqlMigrationFiles, err := fs.Glob(fsys, path.Join(dir, "*.sql"))
 	if err != nil {
 		return nil, err
 	}
-	sort.Strings(sqlMigrationFiles)
 	for _, fileName := range sqlMigrationFiles {
 		version, err := parseNumericComponent(fileName)
 		if err != nil {
 			return nil, err
 		}
-		migrations = append(migrations, &Migration{
+		unorderedMigrations = append(unorderedMigrations, &Migration{
 			Source:   fileName,
 			Version:  version,
 			Next:     -1,
 			Previous: -1,
 		})
 	}
-	return migrations, nil
+	// Collect Go migrations registered via goose.AddMigration().
+	for _, migration := range registeredGoMigrations {
+		if _, err := parseNumericComponent(migration.Source); err != nil {
+			return nil, fmt.Errorf("could not parse go migration file %q: %w", migration.Source, err)
+		}
+		unorderedMigrations = append(unorderedMigrations, migration)
+	}
+	// Sanity check the directory does not contain versioned Go migrations that have
+	// not been registred. This check ensures users didn't accidentally create a
+	// go migration file and forgot to register the migration.
+	//
+	// This is almost always a user error and they forgot to call: func init() { goose.AddMigration(..) }
+	if err := checkUnregisteredGoMigrations(fsys, dir); err != nil {
+		return nil, err
+	}
+	return sortAndConnectMigrations(unorderedMigrations), nil
+}
+
+func checkUnregisteredGoMigrations(fsys fs.FS, dir string) error {
+	goMigrationFiles, err := fs.Glob(fsys, path.Join(dir, "*.go"))
+	if err != nil {
+		return err
+	}
+	var unregisteredGoFiles []string
+	for _, fileName := range goMigrationFiles {
+		version, err := parseNumericComponent(fileName)
+		if err != nil {
+			// TODO(mf): log warning here?
+			// I think we do this because we allow _test.go files in the same
+			// directory.
+			continue
+		}
+		// Success, skip version because it has already been registered
+		// via goose.AddMigration().
+		if _, ok := registeredGoMigrations[version]; ok {
+			continue
+		}
+		unregisteredGoFiles = append(unregisteredGoFiles, fileName)
+	}
+	// Success, all go migration files have been registered.
+	if len(unregisteredGoFiles) == 0 {
+		return nil
+	}
+
+	f := "file"
+	if len(unregisteredGoFiles) > 1 {
+		f += "s"
+	}
+	var b strings.Builder
+
+	b.WriteString(fmt.Sprintf("error: detected %d unregistered go %s:\n", len(unregisteredGoFiles), f))
+	for _, name := range unregisteredGoFiles {
+		b.WriteString("\t" + name + "\n")
+	}
+	b.WriteString("\n")
+	b.WriteString("go functions must be registered and built into a custom binary see:\nhttps://github.com/pressly/goose/tree/master/examples/go-migrations")
+
+	return errors.New(b.String())
 }
 
 func parseNumericComponent(name string) (int64, error) {
