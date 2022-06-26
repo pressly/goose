@@ -71,3 +71,19 @@ ORDER BY
 func (p *postgres) ListMigrations() string {
 	return fmt.Sprintf(listMigrationsAsc, p.tableName)
 }
+
+const getLatestMigration = `
+SELECT
+	id,
+	version_id,
+	tstamp
+FROM
+	%s
+ORDER BY
+	id DESC
+LIMIT 1
+`
+
+func (p *postgres) GetLatestMigration() string {
+	return fmt.Sprintf(getLatestMigration, p.tableName)
+}

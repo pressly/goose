@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"io/fs"
+	"math"
 	"strconv"
 )
 
@@ -12,7 +13,7 @@ const VERSION = "v3.2.0"
 
 var (
 	minVersion      = int64(0)
-	maxVersion      = int64((1 << 63) - 1)
+	maxVersion      = int64(math.MaxInt64)
 	timestampFormat = "20060102150405"
 	verbose         = false
 

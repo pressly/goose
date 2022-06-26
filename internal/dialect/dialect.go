@@ -36,4 +36,8 @@ type SQL interface {
 	// ListMigrations defines the SQL query to list all migrations in
 	// ascending order by id.
 	ListMigrations() string
+
+	// GetLatestMigration defines the SQL query to retrieve the latest
+	// migration by id.
+	GetLatestMigration() string
 }

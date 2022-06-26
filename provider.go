@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"path"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -63,7 +64,7 @@ func NewProvider(driverName, dbstring, dir string, opts ...OptionsFunc) (*Provid
 		return nil, err
 	}
 	if err := ensureMigrationTable(context.Background(), opt.db, dialect); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed goose table %s check: %w", tableName, err)
 	}
 	return &Provider{
 		dir:        dir,
@@ -80,10 +81,6 @@ type migrationRow struct {
 }
 
 func ensureMigrationTable(ctx context.Context, db *sql.DB, dialect dialect.SQL) error {
-	tx, err := db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
 	// Because we support multiple database drivers, we cannot assert for a specific
 	// table "already exists" error. This will depend on the underlying driver.
 	// Instead, we attempt to fetch the initial row but invert the error check for
@@ -92,7 +89,7 @@ func ensureMigrationTable(ctx context.Context, db *sql.DB, dialect dialect.SQL) 
 	// Note, all dialects have a default timestamp, so assuming the user did not muck around
 	// with the goose table, this should always be a valid (non-zero) timestamp value.
 	var migrationRow migrationRow
-	err = tx.QueryRowContext(ctx, dialect.GetMigration(0)).Scan(
+	err := db.QueryRowContext(ctx, dialect.GetMigration(0)).Scan(
 		&migrationRow.ID,
 		&migrationRow.VersionID,
 		&migrationRow.Timestamp,
@@ -100,7 +97,11 @@ func ensureMigrationTable(ctx context.Context, db *sql.DB, dialect dialect.SQL) 
 	if err == nil && !migrationRow.Timestamp.IsZero() {
 		return nil
 	}
-	// Create table and insert the initial row with version_id = 0
+	// Create table and insert the initial row with version_id = 0 in the same tx.
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
 	if _, err := tx.ExecContext(ctx, dialect.CreateTable()); err != nil {
 		if outerErr := tx.Rollback(); outerErr != nil {
 			return fmt.Errorf("failed to create table and rollback: %w: rollback error: %v", err, outerErr)
@@ -233,9 +234,208 @@ func parseNumericComponent(name string) (int64, error) {
 	return n, nil
 }
 
-func (p *Provider) Up(ctx context.Context) error                  { return nil }
-func (p *Provider) UpByOne(ctx context.Context) error             { return nil }
-func (p *Provider) UpTo(ctx context.Context, version int64) error { return nil }
+func (p *Provider) Up(ctx context.Context) error {
+	return p.up(ctx, false, maxVersion)
+}
+
+func (p *Provider) UpByOne(ctx context.Context) error {
+	return p.up(ctx, true, maxVersion)
+}
+
+func (p *Provider) UpTo(ctx context.Context, version int64) error {
+	return p.up(ctx, false, version)
+}
+
+func (p *Provider) up(ctx context.Context, upByOne bool, version int64) error {
+	if version < 1 {
+		return fmt.Errorf("version must be a number greater than zero: %d", version)
+	}
+	if p.opt.noVersioning {
+		// This code path does not rely on database state to resolve which
+		// migrations have already been applied. Instead be blindly applying
+		// the requested migrations when user requests no versioning.
+		if upByOne {
+			// For non-versioned up-by-one this means keep re-applying the first
+			// migration over and over.
+			version = p.migrations[0].Version
+		}
+		return p.upToNoVersioning(ctx, version)
+	}
+
+	dbMigrations, err := p.listAllDBMigrations(ctx)
+	if err != nil {
+		return err
+	}
+	missingMigrations := findMissingMigrations(dbMigrations, p.migrations)
+
+	fmt.Println(len(dbMigrations))
+	fmt.Println(len(p.migrations))
+	fmt.Println(len(missingMigrations))
+
+	// feature(mf): It is very possible someone may want to apply ONLY new migrations
+	// and skip missing migrations altogether. At the moment this is not supported,
+	// but leaving this comment because that's where that logic will be handled.
+	if len(missingMigrations) > 0 && !p.opt.allowMissing {
+		var collected []string
+		for _, m := range missingMigrations {
+			output := fmt.Sprintf("version %d: %s", m.Version, m.Source)
+			collected = append(collected, output)
+		}
+		return fmt.Errorf("error: found %d missing migrations:\n\t%s",
+			len(missingMigrations), strings.Join(collected, "\n\t"))
+	}
+	if p.opt.allowMissing {
+
+	}
+	var current int64
+	for {
+		var err error
+		current, err = p.CurrentVersion(ctx)
+		if err != nil {
+			return err
+		}
+		next, err := p.migrations.Next(current)
+		if err != nil {
+			if errors.Is(err, ErrNoNextVersion) {
+				break
+			}
+			return fmt.Errorf("failed to find next migration: %w", err)
+		}
+		if err := p.startMigration(ctx, true, next); err != nil {
+			return err
+		}
+		if upByOne {
+			return nil
+		}
+	}
+	// At this point there are no more migrations to apply. But we need to maintain
+	// the following behaviour:
+	// UpByOne returns an error to signifying there are no more migrations.
+	// Up and UpTo return nil
+	if upByOne {
+		return ErrNoNextVersion
+	}
+	return nil
+}
+
+// listAllDBMigrations returns a list of migrations ordered by version id ASC.
+// Note, the Migration object only has the version field set.
+func (p *Provider) listAllDBMigrations(ctx context.Context) (Migrations, error) {
+	rows, err := p.opt.db.QueryContext(ctx, p.dialect.ListMigrations())
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var all Migrations
+	for rows.Next() {
+		var m migrationRow
+		if err := rows.Scan(&m.ID, &m.VersionID, &m.Timestamp); err != nil {
+			return nil, err
+		}
+		all = append(all, &Migration{Version: m.VersionID})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	sort.SliceStable(all, func(i, j int) bool {
+		return all[i].Version < all[j].Version
+	})
+	return all, nil
+}
+
+func (p *Provider) upToNoVersioning(ctx context.Context, version int64) error {
+	for _, current := range p.migrations {
+		if current.Version > version {
+			return nil
+		}
+		if err := p.startMigration(ctx, true, current); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *Provider) startMigration(ctx context.Context, direction bool, m *Migration) error {
+	switch filepath.Ext(m.Source) {
+	case ".sql":
+		f, err := p.opt.filesystem.Open(m.Source)
+		if err != nil {
+			return fmt.Errorf("failed to open SQL migration file: %v: %w", filepath.Base(m.Source), err)
+		}
+		defer f.Close()
+
+		statements, useTx, err := parseSQLMigration(f, direction)
+		if err != nil {
+			return fmt.Errorf("failed to parse SQL migration file: %v: %w", filepath.Base(m.Source), err)
+		}
+		if useTx {
+			err = p.runTx(ctx, direction, m.Version, statements)
+		} else {
+			err = p.runWithoutTx(ctx, direction, m.Version, statements)
+		}
+		return err
+	case ".go":
+	}
+	return nil
+}
+
+func (p *Provider) runTx(ctx context.Context, direction bool, version int64, statements []string) error {
+	tx, err := p.opt.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	for _, query := range statements {
+		if _, err := tx.ExecContext(ctx, query); err != nil {
+			if outerErr := tx.Rollback(); outerErr != nil {
+				return fmt.Errorf("%v: %w", outerErr, err)
+			}
+			return err
+		}
+	}
+	// By default, we version every up and down migration. The ability to disable
+	// this exists for users wishing to apply ad-hoc migrations. Useful for seeding
+	// a database.
+	if !p.opt.noVersioning {
+		if direction {
+			_, err = tx.ExecContext(ctx, p.dialect.InsertVersion(version))
+		} else {
+			_, err = tx.ExecContext(ctx, p.dialect.DeleteVersion(version))
+		}
+		if err != nil {
+			if outerErr := tx.Rollback(); outerErr != nil {
+				return fmt.Errorf("%v: %w", outerErr, err)
+			}
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+func (p *Provider) runWithoutTx(
+	ctx context.Context,
+	direction bool,
+	version int64,
+	statements []string,
+) error {
+	for _, query := range statements {
+		if _, err := p.opt.db.ExecContext(ctx, query); err != nil {
+			return err
+		}
+	}
+	if !p.opt.noVersioning {
+		var err error
+		if direction {
+			_, err = p.opt.db.ExecContext(ctx, p.dialect.InsertVersion(version))
+		} else {
+			_, err = p.opt.db.ExecContext(ctx, p.dialect.DeleteVersion(version))
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 func (p *Provider) Down(ctx context.Context) error                  { return nil }
 func (p *Provider) DownTo(ctx context.Context, version int64) error { return nil }
@@ -250,8 +450,19 @@ func (p *Provider) Status(ctx context.Context) error {
 	return Status(p.opt.db, p.dir)
 }
 
-// EnsureDBVersion && GetDBVersion ??
-func (p *Provider) CurrentVersion(ctx context.Context) (int64, error) { return 0, nil }
+// replace EnsureDBVersion && GetDBVersion ??
+func (p *Provider) CurrentVersion(ctx context.Context) (int64, error) {
+	var migrationRow migrationRow
+	err := p.opt.db.QueryRowContext(ctx, p.dialect.GetLatestMigration()).Scan(
+		&migrationRow.ID,
+		&migrationRow.VersionID,
+		&migrationRow.Timestamp,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return migrationRow.VersionID, nil
+}
 
 type GoMigrationFunc func(
 	up func(tx *sql.Tx) error,

@@ -11,10 +11,16 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
 	p, err := goose.NewProvider("sqlite", "cmd/debug/test.db", "cmd/debug/migrations")
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	log.Fatal(p.Status(context.Background()))
+	if err := p.Status(ctx); err != nil {
+		log.Fatal(err)
+	}
+	if err := p.Up(ctx); err != nil {
+		log.Fatal(err)
+	}
 }

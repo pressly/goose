@@ -67,6 +67,22 @@ ORDER BY
 	id ASC
 `
 
-func (p *sqlite) ListMigrations() string {
-	return fmt.Sprintf(listMigrationsAsc, p.tableName)
+func (s *sqlite) ListMigrations() string {
+	return fmt.Sprintf(listMigrationsAsc, s.tableName)
+}
+
+const getLatestMigration = `
+SELECT
+	id,
+	version_id,
+	tstamp
+FROM
+	%s
+ORDER BY
+	id DESC
+LIMIT 1
+`
+
+func (p *sqlite) GetLatestMigration() string {
+	return fmt.Sprintf(getLatestMigration, p.tableName)
 }

@@ -29,6 +29,10 @@ type Migration struct {
 	noVersioning bool
 }
 
+func (m *Migration) isSQLMigration() bool {
+	return filepath.Ext(m.Source) == ".sql"
+}
+
 func (m *Migration) String() string {
 	return fmt.Sprintf(m.Source)
 }
