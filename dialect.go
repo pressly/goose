@@ -15,30 +15,30 @@ type SQLDialect interface {
 	dbVersionQuery(db *sql.DB) (*sql.Rows, error)
 }
 
-var dialect SQLDialect = &PostgresDialect{}
+var defaultDialect SQLDialect = &PostgresDialect{}
 
 // GetDialect gets the SQLDialect
 func GetDialect() SQLDialect {
-	return dialect
+	return defaultDialect
 }
 
 // SetDialect sets the SQLDialect
 func SetDialect(d string) error {
 	switch d {
 	case "postgres", "pgx":
-		dialect = &PostgresDialect{}
+		defaultDialect = &PostgresDialect{}
 	case "mysql":
-		dialect = &MySQLDialect{}
+		defaultDialect = &MySQLDialect{}
 	case "sqlite3", "sqlite":
-		dialect = &Sqlite3Dialect{}
+		defaultDialect = &Sqlite3Dialect{}
 	case "mssql":
-		dialect = &SqlServerDialect{}
+		defaultDialect = &SqlServerDialect{}
 	case "redshift":
-		dialect = &RedshiftDialect{}
+		defaultDialect = &RedshiftDialect{}
 	case "tidb":
-		dialect = &TiDBDialect{}
+		defaultDialect = &TiDBDialect{}
 	case "clickhouse":
-		dialect = &ClickHouseDialect{}
+		defaultDialect = &ClickHouseDialect{}
 	default:
 		return fmt.Errorf("%q: unknown dialect", d)
 	}

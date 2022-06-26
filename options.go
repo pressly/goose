@@ -1,6 +1,9 @@
 package goose
 
-import "io/fs"
+import (
+	"database/sql"
+	"io/fs"
+)
 
 func WithAllowMissing() OptionsFunc {
 	return func(o *options) { o.allowMissing = true }
@@ -38,8 +41,39 @@ type options struct {
 	logger       Logger
 
 	applyUpByOne bool
+
+	db *sql.DB
 }
 
 func withApplyUpByOne() OptionsFunc {
 	return func(o *options) { o.applyUpByOne = true }
+}
+
+/*
+
+	Experimental
+	============
+
+*/
+
+type DatabaseType string
+
+const (
+	DatabaseUnknown  DatabaseType = ""
+	DatabasePostgres DatabaseType = "postgres"
+	DatabaseSqlite   DatabaseType = "sqlite"
+)
+
+type Options struct {
+	DatabaseType DatabaseType
+	Dir          string
+	Filesystem   fs.FS
+}
+
+func DefaultOptions(dir string) Options {
+	return Options{
+		Dir:          dir,
+		DatabaseType: DatabasePostgres,
+		Filesystem:   osFS{},
+	}
 }

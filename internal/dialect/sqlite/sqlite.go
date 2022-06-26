@@ -1,4 +1,4 @@
-package postgres
+package sqlite
 
 import (
 	"fmt"
@@ -7,38 +7,37 @@ import (
 )
 
 func New(tableName string) (dialect.SQL, error) {
-	return &postgres{tableName: tableName}, nil
+	return &sqlite{tableName: tableName}, nil
 }
 
-var _ dialect.SQL = (*postgres)(nil)
+var _ dialect.SQL = (*sqlite)(nil)
 
-type postgres struct {
+type sqlite struct {
 	tableName string
 }
 
 const createTable = `
 CREATE TABLE %s (
-	id serial NOT NULL,
-	version_id bigint NOT NULL,
-	is_applied boolean NOT NULL,
-	tstamp timestamp NULL default now(),
-	PRIMARY KEY(id)
-  )
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	version_id INTEGER NOT NULL,
+	is_applied INTEGER NOT NULL,
+	tstamp TIMESTAMP DEFAULT (datetime('now'))
+)
 `
 
-func (p *postgres) CreateTable() string {
-	return fmt.Sprintf(createTable, p.tableName)
+func (s *sqlite) CreateTable() string {
+	return fmt.Sprintf(createTable, s.tableName)
 }
 
-const insertVersion = `INSERT INTO %s (version_id, is_applied) VALUES (%d, true)`
+const insertVersion = `INSERT INTO %s (version_id, is_applied) VALUES (%d, 1)`
 
-func (p *postgres) InsertVersion(version int64) string {
+func (p *sqlite) InsertVersion(version int64) string {
 	return fmt.Sprintf(insertVersion, p.tableName, version)
 }
 
 const deleteVersion = `DELETE FROM %s WHERE version_id = %d`
 
-func (p *postgres) DeleteVersion(version int64) string {
+func (p *sqlite) DeleteVersion(version int64) string {
 	return fmt.Sprintf(deleteVersion, p.tableName, version)
 }
 
@@ -53,7 +52,7 @@ WHERE
 	version_id = %d
 `
 
-func (p *postgres) GetMigration(version int64) string {
+func (p *sqlite) GetMigration(version int64) string {
 	return fmt.Sprintf(getMigration, p.tableName, version)
 }
 
@@ -68,6 +67,6 @@ ORDER BY
 	id ASC
 `
 
-func (p *postgres) ListMigrations() string {
+func (p *sqlite) ListMigrations() string {
 	return fmt.Sprintf(listMigrationsAsc, p.tableName)
 }

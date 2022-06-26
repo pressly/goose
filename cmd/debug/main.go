@@ -5,13 +5,14 @@ import (
 	"os"
 
 	"github.com/pressly/goose/v3"
+	_ "modernc.org/sqlite"
 )
 
 func main() {
-	dbString := "postgresql://dbuser:password123@localhost:5432/bestofgodb?sslmode=disable"
-	_, err := goose.NewProvider("postgres", dbString, "cmd/debug/migrations")
+	provider, err := goose.NewProvider("sqlite", "cmd/debug/test.db", "cmd/debug/migrations")
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	_ = provider
 }

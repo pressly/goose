@@ -10,6 +10,11 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/pressly/goose/v3/internal/dialect"
+	"github.com/pressly/goose/v3/internal/dialect/postgres"
+	"github.com/pressly/goose/v3/internal/dialect/sqlite"
 )
 
 const (
@@ -17,36 +22,100 @@ const (
 )
 
 type Provider struct {
-	db         *sql.DB
 	migrations Migrations
-	option     *options
+	opt        *options
+	dialect    dialect.SQL
 }
 
-func NewProvider(driverName, dbString, dir string, opts ...OptionsFunc) (*Provider, error) {
-	option := &options{
+func NewProvider(driverName, dbstring, dir string, opts ...OptionsFunc) (*Provider, error) {
+	// Things a provider needs to work properly:
+	// 1. a *sql.DB or a connection string
+	// 2. a driverName, which sets a dialect
+	// 3. a directory name
+	opt := &options{
 		tableName:  defaultTableName,
 		filesystem: osFS{},
+		logger:     &stdLogger{},
 	}
 	for _, f := range opts {
-		f(option)
+		f(opt)
 	}
 
-	migrations, err := collectMigrations(option.filesystem, dir)
+	migrations, err := collectMigrations(opt.filesystem, dir)
 	if err != nil {
 		return nil, err
 	}
-
-	// collect all migrations
-	// establish database connection
-	// sanity check goose versions table exists
-
-	var db *sql.DB
-
+	if opt.db == nil && dbstring == "" {
+		return nil, errors.New("must supply one of *sql.DB or a database connection string")
+	}
+	if opt.db != nil && dbstring != "" {
+		return nil, errors.New("cannot supply both *sql.DB and a database connection string")
+	}
+	if opt.db == nil {
+		opt.db, err = sql.Open(driverName, dbstring)
+		if err != nil {
+			return nil, fmt.Errorf("%s: failed to open db connection", err)
+		}
+	}
+	dialect, err := setDialect(opt.tableName, driverName)
+	if err != nil {
+		return nil, err
+	}
+	if err := ensureMigrationTable(context.Background(), opt.db, dialect); err != nil {
+		return nil, err
+	}
 	return &Provider{
-		db:         db,
 		migrations: migrations,
-		option:     option,
+		opt:        opt,
+		dialect:    dialect,
 	}, nil
+}
+
+type migrationRow struct {
+	ID        int64     `db:"id"`
+	VersionID int64     `db:"version_id"`
+	Timestamp time.Time `db:"tstamp"`
+}
+
+func ensureMigrationTable(ctx context.Context, db *sql.DB, dialect dialect.SQL) error {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	var migrationRow migrationRow
+	err = tx.QueryRowContext(ctx, dialect.GetMigration(0)).Scan(
+		&migrationRow.ID,
+		&migrationRow.VersionID,
+		&migrationRow.Timestamp,
+	)
+	if err == nil && !migrationRow.Timestamp.IsZero() {
+		return nil
+	}
+	// Assume if we cannot fetch the first row, then we need to create the table.
+	if _, err := tx.ExecContext(ctx, dialect.CreateTable()); err != nil {
+		if outerErr := tx.Rollback(); outerErr != nil {
+			return fmt.Errorf("failed to create table and rollback: %w: rollback error: %v", err, outerErr)
+		}
+		return fmt.Errorf("failed to create table: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, dialect.InsertVersion(0)); err != nil {
+		if outerErr := tx.Rollback(); outerErr != nil {
+			return fmt.Errorf("failed to insert initial version: %w: rollback error: %v", err, outerErr)
+		}
+		return fmt.Errorf("failed to insert initial version: %w", err)
+	}
+	return tx.Commit()
+}
+
+func setDialect(tableName, driverName string) (dialect.SQL, error) {
+	switch driverName {
+	case "pgx", "postgres":
+		return postgres.New(tableName)
+	case "sqlite":
+		return sqlite.New(tableName)
+	default:
+		return nil, fmt.Errorf("driver not supported: %s", driverName)
+	}
 }
 
 func collectMigrations(fsys fs.FS, dir string) (Migrations, error) {
