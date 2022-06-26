@@ -22,6 +22,7 @@ const (
 )
 
 type Provider struct {
+	dir        string
 	migrations Migrations
 	opt        *options
 	dialect    dialect.SQL
@@ -30,7 +31,7 @@ type Provider struct {
 func NewProvider(driverName, dbstring, dir string, opts ...OptionsFunc) (*Provider, error) {
 	// Things a provider needs to work properly:
 	// 1. a *sql.DB or a connection string
-	// 2. a driverName, which sets a dialect
+	// 2. a driverName, which sets a dialect .. this can be a well-defined type?
 	// 3. a directory name
 	opt := &options{
 		tableName:  defaultTableName,
@@ -57,7 +58,7 @@ func NewProvider(driverName, dbstring, dir string, opts ...OptionsFunc) (*Provid
 			return nil, fmt.Errorf("%s: failed to open db connection", err)
 		}
 	}
-	dialect, err := setDialect(opt.tableName, driverName)
+	dialect, err := newDialect(opt.tableName, driverName)
 	if err != nil {
 		return nil, err
 	}
@@ -65,6 +66,7 @@ func NewProvider(driverName, dbstring, dir string, opts ...OptionsFunc) (*Provid
 		return nil, err
 	}
 	return &Provider{
+		dir:        dir,
 		migrations: migrations,
 		opt:        opt,
 		dialect:    dialect,
@@ -82,6 +84,13 @@ func ensureMigrationTable(ctx context.Context, db *sql.DB, dialect dialect.SQL) 
 	if err != nil {
 		return err
 	}
+	// Because we support multiple database drivers, we cannot assert for a specific
+	// table "already exists" error. This will depend on the underlying driver.
+	// Instead, we attempt to fetch the initial row but invert the error check for
+	// the happy path: if no error and we have a valid timestamp then we're in a valid state.
+	//
+	// Note, all dialects have a default timestamp, so assuming the user did not muck around
+	// with the goose table, this should always be a valid (non-zero) timestamp value.
 	var migrationRow migrationRow
 	err = tx.QueryRowContext(ctx, dialect.GetMigration(0)).Scan(
 		&migrationRow.ID,
@@ -91,7 +100,7 @@ func ensureMigrationTable(ctx context.Context, db *sql.DB, dialect dialect.SQL) 
 	if err == nil && !migrationRow.Timestamp.IsZero() {
 		return nil
 	}
-	// Assume if we cannot fetch the first row, then we need to create the table.
+	// Create table and insert the initial row with version_id = 0
 	if _, err := tx.ExecContext(ctx, dialect.CreateTable()); err != nil {
 		if outerErr := tx.Rollback(); outerErr != nil {
 			return fmt.Errorf("failed to create table and rollback: %w: rollback error: %v", err, outerErr)
@@ -107,7 +116,7 @@ func ensureMigrationTable(ctx context.Context, db *sql.DB, dialect dialect.SQL) 
 	return tx.Commit()
 }
 
-func setDialect(tableName, driverName string) (dialect.SQL, error) {
+func newDialect(tableName, driverName string) (dialect.SQL, error) {
 	switch driverName {
 	case "pgx", "postgres":
 		return postgres.New(tableName)
@@ -224,21 +233,34 @@ func parseNumericComponent(name string) (int64, error) {
 	return n, nil
 }
 
-func (p *Provider) Up(ctx context.Context)      {}
-func (p *Provider) UpByOne(ctx context.Context) {}
-func (p *Provider) UpTo(ctx context.Context)    {}
-func (p *Provider) Down(ctx context.Context)    {}
-func (p *Provider) DownTo(ctx context.Context)  {}
-func (p *Provider) Redo(ctx context.Context)    {}
-func (p *Provider) Reset(ctx context.Context)   {}
-func (p *Provider) Status(ctx context.Context)  {}
-func (p *Provider) Version(ctx context.Context) {}
+func (p *Provider) Up(ctx context.Context) error                  { return nil }
+func (p *Provider) UpByOne(ctx context.Context) error             { return nil }
+func (p *Provider) UpTo(ctx context.Context, version int64) error { return nil }
+
+func (p *Provider) Down(ctx context.Context) error                  { return nil }
+func (p *Provider) DownTo(ctx context.Context, version int64) error { return nil }
+
+func (p *Provider) Redo(ctx context.Context) error  { return nil }
+func (p *Provider) Reset(ctx context.Context) error { return nil }
+
+// Ahhh, this is more of a "cli" command than a library command. All it does is
+// print, and chances are users would want to control this behaviour. Printing
+// should be left to the user.
+func (p *Provider) Status(ctx context.Context) error {
+	return Status(p.opt.db, p.dir)
+}
 
 // EnsureDBVersion && GetDBVersion ??
-func (p *Provider) GetCurrentVersion(ctx context.Context) {}
+func (p *Provider) CurrentVersion(ctx context.Context) (int64, error) { return 0, nil }
 
-// AddMigration && AddNamedMigration ??
-func (p *Provider) Register() {}
+type GoMigrationFunc func(
+	up func(tx *sql.Tx) error,
+	down func(tx *sql.Tx) error,
+)
 
-func CreateMigrationFile(dir string, sequential bool) {}
-func FixMigrations(dir string)                        {}
+// AddMigration && AddNamedMigration ?? These should probably never have been exported..
+// but there are probably users abusing AddNamedMigration
+func (p *Provider) Register(version int64, f GoMigrationFunc) error { return nil }
+
+func CreateMigrationFile(dir string, sequential bool) error { return nil }
+func FixMigrations(dir string) error                        { return nil }

@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/pressly/goose/v3"
@@ -9,10 +11,10 @@ import (
 )
 
 func main() {
-	provider, err := goose.NewProvider("sqlite", "cmd/debug/test.db", "cmd/debug/migrations")
+	p, err := goose.NewProvider("sqlite", "cmd/debug/test.db", "cmd/debug/migrations")
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	_ = provider
+	log.Fatal(p.Status(context.Background()))
 }
