@@ -73,11 +73,11 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 		}
 
 		if strings.HasPrefix(line, "--") {
-			firstLineFound = true
 			cmd := strings.TrimSpace(strings.TrimPrefix(line, "--"))
 
 			switch cmd {
 			case "+goose Up":
+				firstLineFound = true
 				switch stateMachine.Get() {
 				case start:
 					stateMachine.Set(gooseUp)
@@ -87,6 +87,7 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 				continue
 
 			case "+goose Down":
+				firstLineFound = true
 				switch stateMachine.Get() {
 				case gooseUp, gooseStatementEndUp:
 					stateMachine.Set(gooseDown)
@@ -96,6 +97,7 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 				continue
 
 			case "+goose StatementBegin":
+				firstLineFound = true
 				switch stateMachine.Get() {
 				case gooseUp, gooseStatementEndUp:
 					stateMachine.Set(gooseStatementBeginUp)
@@ -107,6 +109,7 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 				continue
 
 			case "+goose StatementEnd":
+				firstLineFound = true
 				switch stateMachine.Get() {
 				case gooseStatementBeginUp:
 					stateMachine.Set(gooseStatementEndUp)
