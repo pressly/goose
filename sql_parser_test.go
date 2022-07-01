@@ -78,7 +78,7 @@ func TestSplitStatements(t *testing.T) {
 func TestKeepEmptyLines(t *testing.T) {
 	stmts, _, err := parseSQLMigration(strings.NewReader(emptyLineSQL), true)
 	if err != nil {
-		t.Error(errors.Wrapf(err, "unexpected error"))
+		t.Errorf("Failed to parse SQL migration. %v", err)
 	}
 	expected := `INSERT INTO post (id, title, body)
 VALUES ('id_01', 'my_title', '
