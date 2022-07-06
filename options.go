@@ -48,32 +48,3 @@ type options struct {
 func withApplyUpByOne() OptionsFunc {
 	return func(o *options) { o.applyUpByOne = true }
 }
-
-/*
-
-	Experimental
-	============
-
-*/
-
-type DatabaseType string
-
-const (
-	DatabaseUnknown  DatabaseType = ""
-	DatabasePostgres DatabaseType = "postgres"
-	DatabaseSqlite   DatabaseType = "sqlite"
-)
-
-type Options struct {
-	DatabaseType DatabaseType
-	Dir          string
-	Filesystem   fs.FS
-}
-
-func DefaultOptions(dir string) Options {
-	return Options{
-		Dir:          dir,
-		DatabaseType: DatabasePostgres,
-		Filesystem:   osFS{},
-	}
-}

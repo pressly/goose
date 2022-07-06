@@ -19,18 +19,19 @@ type MigrationRecord struct {
 
 // Migration struct.
 type Migration struct {
-	Version      int64
-	Next         int64  // next version, or -1 if none
-	Previous     int64  // previous version, -1 if none
-	Source       string // path to .sql script or go file
-	Registered   bool
-	UpFn         func(*sql.Tx) error // Up go migration function
-	DownFn       func(*sql.Tx) error // Down go migration function
-	noVersioning bool
-}
+	Version  int64
+	Next     int64  // next version, or -1 if none
+	Previous int64  // previous version, -1 if none
+	Source   string // path to .sql script or go file
+	// With txn
+	Registered bool
+	UpFn       GoMigration
+	DownFn     GoMigration
+	// Without tx
+	UpFnNoTx   GoMigrationNoTx
+	DownFnNoTx GoMigrationNoTx
 
-func (m *Migration) isSQLMigration() bool {
-	return filepath.Ext(m.Source) == ".sql"
+	noVersioning bool
 }
 
 func (m *Migration) String() string {

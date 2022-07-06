@@ -23,54 +23,114 @@ const (
 )
 
 type Provider struct {
+	db         *sql.DB
 	dir        string
 	migrations Migrations
-	opt        *options
+	opt        *Options
 	dialect    dialect.SQL
 }
 
-func NewProvider(driverName, dbstring, dir string, opts ...OptionsFunc) (*Provider, error) {
-	// Things a provider needs to work properly:
-	// 1. a *sql.DB or a connection string
-	// 2. a driverName, which sets a dialect .. this can be a well-defined type?
-	// 3. a directory name
-	opt := &options{
-		tableName:  defaultTableName,
-		filesystem: osFS{},
-		logger:     &stdLogger{},
-	}
-	for _, f := range opts {
-		f(opt)
-	}
+type Dialect string
 
-	migrations, err := collectMigrations(opt.filesystem, dir)
+const (
+	DialectPostgres   Dialect = "postgres"
+	DialectSqlite     Dialect = "sqlite"
+	DialectMySQL      Dialect = "mysql"
+	DialectRedshift   Dialect = "redshift"
+	DialectTiDB       Dialect = "tidb"
+	DialectClickHouse Dialect = "clickhouse"
+	DialectSQLServer  Dialect = "mssql"
+)
+
+var supportedDialects = []string{
+	string(DialectPostgres),
+	string(DialectSqlite),
+	string(DialectMySQL),
+	string(DialectRedshift),
+	string(DialectTiDB),
+	string(DialectClickHouse),
+	string(DialectSQLServer),
+}
+
+type Options struct {
+	// TableName is the database schema table goose records migrations.
+	// Default: goose_db_version
+	TableName string
+
+	// The default is to read from the os.
+	Filesystem fs.FS
+
+	// The default is to use standard library log.
+	Logger Logger
+
+	// AllowMissing enables the ability to allow missing (out-of-order) migrations.
+	//
+	// Example: migrations 1,4 are applied and then version 2,3,5 are introduced.
+	// If this is set to true, then goose will apply 2,3,5 instead of raising an error.
+	// The final order of applied migrations will thus be: 1,4,2,3,5.
+	AllowMissing bool
+
+	// Verbose prints additional debug statements.
+	Verbose bool
+
+	// NoVersioning enables the ability to apply migrations without tracking
+	// the versions in the database schema table. Useful for seeding a database.
+	NoVersioning bool
+}
+
+func (o *Options) setDefaults() {
+	if o.Filesystem == nil {
+		o.Filesystem = osFS{}
+	}
+	if o.Logger == nil {
+		o.Logger = &stdLogger{}
+	}
+	if o.TableName == "" {
+		o.TableName = defaultTableName
+	}
+}
+
+// NewProvider returns a new goose provider.
+//
+// The database dialect determines the dialect used to construct SQL queries. It is the caller's
+// responsibility to establish a database connection with the correct driver.
+//
+// dir is the directory from where goose migration files will be read. By default read from the
+// os, but can be modified by supplying your own fs.FS interface.
+//
+// The Options may be nil, and sane defaults will be used.
+func NewProvider(dialect Dialect, db *sql.DB, dir string, opt *Options) (*Provider, error) {
+	if dialect == "" {
+		return nil, fmt.Errorf("dialect cannot be empty. Must be one of: %s", strings.Join(supportedDialects, ","))
+	}
+	if db == nil {
+		return nil, errors.New("must supply a database connection. *sql.DB cannot be nil")
+	}
+	if dir == "" {
+		return nil, errors.New("must specify a directory containing migration files")
+	}
+	if opt == nil {
+		opt = &Options{}
+	}
+	opt.setDefaults()
+
+	sqlDialect, err := newDialect(opt.TableName, dialect)
 	if err != nil {
 		return nil, err
 	}
-	if opt.db == nil && dbstring == "" {
-		return nil, errors.New("must supply one of *sql.DB or a database connection string")
-	}
-	if opt.db != nil && dbstring != "" {
-		return nil, errors.New("cannot supply both *sql.DB and a database connection string")
-	}
-	if opt.db == nil {
-		opt.db, err = sql.Open(driverName, dbstring)
-		if err != nil {
-			return nil, fmt.Errorf("%s: failed to open db connection", err)
-		}
-	}
-	dialect, err := newDialect(opt.tableName, driverName)
+	migrations, err := collectMigrations(opt.Filesystem, dir)
 	if err != nil {
 		return nil, err
 	}
-	if err := ensureMigrationTable(context.Background(), opt.db, dialect); err != nil {
+	if err := ensureMigrationTable(context.Background(), db, sqlDialect); err != nil {
 		return nil, fmt.Errorf("failed goose table %s check: %w", tableName, err)
 	}
 	return &Provider{
+		db:         db,
 		dir:        dir,
 		migrations: migrations,
 		opt:        opt,
-		dialect:    dialect,
+		dialect:    sqlDialect,
 	}, nil
 }
 
@@ -117,15 +177,14 @@ func ensureMigrationTable(ctx context.Context, db *sql.DB, dialect dialect.SQL) 
 	return tx.Commit()
 }
 
-func newDialect(tableName, driverName string) (dialect.SQL, error) {
-	switch driverName {
-	case "pgx", "postgres":
+func newDialect(tableName string, dialect Dialect) (dialect.SQL, error) {
+	switch dialect {
+	case DialectPostgres:
 		return postgres.New(tableName)
-	case "sqlite":
+	case DialectSqlite:
 		return sqlite.New(tableName)
-	default:
-		return nil, fmt.Errorf("driver not supported: %s", driverName)
 	}
+	return nil, fmt.Errorf("database dialect %q not yet supported", dialect)
 }
 
 func collectMigrations(fsys fs.FS, dir string) (Migrations, error) {
@@ -234,23 +293,11 @@ func parseNumericComponent(name string) (int64, error) {
 	return n, nil
 }
 
-func (p *Provider) Up(ctx context.Context) error {
-	return p.up(ctx, false, maxVersion)
-}
-
-func (p *Provider) UpByOne(ctx context.Context) error {
-	return p.up(ctx, true, maxVersion)
-}
-
-func (p *Provider) UpTo(ctx context.Context, version int64) error {
-	return p.up(ctx, false, version)
-}
-
 func (p *Provider) up(ctx context.Context, upByOne bool, version int64) error {
 	if version < 1 {
 		return fmt.Errorf("version must be a number greater than zero: %d", version)
 	}
-	if p.opt.noVersioning {
+	if p.opt.NoVersioning {
 		// This code path does not rely on database state to resolve which
 		// migrations have already been applied. Instead be blindly applying
 		// the requested migrations when user requests no versioning.
@@ -275,7 +322,7 @@ func (p *Provider) up(ctx context.Context, upByOne bool, version int64) error {
 	// feature(mf): It is very possible someone may want to apply ONLY new migrations
 	// and skip missing migrations altogether. At the moment this is not supported,
 	// but leaving this comment because that's where that logic will be handled.
-	if len(missingMigrations) > 0 && !p.opt.allowMissing {
+	if len(missingMigrations) > 0 && !p.opt.AllowMissing {
 		var collected []string
 		for _, m := range missingMigrations {
 			output := fmt.Sprintf("version %d: %s", m.Version, m.Source)
@@ -284,8 +331,8 @@ func (p *Provider) up(ctx context.Context, upByOne bool, version int64) error {
 		return fmt.Errorf("error: found %d missing migrations:\n\t%s",
 			len(missingMigrations), strings.Join(collected, "\n\t"))
 	}
-	if p.opt.allowMissing {
-
+	if p.opt.AllowMissing {
+		// TODO(mf): port this logic over.
 	}
 	var current int64
 	for {
@@ -321,7 +368,7 @@ func (p *Provider) up(ctx context.Context, upByOne bool, version int64) error {
 // listAllDBMigrations returns a list of migrations ordered by version id ASC.
 // Note, the Migration object only has the version field set.
 func (p *Provider) listAllDBMigrations(ctx context.Context) (Migrations, error) {
-	rows, err := p.opt.db.QueryContext(ctx, p.dialect.ListMigrations())
+	rows, err := p.db.QueryContext(ctx, p.dialect.ListMigrations())
 	if err != nil {
 		return nil, err
 	}
@@ -356,10 +403,18 @@ func (p *Provider) upToNoVersioning(ctx context.Context, version int64) error {
 	return nil
 }
 
+type EmptyGoMigrationError struct {
+	Migration *Migration
+}
+
+func (e EmptyGoMigrationError) Error() string {
+	return fmt.Sprintf("empty go migration: %s", filepath.Base(e.Migration.Source))
+}
+
 func (p *Provider) startMigration(ctx context.Context, direction bool, m *Migration) error {
 	switch filepath.Ext(m.Source) {
 	case ".sql":
-		f, err := p.opt.filesystem.Open(m.Source)
+		f, err := p.opt.Filesystem.Open(m.Source)
 		if err != nil {
 			return fmt.Errorf("failed to open SQL migration file: %v: %w", filepath.Base(m.Source), err)
 		}
@@ -370,18 +425,65 @@ func (p *Provider) startMigration(ctx context.Context, direction bool, m *Migrat
 			return fmt.Errorf("failed to parse SQL migration file: %v: %w", filepath.Base(m.Source), err)
 		}
 		if useTx {
-			err = p.runTx(ctx, direction, m.Version, statements)
-		} else {
-			err = p.runWithoutTx(ctx, direction, m.Version, statements)
+			return p.runTx(ctx, direction, m.Version, statements)
 		}
-		return err
+		return p.runWithoutTx(ctx, direction, m.Version, statements)
 	case ".go":
+		if m.UpFnNoTx != nil || m.DownFnNoTx != nil {
+			fn := m.DownFnNoTx
+			if direction {
+				fn = m.UpFnNoTx
+			}
+			// Run go migration function.
+			if err := fn(p.db); err != nil {
+				return fmt.Errorf("failed to run no tx go migration: %s: %w", filepath.Base(m.Source), err)
+			}
+			if p.opt.NoVersioning {
+				return nil
+			}
+			return p.insertOrDeleteVersionNoTx(ctx, direction, m.Version)
+		}
+		// Run go-based migration within a tx.
+		if m.UpFn != nil || m.DownFn != nil {
+			tx, err := p.db.BeginTx(ctx, nil)
+			if err != nil {
+				return fmt.Errorf("failed to begin transaction: %w", err)
+			}
+			fn := m.DownFn
+			if direction {
+				fn = m.UpFn
+			}
+			// Run go migration function.
+			if err := fn(tx); err != nil {
+				if outerErr := tx.Rollback(); outerErr != nil {
+					return fmt.Errorf("failed to run go migration: %s: %w: rollback error: %v",
+						filepath.Base(m.Source),
+						err,
+						outerErr,
+					)
+				}
+				return fmt.Errorf("failed to run go migration: %s: %w", filepath.Base(m.Source), err)
+			}
+			if !p.opt.NoVersioning {
+				if err := p.insertOrDeleteVersion(ctx, tx, direction, m.Version); err != nil {
+					if outerErr := tx.Rollback(); outerErr != nil {
+						return fmt.Errorf("%v: %w", outerErr, err)
+					}
+					return err
+				}
+			}
+			return tx.Commit()
+		}
+		// Caller should decide whether this is an error or not.
+		// TODO(mf): do we want to change this behaviour? The existing way was to return nil
+		// and print out a log line "EMPTY".
+		return EmptyGoMigrationError{Migration: m}
 	}
 	return nil
 }
 
 func (p *Provider) runTx(ctx context.Context, direction bool, version int64, statements []string) error {
-	tx, err := p.opt.db.BeginTx(ctx, nil)
+	tx, err := p.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -393,16 +495,8 @@ func (p *Provider) runTx(ctx context.Context, direction bool, version int64, sta
 			return err
 		}
 	}
-	// By default, we version every up and down migration. The ability to disable
-	// this exists for users wishing to apply ad-hoc migrations. Useful for seeding
-	// a database.
-	if !p.opt.noVersioning {
-		if direction {
-			_, err = tx.ExecContext(ctx, p.dialect.InsertVersion(version))
-		} else {
-			_, err = tx.ExecContext(ctx, p.dialect.DeleteVersion(version))
-		}
-		if err != nil {
+	if !p.opt.NoVersioning {
+		if err := p.insertOrDeleteVersion(ctx, tx, direction, version); err != nil {
 			if outerErr := tx.Rollback(); outerErr != nil {
 				return fmt.Errorf("%v: %w", outerErr, err)
 			}
@@ -419,59 +513,87 @@ func (p *Provider) runWithoutTx(
 	statements []string,
 ) error {
 	for _, query := range statements {
-		if _, err := p.opt.db.ExecContext(ctx, query); err != nil {
+		if _, err := p.db.ExecContext(ctx, query); err != nil {
 			return err
 		}
 	}
-	if !p.opt.noVersioning {
-		var err error
-		if direction {
-			_, err = p.opt.db.ExecContext(ctx, p.dialect.InsertVersion(version))
-		} else {
-			_, err = p.opt.db.ExecContext(ctx, p.dialect.DeleteVersion(version))
-		}
-		if err != nil {
-			return err
-		}
+	if p.opt.NoVersioning {
+		return nil
+	}
+	return p.insertOrDeleteVersionNoTx(ctx, direction, version)
+}
+
+func (p *Provider) insertOrDeleteVersion(ctx context.Context, tx *sql.Tx, direction bool, version int64) error {
+	if direction {
+		_, err := tx.ExecContext(ctx, p.dialect.InsertVersion(version))
+		return err
+	}
+	_, err := tx.ExecContext(ctx, p.dialect.DeleteVersion(version))
+	return err
+}
+
+func (p *Provider) insertOrDeleteVersionNoTx(ctx context.Context, direction bool, version int64) error {
+	if direction {
+		_, err := p.db.ExecContext(ctx, p.dialect.InsertVersion(version))
+		return err
+	}
+	_, err := p.db.ExecContext(ctx, p.dialect.DeleteVersion(version))
+	return err
+}
+
+// GoMigration is a go migration func that is run within a transaction.
+type GoMigration func(tx *sql.Tx) error
+
+// GoMigrationNoTx is a go migration funt that is run outside a transaction.
+type GoMigrationNoTx func(db *sql.DB) error
+
+// Register adds up and down go migrations that are run within a transaction.
+func Register(filename string, up GoMigration, down GoMigration) error {
+	return register(filename, up, down, nil, nil)
+}
+
+// RegisterNoTx adds up and down go migrations that are run outside a transaction.
+func RegisterNoTx(filename string, up GoMigrationNoTx, down GoMigrationNoTx) error {
+	return register(filename, nil, nil, up, down)
+}
+
+func register(
+	filename string,
+	up GoMigration,
+	down GoMigration,
+	upNoTx GoMigrationNoTx,
+	downNoTx GoMigrationNoTx,
+) error {
+	// Sanity check caller did not mix tx and non-tx based functions.
+	if (up != nil || down != nil) && (upNoTx != nil || downNoTx != nil) {
+		return fmt.Errorf("cannot mix tx and non-tx based go migrations functions")
+	}
+	version, err := NumericComponent(filename)
+	if err != nil {
+		// TODO(mf): return error?
+		return err
+	}
+	if existing, ok := registeredGoMigrations[version]; ok {
+		return fmt.Errorf("failed to add migration %q: version %d conflicts with %q",
+			filename,
+			version,
+			existing.Source,
+		)
+	}
+	// Add to global as a registered migration.
+	registeredGoMigrations[version] = &Migration{
+		Version:    version,
+		Next:       -1,
+		Previous:   -1,
+		Registered: true,
+		Source:     filename,
+		DownFn:     down,
+		UpFn:       up,
+		UpFnNoTx:   upNoTx,
+		DownFnNoTx: downNoTx,
 	}
 	return nil
 }
-
-func (p *Provider) Down(ctx context.Context) error                  { return nil }
-func (p *Provider) DownTo(ctx context.Context, version int64) error { return nil }
-
-func (p *Provider) Redo(ctx context.Context) error  { return nil }
-func (p *Provider) Reset(ctx context.Context) error { return nil }
-
-// Ahhh, this is more of a "cli" command than a library command. All it does is
-// print, and chances are users would want to control this behaviour. Printing
-// should be left to the user.
-func (p *Provider) Status(ctx context.Context) error {
-	return Status(p.opt.db, p.dir)
-}
-
-// replace EnsureDBVersion && GetDBVersion ??
-func (p *Provider) CurrentVersion(ctx context.Context) (int64, error) {
-	var migrationRow migrationRow
-	err := p.opt.db.QueryRowContext(ctx, p.dialect.GetLatestMigration()).Scan(
-		&migrationRow.ID,
-		&migrationRow.VersionID,
-		&migrationRow.Timestamp,
-	)
-	if err != nil {
-		return 0, err
-	}
-	return migrationRow.VersionID, nil
-}
-
-type GoMigrationFunc func(
-	up func(tx *sql.Tx) error,
-	down func(tx *sql.Tx) error,
-)
-
-// AddMigration && AddNamedMigration ?? These should probably never have been exported..
-// but there are probably users abusing AddNamedMigration
-func (p *Provider) Register(version int64, f GoMigrationFunc) error { return nil }
 
 func CreateMigrationFile(dir string, sequential bool) error { return nil }
 func FixMigrations(dir string) error                        { return nil }

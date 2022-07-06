@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"os"
@@ -12,7 +13,11 @@ import (
 
 func main() {
 	ctx := context.Background()
-	p, err := goose.NewProvider("sqlite", "cmd/debug/test.db", "cmd/debug/migrations")
+	db, err := sql.Open("sqlite", "cmd/debug/test.db")
+	if err != nil {
+		log.Fatal(err)
+	}
+	p, err := goose.NewProvider(goose.DialectPostgres, db, "cmd/debug/migrations", nil)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
