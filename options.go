@@ -1,7 +1,6 @@
 package goose
 
 import (
-	"database/sql"
 	"io/fs"
 )
 
@@ -41,8 +40,6 @@ type options struct {
 	logger       Logger
 
 	applyUpByOne bool
-
-	db *sql.DB
 }
 
 func withApplyUpByOne() OptionsFunc {

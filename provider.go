@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"path"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -200,7 +201,7 @@ func collectMigrations(fsys fs.FS, dir string) (Migrations, error) {
 		return nil, err
 	}
 	for _, fileName := range sqlMigrationFiles {
-		version, err := parseNumericComponent(fileName)
+		version, err := parseVersion(fileName)
 		if err != nil {
 			return nil, err
 		}
@@ -213,7 +214,7 @@ func collectMigrations(fsys fs.FS, dir string) (Migrations, error) {
 	}
 	// Collect Go migrations registered via goose.AddMigration().
 	for _, migration := range registeredGoMigrations {
-		if _, err := parseNumericComponent(migration.Source); err != nil {
+		if _, err := parseVersion(migration.Source); err != nil {
 			return nil, fmt.Errorf("could not parse go migration file %q: %w", migration.Source, err)
 		}
 		unorderedMigrations = append(unorderedMigrations, migration)
@@ -236,7 +237,7 @@ func checkUnregisteredGoMigrations(fsys fs.FS, dir string) error {
 	}
 	var unregisteredGoFiles []string
 	for _, fileName := range goMigrationFiles {
-		version, err := parseNumericComponent(fileName)
+		version, err := parseVersion(fileName)
 		if err != nil {
 			// TODO(mf): log warning here?
 			// I think we do this because we allow _test.go files in the same
@@ -271,11 +272,11 @@ func checkUnregisteredGoMigrations(fsys fs.FS, dir string) error {
 	return errors.New(b.String())
 }
 
-func parseNumericComponent(name string) (int64, error) {
+func parseVersion(name string) (int64, error) {
 	base := filepath.Base(name)
+	// TODO(mf): should we silently ignore non .sql and .go files? Potentially
+	// adding an -ignore or -exlude flag
 	// https://github.com/pressly/goose/issues/331#issuecomment-1101556360
-	// Should we silently ignore non .sql and .go files ?
-	// Should we add -ignore or -exclude flags?
 	if ext := filepath.Ext(base); ext != ".go" && ext != ".sql" {
 		return 0, errors.New("migration file does not have .sql or .go file extension")
 	}
@@ -299,10 +300,10 @@ func (p *Provider) up(ctx context.Context, upByOne bool, version int64) error {
 	}
 	if p.opt.NoVersioning {
 		// This code path does not rely on database state to resolve which
-		// migrations have already been applied. Instead be blindly applying
+		// migrations have already been applied. Instead we blindly apply
 		// the requested migrations when user requests no versioning.
 		if upByOne {
-			// For non-versioned up-by-one this means keep re-applying the first
+			// For non-versioned up-by-one this means applying the first
 			// migration over and over.
 			version = p.migrations[0].Version
 		}
@@ -314,10 +315,6 @@ func (p *Provider) up(ctx context.Context, upByOne bool, version int64) error {
 		return err
 	}
 	missingMigrations := findMissingMigrations(dbMigrations, p.migrations)
-
-	fmt.Println(len(dbMigrations))
-	fmt.Println(len(p.migrations))
-	fmt.Println(len(missingMigrations))
 
 	// feature(mf): It is very possible someone may want to apply ONLY new migrations
 	// and skip missing migrations altogether. At the moment this is not supported,
@@ -332,8 +329,9 @@ func (p *Provider) up(ctx context.Context, upByOne bool, version int64) error {
 			len(missingMigrations), strings.Join(collected, "\n\t"))
 	}
 	if p.opt.AllowMissing {
-		// TODO(mf): port this logic over.
+		return p.upAllowMissing(ctx, upByOne, missingMigrations, dbMigrations)
 	}
+
 	var current int64
 	for {
 		var err error
@@ -349,6 +347,68 @@ func (p *Provider) up(ctx context.Context, upByOne bool, version int64) error {
 			return fmt.Errorf("failed to find next migration: %w", err)
 		}
 		if err := p.startMigration(ctx, true, next); err != nil {
+			return err
+		}
+		if upByOne {
+			return nil
+		}
+	}
+	// At this point there are no more migrations to apply. But we need to maintain
+	// the following behaviour:
+	// UpByOne returns an error to signifying there are no more migrations.
+	// Up and UpTo return nil
+	if upByOne {
+		return ErrNoNextVersion
+	}
+	return nil
+}
+
+func (p *Provider) upAllowMissing(
+	ctx context.Context,
+	upByOne bool,
+	missingMigrations Migrations,
+	dbMigrations Migrations,
+) error {
+	lookupApplied := make(map[int64]bool)
+	for _, found := range dbMigrations {
+		lookupApplied[found.Version] = true
+	}
+	// Apply all missing migrations first.
+	for _, missing := range missingMigrations {
+		if err := p.startMigration(ctx, true, missing); err != nil {
+			return err
+		}
+		// Apply one migration and return early.
+		if upByOne {
+			return nil
+		}
+		// TODO(mf): do we need this check? It's a bit redundant, but we may
+		// want to keep it as a safe-guard. Maybe we should instead have
+		// the underlying query (if possible) return the current version as
+		// part of the same transaction.
+		currentVersion, err := p.CurrentVersion(ctx)
+		if err != nil {
+			return err
+		}
+		if currentVersion != missing.Version {
+			return fmt.Errorf("error: missing migration:%d does not match current db version:%d",
+				currentVersion, missing.Version)
+		}
+
+		lookupApplied[missing.Version] = true
+	}
+	// We can no longer rely on the database version_id to be sequential because
+	// missing (out-of-order) migrations get applied before newer migrations.
+	for _, found := range p.migrations {
+		// TODO(mf): instead of relying on this lookup, consider hitting
+		// the database directly?
+		// Alternatively, we can skip a bunch migrations and start the cursor
+		// at a version that represents 100% applied migrations. But this is
+		// risky, and we should aim to keep this logic simple.
+		if lookupApplied[found.Version] {
+			continue
+		}
+		if err := p.startMigration(ctx, true, found); err != nil {
 			return err
 		}
 		if upByOne {
@@ -424,6 +484,11 @@ func (p *Provider) startMigration(ctx context.Context, direction bool, m *Migrat
 		if err != nil {
 			return fmt.Errorf("failed to parse SQL migration file: %v: %w", filepath.Base(m.Source), err)
 		}
+		if len(statements) == 0 {
+			// TODO(mf): revisit this behaviour.
+			p.opt.Logger.Println("EMPTY", filepath.Base(m.Source))
+			return nil
+		}
 		if useTx {
 			return p.runTx(ctx, direction, m.Version, statements)
 		}
@@ -474,10 +539,9 @@ func (p *Provider) startMigration(ctx context.Context, direction bool, m *Migrat
 			}
 			return tx.Commit()
 		}
-		// Caller should decide whether this is an error or not.
-		// TODO(mf): do we want to change this behaviour? The existing way was to return nil
-		// and print out a log line "EMPTY".
-		return EmptyGoMigrationError{Migration: m}
+		// TODO(mf): revisit this behaviour.
+		p.opt.Logger.Println("EMPTY", filepath.Base(m.Source))
+		return nil
 	}
 	return nil
 }
@@ -506,12 +570,7 @@ func (p *Provider) runTx(ctx context.Context, direction bool, version int64, sta
 	return tx.Commit()
 }
 
-func (p *Provider) runWithoutTx(
-	ctx context.Context,
-	direction bool,
-	version int64,
-	statements []string,
-) error {
+func (p *Provider) runWithoutTx(ctx context.Context, direction bool, version int64, statements []string) error {
 	for _, query := range statements {
 		if _, err := p.db.ExecContext(ctx, query); err != nil {
 			return err
@@ -548,12 +607,26 @@ type GoMigration func(tx *sql.Tx) error
 type GoMigrationNoTx func(db *sql.DB) error
 
 // Register adds up and down go migrations that are run within a transaction.
-func Register(filename string, up GoMigration, down GoMigration) error {
+func Register(up GoMigration, down GoMigration) error {
+	_, filename, _, _ := runtime.Caller(1)
 	return register(filename, up, down, nil, nil)
 }
 
 // RegisterNoTx adds up and down go migrations that are run outside a transaction.
-func RegisterNoTx(filename string, up GoMigrationNoTx, down GoMigrationNoTx) error {
+func RegisterNoTx(up GoMigration, down GoMigration) error {
+	_, filename, _, _ := runtime.Caller(1)
+	return register(filename, up, down, nil, nil)
+}
+
+// registerNamedMigration adds up and down go migrations that are run within a transaction.
+// TODO(mf): should these be exported to the user?
+func registerNamedMigration(filename string, up GoMigration, down GoMigration) error {
+	return register(filename, up, down, nil, nil)
+}
+
+// registerNamedMigrationNoTx adds up and down go migrations that are run outside a transaction.
+// TODO(mf): should these be exported to the user?
+func registerNamedMigrationNoTx(filename string, up GoMigrationNoTx, down GoMigrationNoTx) error {
 	return register(filename, nil, nil, up, down)
 }
 
@@ -568,9 +641,8 @@ func register(
 	if (up != nil || down != nil) && (upNoTx != nil || downNoTx != nil) {
 		return fmt.Errorf("cannot mix tx and non-tx based go migrations functions")
 	}
-	version, err := NumericComponent(filename)
+	version, err := parseVersion(filename)
 	if err != nil {
-		// TODO(mf): return error?
 		return err
 	}
 	if existing, ok := registeredGoMigrations[version]; ok {
