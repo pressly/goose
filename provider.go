@@ -31,6 +31,10 @@ type Provider struct {
 	dialect    dialect.SQL
 }
 
+func (p *Provider) ListMigrations() Migrations {
+	return p.migrations
+}
+
 type Dialect string
 
 const (
