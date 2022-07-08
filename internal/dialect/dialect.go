@@ -16,9 +16,6 @@ package dialect
 type SQL interface {
 	// CreateTable defines the SQL query for creating a version table to
 	// store goose migrations.
-	//
-	// This should be set on the underlying implementation and used for
-	// all other queries.
 	CreateTable() string
 
 	// InsertVersion defines the SQL query for inserting a version id.

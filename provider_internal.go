@@ -1,6 +1,9 @@
 package goose
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
 // Up migrates the database to the most recent version available.
 func (p *Provider) Up(ctx context.Context) error {
@@ -32,8 +35,11 @@ func (p *Provider) Down(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	_ = currentVersion
-	return nil
+	migration, err := p.migrations.Current(currentVersion)
+	if err != nil {
+		return fmt.Errorf("failed to find migration:%d", currentVersion)
+	}
+	return p.startMigration(ctx, false, migration)
 }
 
 func (p *Provider) downToNoVersioning(ctx context.Context, version int64) error {
@@ -49,17 +55,54 @@ func (p *Provider) downToNoVersioning(ctx context.Context, version int64) error 
 }
 
 func (p *Provider) DownTo(ctx context.Context, version int64) error {
-	return nil
+	if p.opt.NoVersioning {
+		return p.downToNoVersioning(ctx, version)
+	}
+
+	// Down migrations always use the database version as a
+	// reference which migrations to roll back
+	// This becomes important when we have out of order migrations
+	// Example 1,4 then 2,3,5 got applied. The db versions are:
+	// 1,4,2,3,5
+
+	// Should the down be 5,3,2,4,1
+	// Or do we construct the version and walk it backwards
+	// 5,4,3,2,1
+	// I think the most accurate way is to migrate down based on the initial order that was applied.
+	for {
+		currentVersion, err := p.CurrentVersion(ctx)
+		if err != nil {
+			return err
+		}
+		if currentVersion == 0 {
+			return nil
+		}
+		current, err := p.migrations.Current(currentVersion)
+		if err != nil {
+			return err
+		}
+		if current.Version <= version {
+			// TODO(mf): this logic ?
+			return nil
+		}
+		if err := p.startMigration(ctx, false, current); err != nil {
+			return err
+		}
+	}
 }
 
-// goose redo is the same as goose down followed by goose up-by-one. Reapplying the latest migration.
+// Redo reapplies the last migration. This is equivalent to running Down followed by UpByOne.
 func (p *Provider) Redo(ctx context.Context) error {
-	p.Down(ctx)
-	p.UpByOne(ctx)
+	if err := p.Down(ctx); err != nil {
+		return err
+	}
+	if err := p.UpByOne(ctx); err != nil {
+		return err
+	}
 	return nil
 }
 
-// goose reset is the same as goose down-to 0. Applying all down migrations.
+// Reset applies all down migrations. This is equivalent to running DownTo 0.
 func (p *Provider) Reset(ctx context.Context) error {
 	return p.DownTo(ctx, 0)
 }
