@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/pressly/goose/v3/internal/dialect"
+	"github.com/pressly/goose/v3/internal/dialect/mysql"
 	"github.com/pressly/goose/v3/internal/dialect/postgres"
 	"github.com/pressly/goose/v3/internal/dialect/sqlite"
 )
@@ -188,6 +189,8 @@ func newDialect(tableName string, dialect Dialect) (dialect.SQL, error) {
 		return postgres.New(tableName)
 	case DialectSqlite:
 		return sqlite.New(tableName)
+	case DialectMySQL:
+		return mysql.New(tableName)
 	}
 	return nil, fmt.Errorf("database dialect %q not yet supported", dialect)
 }
@@ -303,6 +306,7 @@ func (p *Provider) up(ctx context.Context, upByOne bool, version int64) error {
 		return fmt.Errorf("version must be a number greater than zero: %d", version)
 	}
 	if p.opt.NoVersioning {
+		fmt.Println("here", upByOne)
 		// This code path does not rely on database state to resolve which
 		// migrations have already been applied. Instead we blindly apply
 		// the requested migrations when user requests no versioning.
@@ -349,6 +353,15 @@ func (p *Provider) up(ctx context.Context, upByOne bool, version int64) error {
 				break
 			}
 			return fmt.Errorf("failed to find next migration: %w", err)
+		}
+		// TODO(mf): confirm this behavior. We used to limit this
+		// by collecting only a subset of migration files and so
+		// when we got to this loop we were only operating on the
+		// target version. Now, we're collecting ALL migration
+		// files and so we need to account for there always being
+		// entire set of them.
+		if next.Version > version {
+			return nil
 		}
 		if err := p.startMigration(ctx, true, next); err != nil {
 			return err

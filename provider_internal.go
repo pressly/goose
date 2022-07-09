@@ -28,6 +28,7 @@ func (p *Provider) UpTo(ctx context.Context, version int64) error {
 func (p *Provider) Down(ctx context.Context) error {
 	if p.opt.NoVersioning {
 		currentVersion := p.migrations[len(p.migrations)-1].Version
+		fmt.Println(">>", currentVersion)
 		// Migrate only the latest migration down.
 		return p.downToNoVersioning(ctx, currentVersion-1)
 	}
@@ -44,6 +45,7 @@ func (p *Provider) Down(ctx context.Context) error {
 
 func (p *Provider) downToNoVersioning(ctx context.Context, version int64) error {
 	for i := len(p.migrations) - 1; i >= 0; i-- {
+		fmt.Println(version, p.migrations[i].Version)
 		if version >= p.migrations[i].Version {
 			return nil
 		}

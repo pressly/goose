@@ -13,14 +13,28 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
+	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/internal/check"
 	"github.com/pressly/goose/v3/internal/testdb"
 )
 
 const (
+	defaultTableName = "goose_db_version"
+
 	dialectPostgres = "postgres"
 	dialectMySQL    = "mysql"
 )
+
+func toDialect(t *testing.T, s string) goose.Dialect {
+	switch s {
+	case "postgres":
+		return goose.DialectPostgres
+	case "mysql":
+		return goose.DialectMySQL
+	}
+	t.Fatalf("dialect string %q not supported", s)
+	return ""
+}
 
 // Flags.
 var (

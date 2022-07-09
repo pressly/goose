@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -15,28 +16,32 @@ import (
 func TestMigrateUpWithReset(t *testing.T) {
 	t.Parallel()
 
+	ctx := context.Background()
 	db, err := newDockerDB(t)
 	check.NoError(t, err)
-	goose.SetDialect(*dialect)
-	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
+
+	p, err := goose.NewProvider(toDialect(t, *dialect), db, migrationsDir, nil)
 	check.NoError(t, err)
-	check.NumberNotZero(t, len(migrations))
+	check.NumberNotZero(t, len(p.ListMigrations()))
+	migrations := p.ListMigrations()
+
 	// Migrate all
-	err = goose.Up(db, migrationsDir)
+	err = p.Up(ctx)
 	check.NoError(t, err)
-	currentVersion, err := goose.GetDBVersion(db)
+	currentVersion, err := p.CurrentVersion(ctx)
 	check.NoError(t, err)
 	check.Number(t, currentVersion, migrations[len(migrations)-1].Version)
 	// Validate the db migration version actually matches what goose claims it is
-	gotVersion, err := getCurrentGooseVersion(db, goose.TableName())
+	// based on the last migration applied.
+	gotVersion, err := getCurrentGooseVersion(db, defaultTableName)
 	check.NoError(t, err)
-	// incorrect database version
+
 	check.Number(t, gotVersion, currentVersion)
 
 	// Migrate everything down using Reset.
-	err = goose.Reset(db, migrationsDir)
+	err = p.Reset(ctx)
 	check.NoError(t, err)
-	currentVersion, err = goose.GetDBVersion(db)
+	currentVersion, err = p.CurrentVersion(ctx)
 	check.NoError(t, err)
 	check.Number(t, currentVersion, 0)
 }
@@ -44,34 +49,44 @@ func TestMigrateUpWithReset(t *testing.T) {
 func TestMigrateUpWithRedo(t *testing.T) {
 	t.Parallel()
 
+	ctx := context.Background()
 	db, err := newDockerDB(t)
 	check.NoError(t, err)
-	goose.SetDialect(*dialect)
-	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
+
+	p, err := goose.NewProvider(toDialect(t, *dialect), db, migrationsDir, nil)
 	check.NoError(t, err)
 
-	check.NumberNotZero(t, len(migrations))
-	startingVersion, err := goose.EnsureDBVersion(db)
+	currentVersion, err := p.CurrentVersion(ctx)
 	check.NoError(t, err)
-	check.Number(t, startingVersion, 0)
-	// Migrate all
-	for _, migration := range migrations {
-		err = migration.Up(db)
+	check.Number(t, currentVersion, 0)
+
+	var count int
+	for {
+		count++
+		err := p.UpByOne(ctx)
+		if errors.Is(err, goose.ErrNoNextVersion) {
+			break
+		}
+		if err != nil {
+			t.Fatalf("expecting error:%v", goose.ErrNoNextVersion)
+		}
+
+		currentVersion, err := p.CurrentVersion(ctx)
 		check.NoError(t, err)
-		currentVersion, err := goose.GetDBVersion(db)
-		check.NoError(t, err)
-		check.Number(t, currentVersion, migration.Version)
+		check.Number(t, currentVersion, count)
 
 		// Redo the previous Up migration and re-apply it.
-		err = goose.Redo(db, migrationsDir)
+		err = p.Redo(ctx)
 		check.NoError(t, err)
-		currentVersion, err = goose.GetDBVersion(db)
+
+		currentVersion, err = p.CurrentVersion(ctx)
 		check.NoError(t, err)
-		check.Number(t, currentVersion, migration.Version)
+		check.Number(t, currentVersion, count)
 	}
+	migrations := p.ListMigrations()
 	// Once everything is tested the version should match the highest testdata version
 	maxVersion := migrations[len(migrations)-1].Version
-	currentVersion, err := goose.GetDBVersion(db)
+	currentVersion, err = p.CurrentVersion(ctx)
 	check.NoError(t, err)
 	check.Number(t, currentVersion, maxVersion)
 }
@@ -82,65 +97,72 @@ func TestMigrateUpTo(t *testing.T) {
 	const (
 		upToVersion int64 = 2
 	)
+	ctx := context.Background()
 	db, err := newDockerDB(t)
 	check.NoError(t, err)
-	goose.SetDialect(*dialect)
-	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
+
+	p, err := goose.NewProvider(toDialect(t, *dialect), db, migrationsDir, nil)
 	check.NoError(t, err)
-	check.NumberNotZero(t, len(migrations))
 	// Migrate up to the second migration
-	err = goose.UpTo(db, migrationsDir, upToVersion)
+	err = p.UpTo(ctx, upToVersion)
 	check.NoError(t, err)
 	// Fetch the goose version from DB
-	currentVersion, err := goose.GetDBVersion(db)
+	currentVersion, err := p.CurrentVersion(ctx)
 	check.NoError(t, err)
 	check.Number(t, currentVersion, upToVersion)
 	// Validate the version actually matches what goose claims it is
-	gotVersion, err := getCurrentGooseVersion(db, goose.TableName())
+	gotVersion, err := getCurrentGooseVersion(db, defaultTableName)
 	check.NoError(t, err)
-	check.Number(t, gotVersion, upToVersion) // incorrect database version
+	check.Number(t, gotVersion, upToVersion)
 }
 
 func TestMigrateUpByOne(t *testing.T) {
 	t.Parallel()
 
+	ctx := context.Background()
 	db, err := newDockerDB(t)
 	check.NoError(t, err)
-	goose.SetDialect(*dialect)
-	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
+
+	p, err := goose.NewProvider(toDialect(t, *dialect), db, migrationsDir, nil)
 	check.NoError(t, err)
-	check.NumberNotZero(t, len(migrations))
+
+	migrations := p.ListMigrations()
 	// Apply all migrations one-by-one.
 	var counter int
 	for {
-		err := goose.UpByOne(db, migrationsDir)
-		counter++
-		if counter > len(migrations) {
-			if !errors.Is(err, goose.ErrNoNextVersion) {
-				t.Fatalf("incorrect error: got:%v want:%v", err, goose.ErrNoNextVersion)
-			}
+		err := p.UpByOne(ctx)
+		if errors.Is(err, goose.ErrNoNextVersion) {
 			break
 		}
+		if err != nil && !errors.Is(err, goose.ErrNoNextVersion) {
+			t.Fatalf("unexpected error:%v", err)
+		}
 		check.NoError(t, err)
+		if counter > len(migrations) {
+			t.Fatalf("counter exceeds number of migrations")
+		}
+		counter++
 	}
-	currentVersion, err := goose.GetDBVersion(db)
+	currentVersion, err := p.CurrentVersion(ctx)
 	check.NoError(t, err)
 	check.Number(t, currentVersion, migrations[len(migrations)-1].Version)
 	// Validate the db migration version actually matches what goose claims it is
-	gotVersion, err := getCurrentGooseVersion(db, goose.TableName())
+	gotVersion, err := getCurrentGooseVersion(db, defaultTableName)
 	check.NoError(t, err)
-	check.Number(t, gotVersion, currentVersion) // incorrect database version
+	check.Number(t, gotVersion, currentVersion)
 }
 
 func TestMigrateFull(t *testing.T) {
 	t.Parallel()
 
+	ctx := context.Background()
 	db, err := newDockerDB(t)
 	check.NoError(t, err)
-	goose.SetDialect(*dialect)
-	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
+
+	p, err := goose.NewProvider(toDialect(t, *dialect), db, migrationsDir, nil)
 	check.NoError(t, err)
-	check.NumberNotZero(t, len(migrations))
+
+	migrations := p.ListMigrations()
 	// test retrieving invalid current goose migrations. goose cannot return a migration
 	// if the supplied "current" version is non-existent or 0.
 	_, err = migrations.Current(20160813)
@@ -169,15 +191,15 @@ func TestMigrateFull(t *testing.T) {
 
 	{
 		// Apply all up migrations
-		err = goose.Up(db, migrationsDir)
+		err = p.Up(ctx)
 		check.NoError(t, err)
-		currentVersion, err := goose.GetDBVersion(db)
+		currentVersion, err := p.CurrentVersion(ctx)
 		check.NoError(t, err)
 		check.Number(t, currentVersion, migrations[len(migrations)-1].Version)
 		// Validate the db migration version actually matches what goose claims it is
-		gotVersion, err := getCurrentGooseVersion(db, goose.TableName())
+		gotVersion, err := getCurrentGooseVersion(db, defaultTableName)
 		check.NoError(t, err)
-		check.Number(t, gotVersion, currentVersion) // incorrect database version
+		check.Number(t, gotVersion, currentVersion)
 		tables, err := getTableNames(db)
 		check.NoError(t, err)
 		if !reflect.DeepEqual(tables, knownTables) {
@@ -188,23 +210,23 @@ func TestMigrateFull(t *testing.T) {
 	}
 	{
 		// Apply 1 down migration
-		err := goose.Down(db, migrationsDir)
+		err := p.Down(ctx)
 		check.NoError(t, err)
-		gotVersion, err := getCurrentGooseVersion(db, goose.TableName())
+		gotVersion, err := getCurrentGooseVersion(db, defaultTableName)
 		check.NoError(t, err)
-		check.Number(t, gotVersion, migrations[len(migrations)-1].Version-1) // incorrect database version
+		check.Number(t, gotVersion, migrations[len(migrations)-1].Version-1)
 	}
 	{
 		// Migrate all remaining migrations down. Should only be left with a single table:
 		// the default goose table
-		err := goose.DownTo(db, migrationsDir, 0)
+		err := p.DownTo(ctx, 0)
 		check.NoError(t, err)
-		gotVersion, err := getCurrentGooseVersion(db, goose.TableName())
+		gotVersion, err := getCurrentGooseVersion(db, defaultTableName)
 		check.NoError(t, err)
 		check.Number(t, gotVersion, 0)
 		tables, err := getTableNames(db)
 		check.NoError(t, err)
-		knownTables := []string{goose.TableName()}
+		knownTables := []string{defaultTableName}
 		if !reflect.DeepEqual(tables, knownTables) {
 			t.Logf("got tables: %v", tables)
 			t.Logf("known tables: %v", knownTables)

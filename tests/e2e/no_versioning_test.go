@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 
@@ -18,22 +19,34 @@ func TestNoVersioning(t *testing.T) {
 		// These are owners created by migration files.
 		wantOwnerCount = 4
 	)
+	ctx := context.Background()
 	db, err := newDockerDB(t)
 	check.NoError(t, err)
-	goose.SetDialect(*dialect)
-
-	err = goose.Up(db, migrationsDir)
+	p, err := goose.NewProvider(toDialect(t, *dialect), db, migrationsDir, nil)
 	check.NoError(t, err)
-	baseVersion, err := goose.GetDBVersion(db)
+
+	err = p.Up(ctx)
+	check.NoError(t, err)
+	baseVersion, err := p.CurrentVersion(ctx)
+	check.NoError(t, err)
+
+	noVersionProvider, err := goose.NewProvider(
+		toDialect(t, *dialect),
+		db,
+		seedDir,
+		&goose.Options{
+			NoVersioning: true,
+		},
+	)
 	check.NoError(t, err)
 
 	t.Run("seed-up-down-to-zero", func(t *testing.T) {
 		// Run (all) up migrations from the seed dir
 		{
-			err = goose.Up(db, seedDir, goose.WithNoVersioning())
+			err = noVersionProvider.Up(ctx)
 			check.NoError(t, err)
 			// Confirm no changes to the versioned schema in the DB
-			currentVersion, err := goose.GetDBVersion(db)
+			currentVersion, err := p.CurrentVersion(ctx)
 			check.NoError(t, err)
 			check.Number(t, baseVersion, currentVersion)
 			seedOwnerCount, err := countSeedOwners(db)
@@ -43,10 +56,10 @@ func TestNoVersioning(t *testing.T) {
 
 		// Run (all) down migrations from the seed dir
 		{
-			err = goose.DownTo(db, seedDir, 0, goose.WithNoVersioning())
+			err = noVersionProvider.DownTo(ctx, 0)
 			check.NoError(t, err)
 			// Confirm no changes to the versioned schema in the DB
-			currentVersion, err := goose.GetDBVersion(db)
+			currentVersion, err := p.CurrentVersion(ctx)
 			check.NoError(t, err)
 			check.Number(t, baseVersion, currentVersion)
 			seedOwnerCount, err := countSeedOwners(db)
@@ -64,10 +77,10 @@ func TestNoVersioning(t *testing.T) {
 	t.Run("test-seed-up-reset", func(t *testing.T) {
 		// Run (all) up migrations from the seed dir
 		{
-			err = goose.Up(db, seedDir, goose.WithNoVersioning())
+			err = noVersionProvider.Up(ctx)
 			check.NoError(t, err)
 			// Confirm no changes to the versioned schema in the DB
-			currentVersion, err := goose.GetDBVersion(db)
+			currentVersion, err := p.CurrentVersion(ctx)
 			check.NoError(t, err)
 			check.Number(t, baseVersion, currentVersion)
 			seedOwnerCount, err := countSeedOwners(db)
@@ -77,10 +90,10 @@ func TestNoVersioning(t *testing.T) {
 
 		// Run reset (effectively the same as down-to 0)
 		{
-			err = goose.Reset(db, seedDir, goose.WithNoVersioning())
+			err = noVersionProvider.Reset(ctx)
 			check.NoError(t, err)
 			// Confirm no changes to the versioned schema in the DB
-			currentVersion, err := goose.GetDBVersion(db)
+			currentVersion, err := p.CurrentVersion(ctx)
 			check.NoError(t, err)
 			check.Number(t, baseVersion, currentVersion)
 			seedOwnerCount, err := countSeedOwners(db)
@@ -98,10 +111,10 @@ func TestNoVersioning(t *testing.T) {
 	t.Run("test-seed-up-redo", func(t *testing.T) {
 		// Run (all) up migrations from the seed dir
 		{
-			err = goose.Up(db, seedDir, goose.WithNoVersioning())
+			err = noVersionProvider.Up(ctx)
 			check.NoError(t, err)
 			// Confirm no changes to the versioned schema in the DB
-			currentVersion, err := goose.GetDBVersion(db)
+			currentVersion, err := p.CurrentVersion(ctx)
 			check.NoError(t, err)
 			check.Number(t, baseVersion, currentVersion)
 			seedOwnerCount, err := countSeedOwners(db)
@@ -109,12 +122,12 @@ func TestNoVersioning(t *testing.T) {
 			check.Number(t, seedOwnerCount, wantSeedOwnerCount)
 		}
 
-		// Run reset (effectively the same as down-to 0)
+		// Run redo (effectively the same as down and up by one)
 		{
-			err = goose.Redo(db, seedDir, goose.WithNoVersioning())
+			err = noVersionProvider.Redo(ctx)
 			check.NoError(t, err)
 			// Confirm no changes to the versioned schema in the DB
-			currentVersion, err := goose.GetDBVersion(db)
+			currentVersion, err := p.CurrentVersion(ctx)
 			check.NoError(t, err)
 			check.Number(t, baseVersion, currentVersion)
 			seedOwnerCount, err := countSeedOwners(db)

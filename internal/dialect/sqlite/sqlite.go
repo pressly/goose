@@ -31,14 +31,14 @@ func (s *sqlite) CreateTable() string {
 
 const insertVersion = `INSERT INTO %s (version_id, is_applied) VALUES (%d, 1)`
 
-func (p *sqlite) InsertVersion(version int64) string {
-	return fmt.Sprintf(insertVersion, p.tableName, version)
+func (s *sqlite) InsertVersion(version int64) string {
+	return fmt.Sprintf(insertVersion, s.tableName, version)
 }
 
 const deleteVersion = `DELETE FROM %s WHERE version_id = %d`
 
-func (p *sqlite) DeleteVersion(version int64) string {
-	return fmt.Sprintf(deleteVersion, p.tableName, version)
+func (s *sqlite) DeleteVersion(version int64) string {
+	return fmt.Sprintf(deleteVersion, s.tableName, version)
 }
 
 const getMigration = `
@@ -52,8 +52,8 @@ WHERE
 	version_id = %d
 `
 
-func (p *sqlite) GetMigration(version int64) string {
-	return fmt.Sprintf(getMigration, p.tableName, version)
+func (s *sqlite) GetMigration(version int64) string {
+	return fmt.Sprintf(getMigration, s.tableName, version)
 }
 
 const listMigrationsAsc = `
@@ -83,6 +83,6 @@ ORDER BY
 LIMIT 1
 `
 
-func (p *sqlite) GetLatestMigration() string {
-	return fmt.Sprintf(getLatestMigration, p.tableName)
+func (s *sqlite) GetLatestMigration() string {
+	return fmt.Sprintf(getLatestMigration, s.tableName)
 }
