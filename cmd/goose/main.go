@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"flag"
 	"fmt"
@@ -8,6 +10,7 @@ import (
 	"log"
 	"os"
 	"runtime/debug"
+	"strconv"
 	"text/template"
 
 	"github.com/pressly/goose/v4"
@@ -93,7 +96,18 @@ func main() {
 	if driver == "sqlite3" {
 		driver = "sqlite"
 	}
-	db, err := goose.OpenDBWithDriver(driver, normalizeDBString(driver, dbstring, *certfile, *sslcert, *sslkey))
+	dialect := goose.DialectPostgres
+	db, err := sql.Open("postgres", dbstring)
+	if err != nil {
+		log.Fatal(err)
+	}
+	options := &goose.Options{
+		TableName:    *table,
+		AllowMissing: *allowMissing,
+		NoVersioning: *noVersioning,
+		Verbose:      *verbose,
+	}
+	provider, err := goose.NewProvider(dialect, db, *dir, options)
 	if err != nil {
 		log.Fatalf("-dbstring=%q: %v\n", dbstring, err)
 	}
@@ -108,19 +122,11 @@ func main() {
 		arguments = append(arguments, args[3:]...)
 	}
 
-	options := []goose.OptionsFunc{}
-	if *allowMissing {
-		options = append(options, goose.WithAllowMissing())
-	}
-	if *noVersioning {
-		options = append(options, goose.WithNoVersioning())
-	}
-	if err := goose.RunWithOptions(
+	if err := run(
 		command,
-		db,
+		provider,
 		*dir,
 		arguments,
-		options...,
 	); err != nil {
 		log.Fatalf("goose run: %v", err)
 	}
@@ -258,4 +264,81 @@ func gooseInit(dir string) error {
 		return err
 	}
 	return goose.CreateWithTemplate(nil, dir, sqlMigrationTemplate, "initial", "sql")
+}
+
+func run(command string, p *goose.Provider, dir string, args []string) error {
+	ctx := context.Background()
+	switch command {
+	case "up":
+		if err := p.Up(ctx); err != nil {
+			return err
+		}
+	case "up-by-one":
+		if err := p.UpByOne(ctx); err != nil {
+			return err
+		}
+	case "up-to":
+		if len(args) == 0 {
+			return fmt.Errorf("up-to must be of form: goose [OPTIONS] DRIVER DBSTRING up-to VERSION")
+		}
+		version, err := strconv.ParseInt(args[0], 10, 64)
+		if err != nil {
+			return fmt.Errorf("version must be a number (got '%s')", args[0])
+		}
+		if err := p.UpTo(ctx, version); err != nil {
+			return err
+		}
+	case "create":
+		// if len(args) == 0 {
+		// 	return fmt.Errorf("create must be of form: goose [OPTIONS] DRIVER DBSTRING create NAME [go|sql]")
+		// }
+
+		// migrationType := "go"
+		// if len(args) == 2 {
+		// 	migrationType = args[1]
+		// }
+		// if err := goose.Create(p.D, dir, args[0], migrationType); err != nil {
+		// 	return err
+		// }
+	case "down":
+		if err := p.Down(ctx); err != nil {
+			return err
+		}
+	case "down-to":
+		if len(args) == 0 {
+			return fmt.Errorf("down-to must be of form: goose [OPTIONS] DRIVER DBSTRING down-to VERSION")
+		}
+		version, err := strconv.ParseInt(args[0], 10, 64)
+		if err != nil {
+			return fmt.Errorf("version must be a number (got '%s')", args[0])
+		}
+		if err := p.DownTo(ctx, version); err != nil {
+			return err
+		}
+	case "fix":
+		// if err := Fix(dir); err != nil {
+		// 	return err
+		// }
+	case "redo":
+		if err := p.Redo(ctx); err != nil {
+			return err
+		}
+	case "reset":
+		if err := p.Reset(ctx); err != nil {
+			return err
+		}
+	case "status":
+		if err := p.Status(ctx); err != nil {
+			return err
+		}
+	case "version":
+		currentVersion, err := p.CurrentVersion(ctx)
+		if err != nil {
+			return err
+		}
+		log.Printf("goose: version %v\n", currentVersion)
+	default:
+		return fmt.Errorf("%q: no such command", command)
+	}
+	return nil
 }
