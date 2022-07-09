@@ -3,7 +3,7 @@ package mysql
 import (
 	"fmt"
 
-	"github.com/pressly/goose/v3/internal/dialect"
+	"github.com/pressly/goose/v4/internal/dialect"
 )
 
 func New(tableName string) (dialect.SQL, error) {

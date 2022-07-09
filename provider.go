@@ -14,10 +14,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pressly/goose/v3/internal/dialect"
-	"github.com/pressly/goose/v3/internal/dialect/mysql"
-	"github.com/pressly/goose/v3/internal/dialect/postgres"
-	"github.com/pressly/goose/v3/internal/dialect/sqlite"
+	"github.com/pressly/goose/v4/internal/dialect"
+	"github.com/pressly/goose/v4/internal/dialect/mysql"
+	"github.com/pressly/goose/v4/internal/dialect/postgres"
+	"github.com/pressly/goose/v4/internal/dialect/sqlite"
+)
+
+var (
+	ErrNoMigrations        = errors.New("no migrations")
+	ErrDuplicateMigrations = errors.New("duplicate migrations")
 )
 
 const (
@@ -30,6 +35,41 @@ type Provider struct {
 	migrations Migrations
 	opt        *Options
 	dialect    dialect.SQL
+	registered map[int64]*Migration
+}
+
+// RegisterNamed adds up and down go migrations that are run within a transaction.
+// TODO(mf): should these be exported to the user?
+func (p *Provider) RegisterNamed(filename string, up GoMigration, down GoMigration) error {
+	version, err := parseVersion(filename)
+	if err != nil {
+		return err
+	}
+	if existing, ok := p.registered[version]; ok {
+		return fmt.Errorf("failed to add migration %q: version %d conflicts with %q",
+			filename,
+			version,
+			existing.Source,
+		)
+	}
+	p.registered[version] = &Migration{
+		Version:    version,
+		Next:       -1,
+		Previous:   -1,
+		Registered: true,
+		Source:     filename,
+		UpFn:       up,
+		DownFn:     down,
+		UpFnNoTx:   nil,
+		DownFnNoTx: nil,
+	}
+	return nil
+}
+
+// registerNamedMigrationNoTx adds up and down go migrations that are run outside a transaction.
+// TODO(mf): should these be exported to the user?
+func (p *Provider) RegisterNamedNoTx(filename string, up GoMigrationNoTx, down GoMigrationNoTx) error {
+	return register(filename, nil, nil, up, down)
 }
 
 // Apply applies a migration at a given version up. This is only useful for testing.
@@ -137,6 +177,9 @@ func NewProvider(dialect Dialect, db *sql.DB, dir string, opt *Options) (*Provid
 	if err != nil {
 		return nil, err
 	}
+	if len(migrations) == 0 {
+		return nil, fmt.Errorf("%w in directory: %s", ErrNoMigrations, dir)
+	}
 	if err := ensureMigrationTable(context.Background(), db, sqlDialect); err != nil {
 		return nil, fmt.Errorf("failed goose table %s check: %w", tableName, err)
 	}
@@ -209,7 +252,20 @@ func collectMigrations(fsys fs.FS, dir string) (Migrations, error) {
 		return nil, fmt.Errorf("%s directory does not exist", dir)
 	}
 
-	var unorderedMigrations Migrations
+	unsortedMigrations := make(map[int64]*Migration)
+
+	checkDuplicate := func(version int64, filename string) error {
+		existing, ok := unsortedMigrations[version]
+		if ok {
+			return fmt.Errorf("found %w in version %d:\n\texisting:%v\n\tcurrent:%v",
+				ErrDuplicateMigrations,
+				version,
+				existing.Source,
+				filename,
+			)
+		}
+		return nil
+	}
 
 	// Collect all SQL migration files.
 	sqlMigrationFiles, err := fs.Glob(fsys, path.Join(dir, "*.sql"))
@@ -221,29 +277,54 @@ func collectMigrations(fsys fs.FS, dir string) (Migrations, error) {
 		if err != nil {
 			return nil, err
 		}
-		unorderedMigrations = append(unorderedMigrations, &Migration{
+		if err := checkDuplicate(version, fileName); err != nil {
+			return nil, err
+		}
+		unsortedMigrations[version] = &Migration{
 			Source:   fileName,
 			Version:  version,
 			Next:     -1,
 			Previous: -1,
-		})
-	}
-	// Collect Go migrations registered via goose.AddMigration().
-	for _, migration := range registeredGoMigrations {
-		if _, err := parseVersion(migration.Source); err != nil {
-			return nil, fmt.Errorf("could not parse go migration file %q: %w", migration.Source, err)
 		}
-		unorderedMigrations = append(unorderedMigrations, migration)
+	}
+	// Collect Go migrations registered via goose.Register().
+	for _, migration := range registeredGoMigrations {
+		version, err := parseVersion(migration.Source)
+		if err != nil {
+			return nil, err
+		}
+		if err := checkDuplicate(version, migration.Source); err != nil {
+			return nil, err
+		}
+		unsortedMigrations[version] = migration
 	}
 	// Sanity check the directory does not contain versioned Go migrations that have
 	// not been registred. This check ensures users didn't accidentally create a
 	// go migration file and forgot to register the migration.
 	//
-	// This is almost always a user error and they forgot to call: func init() { goose.AddMigration(..) }
+	// This is almost always a user error and they forgot to call: func init() { goose.Register(..) }
 	if err := checkUnregisteredGoMigrations(fsys, dir); err != nil {
 		return nil, err
 	}
-	return sortAndConnectMigrations(unorderedMigrations), nil
+	sortedMigrations := make(Migrations, 0, len(unsortedMigrations))
+	for _, migration := range unsortedMigrations {
+		sortedMigrations = append(sortedMigrations, migration)
+	}
+	// Sort migrations in ascending order by version id
+	sort.Slice(sortedMigrations, func(i, j int) bool {
+		return sortedMigrations[i].Version < sortedMigrations[j].Version
+	})
+	// Now that we're sorted in the appropriate direction,
+	// populate next and previous for each migration
+	for i, m := range sortedMigrations {
+		prev := int64(-1)
+		if i > 0 {
+			prev = sortedMigrations[i-1].Version
+			sortedMigrations[i-1].Next = m.Version
+		}
+		sortedMigrations[i].Previous = prev
+	}
+	return sortedMigrations, nil
 }
 
 func checkUnregisteredGoMigrations(fsys fs.FS, dir string) error {
@@ -643,18 +724,6 @@ func RegisterNoTx(up GoMigration, down GoMigration) error {
 	return register(filename, up, down, nil, nil)
 }
 
-// registerNamedMigration adds up and down go migrations that are run within a transaction.
-// TODO(mf): should these be exported to the user?
-func registerNamedMigration(filename string, up GoMigration, down GoMigration) error {
-	return register(filename, up, down, nil, nil)
-}
-
-// registerNamedMigrationNoTx adds up and down go migrations that are run outside a transaction.
-// TODO(mf): should these be exported to the user?
-func registerNamedMigrationNoTx(filename string, up GoMigrationNoTx, down GoMigrationNoTx) error {
-	return register(filename, nil, nil, up, down)
-}
-
 func register(
 	filename string,
 	up GoMigration,
@@ -684,8 +753,8 @@ func register(
 		Previous:   -1,
 		Registered: true,
 		Source:     filename,
-		DownFn:     down,
 		UpFn:       up,
+		DownFn:     down,
 		UpFnNoTx:   upNoTx,
 		DownFnNoTx: downNoTx,
 	}

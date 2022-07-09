@@ -8,9 +8,6 @@ import (
 	"strconv"
 )
 
-// Deprecated: VERSION will no longer be supported in v4.
-const VERSION = "v3.2.0"
-
 var (
 	minVersion      = int64(0)
 	maxVersion      = int64(math.MaxInt64)

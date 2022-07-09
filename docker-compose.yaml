@@ -1,0 +1,16 @@
+version: "3"
+
+services:
+  postgres:
+    image: postgres:14-alpine
+    shm_size: 2gb
+    environment:
+      - POSTGRES_USER=dbuser
+      - POSTGRES_PASSWORD=password1
+      - POSTGRES_DB=goosedb
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+    ports:
+      - "5433:5432"

@@ -7,7 +7,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v4"
+	_ "github.com/pressly/goose/v4/cmd/debug/migrations"
+
+	// _ "github.com/pressly/goose/v4/cmd/debug/migrationsb"
 	_ "modernc.org/sqlite"
 )
 
@@ -17,7 +20,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	p, err := goose.NewProvider(goose.DialectPostgres, db, "cmd/debug/migrations", nil)
+	p, err := goose.NewProvider(goose.DialectSqlite, db, "cmd/debug/migrations", nil)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
