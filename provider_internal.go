@@ -28,7 +28,6 @@ func (p *Provider) UpTo(ctx context.Context, version int64) error {
 func (p *Provider) Down(ctx context.Context) error {
 	if p.opt.NoVersioning {
 		currentVersion := p.migrations[len(p.migrations)-1].Version
-		fmt.Println(">>", currentVersion)
 		// Migrate only the latest migration down.
 		return p.downToNoVersioning(ctx, currentVersion-1)
 	}
@@ -45,7 +44,6 @@ func (p *Provider) Down(ctx context.Context) error {
 
 func (p *Provider) downToNoVersioning(ctx context.Context, version int64) error {
 	for i := len(p.migrations) - 1; i >= 0; i-- {
-		fmt.Println(version, p.migrations[i].Version)
 		if version >= p.migrations[i].Version {
 			return nil
 		}
@@ -93,15 +91,29 @@ func (p *Provider) DownTo(ctx context.Context, version int64) error {
 	}
 }
 
-// Redo reapplies the last migration. This is equivalent to running Down followed by UpByOne.
+// Redo reapplies the last migration by migrating down and then up.
 func (p *Provider) Redo(ctx context.Context) error {
-	if err := p.Down(ctx); err != nil {
+	var migration *Migration
+	var err error
+	if p.opt.NoVersioning {
+		migration, err = p.migrations.Last()
+		if err != nil {
+			return err
+		}
+	} else {
+		currentVersion, err := p.CurrentVersion(ctx)
+		if err != nil {
+			return err
+		}
+		migration, err = p.migrations.Current(currentVersion)
+		if err != nil {
+			return err
+		}
+	}
+	if err := p.startMigration(ctx, false, migration); err != nil {
 		return err
 	}
-	if err := p.UpByOne(ctx); err != nil {
-		return err
-	}
-	return nil
+	return p.startMigration(ctx, true, migration)
 }
 
 // Reset applies all down migrations. This is equivalent to running DownTo 0.

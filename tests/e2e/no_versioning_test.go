@@ -30,14 +30,11 @@ func TestNoVersioning(t *testing.T) {
 	baseVersion, err := p.CurrentVersion(ctx)
 	check.NoError(t, err)
 
-	noVersionProvider, err := goose.NewProvider(
-		toDialect(t, *dialect),
-		db,
-		seedDir,
-		&goose.Options{
-			NoVersioning: true,
-		},
-	)
+	// Create a separate provider
+	options := &goose.Options{
+		NoVersioning: true,
+	}
+	noVersionProvider, err := goose.NewProvider(toDialect(t, *dialect), db, seedDir, options)
 	check.NoError(t, err)
 
 	t.Run("seed-up-down-to-zero", func(t *testing.T) {

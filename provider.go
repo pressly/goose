@@ -32,6 +32,15 @@ type Provider struct {
 	dialect    dialect.SQL
 }
 
+// Apply applies a migration at a given version up. This is only useful for testing.
+func (p *Provider) Apply(ctx context.Context, version int64) error {
+	migration, err := p.migrations.Current(version)
+	if err != nil {
+		return err
+	}
+	return p.startMigration(ctx, true, migration)
+}
+
 func (p *Provider) ListMigrations() Migrations {
 	return p.migrations
 }
@@ -306,7 +315,6 @@ func (p *Provider) up(ctx context.Context, upByOne bool, version int64) error {
 		return fmt.Errorf("version must be a number greater than zero: %d", version)
 	}
 	if p.opt.NoVersioning {
-		fmt.Println("here", upByOne)
 		// This code path does not rely on database state to resolve which
 		// migrations have already been applied. Instead we blindly apply
 		// the requested migrations when user requests no versioning.
