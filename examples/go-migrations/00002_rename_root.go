@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	goose.AddMigration(Up00002, Down00002)
+	goose.Register(Up00002, Down00002)
 }
 
 func Up00002(tx *sql.Tx) error {

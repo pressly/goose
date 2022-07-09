@@ -1,16 +1,16 @@
 package goose
 
 import (
+	"context"
 	"database/sql"
 	"embed"
 	"fmt"
-	"io/fs"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/pressly/goose/v4/internal/check"
 	_ "modernc.org/sqlite"
 )
 
@@ -149,79 +149,38 @@ func TestCustomBinary(t *testing.T) {
 }
 
 //go:embed examples/sql-migrations/*.sql
-var migrations embed.FS
+var embedMigrations embed.FS
 
 func TestEmbeddedMigrations(t *testing.T) {
-	// not using t.Parallel here to avoid races
-	db, err := sql.Open("sqlite", "sql_embed.db")
-	if err != nil {
-		t.Fatalf("Database open failed: %s", err)
-	}
-	t.Cleanup(func() {
-		if err := os.Remove("./sql_embed.db"); err != nil {
-			t.Logf("failed to remove %s resouces: %v", t.Name(), err)
-		}
-	})
+	t.Parallel()
 
+	ctx := context.Background()
+	db, err := sql.Open("sqlite", ":memory:")
+	check.NoError(t, err)
 	db.SetMaxOpenConns(1)
 
-	// decouple from existing structure
-	fsys, err := fs.Sub(migrations, "examples/sql-migrations")
-	if err != nil {
-		t.Fatalf("SubFS make failed: %s", err)
+	options := &Options{
+		Filesystem: embedMigrations,
 	}
+	p, err := NewProvider(DialectSqlite, db, "examples/sql-migrations", options)
+	check.NoError(t, err)
 
-	SetBaseFS(fsys)
-	SetDialect("sqlite3")
-	t.Cleanup(func() { SetBaseFS(nil) })
+	t.Run("migration_cycle", func(t *testing.T) {
+		err := p.Up(ctx)
+		check.NoError(t, err)
+		currentVersion, err := p.CurrentVersion(ctx)
+		check.NoError(t, err)
+		check.Number(t, currentVersion, 3)
 
-	t.Run("Migration cycle", func(t *testing.T) {
-		if err := Up(db, ""); err != nil {
-			t.Errorf("Failed to run 'up' migrations: %s", err)
-		}
+		err = p.Reset(ctx)
+		check.NoError(t, err)
 
-		ver, err := GetDBVersion(db)
-		if err != nil {
-			t.Fatalf("Failed to get migrations version: %s", err)
-		}
-
-		if ver != 3 {
-			t.Errorf("Expected version 3 after 'up', got %d", ver)
-		}
-
-		if err := Reset(db, ""); err != nil {
-			t.Errorf("Failed to run 'down' migrations: %s", err)
-		}
-
-		ver, err = GetDBVersion(db)
-		if err != nil {
-			t.Fatalf("Failed to get migrations version: %s", err)
-		}
-
-		if ver != 0 {
-			t.Errorf("Expected version 0 after 'reset', got %d", ver)
-		}
+		currentVersion, err = p.CurrentVersion(ctx)
+		check.NoError(t, err)
+		check.Number(t, currentVersion, 0)
 	})
 
-	t.Run("Create uses os fs", func(t *testing.T) {
-		tmpDir := t.TempDir()
-
-		if err := Create(db, tmpDir, "test", "sql"); err != nil {
-			t.Errorf("Failed to create migration: %s", err)
-		}
-
-		paths, _ := filepath.Glob(filepath.Join(tmpDir, "*test.sql"))
-		if len(paths) == 0 {
-			t.Errorf("Failed to find created migration")
-		}
-
-		if err := Fix(tmpDir); err != nil {
-			t.Errorf("Failed to 'fix' migrations: %s", err)
-		}
-
-		_, err = os.Stat(filepath.Join(tmpDir, "00001_test.sql"))
-		if err != nil {
-			t.Errorf("Failed to locate fixed migration: %s", err)
-		}
+	t.Run("create_uses_os_fs", func(t *testing.T) {
+		// TODO(mf): add this test back.
 	})
 }

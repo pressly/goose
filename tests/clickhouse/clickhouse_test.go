@@ -1,6 +1,7 @@
 package clickhouse_test
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"path/filepath"
@@ -13,15 +14,21 @@ import (
 	"github.com/pressly/goose/v4/internal/testdb"
 )
 
+const (
+	defaultTableName = "goose_db_version"
+)
+
 func TestClickUpDownAll(t *testing.T) {
 	t.Parallel()
 
+	ctx := context.Background()
 	migrationDir := filepath.Join("testdata", "migrations")
 	db, cleanup, err := testdb.NewClickHouse()
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
 
-	goose.SetDialect("clickhouse")
+	p, err := goose.NewProvider(goose.DialectClickHouse, db, migrationDir, nil)
+	check.NoError(t, err)
 
 	retryCheckTableMutation := func(table string) func() error {
 		return func() error {
@@ -54,28 +61,28 @@ func TestClickUpDownAll(t *testing.T) {
 
 	// Collect migrations so we don't have to hard-code the currentVersion
 	// in an assertion later in the test.
-	migrations, err := goose.CollectMigrations(migrationDir, 0, goose.MaxVersion)
-	check.NoError(t, err)
+	migrations := p.ListMigrations()
+	check.NumberNotZero(t, len(migrations))
 
-	currentVersion, err := goose.GetDBVersion(db)
+	currentVersion, err := p.CurrentVersion(ctx)
 	check.NoError(t, err)
 	check.Number(t, currentVersion, 0)
 
-	err = goose.Up(db, migrationDir)
+	err = p.Up(ctx)
 	check.NoError(t, err)
-	currentVersion, err = goose.GetDBVersion(db)
+	currentVersion, err = p.CurrentVersion(ctx)
 	check.NoError(t, err)
 	check.Number(t, currentVersion, len(migrations))
 
-	err = goose.DownTo(db, migrationDir, 0)
+	err = p.DownTo(ctx, 0)
 	check.NoError(t, err)
 	err = retry.Do(
-		retryCheckTableMutation(goose.TableName()),
+		retryCheckTableMutation(defaultTableName),
 		retry.Delay(1*time.Second),
 	)
 	check.NoError(t, err)
 
-	currentVersion, err = goose.GetDBVersion(db)
+	currentVersion, err = p.CurrentVersion(ctx)
 	check.NoError(t, err)
 	check.Number(t, currentVersion, 0)
 }
@@ -83,17 +90,19 @@ func TestClickUpDownAll(t *testing.T) {
 func TestClickHouseFirstThree(t *testing.T) {
 	t.Parallel()
 
+	ctx := context.Background()
 	migrationDir := filepath.Join("testdata", "migrations")
 	db, cleanup, err := testdb.NewClickHouse()
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
 
-	goose.SetDialect("clickhouse")
-
-	err = goose.Up(db, migrationDir)
+	p, err := goose.NewProvider(goose.DialectClickHouse, db, migrationDir, nil)
 	check.NoError(t, err)
 
-	currentVersion, err := goose.GetDBVersion(db)
+	err = p.Up(ctx)
+	check.NoError(t, err)
+
+	currentVersion, err := p.CurrentVersion(ctx)
 	check.NoError(t, err)
 	check.Number(t, currentVersion, 3)
 
@@ -153,16 +162,18 @@ func TestRemoteImportMigration(t *testing.T) {
 	// We may want to host this ourselves. Or just don't bother with SOURCE(HTTP(URL..
 	// and craft a long INSERT statement.
 
+	ctx := context.Background()
 	migrationDir := filepath.Join("testdata", "migrations-remote")
 	db, cleanup, err := testdb.NewClickHouse()
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
 
-	goose.SetDialect("clickhouse")
-
-	err = goose.Up(db, migrationDir)
+	p, err := goose.NewProvider(goose.DialectClickHouse, db, migrationDir, nil)
 	check.NoError(t, err)
-	_, err = goose.GetDBVersion(db)
+
+	err = p.Up(ctx)
+	check.NoError(t, err)
+	_, err = p.CurrentVersion(ctx)
 	check.NoError(t, err)
 
 	var count int

@@ -25,9 +25,6 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	if err := p.Status(ctx); err != nil {
-		log.Fatal(err)
-	}
 	if err := p.Up(ctx); err != nil {
 		log.Fatal(err)
 	}

@@ -1,94 +1,73 @@
 package goose
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
 )
 
-// Down rolls back a single migration from the current version.
-func Down(db *sql.DB, dir string, opts ...OptionsFunc) error {
-	option := &options{}
-	for _, f := range opts {
-		f(option)
-	}
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
-	if err != nil {
-		return err
-	}
-	if option.noVersioning {
-		if len(migrations) == 0 {
-			return nil
-		}
-		currentVersion := migrations[len(migrations)-1].Version
+// Down migrates the last known database version down.
+func (p *Provider) Down(ctx context.Context) error {
+	if p.opt.NoVersioning {
+		currentVersion := p.migrations[len(p.migrations)-1].Version
 		// Migrate only the latest migration down.
-		return downToNoVersioning(db, migrations, currentVersion-1)
+		return p.downToNoVersioning(ctx, currentVersion-1)
 	}
-	currentVersion, err := GetDBVersion(db)
+	currentVersion, err := p.CurrentVersion(ctx)
 	if err != nil {
 		return err
 	}
-	current, err := migrations.Current(currentVersion)
+	migration, err := p.migrations.Current(currentVersion)
 	if err != nil {
-		return fmt.Errorf("no migration %v", currentVersion)
+		return fmt.Errorf("failed to find migration:%d", currentVersion)
 	}
-	return current.Down(db)
+	return p.startMigration(ctx, false, migration)
 }
 
-// DownTo rolls back migrations to a specific version.
-func DownTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
-	option := &options{}
-	for _, f := range opts {
-		f(option)
-	}
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
-	if err != nil {
-		return err
-	}
-	if option.noVersioning {
-		return downToNoVersioning(db, migrations, version)
-	}
-
-	for {
-		currentVersion, err := GetDBVersion(db)
-		if err != nil {
-			return err
-		}
-
-		if currentVersion == 0 {
-			log.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
+func (p *Provider) downToNoVersioning(ctx context.Context, version int64) error {
+	for i := len(p.migrations) - 1; i >= 0; i-- {
+		if version >= p.migrations[i].Version {
 			return nil
 		}
-		current, err := migrations.Current(currentVersion)
-		if err != nil {
-			log.Printf("goose: migration file not found for current version (%d), error: %s\n", currentVersion, err)
-			return err
-		}
-
-		if current.Version <= version {
-			log.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
-			return nil
-		}
-
-		if err = current.Down(db); err != nil {
+		if err := p.startMigration(ctx, false, p.migrations[i]); err != nil {
 			return err
 		}
 	}
-}
-
-// downToNoVersioning applies down migrations down to, but not including, the
-// target version.
-func downToNoVersioning(db *sql.DB, migrations Migrations, version int64) error {
-	var finalVersion int64
-	for i := len(migrations) - 1; i >= 0; i-- {
-		if version >= migrations[i].Version {
-			finalVersion = migrations[i].Version
-			break
-		}
-		migrations[i].noVersioning = true
-		if err := migrations[i].Down(db); err != nil {
-			return err
-		}
-	}
-	log.Printf("goose: down to current file version: %d\n", finalVersion)
 	return nil
+}
+
+func (p *Provider) DownTo(ctx context.Context, version int64) error {
+	if p.opt.NoVersioning {
+		return p.downToNoVersioning(ctx, version)
+	}
+
+	// Down migrations always use the database version as a
+	// reference which migrations to roll back
+	// This becomes important when we have out of order migrations
+	// Example 1,4 then 2,3,5 got applied. The db versions are:
+	// 1,4,2,3,5
+
+	// Should the down be 5,3,2,4,1
+	// Or do we construct the version and walk it backwards
+	// 5,4,3,2,1
+	// I think the most accurate way is to migrate down based on the initial order that was applied.
+	for {
+		currentVersion, err := p.CurrentVersion(ctx)
+		if err != nil {
+			return err
+		}
+		if currentVersion == 0 {
+			return nil
+		}
+		current, err := p.migrations.Current(currentVersion)
+		if err != nil {
+			return err
+		}
+		if current.Version <= version {
+			// TODO(mf): this logic ?
+			return nil
+		}
+		if err := p.startMigration(ctx, false, current); err != nil {
+			return err
+		}
+	}
 }

@@ -60,9 +60,11 @@ func main() {
 
 	switch args[0] {
 	case "init":
-		if err := gooseInit(*dir); err != nil {
+		filename, err := gooseInit(*dir)
+		if err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
+		log.Printf("created new file: %s\n", filename)
 		return
 	case "create":
 		_ = *sequential
@@ -243,7 +245,7 @@ SELECT 'down SQL query';
 `))
 
 // initDir will create a directory with an empty SQL migration file.
-func gooseInit(dir string) error {
+func gooseInit(dir string) (string, error) {
 	if dir == "" || dir == defaultMigrationDir {
 		dir = "migrations"
 	}
@@ -251,14 +253,14 @@ func gooseInit(dir string) error {
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
 	case err == nil, errors.Is(err, fs.ErrExist):
-		return fmt.Errorf("directory already exists: %s", dir)
+		return "", fmt.Errorf("directory already exists: %s", dir)
 	default:
-		return err
+		return "", err
 	}
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err
+		return "", err
 	}
-	return goose.CreateWithTemplate(nil, dir, sqlMigrationTemplate, "initial", "sql")
+	return goose.CreateWithTemplate(dir, sqlMigrationTemplate, "initial", "sql", true)
 }
 
 func run(command string, p *goose.Provider, dir string, args []string) error {
@@ -323,9 +325,7 @@ func run(command string, p *goose.Provider, dir string, args []string) error {
 			return err
 		}
 	case "status":
-		if err := p.Status(ctx); err != nil {
-			return err
-		}
+		// TODO(mf): implement
 	case "version":
 		currentVersion, err := p.CurrentVersion(ctx)
 		if err != nil {
