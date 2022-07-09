@@ -168,16 +168,16 @@ func TestEmbeddedMigrations(t *testing.T) {
 	t.Run("migration_cycle", func(t *testing.T) {
 		err := p.Up(ctx)
 		check.NoError(t, err)
-		currentVersion, err := p.CurrentVersion(ctx)
+		dbVersion, err := p.GetDBVersion(ctx)
 		check.NoError(t, err)
-		check.Number(t, currentVersion, 3)
+		check.Number(t, dbVersion, 3)
 
 		err = p.Reset(ctx)
 		check.NoError(t, err)
 
-		currentVersion, err = p.CurrentVersion(ctx)
+		dbVersion, err = p.GetDBVersion(ctx)
 		check.NoError(t, err)
-		check.Number(t, currentVersion, 0)
+		check.Number(t, dbVersion, 0)
 	})
 
 	t.Run("create_uses_os_fs", func(t *testing.T) {

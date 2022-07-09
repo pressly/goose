@@ -2,8 +2,8 @@ package goose
 
 import "context"
 
-// CurrentVersion prints the current version of the database.
-func (p *Provider) CurrentVersion(ctx context.Context) (int64, error) {
+// GetDBVersion returns the current version of the database.
+func (p *Provider) GetDBVersion(ctx context.Context) (int64, error) {
 	var migrationRow migrationRow
 	err := p.db.QueryRowContext(
 		ctx,

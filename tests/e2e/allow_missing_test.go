@@ -25,9 +25,9 @@ func TestNotAllowMissing(t *testing.T) {
 	// Developer A - migration 7 (mistakenly applied)
 	err = p.Apply(ctx, 7)
 	check.NoError(t, err)
-	currentVersion, err := p.CurrentVersion(ctx)
+	dbVersion, err := p.GetDBVersion(ctx)
 	check.NoError(t, err)
-	check.Number(t, currentVersion, 7)
+	check.Number(t, dbVersion, 7)
 
 	// Developer B - migration 6 (missing) and 8 (new)
 	// This should raise an error. By default goose does not allow missing (out-of-order)
@@ -36,9 +36,9 @@ func TestNotAllowMissing(t *testing.T) {
 	check.HasError(t, err)
 	check.Contains(t, err.Error(), "missing migrations")
 	// Confirm db version is unchanged.
-	currentVersion, err = p.CurrentVersion(ctx)
+	dbVersion, err = p.GetDBVersion(ctx)
 	check.NoError(t, err)
-	check.Number(t, currentVersion, 7)
+	check.Number(t, dbVersion, 7)
 }
 
 func TestAllowMissingUpWithRedo(t *testing.T) {
@@ -58,30 +58,30 @@ func TestAllowMissingUpWithRedo(t *testing.T) {
 	{
 		err := p.Apply(ctx, 7)
 		check.NoError(t, err)
-		current, err := p.CurrentVersion(ctx)
+		current, err := p.GetDBVersion(ctx)
 		check.NoError(t, err)
 		check.Number(t, current, 7)
 
 		// Redo the previous Up migration and re-apply it.
 		err = p.Redo(ctx)
 		check.NoError(t, err)
-		currentVersion, err := p.CurrentVersion(ctx)
+		dbVersion, err := p.GetDBVersion(ctx)
 		check.NoError(t, err)
-		check.Number(t, currentVersion, 7)
+		check.Number(t, dbVersion, 7)
 	}
 	// Migration 6
 	{
 		err := p.UpByOne(ctx)
 		check.NoError(t, err)
-		currentVersion, err := p.CurrentVersion(ctx)
+		dbVersion, err := p.GetDBVersion(ctx)
 		check.NoError(t, err)
-		check.Number(t, currentVersion, 6)
+		check.Number(t, dbVersion, 6)
 
 		err = p.Redo(ctx)
 		check.NoError(t, err)
-		currentVersion, err = p.CurrentVersion(ctx)
+		dbVersion, err = p.GetDBVersion(ctx)
 		check.NoError(t, err)
-		check.Number(t, currentVersion, 6)
+		check.Number(t, dbVersion, 6)
 	}
 }
 
@@ -108,9 +108,9 @@ func TestNotAllowMissingUpByOne(t *testing.T) {
 	{
 		err = p.Apply(ctx, 7)
 		check.NoError(t, err)
-		currentVersion, err := p.CurrentVersion(ctx)
+		dbVersion, err := p.GetDBVersion(ctx)
 		check.NoError(t, err)
-		check.Number(t, currentVersion, 7)
+		check.Number(t, dbVersion, 7)
 	}
 	// Developer B - migration 6
 	{
@@ -124,10 +124,10 @@ func TestNotAllowMissingUpByOne(t *testing.T) {
 		check.NoError(t, err)
 		check.Number(t, count, 6)
 
-		currentVersion, err := p.CurrentVersion(ctx)
+		dbVersion, err := p.GetDBVersion(ctx)
 		check.NoError(t, err)
 		// Expecting max(version_id) to be 7
-		check.Number(t, currentVersion, 7)
+		check.Number(t, dbVersion, 7)
 	}
 }
 
@@ -157,9 +157,9 @@ func TestAllowMissingUpWithReset(t *testing.T) {
 	{
 		err := p.Apply(ctx, 7)
 		check.NoError(t, err)
-		currentVersion, err := p.CurrentVersion(ctx)
+		dbVersion, err := p.GetDBVersion(ctx)
 		check.NoError(t, err)
-		check.Number(t, currentVersion, 7)
+		check.Number(t, dbVersion, 7)
 	}
 	// Developer B - migration 6 (missing) and 8 (new)
 	{
@@ -179,7 +179,7 @@ func TestAllowMissingUpWithReset(t *testing.T) {
 		// Count should be all testdata migrations (all applied)
 		check.Number(t, count, len(allMigrations))
 
-		current, err := p.CurrentVersion(ctx)
+		current, err := p.GetDBVersion(ctx)
 		check.NoError(t, err)
 		// Expecting max(version_id) to be highest version in testdata
 		check.Number(t, current, maxVersionID)
@@ -188,9 +188,9 @@ func TestAllowMissingUpWithReset(t *testing.T) {
 	// Migrate everything down using Reset.
 	err = p.Reset(ctx)
 	check.NoError(t, err)
-	currentVersion, err := p.CurrentVersion(ctx)
+	dbVersion, err := p.GetDBVersion(ctx)
 	check.NoError(t, err)
-	check.Number(t, currentVersion, 0)
+	check.Number(t, dbVersion, 0)
 }
 
 func TestAllowMissingUpByOne(t *testing.T) {
@@ -219,7 +219,7 @@ func TestAllowMissingUpByOne(t *testing.T) {
 	{
 		err = p.Apply(ctx, 7)
 		check.NoError(t, err)
-		current, err := p.CurrentVersion(ctx)
+		current, err := p.GetDBVersion(ctx)
 		check.NoError(t, err)
 		check.Number(t, current, 7)
 	}
@@ -233,10 +233,10 @@ func TestAllowMissingUpByOne(t *testing.T) {
 		// Expecting count of migrations to be 7
 		check.Number(t, count, 7)
 
-		currentVersion, err := p.CurrentVersion(ctx)
+		dbVersion, err := p.GetDBVersion(ctx)
 		check.NoError(t, err)
 		// Expecting max(version_id) to be 6
-		check.Number(t, currentVersion, 6)
+		check.Number(t, dbVersion, 6)
 	}
 	// Developer B - migration 8
 	{
@@ -249,10 +249,10 @@ func TestAllowMissingUpByOne(t *testing.T) {
 		// Expecting count of migrations to be 8
 		check.Number(t, count, 8)
 
-		currentVersion, err := p.CurrentVersion(ctx)
+		dbVersion, err := p.GetDBVersion(ctx)
 		check.NoError(t, err)
 		// Expecting max(version_id) to be 8
-		check.Number(t, currentVersion, 8)
+		check.Number(t, dbVersion, 8)
 	}
 }
 
@@ -273,7 +273,7 @@ func TestMigrateAllowMissingDown(t *testing.T) {
 	{
 		err := p.Apply(ctx, 7)
 		check.NoError(t, err)
-		current, err := p.CurrentVersion(ctx)
+		current, err := p.GetDBVersion(ctx)
 		check.NoError(t, err)
 		check.Number(t, current, 7)
 	}
@@ -289,7 +289,7 @@ func TestMigrateAllowMissingDown(t *testing.T) {
 		count, err := getGooseVersionCount(db, defaultTableName)
 		check.NoError(t, err)
 		check.Number(t, count, 8)
-		current, err := p.CurrentVersion(ctx)
+		current, err := p.GetDBVersion(ctx)
 		check.NoError(t, err)
 		// Expecting max(version_id) to be 8
 		check.Number(t, current, 8)
@@ -303,7 +303,7 @@ func TestMigrateAllowMissingDown(t *testing.T) {
 	{
 		err := p.Down(ctx)
 		check.NoError(t, err)
-		current, err := p.CurrentVersion(ctx)
+		current, err := p.GetDBVersion(ctx)
 		check.NoError(t, err)
 		// Expecting max(version) to be 6
 		check.Number(t, current, 6)
@@ -312,7 +312,7 @@ func TestMigrateAllowMissingDown(t *testing.T) {
 	{
 		err := p.Down(ctx)
 		check.NoError(t, err)
-		current, err := p.CurrentVersion(ctx)
+		current, err := p.GetDBVersion(ctx)
 		check.NoError(t, err)
 		// Expecting max(version) to be 7
 		check.Number(t, current, 7)
@@ -321,7 +321,7 @@ func TestMigrateAllowMissingDown(t *testing.T) {
 	{
 		err := p.Down(ctx)
 		check.NoError(t, err)
-		current, err := p.CurrentVersion(ctx)
+		current, err := p.GetDBVersion(ctx)
 		check.NoError(t, err)
 		// Expecting max(version) to be 5
 		check.Number(t, current, 5)
@@ -340,8 +340,8 @@ func setupTestDB(t *testing.T, version int64) *sql.DB {
 	check.NoError(t, err)
 	// Verify the currentVersion DB version is the Nth migration. This will only
 	// work for sqeuentially applied migrations.
-	currentVersion, err := p.CurrentVersion(ctx)
+	dbVersion, err := p.GetDBVersion(ctx)
 	check.NoError(t, err)
-	check.Number(t, currentVersion, version)
+	check.Number(t, dbVersion, version)
 	return db
 }

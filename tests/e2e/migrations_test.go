@@ -28,22 +28,22 @@ func TestMigrateUpWithReset(t *testing.T) {
 	// Migrate all
 	err = p.Up(ctx)
 	check.NoError(t, err)
-	currentVersion, err := p.CurrentVersion(ctx)
+	dbVersion, err := p.GetDBVersion(ctx)
 	check.NoError(t, err)
-	check.Number(t, currentVersion, migrations[len(migrations)-1].Version)
+	check.Number(t, dbVersion, migrations[len(migrations)-1].Version)
 	// Validate the db migration version actually matches what goose claims it is
 	// based on the last migration applied.
 	gotVersion, err := getCurrentGooseVersion(db, defaultTableName)
 	check.NoError(t, err)
 
-	check.Number(t, gotVersion, currentVersion)
+	check.Number(t, gotVersion, dbVersion)
 
 	// Migrate everything down using Reset.
 	err = p.Reset(ctx)
 	check.NoError(t, err)
-	currentVersion, err = p.CurrentVersion(ctx)
+	dbVersion, err = p.GetDBVersion(ctx)
 	check.NoError(t, err)
-	check.Number(t, currentVersion, 0)
+	check.Number(t, dbVersion, 0)
 }
 
 func TestMigrateUpWithRedo(t *testing.T) {
@@ -56,9 +56,9 @@ func TestMigrateUpWithRedo(t *testing.T) {
 	p, err := goose.NewProvider(toDialect(t, *dialect), db, migrationsDir, nil)
 	check.NoError(t, err)
 
-	currentVersion, err := p.CurrentVersion(ctx)
+	dbVersion, err := p.GetDBVersion(ctx)
 	check.NoError(t, err)
-	check.Number(t, currentVersion, 0)
+	check.Number(t, dbVersion, 0)
 
 	var count int
 	for {
@@ -71,24 +71,24 @@ func TestMigrateUpWithRedo(t *testing.T) {
 			t.Fatalf("expecting error:%v", goose.ErrNoNextVersion)
 		}
 
-		currentVersion, err := p.CurrentVersion(ctx)
+		dbVersion, err := p.GetDBVersion(ctx)
 		check.NoError(t, err)
-		check.Number(t, currentVersion, count)
+		check.Number(t, dbVersion, count)
 
 		// Redo the previous Up migration and re-apply it.
 		err = p.Redo(ctx)
 		check.NoError(t, err)
 
-		currentVersion, err = p.CurrentVersion(ctx)
+		dbVersion, err = p.GetDBVersion(ctx)
 		check.NoError(t, err)
-		check.Number(t, currentVersion, count)
+		check.Number(t, dbVersion, count)
 	}
 	migrations := p.ListMigrations()
 	// Once everything is tested the version should match the highest testdata version
 	maxVersion := migrations[len(migrations)-1].Version
-	currentVersion, err = p.CurrentVersion(ctx)
+	dbVersion, err = p.GetDBVersion(ctx)
 	check.NoError(t, err)
-	check.Number(t, currentVersion, maxVersion)
+	check.Number(t, dbVersion, maxVersion)
 }
 
 func TestMigrateUpTo(t *testing.T) {
@@ -107,9 +107,9 @@ func TestMigrateUpTo(t *testing.T) {
 	err = p.UpTo(ctx, upToVersion)
 	check.NoError(t, err)
 	// Fetch the goose version from DB
-	currentVersion, err := p.CurrentVersion(ctx)
+	dbVersion, err := p.GetDBVersion(ctx)
 	check.NoError(t, err)
-	check.Number(t, currentVersion, upToVersion)
+	check.Number(t, dbVersion, upToVersion)
 	// Validate the version actually matches what goose claims it is
 	gotVersion, err := getCurrentGooseVersion(db, defaultTableName)
 	check.NoError(t, err)
@@ -143,13 +143,13 @@ func TestMigrateUpByOne(t *testing.T) {
 		}
 		counter++
 	}
-	currentVersion, err := p.CurrentVersion(ctx)
+	dbVersion, err := p.GetDBVersion(ctx)
 	check.NoError(t, err)
-	check.Number(t, currentVersion, migrations[len(migrations)-1].Version)
+	check.Number(t, dbVersion, migrations[len(migrations)-1].Version)
 	// Validate the db migration version actually matches what goose claims it is
 	gotVersion, err := getCurrentGooseVersion(db, defaultTableName)
 	check.NoError(t, err)
-	check.Number(t, gotVersion, currentVersion)
+	check.Number(t, gotVersion, dbVersion)
 }
 
 func TestMigrateFull(t *testing.T) {
@@ -193,13 +193,13 @@ func TestMigrateFull(t *testing.T) {
 		// Apply all up migrations
 		err = p.Up(ctx)
 		check.NoError(t, err)
-		currentVersion, err := p.CurrentVersion(ctx)
+		dbVersion, err := p.GetDBVersion(ctx)
 		check.NoError(t, err)
-		check.Number(t, currentVersion, migrations[len(migrations)-1].Version)
+		check.Number(t, dbVersion, migrations[len(migrations)-1].Version)
 		// Validate the db migration version actually matches what goose claims it is
 		gotVersion, err := getCurrentGooseVersion(db, defaultTableName)
 		check.NoError(t, err)
-		check.Number(t, gotVersion, currentVersion)
+		check.Number(t, gotVersion, dbVersion)
 		tables, err := getTableNames(db)
 		check.NoError(t, err)
 		if !reflect.DeepEqual(tables, knownTables) {

@@ -12,11 +12,11 @@ func (p *Provider) Redo(ctx context.Context) error {
 			return err
 		}
 	} else {
-		currentVersion, err := p.CurrentVersion(ctx)
+		dbVersion, err := p.GetDBVersion(ctx)
 		if err != nil {
 			return err
 		}
-		migration, err = p.migrations.Current(currentVersion)
+		migration, err = p.migrations.Current(dbVersion)
 		if err != nil {
 			return err
 		}

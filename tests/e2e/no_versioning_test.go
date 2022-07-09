@@ -27,7 +27,7 @@ func TestNoVersioning(t *testing.T) {
 
 	err = p.Up(ctx)
 	check.NoError(t, err)
-	baseVersion, err := p.CurrentVersion(ctx)
+	baseVersion, err := p.GetDBVersion(ctx)
 	check.NoError(t, err)
 
 	// Create a separate provider
@@ -43,9 +43,9 @@ func TestNoVersioning(t *testing.T) {
 			err = noVersionProvider.Up(ctx)
 			check.NoError(t, err)
 			// Confirm no changes to the versioned schema in the DB
-			currentVersion, err := p.CurrentVersion(ctx)
+			dbVersion, err := p.GetDBVersion(ctx)
 			check.NoError(t, err)
-			check.Number(t, baseVersion, currentVersion)
+			check.Number(t, baseVersion, dbVersion)
 			seedOwnerCount, err := countSeedOwners(db)
 			check.NoError(t, err)
 			check.Number(t, seedOwnerCount, wantSeedOwnerCount)
@@ -56,9 +56,9 @@ func TestNoVersioning(t *testing.T) {
 			err = noVersionProvider.DownTo(ctx, 0)
 			check.NoError(t, err)
 			// Confirm no changes to the versioned schema in the DB
-			currentVersion, err := p.CurrentVersion(ctx)
+			dbVersion, err := p.GetDBVersion(ctx)
 			check.NoError(t, err)
-			check.Number(t, baseVersion, currentVersion)
+			check.Number(t, baseVersion, dbVersion)
 			seedOwnerCount, err := countSeedOwners(db)
 			check.NoError(t, err)
 			check.Number(t, seedOwnerCount, 0)
@@ -77,9 +77,9 @@ func TestNoVersioning(t *testing.T) {
 			err = noVersionProvider.Up(ctx)
 			check.NoError(t, err)
 			// Confirm no changes to the versioned schema in the DB
-			currentVersion, err := p.CurrentVersion(ctx)
+			dbVersion, err := p.GetDBVersion(ctx)
 			check.NoError(t, err)
-			check.Number(t, baseVersion, currentVersion)
+			check.Number(t, baseVersion, dbVersion)
 			seedOwnerCount, err := countSeedOwners(db)
 			check.NoError(t, err)
 			check.Number(t, seedOwnerCount, wantSeedOwnerCount)
@@ -90,9 +90,9 @@ func TestNoVersioning(t *testing.T) {
 			err = noVersionProvider.Reset(ctx)
 			check.NoError(t, err)
 			// Confirm no changes to the versioned schema in the DB
-			currentVersion, err := p.CurrentVersion(ctx)
+			dbVersion, err := p.GetDBVersion(ctx)
 			check.NoError(t, err)
-			check.Number(t, baseVersion, currentVersion)
+			check.Number(t, baseVersion, dbVersion)
 			seedOwnerCount, err := countSeedOwners(db)
 			check.NoError(t, err)
 			check.Number(t, seedOwnerCount, 0)
@@ -111,9 +111,9 @@ func TestNoVersioning(t *testing.T) {
 			err = noVersionProvider.Up(ctx)
 			check.NoError(t, err)
 			// Confirm no changes to the versioned schema in the DB
-			currentVersion, err := p.CurrentVersion(ctx)
+			dbVersion, err := p.GetDBVersion(ctx)
 			check.NoError(t, err)
-			check.Number(t, baseVersion, currentVersion)
+			check.Number(t, baseVersion, dbVersion)
 			seedOwnerCount, err := countSeedOwners(db)
 			check.NoError(t, err)
 			check.Number(t, seedOwnerCount, wantSeedOwnerCount)
@@ -124,9 +124,9 @@ func TestNoVersioning(t *testing.T) {
 			err = noVersionProvider.Redo(ctx)
 			check.NoError(t, err)
 			// Confirm no changes to the versioned schema in the DB
-			currentVersion, err := p.CurrentVersion(ctx)
+			dbVersion, err := p.GetDBVersion(ctx)
 			check.NoError(t, err)
-			check.Number(t, baseVersion, currentVersion)
+			check.Number(t, baseVersion, dbVersion)
 			seedOwnerCount, err := countSeedOwners(db)
 			check.NoError(t, err)
 			check.Number(t, seedOwnerCount, wantSeedOwnerCount) // owners should be unchanged

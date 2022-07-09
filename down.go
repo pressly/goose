@@ -12,13 +12,13 @@ func (p *Provider) Down(ctx context.Context) error {
 		// Migrate only the latest migration down.
 		return p.downToNoVersioning(ctx, currentVersion-1)
 	}
-	currentVersion, err := p.CurrentVersion(ctx)
+	dbVersion, err := p.GetDBVersion(ctx)
 	if err != nil {
 		return err
 	}
-	migration, err := p.migrations.Current(currentVersion)
+	migration, err := p.migrations.Current(dbVersion)
 	if err != nil {
-		return fmt.Errorf("failed to find migration:%d", currentVersion)
+		return fmt.Errorf("failed to find migration:%d", dbVersion)
 	}
 	return p.startMigration(ctx, false, migration)
 }
@@ -51,14 +51,14 @@ func (p *Provider) DownTo(ctx context.Context, version int64) error {
 	// 5,4,3,2,1
 	// I think the most accurate way is to migrate down based on the initial order that was applied.
 	for {
-		currentVersion, err := p.CurrentVersion(ctx)
+		dbVersion, err := p.GetDBVersion(ctx)
 		if err != nil {
 			return err
 		}
-		if currentVersion == 0 {
+		if dbVersion == 0 {
 			return nil
 		}
-		current, err := p.migrations.Current(currentVersion)
+		current, err := p.migrations.Current(dbVersion)
 		if err != nil {
 			return err
 		}

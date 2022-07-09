@@ -48,7 +48,7 @@ func (p *Provider) up(ctx context.Context, upByOne bool, version int64) error {
 	var current int64
 	for {
 		var err error
-		current, err = p.CurrentVersion(ctx)
+		current, err = p.GetDBVersion(ctx)
 		if err != nil {
 			return err
 		}
@@ -108,13 +108,13 @@ func (p *Provider) upAllowMissing(
 		// want to keep it as a safe-guard. Maybe we should instead have
 		// the underlying query (if possible) return the current version as
 		// part of the same transaction.
-		currentVersion, err := p.CurrentVersion(ctx)
+		dbVersion, err := p.GetDBVersion(ctx)
 		if err != nil {
 			return err
 		}
-		if currentVersion != missing.Version {
+		if dbVersion != missing.Version {
 			return fmt.Errorf("error: missing migration:%d does not match current db version:%d",
-				currentVersion, missing.Version)
+				dbVersion, missing.Version)
 		}
 
 		lookupApplied[missing.Version] = true

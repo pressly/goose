@@ -342,11 +342,11 @@ func run(command string, p *goose.Provider, dir string, args []string) error {
 	case "status":
 		// TODO(mf): implement
 	case "version":
-		currentVersion, err := p.CurrentVersion(ctx)
+		dbVersion, err := p.GetDBVersion(ctx)
 		if err != nil {
 			return err
 		}
-		log.Printf("goose: version %v\n", currentVersion)
+		log.Printf("goose: version %v\n", dbVersion)
 	default:
 		return fmt.Errorf("%q: no such command", command)
 	}

@@ -59,20 +59,20 @@ func TestClickUpDownAll(t *testing.T) {
 		Ref: https://clickhouse.com/blog/how-to-update-data-in-click-house/
 	*/
 
-	// Collect migrations so we don't have to hard-code the currentVersion
+	// Collect migrations so we don't have to hard-code the dbVersion
 	// in an assertion later in the test.
 	migrations := p.ListMigrations()
 	check.NumberNotZero(t, len(migrations))
 
-	currentVersion, err := p.CurrentVersion(ctx)
+	dbVersion, err := p.GetDBVersion(ctx)
 	check.NoError(t, err)
-	check.Number(t, currentVersion, 0)
+	check.Number(t, dbVersion, 0)
 
 	err = p.Up(ctx)
 	check.NoError(t, err)
-	currentVersion, err = p.CurrentVersion(ctx)
+	dbVersion, err = p.GetDBVersion(ctx)
 	check.NoError(t, err)
-	check.Number(t, currentVersion, len(migrations))
+	check.Number(t, dbVersion, len(migrations))
 
 	err = p.DownTo(ctx, 0)
 	check.NoError(t, err)
@@ -82,9 +82,9 @@ func TestClickUpDownAll(t *testing.T) {
 	)
 	check.NoError(t, err)
 
-	currentVersion, err = p.CurrentVersion(ctx)
+	dbVersion, err = p.GetDBVersion(ctx)
 	check.NoError(t, err)
-	check.Number(t, currentVersion, 0)
+	check.Number(t, dbVersion, 0)
 }
 
 func TestClickHouseFirstThree(t *testing.T) {
@@ -102,9 +102,9 @@ func TestClickHouseFirstThree(t *testing.T) {
 	err = p.Up(ctx)
 	check.NoError(t, err)
 
-	currentVersion, err := p.CurrentVersion(ctx)
+	dbVersion, err := p.GetDBVersion(ctx)
 	check.NoError(t, err)
-	check.Number(t, currentVersion, 3)
+	check.Number(t, dbVersion, 3)
 
 	type result struct {
 		customerID     string    `db:"customer_id"`
@@ -173,7 +173,7 @@ func TestRemoteImportMigration(t *testing.T) {
 
 	err = p.Up(ctx)
 	check.NoError(t, err)
-	_, err = p.CurrentVersion(ctx)
+	_, err = p.GetDBVersion(ctx)
 	check.NoError(t, err)
 
 	var count int
