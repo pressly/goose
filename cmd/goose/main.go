@@ -85,16 +85,31 @@ func main() {
 		return
 	}
 
-	driver, dbstring, command := args[0], args[1], args[2]
-	// To avoid breaking existing consumers, treat sqlite3 as sqlite.
-	// An implementation detail that consumers should not care which
-	// underlying driver is used. Internally uses the CGo-free port
-	// of SQLite: modernc.org/sqlite
-	if driver == "sqlite3" {
+	dbtype, dbstring, command := args[0], args[1], args[2]
+
+	var dialect goose.Dialect
+	driver := dbtype
+	switch dbtype {
+	case "postgres", "pgx":
+		dialect = goose.DialectPostgres
+		driver = "postgres"
+	case "sqlite3", "sqlite":
+		dialect = goose.DialectSqlite
 		driver = "sqlite"
+	case "mysql":
+		dialect = goose.DialectMySQL
+	case "mssql":
+		dialect = goose.DialectSQLServer
+	case "redshift":
+		dialect = goose.DialectRedshift
+	case "tidb":
+		dialect = goose.DialectTiDB
+	case "clickhouse":
+		dialect = goose.DialectClickHouse
+	default:
+		log.Fatalf("dialect unknown:%q", driver)
 	}
-	dialect := goose.DialectPostgres
-	db, err := sql.Open("postgres", dbstring)
+	db, err := sql.Open(driver, dbstring)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -169,7 +184,7 @@ GOOSE_DBSTRING=DBSTRING
 
 Usage: goose [OPTIONS] COMMAND
 
-Drivers:
+Dialects:
     postgres
     mysql
     sqlite3
