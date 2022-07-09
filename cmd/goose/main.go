@@ -66,14 +66,14 @@ func main() {
 		return
 	case "create":
 		_ = *sequential
-		if err := goose.Run("create", nil, *dir, args[1:]...); err != nil {
-			log.Fatalf("goose run: %v", err)
-		}
+		// if err := goose.Run("create", nil, *dir, args[1:]...); err != nil {
+		// 	log.Fatalf("goose run: %v", err)
+		// }
 		return
 	case "fix":
-		if err := goose.Run("fix", nil, *dir); err != nil {
-			log.Fatalf("goose run: %v", err)
-		}
+		// if err := goose.Run("fix", nil, *dir); err != nil {
+		// 	log.Fatalf("goose run: %v", err)
+		// }
 		return
 	}
 
