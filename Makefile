@@ -9,15 +9,15 @@ dist:
 	GOOS=windows GOARCH=386   go build -o ./bin/goose-windows386.exe ./cmd/goose
 
 test-packages:
-	go test -v $$(go list ./... | grep -v -e /tests -e /bin -e /cmd -e /examples)
+	go test -race -v $$(go list ./... | grep -v -e /tests -e /bin -e /cmd -e /examples)
 
 test-e2e: test-e2e-postgres test-e2e-mysql
 
 test-e2e-postgres:
-	go test -v ./tests/e2e -dialect=postgres
+	go test -race -v ./tests/e2e -dialect=postgres
 
 test-e2e-mysql:
-	go test -v ./tests/e2e -dialect=mysql
+	go test -race -v ./tests/e2e -dialect=mysql
 
 test-clickhouse:
 	go test -timeout=10m -count=1 -race -v ./tests/clickhouse -test.short

@@ -134,9 +134,7 @@ type Options struct {
 }
 
 func (o *Options) setDefaults() {
-	fmt.Println("here?1")
 	if o.Filesystem == nil {
-		fmt.Println("here?")
 		o.Filesystem = osFS{}
 	}
 	if o.Logger == nil {
