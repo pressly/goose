@@ -23,12 +23,13 @@ var (
 	verbose      = flags.Bool("v", false, "enable verbose mode")
 	help         = flags.Bool("h", false, "print help")
 	version      = flags.Bool("version", false, "print version")
-	certfile     = flags.String("certfile", "", "file path to root CA's certificates in pem format (only support on mysql)")
 	sequential   = flags.Bool("s", false, "use sequential numbering for new migrations")
 	allowMissing = flags.Bool("allow-missing", false, "applies missing (out-of-order) migrations")
-	sslcert      = flags.String("ssl-cert", "", "file path to SSL certificates in pem format (only support on mysql)")
-	sslkey       = flags.String("ssl-key", "", "file path to SSL key in pem format (only support on mysql)")
 	noVersioning = flags.Bool("no-versioning", false, "apply migration commands with no versioning, in file order, from directory pointed to")
+
+	certfile = flags.String("certfile", "", "file path to root CA's certificates in pem format (only support on mysql)")
+	sslcert  = flags.String("ssl-cert", "", "file path to SSL certificates in pem format (only support on mysql)")
+	sslkey   = flags.String("ssl-key", "", "file path to SSL key in pem format (only support on mysql)")
 )
 var (
 	gooseVersion = ""
@@ -45,13 +46,6 @@ func main() {
 		fmt.Printf("goose version:%s\n", gooseVersion)
 		return
 	}
-	if *verbose {
-		goose.SetVerbose(true)
-	}
-	if *sequential {
-		goose.SetSequential(true)
-	}
-	goose.SetTableName(*table)
 
 	args := flags.Args()
 	if len(args) == 0 || *help {
@@ -71,6 +65,7 @@ func main() {
 		}
 		return
 	case "create":
+		_ = *sequential
 		if err := goose.Run("create", nil, *dir, args[1:]...); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
