@@ -4,5 +4,5 @@
 package main
 
 import (
-	_ "github.com/lib/pq"
+	_ "github.com/jackc/pgx/v4/stdlib"
 )
