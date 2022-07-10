@@ -6,6 +6,7 @@ import (
 	"log"
 	"strconv"
 
+	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 )
@@ -80,7 +81,7 @@ func newPostgres(opts ...OptionsFunc) (*sql.DB, func(), error) {
 	if err := pool.Retry(
 		func() error {
 			var err error
-			db, err = sql.Open("postgres", psqlInfo)
+			db, err = sql.Open("pgx", psqlInfo)
 			if err != nil {
 				return err
 			}
