@@ -86,12 +86,14 @@ func main() {
 	}
 
 	driver, dbstring, command := args[0], args[1], args[2]
-	// To avoid breaking existing consumers, treat sqlite3 as sqlite.
-	// An implementation detail that consumers should not care which
-	// underlying driver is used. Internally uses the CGo-free port
-	// of SQLite: modernc.org/sqlite
+	// To avoid breaking existing consumers. An implementation detail
+	// that consumers should not care which underlying driver is used.
 	if driver == "sqlite3" {
+		//  Internally uses the CGo-free port of SQLite: modernc.org/sqlite
 		driver = "sqlite"
+	}
+	if driver == "postgres" {
+		driver = "pgx"
 	}
 	db, err := goose.OpenDBWithDriver(driver, normalizeDBString(driver, dbstring, *certfile, *sslcert, *sslkey))
 	if err != nil {
