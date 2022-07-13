@@ -29,17 +29,17 @@ func (*stdLogger) Print(v ...interface{})                 { std.Print(v...) }
 func (*stdLogger) Println(v ...interface{})               { std.Println(v...) }
 func (*stdLogger) Printf(format string, v ...interface{}) { std.Printf(format, v...) }
 
-// DiscardLogger returns a logger that discards all logged output.
-func DiscardLogger() Logger {
-	return &discardLogger{}
+// NopLogger returns a logger that discards all logged output.
+func NopLogger() Logger {
+	return &nopLogger{}
 }
 
-type discardLogger struct{}
+type nopLogger struct{}
 
-var _ Logger = (*discardLogger)(nil)
+var _ Logger = (*nopLogger)(nil)
 
-func (*discardLogger) Fatal(v ...interface{})                 {}
-func (*discardLogger) Fatalf(format string, v ...interface{}) {}
-func (*discardLogger) Print(v ...interface{})                 {}
-func (*discardLogger) Println(v ...interface{})               {}
-func (*discardLogger) Printf(format string, v ...interface{}) {}
+func (*nopLogger) Fatal(v ...interface{})                 {}
+func (*nopLogger) Fatalf(format string, v ...interface{}) {}
+func (*nopLogger) Print(v ...interface{})                 {}
+func (*nopLogger) Println(v ...interface{})               {}
+func (*nopLogger) Printf(format string, v ...interface{}) {}
