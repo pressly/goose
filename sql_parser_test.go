@@ -74,6 +74,25 @@ func TestSplitStatements(t *testing.T) {
 	}
 }
 
+func TestKeepEmptyLines(t *testing.T) {
+	stmts, _, err := parseSQLMigration(strings.NewReader(emptyLineSQL), true)
+	if err != nil {
+		t.Errorf("Failed to parse SQL migration. %v", err)
+	}
+	expected := `INSERT INTO post (id, title, body)
+VALUES ('id_01', 'my_title', '
+this is an insert statement including empty lines.
+
+empty (blank) lines can be meaningful.
+
+leave the lines to keep the text syntax.
+');
+`
+	if stmts[0] != expected {
+		t.Errorf("incorrect stmts. got %v, want %v", stmts, expected)
+	}
+}
+
 func TestUseTransactions(t *testing.T) {
 	t.Parallel()
 
@@ -136,6 +155,20 @@ SELECT 4;           -- 4th stmt
 -- +goose Down
 -- comment
 DROP TABLE post;    -- 1st stmt
+`
+
+var emptyLineSQL = `-- +goose Up
+INSERT INTO post (id, title, body)
+VALUES ('id_01', 'my_title', '
+this is an insert statement including empty lines.
+
+empty (blank) lines can be meaningful.
+
+leave the lines to keep the text syntax.
+');
+
+-- +goose Down
+TRUNCATE TABLE post; 
 `
 
 var functxt = `-- +goose Up
