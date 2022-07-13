@@ -1,4 +1,4 @@
-package goose
+package sqlparser
 
 import (
 	"fmt"
@@ -55,7 +55,7 @@ func TestSplitStatements(t *testing.T) {
 
 	for i, test := range tt {
 		// up
-		stmts, _, err := parseSQLMigration(strings.NewReader(test.sql), true)
+		stmts, _, err := ParseSQLMigration(strings.NewReader(test.sql), true, false)
 		if err != nil {
 			t.Error(fmt.Errorf("tt[%v] unexpected error: %w", i, err))
 		}
@@ -64,7 +64,7 @@ func TestSplitStatements(t *testing.T) {
 		}
 
 		// down
-		stmts, _, err = parseSQLMigration(strings.NewReader(test.sql), false)
+		stmts, _, err = ParseSQLMigration(strings.NewReader(test.sql), false, false)
 		if err != nil {
 			t.Error(fmt.Errorf("tt[%v] unexpected error: %w", i, err))
 		}
@@ -75,7 +75,7 @@ func TestSplitStatements(t *testing.T) {
 }
 
 func TestKeepEmptyLines(t *testing.T) {
-	stmts, _, err := parseSQLMigration(strings.NewReader(emptyLineSQL), true)
+	stmts, _, err := ParseSQLMigration(strings.NewReader(emptyLineSQL), true, false)
 	if err != nil {
 		t.Errorf("Failed to parse SQL migration. %v", err)
 	}
@@ -112,7 +112,7 @@ func TestUseTransactions(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		_, useTx, err := parseSQLMigration(f, true)
+		_, useTx, err := ParseSQLMigration(f, true, false)
 		if err != nil {
 			t.Error(err)
 		}
@@ -132,7 +132,7 @@ func TestParsingErrors(t *testing.T) {
 		downFirst,
 	}
 	for i, sql := range tt {
-		_, _, err := parseSQLMigration(strings.NewReader(sql), true)
+		_, _, err := ParseSQLMigration(strings.NewReader(sql), true, false)
 		if err == nil {
 			t.Errorf("expected error on tt[%v] %q", i, sql)
 		}
