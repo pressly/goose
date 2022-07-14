@@ -120,15 +120,18 @@ func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 				default:
 					return nil, false, errors.New("'-- +goose StatementEnd' must be defined after '-- +goose StatementBegin', see https://github.com/pressly/goose#sql-migrations")
 				}
+				continue
 
 			case "+goose NO TRANSACTION":
 				useTx = false
 				continue
 
 			default:
-				// Ignore comments.
-				verboseInfo("StateMachine: ignore comment")
-				continue
+				if !firstLineFound {
+					// Ignore comments.
+					verboseInfo("StateMachine: ignore comment")
+					continue
+				}
 			}
 		}
 
