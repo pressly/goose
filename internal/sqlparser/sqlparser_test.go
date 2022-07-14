@@ -417,7 +417,7 @@ func testValidUp(t *testing.T, count int, dir string) {
 		if !strings.HasSuffix(goldenFile.Name(), ".golden.sql") {
 			t.Fatalf("expecting golden file of the format <name>.golden.sql: got: %q", goldenFile.Name())
 		}
-		before, _, ok := strings.Cut(goldenFile.Name(), ".")
+		before, _, ok := cut(goldenFile.Name(), ".")
 		if !ok {
 			t.Fatal(`failed to cut on file delimiter ".", must be of the format NN.golden.sql`)
 		}
@@ -445,6 +445,15 @@ func testValidUp(t *testing.T, count int, dir string) {
 			}
 		}
 	}
+}
+
+// copied directly from strings.Cut (go1.18) to support older Go versions.
+// In the future, replace this with the upstream function.
+func cut(s, sep string) (before, after string, found bool) {
+	if i := strings.Index(s, sep); i >= 0 {
+		return s[:i], s[i+len(sep):], true
+	}
+	return s, "", false
 }
 
 func isCIEnvironment() bool {
