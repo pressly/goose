@@ -432,13 +432,26 @@ func testValidUp(t *testing.T, count int, dir string) {
 		got, want := strings.TrimSpace(ss[index]), strings.TrimSpace(string(by))
 
 		if got != want {
-			t.Error("input does not match expected output; diff files in the following dir suffixed with .FAIL to debug")
-			t.Logf("diff %v %v",
-				goldenFilePath+".FAIL",
-				goldenFilePath,
-			)
-			err := ioutil.WriteFile(goldenFilePath+".FAIL", []byte(got), 0644)
-			check.NoError(t, err)
+			if isCIEnvironment() {
+				t.Fatalf("input does not match expected golden file:\n\ngot:\n%s\n\nwant:\n%s\n", got, want)
+			} else {
+				t.Error("input does not match expected output; diff files in the following dir suffixed with .FAIL to debug")
+				t.Logf("diff %v %v",
+					goldenFilePath+".FAIL",
+					goldenFilePath,
+				)
+				err := ioutil.WriteFile(goldenFilePath+".FAIL", []byte(got), 0644)
+				check.NoError(t, err)
+			}
 		}
 	}
+}
+
+func isCIEnvironment() bool {
+	if s := os.Getenv("CI"); s != "" {
+		if ok, err := strconv.ParseBool(s); err == nil && ok {
+			return true
+		}
+	}
+	return false
 }
