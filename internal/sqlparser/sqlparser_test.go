@@ -395,6 +395,7 @@ func TestValidUp(t *testing.T) {
 	testValidUp(t, 3, filepath.Join(path, "test01"))
 	testValidUp(t, 1, filepath.Join(path, "test02"))
 	testValidUp(t, 1, filepath.Join(path, "test03"))
+	testValidUp(t, 2, filepath.Join(path, "test04"))
 }
 
 func testValidUp(t *testing.T, count int, dir string) {
