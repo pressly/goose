@@ -140,9 +140,9 @@ func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 			continue
 		}
 
-		// In the above switch statement this falls through, but we do not want to
-		// print this.
-		if line != "+goose StatementEnd" {
+		// In the above switch statement this particular state falls through, but we do
+		// not want to print this along with the statement.
+		if line != "-- +goose StatementEnd" {
 			// Write SQL line to a buffer.
 			if _, err := buf.WriteString(line + "\n"); err != nil {
 				return nil, false, fmt.Errorf("failed to write to buf: %w", err)
