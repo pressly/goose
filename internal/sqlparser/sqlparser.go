@@ -140,7 +140,7 @@ func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 			continue
 		}
 
-		// In the above switch statement this particular state falls through, but we do
+		// In the above switch statement this state falls through, but we do
 		// not want to print this along with the statement.
 		if line != "-- +goose StatementEnd" {
 			// Write SQL line to a buffer.
@@ -209,10 +209,34 @@ func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 	}
 
 	if bufferRemaining := strings.TrimSpace(buf.String()); len(bufferRemaining) > 0 {
-		return nil, false, fmt.Errorf("failed to parse migration: state %q, direction: %v: unexpected unfinished SQL query: %q: missing semicolon?", stateMachine, direction, bufferRemaining)
+		// Do a second pass over the buffered output to check for valid states that do
+		// not require a statement delimiter.
+		ok, err := containsOnlyComments(buf.String())
+		if err != nil {
+			return nil, false, fmt.Errorf("failed to parse migration: internal error checking unterminated statements: %w", err)
+		}
+		if !ok {
+			// The buffer contains at least one statement that is not terminated.
+			return nil, false, fmt.Errorf("failed to parse migration: state %q, direction: %v: unexpected unfinished SQL query: %q: missing semicolon?", stateMachine, direction, bufferRemaining)
+		}
 	}
 
 	return stmts, useTx, nil
+}
+
+func containsOnlyComments(s string) (bool, error) {
+	sc := bufio.NewScanner(strings.NewReader(s))
+	for sc.Scan() {
+		// Remove leading whitespace and check if beginning of the
+		// line contains a comment.
+		if !strings.HasPrefix(strings.TrimLeft(sc.Text(), " "), "--") {
+			return false, nil
+		}
+	}
+	if err := sc.Err(); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // Checks the line to see if the line has a statement-ending semicolon
