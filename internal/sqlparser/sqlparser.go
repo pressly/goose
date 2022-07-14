@@ -120,7 +120,6 @@ func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 				default:
 					return nil, false, errors.New("'-- +goose StatementEnd' must be defined after '-- +goose StatementBegin', see https://github.com/pressly/goose#sql-migrations")
 				}
-				continue
 
 			case "+goose NO TRANSACTION":
 				useTx = false
@@ -141,9 +140,13 @@ func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 			continue
 		}
 
-		// Write SQL line to a buffer.
-		if _, err := buf.WriteString(line + "\n"); err != nil {
-			return nil, false, fmt.Errorf("failed to write to buf: %w", err)
+		// In the above switch statement this falls through, but we do not want to
+		// print this.
+		if line != "+goose StatementEnd" {
+			// Write SQL line to a buffer.
+			if _, err := buf.WriteString(line + "\n"); err != nil {
+				return nil, false, fmt.Errorf("failed to write to buf: %w", err)
+			}
 		}
 
 		// Read SQL body one by line, if we're in the right direction.
