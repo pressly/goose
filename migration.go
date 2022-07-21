@@ -85,11 +85,6 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 		if !m.Registered {
 			return fmt.Errorf("ERROR %v: failed to run Go migration: Go functions must be registered and built into a custom binary (see https://github.com/pressly/goose/tree/master/examples/go-migrations)", m.Source)
 		}
-		tx, err := db.Begin()
-		if err != nil {
-			return fmt.Errorf("ERROR failed to begin transaction: %w", err)
-		}
-
 		fn := m.UpFn
 		fnNoTx := m.UpFnNoTx
 		if !direction {
@@ -97,41 +92,49 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 			fnNoTx = m.DownFnNoTx
 		}
 
-		if fn != nil {
-			// Run Go migration function.
-			if err := fn(tx); err != nil {
-				tx.Rollback()
-				return fmt.Errorf("ERROR %v: failed to run Go migration function %T: %w", filepath.Base(m.Source), fn, err)
-			}
-		}
-
 		if fnNoTx != nil {
 			// Run Go migration function with *sql.DB
 			if err := fnNoTx(db); err != nil {
-				tx.Rollback()
 				return fmt.Errorf("ERROR %v: failed to run Go migration function %T: %w", filepath.Base(m.Source), fnNoTx, err)
 			}
-		}
-
-		if !m.noVersioning {
-			if direction {
-				if _, err := tx.Exec(GetDialect().insertVersionSQL(), m.Version, direction); err != nil {
-					tx.Rollback()
-					return fmt.Errorf("ERROR failed to execute transaction: %w", err)
-				}
-			} else {
-				if _, err := tx.Exec(GetDialect().deleteVersionSQL(), m.Version); err != nil {
-					tx.Rollback()
-					return fmt.Errorf("ERROR failed to execute transaction: %w", err)
-				}
+			if m.noVersioning {
+				return nil
 			}
-		}
-
-		if err := tx.Commit(); err != nil {
-			return fmt.Errorf("ERROR failed to commit transaction: %w", err)
+			return insertOrDeleteVersionNoTx(db, direction, m.Version)
 		}
 
 		if fn != nil {
+			// Run Go migration function.
+			tx, err := db.Begin()
+			if err != nil {
+				return fmt.Errorf("ERROR failed to begin transaction: %w", err)
+			}
+			if err := fn(tx); err != nil {
+				if outerErr := tx.Rollback(); outerErr != nil {
+					return fmt.Errorf("failed to run go migration: %s: %w: rollback error: %v",
+						filepath.Base(m.Source),
+						err,
+						outerErr,
+					)
+				}
+				return fmt.Errorf("ERROR %v: failed to run Go migration function %T: %w", filepath.Base(m.Source), fn, err)
+			}
+			if !m.noVersioning {
+				if err := insertOrDeleteVersion(tx, direction, m.Version); err != nil {
+					if outerErr := tx.Rollback(); outerErr != nil {
+						return fmt.Errorf("failed to insert version: %s: %w: rollback error: %v",
+							filepath.Base(m.Source),
+							err,
+							outerErr,
+						)
+					}
+					return err
+				}
+			}
+			return tx.Commit()
+		}
+
+		if fn != nil || fnNoTx != nil {
 			log.Println("OK   ", filepath.Base(m.Source))
 		} else {
 			log.Println("EMPTY", filepath.Base(m.Source))
@@ -141,6 +144,26 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 	}
 
 	return nil
+}
+
+func insertOrDeleteVersionNoTx(db *sql.DB, direction bool, version int64) error {
+	if direction {
+		if _, err := db.Exec(GetDialect().insertVersionSQL(), version, direction); err != nil {
+			return err
+		}
+	}
+	_, err := db.Exec(GetDialect().deleteVersionSQL(), version)
+	return err
+}
+
+func insertOrDeleteVersion(tx *sql.Tx, direction bool, version int64) error {
+	if direction {
+		if _, err := tx.Exec(GetDialect().insertVersionSQL(), version, direction); err != nil {
+			return err
+		}
+	}
+	_, err := tx.Exec(GetDialect().deleteVersionSQL(), version)
+	return err
 }
 
 // NumericComponent looks for migration scripts with names in the form:
