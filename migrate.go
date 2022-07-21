@@ -123,15 +123,31 @@ func (ms Migrations) String() string {
 }
 
 // AddMigration adds a migration.
-func AddMigration(up func(*sql.Tx) error, down func(*sql.Tx) error) {
+func AddMigration(up GoMigration, down GoMigration) {
 	_, filename, _, _ := runtime.Caller(1)
 	AddNamedMigration(filename, up, down)
 }
 
+func AddMigrationNoTx(up GoMigrationNoTx, down GoMigrationNoTx) {
+	_, filename, _, _ := runtime.Caller(1)
+	AddNamedMigrationNoTx(filename, up, down)
+}
+
 // AddNamedMigration : Add a named migration.
-func AddNamedMigration(filename string, up func(*sql.Tx) error, down func(*sql.Tx) error) {
+func AddNamedMigration(filename string, up GoMigration, down GoMigration) {
 	v, _ := NumericComponent(filename)
 	migration := &Migration{Version: v, Next: -1, Previous: -1, Registered: true, UpFn: up, DownFn: down, Source: filename}
+
+	if existing, ok := registeredGoMigrations[v]; ok {
+		panic(fmt.Sprintf("failed to add migration %q: version conflicts with %q", filename, existing.Source))
+	}
+
+	registeredGoMigrations[v] = migration
+}
+
+func AddNamedMigrationNoTx(filename string, up GoMigrationNoTx, down GoMigrationNoTx) {
+	v, _ := NumericComponent(filename)
+	migration := &Migration{Version: v, Next: -1, Previous: -1, Registered: true, UpFnNoTx: up, DownFnNoTx: down, Source: filename}
 
 	if existing, ok := registeredGoMigrations[v]; ok {
 		panic(fmt.Sprintf("failed to add migration %q: version conflicts with %q", filename, existing.Source))

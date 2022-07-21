@@ -17,6 +17,12 @@ type MigrationRecord struct {
 	IsApplied bool // was this a result of up() or down()
 }
 
+// GoMigration is a go migration func that is run within a transaction.
+type GoMigration func(tx *sql.Tx) error
+
+// GoMigrationNoTx is a go migration funt that is run outside a transaction.
+type GoMigrationNoTx func(db *sql.DB) error
+
 // Migration struct.
 type Migration struct {
 	Version      int64
@@ -24,8 +30,10 @@ type Migration struct {
 	Previous     int64  // previous version, -1 if none
 	Source       string // path to .sql script or go file
 	Registered   bool
-	UpFn         func(*sql.Tx) error // Up go migration function
-	DownFn       func(*sql.Tx) error // Down go migration function
+	UpFn         GoMigration     // Up go migration function
+	DownFn       GoMigration     // Down go migration function
+	UpFnNoTx     GoMigrationNoTx // Up go migration function with sql.DB
+	DownFnNoTx   GoMigrationNoTx // Down go migration function with sql.DB
 	noVersioning bool
 }
 
@@ -83,8 +91,10 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 		}
 
 		fn := m.UpFn
+		fnNoTx := m.UpFnNoTx
 		if !direction {
 			fn = m.DownFn
+			fnNoTx = m.DownFnNoTx
 		}
 
 		if fn != nil {
@@ -94,6 +104,15 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 				return fmt.Errorf("ERROR %v: failed to run Go migration function %T: %w", filepath.Base(m.Source), fn, err)
 			}
 		}
+
+		if fnNoTx != nil {
+			// Run Go migration function with *sql.DB
+			if err := fnNoTx(db); err != nil {
+				tx.Rollback()
+				return fmt.Errorf("ERROR %v: failed to run Go migration function %T: %w", filepath.Base(m.Source), fnNoTx, err)
+			}
+		}
+
 		if !m.noVersioning {
 			if direction {
 				if _, err := tx.Exec(GetDialect().insertVersionSQL(), m.Version, direction); err != nil {
