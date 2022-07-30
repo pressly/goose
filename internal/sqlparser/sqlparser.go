@@ -140,6 +140,8 @@ func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 			continue
 		}
 
+		fmt.Printf(">> %-3v %-8v %-16v %-6v\n", stateMachine.Get(), line == "", endsWithSemicolon(line), line)
+
 		// In the above switch statement this state falls through, but we do
 		// not want to print this along with the statement.
 		if line != "-- +goose StatementEnd" {

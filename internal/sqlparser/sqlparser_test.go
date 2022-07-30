@@ -397,6 +397,7 @@ func TestValidUp(t *testing.T) {
 	// testValidUp(t, 1, filepath.Join(path, "test03"))
 	// testValidUp(t, 2, filepath.Join(path, "test04"))
 	testValidUp(t, 2, filepath.Join(path, "test05"))
+	// testValidUp(t, 3, filepath.Join(path, "test06"))
 }
 
 func testValidUp(t *testing.T, count int, dir string) {
@@ -435,7 +436,7 @@ func testValidUp(t *testing.T, count int, dir string) {
 
 		if got != want {
 			if isCIEnvironment() {
-				t.Fatalf("input does not match expected golden file:\n\ngot:\n%s\n\nwant:\n%s\n", got, want)
+				t.Errorf("input does not match expected golden file:\n\ngot:\n%s\n\nwant:\n%s\n", got, want)
 			} else {
 				t.Error("input does not match expected output; diff files in the following dir suffixed with .FAIL to debug")
 				t.Logf("diff %v %v",
