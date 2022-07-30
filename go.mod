@@ -10,7 +10,7 @@ require (
 	github.com/jackc/pgx/v4 v4.16.1
 	github.com/ory/dockertest/v3 v3.9.1
 	github.com/ziutek/mymysql v1.5.4
-	modernc.org/sqlite v1.17.3
+	modernc.org/sqlite v1.18.0
 )
 
 require (
