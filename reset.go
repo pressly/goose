@@ -1,13 +1,14 @@
 package goose
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"sort"
 )
 
-// Reset rolls back all migrations
-func Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
+// ResetCtx rolls back all migrations
+func ResetCtx(ctx context.Context, db *sql.DB, dir string, opts ...OptionsFunc) error {
 	option := &options{}
 	for _, f := range opts {
 		f(option)
@@ -30,12 +31,19 @@ func Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
 		if !statuses[migration.Version] {
 			continue
 		}
-		if err = migration.Down(db); err != nil {
+		if err = migration.DownCtx(ctx, db); err != nil {
 			return fmt.Errorf("failed to db-down: %w", err)
 		}
 	}
 
 	return nil
+}
+
+// Reset rolls back all migrations
+//
+// Reset uses context.Background internally; to specify the context, use ResetCtx.
+func Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
+	return ResetCtx(context.Background(), db, dir, opts...)
 }
 
 func dbMigrationsStatus(db *sql.DB) (map[int64]bool, error) {

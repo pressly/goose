@@ -1,6 +1,7 @@
 package goose
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"regexp"
@@ -15,20 +16,20 @@ import (
 //
 // All statements following an Up or Down directive are grouped together
 // until another direction directive is found.
-func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direction bool, noVersioning bool) error {
+func runSQLMigration(ctx context.Context, db *sql.DB, statements []string, useTx bool, v int64, direction bool, noVersioning bool) error {
 	if useTx {
 		// TRANSACTION.
 
 		verboseInfo("Begin transaction")
 
-		tx, err := db.Begin()
+		tx, err := db.BeginTx(ctx, nil)
 		if err != nil {
 			return fmt.Errorf("failed to begin transaction: %w", err)
 		}
 
 		for _, query := range statements {
 			verboseInfo("Executing statement: %s\n", clearStatement(query))
-			if err = execQuery(tx.Exec, query); err != nil {
+			if err = execQuery(ctx, tx.ExecContext, query); err != nil {
 				verboseInfo("Rollback transaction")
 				tx.Rollback()
 				return fmt.Errorf("failed to execute SQL query %q: %w", clearStatement(query), err)
@@ -37,13 +38,13 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 
 		if !noVersioning {
 			if direction {
-				if err := execQuery(tx.Exec, GetDialect().insertVersionSQL(), v, direction); err != nil {
+				if err := execQuery(ctx, tx.ExecContext, GetDialect().insertVersionSQL(), v, direction); err != nil {
 					verboseInfo("Rollback transaction")
 					tx.Rollback()
 					return fmt.Errorf("failed to insert new goose version: %w", err)
 				}
 			} else {
-				if err := execQuery(tx.Exec, GetDialect().deleteVersionSQL(), v); err != nil {
+				if err := execQuery(ctx, tx.ExecContext, GetDialect().deleteVersionSQL(), v); err != nil {
 					verboseInfo("Rollback transaction")
 					tx.Rollback()
 					return fmt.Errorf("failed to delete goose version: %w", err)
@@ -62,17 +63,17 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 	// NO TRANSACTION.
 	for _, query := range statements {
 		verboseInfo("Executing statement: %s", clearStatement(query))
-		if err := execQuery(db.Exec, query); err != nil {
+		if err := execQuery(ctx, db.ExecContext, query); err != nil {
 			return fmt.Errorf("failed to execute SQL query %q: %w", clearStatement(query), err)
 		}
 	}
 	if !noVersioning {
 		if direction {
-			if err := execQuery(db.Exec, GetDialect().insertVersionSQL(), v, direction); err != nil {
+			if err := execQuery(ctx, db.ExecContext, GetDialect().insertVersionSQL(), v, direction); err != nil {
 				return fmt.Errorf("failed to insert new goose version: %w", err)
 			}
 		} else {
-			if err := execQuery(db.Exec, GetDialect().deleteVersionSQL(), v); err != nil {
+			if err := execQuery(ctx, db.ExecContext, GetDialect().deleteVersionSQL(), v); err != nil {
 				return fmt.Errorf("failed to delete goose version: %w", err)
 			}
 		}
@@ -81,16 +82,16 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 	return nil
 }
 
-func execQuery(fn func(string, ...interface{}) (sql.Result, error), query string, args ...interface{}) error {
+func execQuery(ctx context.Context, fn func(context.Context, string, ...interface{}) (sql.Result, error), query string, args ...interface{}) error {
 	if !verbose {
-		_, err := fn(query, args...)
+		_, err := fn(ctx, query, args...)
 		return err
 	}
 
 	ch := make(chan error)
 
 	go func() {
-		_, err := fn(query, args...)
+		_, err := fn(ctx, query, args...)
 		ch <- err
 	}()
 
