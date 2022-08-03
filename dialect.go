@@ -39,6 +39,8 @@ func SetDialect(d string) error {
 		dialect = &TiDBDialect{}
 	case "clickhouse":
 		dialect = &ClickHouseDialect{}
+	case "vertica":
+		dialect = &VerticaDialect{}
 	default:
 		return fmt.Errorf("%q: unknown dialect", d)
 	}
@@ -321,4 +323,42 @@ func (m ClickHouseDialect) migrationSQL() string {
 
 func (m ClickHouseDialect) deleteVersionSQL() string {
 	return fmt.Sprintf("ALTER TABLE %s DELETE WHERE version_id = $1", TableName())
+}
+
+////////////////////////////
+// Vertica
+////////////////////////////
+
+// VerticaDialect struct.
+type VerticaDialect struct{}
+
+func (v VerticaDialect) createVersionTableSQL() string {
+	return fmt.Sprintf(`CREATE TABLE %s (
+                id identity(1,1) NOT NULL,
+                version_id bigint NOT NULL,
+                is_applied boolean NOT NULL,
+                tstamp timestamp NULL default now(),
+                PRIMARY KEY(id)
+            );`, TableName())
+}
+
+func (v VerticaDialect) insertVersionSQL() string {
+	return fmt.Sprintf("INSERT INTO %s (version_id, is_applied) VALUES (?, ?);", TableName())
+}
+
+func (v VerticaDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
+	rows, err := db.Query(fmt.Sprintf("SELECT version_id, is_applied from %s ORDER BY id DESC", TableName()))
+	if err != nil {
+		return nil, err
+	}
+
+	return rows, err
+}
+
+func (m VerticaDialect) migrationSQL() string {
+	return fmt.Sprintf("SELECT tstamp, is_applied FROM %s WHERE version_id=? ORDER BY tstamp DESC LIMIT 1", TableName())
+}
+
+func (v VerticaDialect) deleteVersionSQL() string {
+	return fmt.Sprintf("DELETE FROM %s WHERE version_id=?;", TableName())
 }
