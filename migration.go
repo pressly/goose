@@ -50,6 +50,8 @@ func (m *Migration) Down(db *sql.DB) error {
 }
 
 func (m *Migration) run(db *sql.DB, direction bool) error {
+	startTime := time.Now()
+
 	switch filepath.Ext(m.Source) {
 	case ".sql":
 		f, err := baseFS.Open(m.Source)
@@ -67,10 +69,12 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 			return fmt.Errorf("ERROR %v: failed to run SQL migration: %w", filepath.Base(m.Source), err)
 		}
 
+		diff := time.Since(startTime)
+
 		if len(statements) > 0 {
-			log.Println("OK   ", filepath.Base(m.Source))
+			log.Println("OK   ", filepath.Base(m.Source), fmt.Sprintf(`took %s`, diff.String()))
 		} else {
-			log.Println("EMPTY", filepath.Base(m.Source))
+			log.Println("EMPTY", filepath.Base(m.Source), fmt.Sprintf(`took %s`, diff.String()))
 		}
 
 	case ".go":
@@ -112,10 +116,12 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 			return fmt.Errorf("ERROR failed to commit transaction: %w", err)
 		}
 
+		diff := time.Since(startTime)
+
 		if fn != nil {
-			log.Println("OK   ", filepath.Base(m.Source))
+			log.Println("OK   ", filepath.Base(m.Source), fmt.Sprintf(`took %s`, diff.String()))
 		} else {
-			log.Println("EMPTY", filepath.Base(m.Source))
+			log.Println("EMPTY", filepath.Base(m.Source), fmt.Sprintf(`took %s`, diff.String()))
 		}
 
 		return nil
