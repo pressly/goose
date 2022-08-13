@@ -10,7 +10,7 @@ require (
 	github.com/jackc/pgx/v4 v4.16.1
 	github.com/ory/dockertest/v3 v3.9.1
 	github.com/ziutek/mymysql v1.5.4
-	modernc.org/sqlite v1.17.3
+	modernc.org/sqlite v1.18.1
 )
 
 require (
@@ -65,8 +65,8 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	lukechampine.com/uint128 v1.1.1 // indirect
 	modernc.org/cc/v3 v3.36.0 // indirect
-	modernc.org/ccgo/v3 v3.16.6 // indirect
-	modernc.org/libc v1.16.7 // indirect
+	modernc.org/ccgo/v3 v3.16.8 // indirect
+	modernc.org/libc v1.16.19 // indirect
 	modernc.org/mathutil v1.4.1 // indirect
 	modernc.org/memory v1.1.1 // indirect
 	modernc.org/opt v0.1.1 // indirect
