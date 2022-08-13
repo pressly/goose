@@ -16,7 +16,7 @@ import (
 const (
 	// https://hub.docker.com/r/clickhouse/clickhouse-server/
 	CLICKHOUSE_IMAGE   = "clickhouse/clickhouse-server"
-	CLICKHOUSE_VERSION = "22-alpine"
+	CLICKHOUSE_VERSION = "22.6-alpine"
 
 	CLICKHOUSE_DB                        = "clickdb"
 	CLICKHOUSE_USER                      = "clickuser"
