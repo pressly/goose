@@ -27,6 +27,10 @@ type Migration struct {
 	UpFn         func(*sql.Tx) error // Up go migration function
 	DownFn       func(*sql.Tx) error // Down go migration function
 	noVersioning bool
+
+	// state
+	IsApplied bool
+	TStamp    time.Time
 }
 
 func (m *Migration) String() string {
