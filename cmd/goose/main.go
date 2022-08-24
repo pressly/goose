@@ -82,7 +82,7 @@ func main() {
 	args = mergeArgs(args)
 	if len(args) < 3 {
 		flags.Usage()
-		return
+		os.Exit(1)
 	}
 
 	driver, dbstring, command := args[0], args[1], args[2]
