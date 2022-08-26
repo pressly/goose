@@ -231,7 +231,8 @@ func listAllDBVersions(db *sql.DB) (Migrations, error) {
 			return nil, err
 		}
 		all = append(all, &Migration{
-			Version: versionID,
+			Version:   versionID,
+			IsApplied: isApplied,
 		})
 	}
 	if err := rows.Close(); err != nil {

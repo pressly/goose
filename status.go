@@ -2,7 +2,6 @@ package goose
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -44,20 +43,27 @@ func Status(db *sql.DB, dir string, opts ...OptionsFunc) error {
 }
 
 func printMigrationStatus(db *sql.DB, version int64, script string) error {
-	row, err := GetMigrationRecord(db, version)
-	if err != nil {
-		return err
+	q := GetDialect().migrationSQL()
+
+	var row MigrationRecord
+
+	err := db.QueryRow(q, version).Scan(&row.TStamp, &row.IsApplied)
+	if err != nil && err != sql.ErrNoRows {
+		return fmt.Errorf("failed to query the latest migration: %w", err)
 	}
 
-	appliedAt := "Pending"
-	if row != nil && row.IsApplied {
+	var appliedAt string
+	if row.IsApplied {
 		appliedAt = row.TStamp.Format(time.ANSIC)
+	} else {
+		appliedAt = "Pending"
 	}
 
 	log.Printf("    %-24s -- %v\n", appliedAt, script)
 	return nil
 }
 
+// DefailedStatus returns all migrations with current applied status
 func DetailedStatus(db *sql.DB, dir string, opts ...OptionsFunc) (Migrations, error) {
 	option := &options{}
 	for _, f := range opts {
@@ -76,38 +82,23 @@ func DetailedStatus(db *sql.DB, dir string, opts ...OptionsFunc) (Migrations, er
 		return nil, fmt.Errorf("failed to ensure DB version: %w", err)
 	}
 
-	for i := range migrations {
-		record, err := GetMigrationRecord(db, migrations[i].Version)
-		if err != nil {
-			return nil, err
-		}
+	records, err := listAllDBVersions(db)
+	if err != nil {
+		return nil, fmt.Errorf("list db migrations: %w", err)
+	}
+	recordsMap := make(map[int64]Migration, len(records))
+	for i := range records {
+		recordsMap[records[i].Version] = *records[i]
+	}
 
-		if record == nil {
-			migrations[i].IsApplied = false
+	for i := range migrations {
+		record, ok := recordsMap[migrations[i].Version]
+		if !ok {
 			continue
 		}
 
 		migrations[i].IsApplied = record.IsApplied
-		migrations[i].TStamp = record.TStamp
 	}
 
 	return migrations, nil
-}
-
-// GetMigrationRecord - returns the migration record for a given version.
-// If no record is found, returns nil.
-func GetMigrationRecord(db *sql.DB, version int64) (*MigrationRecord, error) {
-	q := GetDialect().migrationSQL()
-
-	row := MigrationRecord{VersionID: version}
-
-	err := db.QueryRow(q, version).Scan(&row.TStamp, &row.IsApplied)
-	switch {
-	case errors.Is(err, sql.ErrNoRows):
-		return nil, nil
-	case err != nil:
-		return nil, fmt.Errorf("failed to query the latest migration: %w", err)
-	}
-
-	return &row, nil
 }
