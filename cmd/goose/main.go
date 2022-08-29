@@ -51,10 +51,17 @@ func main() {
 	goose.SetTableName(*table)
 
 	args := flags.Args()
-	if len(args) == 0 || *help {
+
+	if *help {
 		flags.Usage()
 		return
 	}
+
+	if len(args) == 0 {
+		flags.Usage()
+		os.Exit(1)
+	}
+
 	// The -dir option has not been set, check whether the env variable is set
 	// before defaulting to ".".
 	if *dir == defaultMigrationDir && os.Getenv(envGooseMigrationDir) != "" {
@@ -82,7 +89,7 @@ func main() {
 	args = mergeArgs(args)
 	if len(args) < 3 {
 		flags.Usage()
-		return
+		os.Exit(1)
 	}
 
 	driver, dbstring, command := args[0], args[1], args[2]
