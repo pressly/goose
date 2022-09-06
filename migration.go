@@ -100,7 +100,10 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 			if m.noVersioning {
 				return nil
 			}
-			return insertOrDeleteVersionNoTx(db, direction, m.Version)
+			if err := insertOrDeleteVersionNoTx(db, direction, m.Version); err != nil {
+				return fmt.Errorf("ERROR %v: failed to insert version with no tx: %w", filepath.Base(m.Source), err)
+			}
+			return nil
 		}
 
 		if fn != nil {
@@ -111,7 +114,7 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 			}
 			if err := fn(tx); err != nil {
 				if outerErr := tx.Rollback(); outerErr != nil {
-					return fmt.Errorf("failed to run go migration: %s: %w: rollback error: %v",
+					return fmt.Errorf("ERROR %v: failed to run go migration: rollback error: %s: %w",
 						filepath.Base(m.Source),
 						err,
 						outerErr,
@@ -122,7 +125,7 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 			if !m.noVersioning {
 				if err := insertOrDeleteVersion(tx, direction, m.Version); err != nil {
 					if outerErr := tx.Rollback(); outerErr != nil {
-						return fmt.Errorf("failed to insert version: %s: %w: rollback error: %v",
+						return fmt.Errorf("ERROR %v: failed to insert version: rollback error: %s: %w",
 							filepath.Base(m.Source),
 							err,
 							outerErr,
@@ -131,7 +134,10 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 					return err
 				}
 			}
-			return tx.Commit()
+			if err := tx.Commit(); err != nil {
+				return fmt.Errorf("ERROR %v: failed to run go migration: commit error : %T: %w", filepath.Base(m.Source), fn, err)
+			}
+			return nil
 		}
 
 		if fn != nil || fnNoTx != nil {
@@ -148,9 +154,8 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 
 func insertOrDeleteVersionNoTx(db *sql.DB, direction bool, version int64) error {
 	if direction {
-		if _, err := db.Exec(GetDialect().insertVersionSQL(), version, direction); err != nil {
-			return err
-		}
+		_, err := db.Exec(GetDialect().insertVersionSQL(), version, direction)
+		return err
 	}
 	_, err := db.Exec(GetDialect().deleteVersionSQL(), version)
 	return err
@@ -158,9 +163,8 @@ func insertOrDeleteVersionNoTx(db *sql.DB, direction bool, version int64) error 
 
 func insertOrDeleteVersion(tx *sql.Tx, direction bool, version int64) error {
 	if direction {
-		if _, err := tx.Exec(GetDialect().insertVersionSQL(), version, direction); err != nil {
-			return err
-		}
+		_, err := tx.Exec(GetDialect().insertVersionSQL(), version, direction)
+		return err
 	}
 	_, err := tx.Exec(GetDialect().deleteVersionSQL(), version)
 	return err
