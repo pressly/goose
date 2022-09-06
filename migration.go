@@ -103,7 +103,6 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 			if err := insertOrDeleteVersionNoTx(db, direction, m.Version); err != nil {
 				return fmt.Errorf("ERROR %v: failed to insert version with no tx: %w", filepath.Base(m.Source), err)
 			}
-			return nil
 		}
 
 		if fn != nil {
@@ -137,7 +136,6 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 			if err := tx.Commit(); err != nil {
 				return fmt.Errorf("ERROR %v: failed to run go migration: commit error : %T: %w", filepath.Base(m.Source), fn, err)
 			}
-			return nil
 		}
 
 		if fn != nil || fnNoTx != nil {
