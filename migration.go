@@ -50,6 +50,8 @@ func (m *Migration) Down(db *sql.DB) error {
 }
 
 func (m *Migration) run(db *sql.DB, direction bool) error {
+	startTime := time.Now()
+
 	switch filepath.Ext(m.Source) {
 	case ".sql":
 		f, err := baseFS.Open(m.Source)
@@ -68,7 +70,7 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 		}
 
 		if len(statements) > 0 {
-			log.Println("OK   ", filepath.Base(m.Source))
+			log.Printf("OK    %s (took %dms)\n", filepath.Base(m.Source), time.Now().Sub(startTime).Milliseconds())
 		} else {
 			log.Println("EMPTY", filepath.Base(m.Source))
 		}
@@ -113,7 +115,7 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 		}
 
 		if fn != nil {
-			log.Println("OK   ", filepath.Base(m.Source))
+			log.Printf("OK    %s (took %dms)\n", filepath.Base(m.Source), time.Now().Sub(startTime).Milliseconds())
 		} else {
 			log.Println("EMPTY", filepath.Base(m.Source))
 		}
