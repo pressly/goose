@@ -6,11 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A container a test makes the bugs 🐛 go away.">
+        <meta name="description" content="goose improves ClickHouse support. Bug fixes, improvements, full end-end tests and upgrade to ClickHouse/clickhouse-go v2 driver.">
       
       
       
-        <link rel="canonical" href="https://pressly.github.io/goose/blog/2021/better-tests/">
+        <link rel="canonical" href="https://pressly.github.io/goose/blog/2022/improving-clickhouse-support/">
       
       
         
@@ -21,7 +21,7 @@
     
     
       
-        <title>Better tests with containers - pressly/goose</title>
+        <title>Improving ClickHouse support - pressly/goose</title>
       
     
     
@@ -60,11 +60,11 @@
       
         <meta  property="og:type"  content="website" >
       
-        <meta  property="og:title"  content="Better tests with containers - pressly/goose" >
+        <meta  property="og:title"  content="Improving ClickHouse support - pressly/goose" >
       
-        <meta  property="og:description"  content="A container a test makes the bugs 🐛 go away." >
+        <meta  property="og:description"  content="goose improves ClickHouse support. Bug fixes, improvements, full end-end tests and upgrade to ClickHouse/clickhouse-go v2 driver." >
       
-        <meta  property="og:image"  content="https://pressly.github.io/goose/assets/images/social/blog/posts/2021-09-better-tests.png" >
+        <meta  property="og:image"  content="https://pressly.github.io/goose/assets/images/social/blog/posts/2022-06-improving-clickhouse-support.png" >
       
         <meta  property="og:image:type"  content="image/png" >
       
@@ -72,15 +72,15 @@
       
         <meta  property="og:image:height"  content="630" >
       
-        <meta  property="og:url"  content="https://pressly.github.io/goose/blog/2021/better-tests/" >
+        <meta  property="og:url"  content="https://pressly.github.io/goose/blog/2022/improving-clickhouse-support/" >
       
         <meta  name="twitter:card"  content="summary_large_image" >
       
-        <meta  name="twitter:title"  content="Better tests with containers - pressly/goose" >
+        <meta  name="twitter:title"  content="Improving ClickHouse support - pressly/goose" >
       
-        <meta  name="twitter:description"  content="A container a test makes the bugs 🐛 go away." >
+        <meta  name="twitter:description"  content="goose improves ClickHouse support. Bug fixes, improvements, full end-end tests and upgrade to ClickHouse/clickhouse-go v2 driver." >
       
-        <meta  name="twitter:image"  content="https://pressly.github.io/goose/assets/images/social/blog/posts/2021-09-better-tests.png" >
+        <meta  name="twitter:image"  content="https://pressly.github.io/goose/assets/images/social/blog/posts/2022-06-improving-clickhouse-support.png" >
       
     
     
@@ -101,7 +101,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#better-tests-with-containers" class="md-skip">
+        <a href="#improving-clickhouse-support" class="md-skip">
           Skip to content
         </a>
       
@@ -133,7 +133,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Better tests with containers
+              Improving ClickHouse support
             
           </span>
         </div>
@@ -824,6 +824,56 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#getting-started" class="md-nav__link">
+    <span class="md-ellipsis">
+      Getting started
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#check-migrations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Check migrations
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Check migrations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#show-tables" class="md-nav__link">
+    <span class="md-ellipsis">
+      Show tables
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#show-all-data-from-clickstream-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      Show all data from clickstream table
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -872,7 +922,7 @@
               <li class="md-nav__item">
                 <div class="md-nav__link">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1m-1 11h-5v5h5v-5Z"/></svg>
-                  <time datetime="2021-09-17" class="md-ellipsis">Sep 17, 2021</time>
+                  <time datetime="2022-06-19" class="md-ellipsis">Jun 19, 2022</time>
                 </div>
               </li>
               
@@ -883,7 +933,7 @@
                       in
                       
                         <a href="../../category/blog/">Blog</a>, 
-                        <a href="../../category/testing/">Testing</a></span>
+                        <a href="../../category/clickhouse/">ClickHouse</a></span>
                   </div>
                 </li>
               
@@ -904,45 +954,99 @@
 
 
 
-<h1 id="better-tests-with-containers">Better tests with containers</h1>
-<p>Managing state is hard. Managing database state is even harder. And coordinating state within a test suite is just always a bad time.</p>
-<p>But it doesn't have to be this way!</p>
-<p>There is a fantastic Go package called <a href="https://github.com/ory/dockertest">ory/dockertest</a> that allows you to spin up ephemeral docker containers. It'll work both locally (assuming you have Docker installed) and in your Continuous Integration (CI) pipelines.</p>
+<h1 id="improving-clickhouse-support">Improving ClickHouse support</h1>
+<p><a href="https://clickhouse.com/">ClickHouse</a> is a an open-source column-oriented database that is well-suited for analytical workloads. Over the past few years we've seen more and more demand for improved ClickHouse support in goose.</p>
+<p>To summarize:</p>
+<ul>
+<li>Upgraded to the latest <code>/v2</code> driver: <a href="https://github.com/ClickHouse/clickhouse-go">ClickHouse/clickhouse-go</a></li>
+<li>Full end-end tests against the docker image: <a href="https://hub.docker.com/r/clickhouse/clickhouse-server/">clickhouse/clickhouse-server</a></li>
+<li>Bug fixes and improvements</li>
+</ul>
+<div class="admonition danger">
+<p>The <code>/v2</code> driver <a href="https://github.com/ClickHouse/clickhouse-go/issues/525">changed the DSN format</a>, so be prepared for a breaking change. This is actually a good thing, because it brings the format in-line with other databases.</p>
+</div>
 <!-- more -->
 
-<p>After applying thousands of migrations in production we know <code>goose</code> is production-ready and does the right thing. But we have plans to add more functionality to <code>goose</code>, and integration tests are a welcome addition to the <code>goose</code> test-suie.</p>
-<p>In a recent <code>goose</code> release (<a href="https://github.com/pressly/goose/pull/276">PR#276</a>) we added container-based database tests. These tests spin up a fresh database <em>per test</em>. Yes, that's right, we're talking dozens of containers.</p>
-<p>After each test is completed the container is cleaned up, something like this:</p>
-<div class="highlight"><pre><span></span><code><span class="nx">t</span><span class="p">.</span><span class="nx">Cleanup</span><span class="p">(</span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">pool</span><span class="p">.</span><span class="nx">Purge</span><span class="p">(</span><span class="nx">container</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="nx">log</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;failed to purge resource: %v&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span><span class="w"></span>
-<span class="w">    </span><span class="p">}</span><span class="w"></span>
-<span class="p">})</span><span class="w"></span>
+<hr />
+<h2 id="getting-started">Getting started</h2>
+<p>Here's a quick tour of using goose against a running ClickHouse docker container.</p>
+<div class="highlight"><pre><span></span><code>docker run --rm -d <span class="se">\</span>
+    -e <span class="nv">CLICKHOUSE_DB</span><span class="o">=</span>clickdb <span class="se">\</span>
+    -e <span class="nv">CLICKHOUSE_USER</span><span class="o">=</span>clickuser <span class="se">\</span>
+    -e <span class="nv">CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT</span><span class="o">=</span><span class="m">1</span> <span class="se">\</span>
+    -e <span class="nv">CLICKHOUSE_PASSWORD</span><span class="o">=</span>password1 <span class="se">\</span>
+    -p <span class="m">9000</span>:9000/tcp clickhouse/clickhouse-server:22-alpine
 </code></pre></div>
-<p>For integration tests this is perfect. We can spin up a fresh lightweight container for each test, such as <code>postgres:14-alpine</code>, and not worry about tests stomping on each other or having to coordinate state between tests.</p>
-<p>The entire thing is fast! Where tests run in parallel using <code>t.Parallel()</code> and the entire integration test-suite run in about 6-7s (for <code>postgres:14-alpine</code>).</p>
-<p>Check it out..</p>
-<div class="highlight"><pre><span></span><code>+--------+---------+----------------------------+---------+
-| STATUS | ELAPSED |            TEST            | PACKAGE |
-+--------+---------+----------------------------+---------+
-| PASS   |    5.77 | TestMigrateOutOfOrderDown  | e2e     |
-| PASS   |    5.54 | TestNowAllowMissingUpByOne | e2e     |
-| PASS   |    5.28 | TestAllowMissingUp         | e2e     |
-| PASS   |    4.60 | TestAllowMissingUpByOne    | e2e     |
-| PASS   |    4.48 | TestNotAllowMissing        | e2e     |
-| PASS   |    4.39 | TestMigrateUpTo            | e2e     |
-| PASS   |    4.31 | TestMigrateUpByOne         | e2e     |
-| PASS   |    3.69 | TestMigrateUp              | e2e     |
-| PASS   |    2.30 | TestMigrateFull            | e2e     |
-+--------+---------+----------------------------+---------+
+<p>Once the container is running, we'll apply 3 migrations with goose. For the sake of this demo, we're using migrations from <a href="http://github.com/pressly/goose">pressly/goose</a> repository.</p>
+<p>At the time of this writing, goose supports 3 environment variables:</p>
+<pre><code>GOOSE_DRIVER
+GOOSE_DBSTRING
+GOOSE_MIGRATION_DIR
+</code></pre>
+<p>We use them in the following command for convenience. Otherwise you'll need to set the driver and database connection strings as CLI parameters and the migration directory with the <code>-dir</code> flag.</p>
+<div class="highlight"><pre><span></span><code><span class="nv">GOOSE_DRIVER</span><span class="o">=</span>clickhouse <span class="se">\</span>
+    <span class="nv">GOOSE_DBSTRING</span><span class="o">=</span><span class="s2">&quot;tcp://clickuser:password1@localhost:9000/clickdb&quot;</span> <span class="se">\</span>
+    <span class="nv">GOOSE_MIGRATION_DIR</span><span class="o">=</span><span class="s2">&quot;tests/clickhouse/testdata/migrations&quot;</span> <span class="se">\</span>
+    goose up
+</code></pre></div>
+<p>Expected output following a successful migration.</p>
+<div class="highlight"><pre><span></span><code>2022/06/19 20:19:04 OK    00001_a.sql
+2022/06/19 20:19:04 OK    00002_b.sql
+2022/06/19 20:19:04 OK    00003_c.sql
+2022/06/19 20:19:04 goose: no migrations to run. current version: 3
+</code></pre></div>
+<hr />
+<h2 id="check-migrations">Check migrations</h2>
+<p>We can now use the <a href="https://clickhouse.com/docs/en/interfaces/cli"><code>clickhouse-client</code></a> to poke around the server:</p>
+<h3 id="show-tables"><strong>Show tables</strong></h3>
+<div class="highlight"><pre><span></span><code>clickhouse-client --vertical <span class="se">\</span>
+    --database clickdb --password password1 -u clickuser <span class="se">\</span>
+    -q <span class="s1">&#39;SHOW TABLES&#39;</span>
+</code></pre></div>
+<p>Our migrations created the <code>goose_db_version</code> table, which stores migration data, and 2 new user tables: <code>clickstream</code> and <code>trips</code>.</p>
+<div class="highlight"><pre><span></span><code>Row 1:
+──────
+name: clickstream
 
-+--------+---------+---------------------------------------+
-| STATUS | ELAPSED |                PACKAGE                |
-+--------+---------+---------------------------------------+
-| PASS   | 6.12s   | github.com/pressly/goose/v3/tests/e2e |
-+--------+---------+---------------------------------------+
+Row 2:
+──────
+name: goose_db_version
+
+Row 3:
+──────
+name: trips
 </code></pre></div>
-<p>So, next time you need a database in your containers</p>
+<h3 id="show-all-data-from-clickstream-table"><strong>Show all data from <code>clickstream</code> table</strong></h3>
+<p>We used the sample data from the <a href="https://clickhouse.com/learn/lessons/gettingstarted/">Getting Started with ClickHouse tutorial</a>.</p>
+<div class="highlight"><pre><span></span><code>clickhouse-client --vertical <span class="se">\</span>
+    --database clickdb --password password1 -u clickuser <span class="se">\</span>
+    -q <span class="s1">&#39;SELECT * FROM clickstream&#39;</span>
+</code></pre></div>
+<p>Output:</p>
+<div class="highlight"><pre><span></span><code>Row 1:
+──────
+customer_id:      customer3
+time_stamp:       2021-11-07
+click_event_type: checkout
+country_code:     
+source_id:        307493
+
+Row 2:
+──────
+customer_id:      customer2
+time_stamp:       2021-10-30
+click_event_type: remove_from_cart
+country_code:     
+source_id:        0
+
+Row 3:
+──────
+customer_id:      customer1
+time_stamp:       2021-10-02
+click_event_type: add_to_cart
+country_code:     US
+source_id:        568239
+</code></pre></div>
 
   
   
@@ -976,30 +1080,15 @@
     
     <nav class="md-footer__inner md-grid" aria-label="Footer" >
       
-        
-        <a href="../out-of-order-migrations/" class="md-footer__link md-footer__link--prev" aria-label="Previous: support for out-of-order migrations" rel="prev">
-          <div class="md-footer__button md-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
-          </div>
-          <div class="md-footer__title">
-            <div class="md-ellipsis">
-              <span class="md-footer__direction">
-                Previous
-              </span>
-              support for out-of-order migrations
-            </div>
-          </div>
-        </a>
-      
       
         
-        <a href="../embed-sql-migrations/" class="md-footer__link md-footer__link--next" aria-label="Next: Embedding migrations" rel="next">
+        <a href="../../2021/no-version-migrations/" class="md-footer__link md-footer__link--next" aria-label="Next: Ad-hoc migrations with no versioning" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              Embedding migrations
+              Ad-hoc migrations with no versioning
             </div>
           </div>
           <div class="md-footer__button md-icon">

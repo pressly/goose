@@ -6,25 +6,26 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="goose improves ClickHouse support. Bug fixes, improvements, full end-end tests and upgrade to ClickHouse/clickhouse-go v2 driver.">
+        <meta name="description" content="The missing goose docs.">
       
       
       
-        <link rel="canonical" href="https://pressly.github.io/goose/blog/2022/improving-clickhouse/">
+        <link rel="canonical" href="https://pressly.github.io/goose/blog/category/testing/">
       
       
         
       
+      
       <link rel="icon" href="../../../assets/goose_logo_cropped.png">
-      <meta name="generator" content="mkdocs-1.3.0, mkdocs-material-8.3.6+insiders-4.18.2">
+      <meta name="generator" content="mkdocs-1.3.1, mkdocs-material-8.5.0+insiders-4.23.4">
     
     
       
-        <title>Improving ClickHouse support - pressly/goose</title>
+        <title>Testing - pressly/goose</title>
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.8ae2a6bc.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.9e1efae6.min.css">
       
         
         <link rel="stylesheet" href="../../../assets/stylesheets/palette.cbb835fc.min.css">
@@ -59,11 +60,11 @@
       
         <meta  property="og:type"  content="website" >
       
-        <meta  property="og:title"  content="Improving ClickHouse support - pressly/goose" >
+        <meta  property="og:title"  content="Testing - pressly/goose" >
       
-        <meta  property="og:description"  content="goose improves ClickHouse support. Bug fixes, improvements, full end-end tests and upgrade to ClickHouse/clickhouse-go v2 driver." >
+        <meta  property="og:description"  content="The missing goose docs." >
       
-        <meta  property="og:image"  content="https://pressly.github.io/goose/assets/images/social/blog/2022/improving-clickhouse.png" >
+        <meta  property="og:image"  content="https://pressly.github.io/goose/assets/images/social/blog/category/testing.png" >
       
         <meta  property="og:image:type"  content="image/png" >
       
@@ -71,15 +72,15 @@
       
         <meta  property="og:image:height"  content="630" >
       
-        <meta  property="og:url"  content="https://pressly.github.io/goose/blog/2022/improving-clickhouse/" >
+        <meta  property="og:url"  content="https://pressly.github.io/goose/blog/category/testing/" >
       
         <meta  name="twitter:card"  content="summary_large_image" >
       
-        <meta  name="twitter:title"  content="Improving ClickHouse support - pressly/goose" >
+        <meta  name="twitter:title"  content="Testing - pressly/goose" >
       
-        <meta  name="twitter:description"  content="goose improves ClickHouse support. Bug fixes, improvements, full end-end tests and upgrade to ClickHouse/clickhouse-go v2 driver." >
+        <meta  name="twitter:description"  content="The missing goose docs." >
       
-        <meta  name="twitter:image"  content="https://pressly.github.io/goose/assets/images/social/blog/2022/improving-clickhouse.png" >
+        <meta  name="twitter:image"  content="https://pressly.github.io/goose/assets/images/social/blog/category/testing.png" >
       
     
     
@@ -94,37 +95,13 @@
     <body dir="ltr" data-md-color-scheme="" data-md-color-primary="white" data-md-color-accent="light-blue">
   
     
-    
-    
-      
-    
-      
-    
-      
-    
-      
-    
-      
-    
-      
-    
-      
-    
-      
-    
-      
-    
-      
-    
-      
-    
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
         
-        <a href="#getting-started" class="md-skip">
+        <a href="#testing" class="md-skip">
           Skip to content
         </a>
       
@@ -156,7 +133,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Improving ClickHouse support
+              Testing
             
           </span>
         </div>
@@ -204,7 +181,7 @@
         <a href="https://github.com/pressly/goose" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.1.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
   </div>
   <div class="md-source__repository">
     pressly/goose
@@ -280,22 +257,16 @@
     
     
     
-      
+      <li class="md-tabs__item">
+        <a href="../../" class="md-tabs__link md-tabs__link--active">
+          
   
     
-    
-    
-      <li class="md-tabs__item">
-        <a href="../../2021/welcome/" class="md-tabs__link md-tabs__link--active">
-          
   
   Blog
 
         </a>
       </li>
-    
-  
-
     
   
 
@@ -316,6 +287,7 @@
                   <div class="md-sidebar__inner">
                     
 
+
   
 
 
@@ -333,7 +305,7 @@
       <a href="https://github.com/pressly/goose" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.1.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
   </div>
   <div class="md-source__repository">
     pressly/goose
@@ -345,14 +317,18 @@
     
       
       
-      
-
-
-
   
   
   
     
+    
+      
+        
+          
+        
+      
+        
+      
     
     
     <li class="md-nav__item md-nav__item--nested">
@@ -362,15 +338,25 @@
           <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_1" type="checkbox" id="__nav_1" checked>
         
         
-          <label class="md-nav__link" for="__nav_1">
-            
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../.." class="md-nav__link ">
+              
   
   <span class="md-ellipsis">
     Getting Started
+    
   </span>
+  
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              <label class="md-nav__link " for="__nav_1">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" aria-label="Getting Started" data-md-level="1">
           <label class="md-nav__title" for="__nav_1">
@@ -379,23 +365,6 @@
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../.." class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Overview
-  </span>
-
-      </a>
-    </li>
-  
-
               
             
               
@@ -409,7 +378,9 @@
   
   <span class="md-ellipsis">
     Installation
+    
   </span>
+  
 
       </a>
     </li>
@@ -426,14 +397,16 @@
     
       
       
-      
-
-
-
   
   
   
     
+    
+      
+        
+      
+        
+      
     
     
     <li class="md-nav__item md-nav__item--nested">
@@ -448,7 +421,9 @@
   
   <span class="md-ellipsis">
     CLI Commands
+    
   </span>
+  
 
             <span class="md-nav__icon md-icon"></span>
           </label>
@@ -471,7 +446,9 @@
   
   <span class="md-ellipsis">
     Supported
+    
   </span>
+  
 
       </a>
     </li>
@@ -490,7 +467,9 @@
   
   <span class="md-ellipsis">
     Experimental
+    
   </span>
+  
 
       </a>
     </li>
@@ -507,16 +486,22 @@
     
       
       
+  
+  
+    
+  
+  
+    
+    
       
-
-
-
-  
-  
-    
-  
-  
-    
+        
+          
+        
+      
+        
+      
+        
+      
     
     
     <li class="md-nav__item md-nav__item--active md-nav__item--nested">
@@ -526,15 +511,25 @@
           <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3" type="checkbox" id="__nav_3" checked>
         
         
-          <label class="md-nav__link" for="__nav_3">
-            
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
   
   <span class="md-ellipsis">
     Blog
+    
   </span>
+  
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              <label class="md-nav__link " for="__nav_3">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" aria-label="Blog" data-md-level="1">
           <label class="md-nav__title" for="__nav_3">
@@ -544,11 +539,19 @@
           <ul class="md-nav__list" data-md-scrollfix>
             
               
+            
+              
                 
   
   
   
     
+    
+      
+        
+      
+        
+      
     
     
       
@@ -557,23 +560,25 @@
       
         
         
-          <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_3_1" type="checkbox" id="__nav_3_1" checked>
+          <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_3_2" type="checkbox" id="__nav_3_2" checked>
         
         
-          <label class="md-nav__link" for="__nav_3_1">
+          <label class="md-nav__link" for="__nav_3_2">
             
   
   <span class="md-ellipsis">
-    2021
+    Archive
+    
   </span>
+  
 
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" aria-label="2021" data-md-level="2">
-          <label class="md-nav__title" for="__nav_3_1">
+        <nav class="md-nav" aria-label="Archive" data-md-level="2">
+          <label class="md-nav__title" for="__nav_3_2">
             <span class="md-nav__icon md-icon"></span>
-            2021
+            Archive
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -583,12 +588,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../2021/welcome/" class="md-nav__link">
+      <a href="../../archive/2022/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Hello, docs!
+    2022
+    
   </span>
+  
 
       </a>
     </li>
@@ -602,88 +609,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../2021/embed-sql-migrations/" class="md-nav__link">
+      <a href="../../archive/2021/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Embedding migrations
+    2021
+    
   </span>
-
-      </a>
-    </li>
   
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../2021/better-tests/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Better tests with containers
-  </span>
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../2021/out-of-order-migrations/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Adding support for out-of-order migrations
-  </span>
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../2021/no-version-migrations/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Ad-hoc migrations with no versioning
-  </span>
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../2021/visualizing-up-down-commands/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Visualizing goose up and down commands
-  </span>
 
       </a>
     </li>
@@ -708,6 +641,18 @@
   
     
     
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
     
       
     
@@ -715,25 +660,111 @@
       
         
         
-          <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_2" type="checkbox" id="__nav_3_2" checked>
+          <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_3" type="checkbox" id="__nav_3_3" checked>
         
         
-          <label class="md-nav__link" for="__nav_3_2">
+          <label class="md-nav__link" for="__nav_3_3">
             
   
   <span class="md-ellipsis">
-    2022
+    Categories
+    
   </span>
+  
 
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" aria-label="2022" data-md-level="2">
-          <label class="md-nav__title" for="__nav_3_2">
+        <nav class="md-nav" aria-label="Categories" data-md-level="2">
+          <label class="md-nav__title" for="__nav_3_3">
             <span class="md-nav__icon md-icon"></span>
-            2022
+            Categories
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../blog/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Blog
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../clickhouse/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ClickHouse
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../general/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    General
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../go-migrations/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Go migrations
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -747,84 +778,19 @@
       <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
       
       
+        
       
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Improving ClickHouse support
-  </span>
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
       
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
-    Improving ClickHouse support
+    Testing
+    
   </span>
+  
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#getting-started" class="md-nav__link">
-    <span class="md-ellipsis">
-      Getting started
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#check-migrations" class="md-nav__link">
-    <span class="md-ellipsis">
-      Check migrations
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Check migrations">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#show-tables" class="md-nav__link">
-    <span class="md-ellipsis">
-      Show tables
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#show-all-data-from-clickstream-table" class="md-nav__link">
-    <span class="md-ellipsis">
-      Show all data from clickstream table
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
       
     </li>
   
@@ -863,56 +829,8 @@
   
   
   
+    
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#getting-started" class="md-nav__link">
-    <span class="md-ellipsis">
-      Getting started
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#check-migrations" class="md-nav__link">
-    <span class="md-ellipsis">
-      Check migrations
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Check migrations">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#show-tables" class="md-nav__link">
-    <span class="md-ellipsis">
-      Show tables
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#show-all-data-from-clickstream-table" class="md-nav__link">
-    <span class="md-ellipsis">
-      Show all data from clickstream table
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
   
 </nav>
                   </div>
@@ -920,116 +838,59 @@
               </div>
             
           
-          <div class="md-content" data-md-component="content">
-            <article class="md-content__inner md-typeset">
-              
-                
-
-  
-
-
-
-  <h1>Improving ClickHouse support</h1>
-
-<p><a href="https://clickhouse.com/">ClickHouse</a> is a an open-source column-oriented database that is well-suited for analytical workloads. Over the past few years we've seen more and more demand for improved ClickHouse support in goose.</p>
-<p>To summarize:</p>
-<ul>
-<li>Upgraded to the latest <code>/v2</code> driver: <a href="https://github.com/ClickHouse/clickhouse-go">ClickHouse/clickhouse-go</a></li>
-<li>Full end-end tests against the docker image: <a href="https://hub.docker.com/r/clickhouse/clickhouse-server/">clickhouse/clickhouse-server</a></li>
-<li>Bug fixes and improvements</li>
-</ul>
-<div class="admonition danger">
-<p>The <code>/v2</code> driver <a href="https://github.com/ClickHouse/clickhouse-go/issues/525">changed the DSN format</a>, so be prepared for a breaking change. This is actually a good thing, because it brings the format in-line with other databases.</p>
-</div>
-<hr />
-<h2 id="getting-started">Getting started</h2>
-<p>Here's a quick tour of using goose against a running ClickHouse docker container.</p>
-<div class="highlight"><pre><span></span><code>docker run --rm -d <span class="se">\</span>
-    -e <span class="nv">CLICKHOUSE_DB</span><span class="o">=</span>clickdb <span class="se">\</span>
-    -e <span class="nv">CLICKHOUSE_USER</span><span class="o">=</span>clickuser <span class="se">\</span>
-    -e <span class="nv">CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT</span><span class="o">=</span><span class="m">1</span> <span class="se">\</span>
-    -e <span class="nv">CLICKHOUSE_PASSWORD</span><span class="o">=</span>password1 <span class="se">\</span>
-    -p <span class="m">9000</span>:9000/tcp clickhouse/clickhouse-server:22-alpine
-</code></pre></div>
-<p>Once the container is running, we'll apply 3 migrations with goose. For the sake of this demo, we're using migrations from <a href="http://github.com/pressly/goose">pressly/goose</a> repository.</p>
-<p>At the time of this writing, goose supports 3 environment variables:</p>
-<pre><code>GOOSE_DRIVER
-GOOSE_DBSTRING
-GOOSE_MIGRATION_DIR
-</code></pre>
-<p>We use them in the following command for convenience. Otherwise you'll need to set the driver and database connection strings as CLI parameters and the migration directory with the <code>-dir</code> flag.</p>
-<div class="highlight"><pre><span></span><code><span class="nv">GOOSE_DRIVER</span><span class="o">=</span>clickhouse <span class="se">\</span>
-    <span class="nv">GOOSE_DBSTRING</span><span class="o">=</span><span class="s2">&quot;tcp://clickuser:password1@localhost:9000/clickdb&quot;</span> <span class="se">\</span>
-    <span class="nv">GOOSE_MIGRATION_DIR</span><span class="o">=</span><span class="s2">&quot;tests/clickhouse/testdata/migrations&quot;</span> <span class="se">\</span>
-    goose up
-</code></pre></div>
-<p>Expected output following a successful migration.</p>
-<div class="highlight"><pre><span></span><code>2022/06/19 20:19:04 OK    00001_a.sql
-2022/06/19 20:19:04 OK    00002_b.sql
-2022/06/19 20:19:04 OK    00003_c.sql
-2022/06/19 20:19:04 goose: no migrations to run. current version: 3
-</code></pre></div>
-<hr />
-<h2 id="check-migrations">Check migrations</h2>
-<p>We can now use the <a href="https://clickhouse.com/docs/en/interfaces/cli"><code>clickhouse-client</code></a> to poke around the server:</p>
-<h3 id="show-tables"><strong>Show tables</strong></h3>
-<div class="highlight"><pre><span></span><code>clickhouse-client --vertical <span class="se">\</span>
-    --database clickdb --password password1 -u clickuser <span class="se">\</span>
-    -q <span class="s1">&#39;SHOW TABLES&#39;</span>
-</code></pre></div>
-<p>Our migrations created the <code>goose_db_version</code> table, which stores migration data, and 2 new user tables: <code>clickstream</code> and <code>trips</code>.</p>
-<div class="highlight"><pre><span></span><code>Row 1:
-──────
-name: clickstream
-
-Row 2:
-──────
-name: goose_db_version
-
-Row 3:
-──────
-name: trips
-</code></pre></div>
-<h3 id="show-all-data-from-clickstream-table"><strong>Show all data from <code>clickstream</code> table</strong></h3>
-<p>We used the sample data from the <a href="https://clickhouse.com/learn/lessons/gettingstarted/">Getting Started with ClickHouse tutorial</a>.</p>
-<div class="highlight"><pre><span></span><code>clickhouse-client --vertical <span class="se">\</span>
-    --database clickdb --password password1 -u clickuser <span class="se">\</span>
-    -q <span class="s1">&#39;SELECT * FROM clickstream&#39;</span>
-</code></pre></div>
-<p>Output:</p>
-<div class="highlight"><pre><span></span><code>Row 1:
-──────
-customer_id:      customer3
-time_stamp:       2021-11-07
-click_event_type: checkout
-country_code:     
-source_id:        307493
-
-Row 2:
-──────
-customer_id:      customer2
-time_stamp:       2021-10-30
-click_event_type: remove_from_cart
-country_code:     
-source_id:        0
-
-Row 3:
-──────
-customer_id:      customer1
-time_stamp:       2021-10-02
-click_event_type: add_to_cart
-country_code:     US
-source_id:        568239
-</code></pre></div>
-
-
-
-
-              
-            </article>
+          
+  <div class="md-content" data-md-component="content">
+    <div class="md-content__inner">
+      <header class="md-typeset">
+        <h1 id="testing">Testing</h1>
+      </header>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+      <nav class="md-post__authors md-typeset">
+        
+          <span class="md-author">
+            <img src="https://github.com/mfridman.png" alt="Mike Fridman">
+          </span>
+        
+      </nav>
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2021-09-17">Sep 17, 2021</time></li>
+        
+          <li class="md-meta__item">
+            in
             
+              <a href="../blog/" class="md-meta__link">Blog</a>, 
+              <a href="./" class="md-meta__link">Testing</a></li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2>Better tests with containers</h2>
+<p>Managing state is hard. Managing database state is even harder. And coordinating state within a test suite is just always a bad time.</p>
+<p>But it doesn't have to be this way!</p>
+<p>There is a fantastic Go package called <a href="https://github.com/ory/dockertest">ory/dockertest</a> that allows you to spin up ephemeral docker containers. It'll work both locally (assuming you have Docker installed) and in your Continuous Integration (CI) pipelines.</p>
+
+    <nav class="md-post__action">
+      <a href="../../2021/better-tests/">
+        Continue reading
+      </a>
+    </nav>
+  </div>
+</article>
+      
+    </div>
+  </div>
+
+          
 <script>var input,hash=location.hash.slice(1);hash.startsWith("__tabbed_")&&((input=document.getElementById(hash)).checked=!0)</script>
-          </div>
         </div>
         
           <a href="#" class="md-top md-icon" data-md-component="top" hidden>
@@ -1045,7 +906,7 @@ source_id:        568239
     <nav class="md-footer__inner md-grid" aria-label="Footer" >
       
         
-        <a href="../../2021/visualizing-up-down-commands/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Visualizing goose up and down commands" rel="prev">
+        <a href="../go-migrations/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Go migrations" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
           </div>
@@ -1054,7 +915,7 @@ source_id:        568239
               <span class="md-footer__direction">
                 Previous
               </span>
-              Visualizing goose up and down commands
+              Go migrations
             </div>
           </div>
         </a>
@@ -1083,10 +944,10 @@ source_id:        568239
       <div class="md-dialog__inner md-typeset"></div>
     </div>
     
-    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "navigation.tabs", "navigation.top", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.bb370e14.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "navigation.tabs", "navigation.indexes", "navigation.top", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.720157f5.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.73b969c1.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.ac3bc377.min.js"></script>
       
     
   </body>

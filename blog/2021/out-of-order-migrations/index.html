@@ -15,16 +15,17 @@
       
         
       
+      
       <link rel="icon" href="../../../assets/goose_logo_cropped.png">
-      <meta name="generator" content="mkdocs-1.3.0, mkdocs-material-8.3.6+insiders-4.18.2">
+      <meta name="generator" content="mkdocs-1.3.1, mkdocs-material-8.5.0+insiders-4.23.4">
     
     
       
-        <title>Adding support for out-of-order migrations - pressly/goose</title>
+        <title>support for out-of-order migrations - pressly/goose</title>
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.8ae2a6bc.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.9e1efae6.min.css">
       
         
         <link rel="stylesheet" href="../../../assets/stylesheets/palette.cbb835fc.min.css">
@@ -59,11 +60,11 @@
       
         <meta  property="og:type"  content="website" >
       
-        <meta  property="og:title"  content="Adding support for out-of-order migrations - pressly/goose" >
+        <meta  property="og:title"  content="support for out-of-order migrations - pressly/goose" >
       
         <meta  property="og:description"  content="The missing goose docs." >
       
-        <meta  property="og:image"  content="https://pressly.github.io/goose/assets/images/social/blog/2021/out-of-order-migrations.png" >
+        <meta  property="og:image"  content="https://pressly.github.io/goose/assets/images/social/blog/posts/2021-10-out-of-order-migrations.png" >
       
         <meta  property="og:image:type"  content="image/png" >
       
@@ -75,11 +76,11 @@
       
         <meta  name="twitter:card"  content="summary_large_image" >
       
-        <meta  name="twitter:title"  content="Adding support for out-of-order migrations - pressly/goose" >
+        <meta  name="twitter:title"  content="support for out-of-order migrations - pressly/goose" >
       
         <meta  name="twitter:description"  content="The missing goose docs." >
       
-        <meta  name="twitter:image"  content="https://pressly.github.io/goose/assets/images/social/blog/2021/out-of-order-migrations.png" >
+        <meta  name="twitter:image"  content="https://pressly.github.io/goose/assets/images/social/blog/posts/2021-10-out-of-order-migrations.png" >
       
     
     
@@ -93,30 +94,6 @@
     
     <body dir="ltr" data-md-color-scheme="" data-md-color-primary="white" data-md-color-accent="light-blue">
   
-    
-    
-    
-      
-    
-      
-    
-      
-    
-      
-    
-      
-    
-      
-    
-      
-    
-      
-    
-      
-    
-      
-    
-      
     
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
@@ -156,7 +133,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Adding support for out-of-order migrations
+              support for out-of-order migrations
             
           </span>
         </div>
@@ -204,7 +181,7 @@
         <a href="https://github.com/pressly/goose" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.1.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
   </div>
   <div class="md-source__repository">
     pressly/goose
@@ -280,22 +257,16 @@
     
     
     
-      
+      <li class="md-tabs__item">
+        <a href="../../" class="md-tabs__link md-tabs__link--active">
+          
   
     
-    
-    
-      <li class="md-tabs__item">
-        <a href="../welcome/" class="md-tabs__link md-tabs__link--active">
-          
   
   Blog
 
         </a>
       </li>
-    
-  
-
     
   
 
@@ -311,10 +282,13 @@
           
             
               
-              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" hidden>
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
                     
+
 
   
 
@@ -333,7 +307,7 @@
       <a href="https://github.com/pressly/goose" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.1.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
   </div>
   <div class="md-source__repository">
     pressly/goose
@@ -345,14 +319,18 @@
     
       
       
-      
-
-
-
   
   
   
     
+    
+      
+        
+          
+        
+      
+        
+      
     
     
     <li class="md-nav__item md-nav__item--nested">
@@ -362,15 +340,25 @@
           <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_1" type="checkbox" id="__nav_1" checked>
         
         
-          <label class="md-nav__link" for="__nav_1">
-            
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../.." class="md-nav__link ">
+              
   
   <span class="md-ellipsis">
     Getting Started
+    
   </span>
+  
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              <label class="md-nav__link " for="__nav_1">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" aria-label="Getting Started" data-md-level="1">
           <label class="md-nav__title" for="__nav_1">
@@ -379,23 +367,6 @@
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../.." class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Overview
-  </span>
-
-      </a>
-    </li>
-  
-
               
             
               
@@ -409,7 +380,9 @@
   
   <span class="md-ellipsis">
     Installation
+    
   </span>
+  
 
       </a>
     </li>
@@ -426,14 +399,16 @@
     
       
       
-      
-
-
-
   
   
   
     
+    
+      
+        
+      
+        
+      
     
     
     <li class="md-nav__item md-nav__item--nested">
@@ -448,7 +423,9 @@
   
   <span class="md-ellipsis">
     CLI Commands
+    
   </span>
+  
 
             <span class="md-nav__icon md-icon"></span>
           </label>
@@ -471,7 +448,9 @@
   
   <span class="md-ellipsis">
     Supported
+    
   </span>
+  
 
       </a>
     </li>
@@ -490,7 +469,9 @@
   
   <span class="md-ellipsis">
     Experimental
+    
   </span>
+  
 
       </a>
     </li>
@@ -507,16 +488,22 @@
     
       
       
+  
+  
+    
+  
+  
+    
+    
       
-
-
-
-  
-  
-    
-  
-  
-    
+        
+          
+        
+      
+        
+      
+        
+      
     
     
     <li class="md-nav__item md-nav__item--active md-nav__item--nested">
@@ -526,15 +513,25 @@
           <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3" type="checkbox" id="__nav_3" checked>
         
         
-          <label class="md-nav__link" for="__nav_3">
-            
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
   
   <span class="md-ellipsis">
     Blog
+    
   </span>
+  
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              <label class="md-nav__link " for="__nav_3">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" aria-label="Blog" data-md-level="1">
           <label class="md-nav__title" for="__nav_3">
@@ -544,172 +541,6 @@
           <ul class="md-nav__list" data-md-scrollfix>
             
               
-                
-  
-  
-    
-  
-  
-    
-    
-    
-      
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
-      
-        
-        
-          <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_1" type="checkbox" id="__nav_3_1" checked>
-        
-        
-          <label class="md-nav__link" for="__nav_3_1">
-            
-  
-  <span class="md-ellipsis">
-    2021
-  </span>
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" aria-label="2021" data-md-level="2">
-          <label class="md-nav__title" for="__nav_3_1">
-            <span class="md-nav__icon md-icon"></span>
-            2021
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../welcome/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Hello, docs!
-  </span>
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../embed-sql-migrations/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Embedding migrations
-  </span>
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../better-tests/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Better tests with containers
-  </span>
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-    
-  
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
-        
-  
-  <span class="md-ellipsis">
-    Adding support for out-of-order migrations
-  </span>
-
-      </a>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../no-version-migrations/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Ad-hoc migrations with no versioning
-  </span>
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../visualizing-up-down-commands/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Visualizing goose up and down commands
-  </span>
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
             
               
                 
@@ -717,6 +548,12 @@
   
   
     
+    
+      
+        
+      
+        
+      
     
     
       
@@ -732,16 +569,18 @@
             
   
   <span class="md-ellipsis">
-    2022
+    Archive
+    
   </span>
+  
 
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" aria-label="2022" data-md-level="2">
+        <nav class="md-nav" aria-label="Archive" data-md-level="2">
           <label class="md-nav__title" for="__nav_3_2">
             <span class="md-nav__icon md-icon"></span>
-            2022
+            Archive
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -751,12 +590,196 @@
   
   
     <li class="md-nav__item">
-      <a href="../../2022/improving-clickhouse/" class="md-nav__link">
+      <a href="../../archive/2022/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Improving ClickHouse support
+    2022
+    
   </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../archive/2021/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    2021
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          <input class="md-nav__toggle md-toggle md-toggle--indeterminate" data-md-toggle="__nav_3_3" type="checkbox" id="__nav_3_3" checked>
+        
+        
+          <label class="md-nav__link" for="__nav_3_3">
+            
+  
+  <span class="md-ellipsis">
+    Categories
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" aria-label="Categories" data-md-level="2">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            Categories
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../category/blog/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Blog
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../category/clickhouse/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ClickHouse
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../category/general/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    General
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../category/go-migrations/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Go migrations
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../category/testing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Testing
+    
+  </span>
+  
 
       </a>
     </li>
@@ -787,6 +810,8 @@
             
             
               
+                
+              
               <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
@@ -805,17 +830,84 @@
               </div>
             
           
-          <div class="md-content" data-md-component="content">
-            <article class="md-content__inner md-typeset">
-              
+          
+  <div class="md-content md-content--post" data-md-component="content">
+    <div class="md-sidebar md-sidebar--post" data-md-component="sidebar" data-md-type="navigation">
+      <div class="md-sidebar__scrollwrap">
+        <div class="md-sidebar__inner md-post">
+          <nav class="md-nav">
+            <div class="md-post__back">
+              <div class="md-nav__title md-nav__container">
+                <a href="../../" class="md-nav__link">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+                  <span class="md-ellipsis">
+                    Back to index
+                  </span>
+                </a>
+              </div>
+            </div>
+            
+              <div class="md-post__authors md-typeset">
                 
-
+                  <div class="md-profile md-post__profile">
+                    <span class="md-author md-author--long">
+                      <img src="https://github.com/mfridman.png" alt="Mike Fridman">
+                    </span>
+                    <span class="md-profile__description">
+                      <strong>Mike Fridman</strong><br>
+                      Creator
+                    </span>
+                  </div>
+                
+              </div>
+            
+            <ul class="md-post__meta md-nav__list">
+              <li class="md-nav__item md-nav__title">
+                <div class="md-nav__link">
+                  <span class="md-ellipsis">
+                    Metadata
+                  </span>
+                </div>
+              </li>
+              <li class="md-nav__item">
+                <div class="md-nav__link">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1m-1 11h-5v5h5v-5Z"/></svg>
+                  <time datetime="2021-10-16" class="md-ellipsis">Oct 16, 2021</time>
+                </div>
+              </li>
+              
+                <li class="md-nav__item">
+                  <div class="md-nav__link">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9 3v15h3V3H9m3 2 4 13 3-1-4-13-3 1M5 5v13h3V5H5M3 19v2h18v-2H3Z"/></svg>
+                    <span class="md-ellipsis">
+                      in
+                      
+                        <a href="../../category/blog/">Blog</a>, 
+                        <a href="../../category/general/">General</a></span>
+                  </div>
+                </li>
+              
+              
+            </ul>
+            
+          </nav>
+        </div>
+      </div>
+    </div>
+    <article class="md-content__inner md-typeset">
+      
+        
   
+  
+
+
 
 
 
 <h1 id="adding-support-for-out-of-order-migrations">Adding support for out-of-order migrations</h1>
 <p>Starting with <code>goose</code> <a href="https://github.com/pressly/goose/releases/tag/v3.3.0">v3.3.0</a> we added the ability to apply missing (out-of-order) migrations. Thanks for all the the community feedback over the years.</p>
+<!-- more -->
+
 <p>Let's back it up, what are "missing" or "out-of-order" migrations?</p>
 <p>Suppose migration 1 and 4 are applied and then 2, 3, 5 are introduced. Prior to <a href="https://github.com/pressly/goose/releases/tag/v3.3.0">v3.3.0</a> <code>goose</code> would ignore migrations 2, 3 and apply only 5. Although this might seem odd, this is fairly consistent behaviour with other migration tools.</p>
 <p>However, many users were not satisfied with this behaviour, summarized as:</p>
@@ -850,14 +942,22 @@
 <p>Hope folks find this useful. More awesome things are planned for <code>goose</code> 🚀.</p>
 <p>ps. consider dropping <a href="https://github.com/pressly/goose">pressly/goose</a> a ⭐️ if you find this package useful.</p>
 
+  
+  
 
 
 
-              
-            </article>
-            
+
+  
+
+
+
+      
+    </article>
+  </div>
+
+          
 <script>var input,hash=location.hash.slice(1);hash.startsWith("__tabbed_")&&((input=document.getElementById(hash)).checked=!0)</script>
-          </div>
         </div>
         
           <a href="#" class="md-top md-icon" data-md-component="top" hidden>
@@ -870,10 +970,12 @@
         <footer class="md-footer">
   
     
+      
+    
     <nav class="md-footer__inner md-grid" aria-label="Footer" >
       
         
-        <a href="../better-tests/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Better tests with containers" rel="prev">
+        <a href="../visualizing-up-down-commands/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Visualizing goose up and down commands" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
           </div>
@@ -882,20 +984,20 @@
               <span class="md-footer__direction">
                 Previous
               </span>
-              Better tests with containers
+              Visualizing goose up and down commands
             </div>
           </div>
         </a>
       
       
         
-        <a href="../no-version-migrations/" class="md-footer__link md-footer__link--next" aria-label="Next: Ad-hoc migrations with no versioning" rel="next">
+        <a href="../better-tests/" class="md-footer__link md-footer__link--next" aria-label="Next: Better tests with containers" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              Ad-hoc migrations with no versioning
+              Better tests with containers
             </div>
           </div>
           <div class="md-footer__button md-icon">
@@ -926,10 +1028,10 @@
       <div class="md-dialog__inner md-typeset"></div>
     </div>
     
-    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "navigation.tabs", "navigation.top", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.bb370e14.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "navigation.tabs", "navigation.indexes", "navigation.top", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.720157f5.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.73b969c1.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.ac3bc377.min.js"></script>
       
     
   </body>
