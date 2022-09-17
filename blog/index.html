@@ -21,7 +21,7 @@
     
     
       
-        <title>Blog - pressly/goose</title>
+        <title>Index - pressly/goose</title>
       
     
     
@@ -60,7 +60,7 @@
       
         <meta  property="og:type"  content="website" >
       
-        <meta  property="og:title"  content="Blog - pressly/goose" >
+        <meta  property="og:title"  content="Index - pressly/goose" >
       
         <meta  property="og:description"  content="The missing goose docs." >
       
@@ -76,7 +76,7 @@
       
         <meta  name="twitter:card"  content="summary_large_image" >
       
-        <meta  name="twitter:title"  content="Blog - pressly/goose" >
+        <meta  name="twitter:title"  content="Index - pressly/goose" >
       
         <meta  name="twitter:description"  content="The missing goose docs." >
       
@@ -133,7 +133,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Blog
+              Index
             
           </span>
         </div>
@@ -830,7 +830,19 @@
   <div class="md-content" data-md-component="content">
     <div class="md-content__inner">
       <header class="md-typeset">
-        <h1 id="blog">Blog</h1>
+        <p>{% extends "base.html" %}</p>
+<p _="%" endblock="endblock">{% block extrahead %}
+  {% set title = config.site_name %}
+  {% if page and page.meta and page.meta.title %}
+    {% set title = title ~ " - " ~ page.meta.title %}
+  {% elif page and page.title and not page.is_homepage %}
+    {% set title = title ~ " - " ~ page.title %}
+  {% endif %}
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="{{ title }}" />
+  <meta name="twitter:description" content="{{ config.site_description }}" />
+  <meta name="twitter:image" content="/assets/goose_logo.png" /></p>
+<h1 id="blog">Blog</h1>
       </header>
       
         <article class="md-post md-post--excerpt">
@@ -874,7 +886,7 @@
 </div>
 
     <nav class="md-post__action">
-      <a href="2022/improving-clickhouse-support/">
+      <a href="2022/improving-clickhouse/">
         Continue reading
       </a>
     </nav>
