@@ -300,7 +300,7 @@ func (m ClickHouseDialect) createVersionTableSQL() string {
       tstamp DateTime default now()
     )
 	ENGINE = MergeTree()
-	  ORDER BY (version_id)`, TableName())
+	  ORDER BY (date)`, TableName())
 }
 
 func (m ClickHouseDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
