@@ -119,7 +119,7 @@ func main() {
 		arguments = append(arguments, args[3:]...)
 	}
 	options := []goose.OptionsFunc{}
-	if *noColor || isNoColor() {
+	if *noColor || checkNoColorFromEnv() {
 		options = append(options, goose.WithNoColor(true))
 	}
 	if *allowMissing {
@@ -139,13 +139,12 @@ func main() {
 	}
 }
 
-func isNoColor() bool {
-	s := os.Getenv(envNoColor)
-	if s == "" {
-		return false
+func checkNoColorFromEnv() bool {
+	if s := os.Getenv(envNoColor); s != "" {
+		ok, _ := strconv.ParseBool(s)
+		return ok
 	}
-	ok, _ := strconv.ParseBool(s)
-	return ok
+	return false
 }
 
 const (
