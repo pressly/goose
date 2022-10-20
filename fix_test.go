@@ -2,7 +2,6 @@ package goose
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -36,7 +35,7 @@ func TestFix(t *testing.T) {
 		}
 	}
 
-	files, err := ioutil.ReadDir(dir)
+	files, err := os.ReadDir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +64,7 @@ func TestFix(t *testing.T) {
 		}
 	}
 
-	files, err = ioutil.ReadDir(dir)
+	files, err = os.ReadDir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
