@@ -27,7 +27,7 @@ var (
 	sslcert      = flags.String("ssl-cert", "", "file path to SSL certificates in pem format (only support on mysql)")
 	sslkey       = flags.String("ssl-key", "", "file path to SSL key in pem format (only support on mysql)")
 	noVersioning = flags.Bool("no-versioning", false, "apply migration commands with no versioning, in file order, from directory pointed to")
-	noColor      = flags.Bool("no-color", false, "disable color output (NO_COLOR supported)")
+	noColor      = flags.Bool("no-color", false, "disable color output (NO_COLOR env variable supported)")
 )
 var (
 	gooseVersion = ""
