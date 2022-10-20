@@ -7,8 +7,8 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 	"regexp"
 
 	"github.com/go-sql-driver/mysql"
@@ -57,7 +57,7 @@ func normalizeMySQLDSN(dsn string, tls bool) (string, error) {
 
 func registerTLSConfig(pemfile string, sslcert string, sslkey string) error {
 	rootCertPool := x509.NewCertPool()
-	pem, err := ioutil.ReadFile(pemfile)
+	pem, err := os.ReadFile(pemfile)
 	if err != nil {
 		return err
 	}
