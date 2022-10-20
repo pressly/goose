@@ -15,6 +15,7 @@ var (
 	maxVersion      = int64((1 << 63) - 1)
 	timestampFormat = "20060102150405"
 	verbose         = false
+	noColor         = false
 
 	// base fs to lookup migrations
 	baseFS fs.FS = osFS{}

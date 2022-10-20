@@ -113,7 +113,11 @@ const (
 
 func verboseInfo(s string, args ...interface{}) {
 	if verbose {
-		log.Printf(grayColor+s+resetColor, args...)
+		if noColor {
+			log.Printf(s, args...)
+		} else {
+			log.Printf(grayColor+s+resetColor, args...)
+		}
 	}
 }
 

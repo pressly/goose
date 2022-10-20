@@ -24,6 +24,10 @@ func WithNoVersioning() OptionsFunc {
 	return func(o *options) { o.noVersioning = true }
 }
 
+func WithNoColor(b bool) OptionsFunc {
+	return func(o *options) { noColor = b }
+}
+
 func withApplyUpByOne() OptionsFunc {
 	return func(o *options) { o.applyUpByOne = true }
 }
