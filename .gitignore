@@ -6,3 +6,6 @@
 
 # Files output by tests
 /bin
+
+# Local testing
+.envrc
