@@ -24,3 +24,12 @@ test-clickhouse:
 
 docker-cleanup:
 	docker stop -t=0 $$(docker ps --filter="label=goose_test" -aq)
+
+start-postgres:
+	docker run --rm -d \
+		-e POSTGRES_USER=${GOOSE_POSTGRES_DB_USER} \
+		-e POSTGRES_PASSWORD=${GOOSE_POSTGRES_PASSWORD} \
+		-e POSTGRES_DB=${GOOSE_POSTGRES_DBNAME} \
+		-p ${GOOSE_POSTGRES_PORT}:5432 \
+		-l goose_test \
+		postgres:14-alpine
