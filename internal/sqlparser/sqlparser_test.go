@@ -2,9 +2,14 @@ package sqlparser
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/pressly/goose/v3/internal/check"
 )
 
 func TestSemicolons(t *testing.T) {
@@ -374,3 +379,66 @@ FOR EACH ROW EXECUTE PROCEDURE  update_updated_at_column();
 DROP TRIGGER update_properties_updated_at;
 DROP FUNCTION update_updated_at_column();
 `
+
+func TestValidUp(t *testing.T) {
+	t.Parallel()
+
+	// Test valid "up" parser logic.
+	//
+	// This test expects each directory, such as: internal/sqlparser/testdata/valid-up/test01
+	//
+	// to contain exactly one input.sql file. We read this file and pass it to the parser. Then we
+	// compare the statements against the golden files. Each golden file is equivalent to one
+	// statement.
+
+	path := filepath.Join("testdata", "valid-up")
+	testValidUp(t, 3, filepath.Join(path, "test01"))
+	testValidUp(t, 1, filepath.Join(path, "test02"))
+	testValidUp(t, 1, filepath.Join(path, "test03"))
+}
+
+func testValidUp(t *testing.T, count int, dir string) {
+	t.Helper()
+
+	f, err := os.Open(filepath.Join(dir, "input.sql"))
+	check.NoError(t, err)
+
+	ss, _, err := ParseSQLMigration(f, true, false)
+	check.NoError(t, err)
+	check.Number(t, len(ss), count)
+
+	files, err := os.ReadDir(dir)
+	check.NoError(t, err)
+
+	for _, goldenFile := range files {
+		if goldenFile.Name() == "input.sql" {
+			continue
+		}
+		if !strings.HasSuffix(goldenFile.Name(), ".golden.sql") {
+			t.Fatalf("expecting golden file of the format <name>.golden.sql: got: %q", goldenFile.Name())
+		}
+		before, _, ok := strings.Cut(goldenFile.Name(), ".")
+		if !ok {
+			t.Fatal(`failed to cut on file delimiter ".", must be of the format NN.golden.sql`)
+		}
+		index, err := strconv.Atoi(before)
+		check.NoError(t, err)
+		index--
+
+		goldenFilePath := filepath.Join(dir, goldenFile.Name())
+		by, err := os.ReadFile(goldenFilePath)
+		check.NoError(t, err)
+
+		got, want := strings.TrimSpace(ss[index]), strings.TrimSpace(string(by))
+
+		if got != want {
+			t.Error("input does not match expected output; diff files in the following dir suffixed with .FAIL to debug")
+			t.Logf("diff %v %v",
+				goldenFilePath+".FAIL",
+				goldenFilePath,
+			)
+			err := ioutil.WriteFile(goldenFilePath+".FAIL", []byte(got), 0644)
+			check.NoError(t, err)
+		}
+	}
+}
