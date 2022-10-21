@@ -63,14 +63,16 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 			return fmt.Errorf("ERROR %v: failed to parse SQL migration file: %w", filepath.Base(m.Source), err)
 		}
 
+		start := time.Now()
 		if err := runSQLMigration(db, statements, useTx, m.Version, direction, m.noVersioning); err != nil {
 			return fmt.Errorf("ERROR %v: failed to run SQL migration: %w", filepath.Base(m.Source), err)
 		}
+		finish := truncateDuration(time.Since(start))
 
 		if len(statements) > 0 {
-			log.Println("OK   ", filepath.Base(m.Source))
+			log.Printf("OK   %s (%s)\n", filepath.Base(m.Source), finish)
 		} else {
-			log.Println("EMPTY", filepath.Base(m.Source))
+			log.Printf("EMPTY %s (%s)\n", filepath.Base(m.Source), finish)
 		}
 
 	case ".go":
@@ -107,15 +109,16 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 				}
 			}
 		}
-
+		start := time.Now()
 		if err := tx.Commit(); err != nil {
 			return fmt.Errorf("ERROR failed to commit transaction: %w", err)
 		}
+		finish := truncateDuration(time.Since(start))
 
 		if fn != nil {
-			log.Println("OK   ", filepath.Base(m.Source))
+			log.Printf("OK   %s (%s)\n", filepath.Base(m.Source), finish)
 		} else {
-			log.Println("EMPTY", filepath.Base(m.Source))
+			log.Printf("EMPTY %s (%s)\n", filepath.Base(m.Source), finish)
 		}
 
 		return nil
@@ -145,4 +148,17 @@ func NumericComponent(name string) (int64, error) {
 	}
 
 	return n, e
+}
+
+func truncateDuration(d time.Duration) time.Duration {
+	for _, v := range []time.Duration{
+		time.Second,
+		time.Millisecond,
+		time.Microsecond,
+	} {
+		if d > v {
+			return d.Round(v / time.Duration(100))
+		}
+	}
+	return d
 }
