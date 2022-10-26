@@ -28,3 +28,18 @@ func (*stdLogger) Fatalf(format string, v ...interface{}) { std.Fatalf(format, v
 func (*stdLogger) Print(v ...interface{})                 { std.Print(v...) }
 func (*stdLogger) Println(v ...interface{})               { std.Println(v...) }
 func (*stdLogger) Printf(format string, v ...interface{}) { std.Printf(format, v...) }
+
+// NopLogger returns a logger that discards all logged output.
+func NopLogger() Logger {
+	return &nopLogger{}
+}
+
+type nopLogger struct{}
+
+var _ Logger = (*nopLogger)(nil)
+
+func (*nopLogger) Fatal(v ...interface{})                 {}
+func (*nopLogger) Fatalf(format string, v ...interface{}) {}
+func (*nopLogger) Print(v ...interface{})                 {}
+func (*nopLogger) Println(v ...interface{})               {}
+func (*nopLogger) Printf(format string, v ...interface{}) {}

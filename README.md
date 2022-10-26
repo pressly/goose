@@ -349,6 +349,10 @@ However, we strongly recommend adopting a hybrid versioning approach, using both
 
 To help you adopt this approach, `create` will use the current timestamp as the migration version. When you're ready to deploy your migrations in a production environment, we also provide a helpful `fix` command to convert your migrations into sequential order, while preserving the timestamp ordering. We recommend running `fix` in the CI pipeline, and only when the migrations are ready for production.
 
+## Credit
+
+The gopher mascot was designed by [Renée French](https://reneefrench.blogspot.com/) / [CC 3.0.](https://creativecommons.org/licenses/by/3.0/) For more info check out the [Go Blog](https://go.dev/blog/gopher). Adapted by Ellen.
+
 ## License
 
 Licensed under [MIT License](./LICENSE)

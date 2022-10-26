@@ -1,11 +1,10 @@
 package goose
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
-
-	"github.com/pkg/errors"
 )
 
 func TestSemicolons(t *testing.T) {
@@ -58,7 +57,7 @@ func TestSplitStatements(t *testing.T) {
 		// up
 		stmts, _, err := parseSQLMigration(strings.NewReader(test.sql), true)
 		if err != nil {
-			t.Error(errors.Wrapf(err, "tt[%v] unexpected error", i))
+			t.Error(fmt.Errorf("tt[%v] unexpected error: %w", i, err))
 		}
 		if len(stmts) != test.up {
 			t.Errorf("tt[%v] incorrect number of up stmts. got %v (%+v), want %v", i, len(stmts), stmts, test.up)
@@ -67,11 +66,30 @@ func TestSplitStatements(t *testing.T) {
 		// down
 		stmts, _, err = parseSQLMigration(strings.NewReader(test.sql), false)
 		if err != nil {
-			t.Error(errors.Wrapf(err, "tt[%v] unexpected error", i))
+			t.Error(fmt.Errorf("tt[%v] unexpected error: %w", i, err))
 		}
 		if len(stmts) != test.down {
 			t.Errorf("tt[%v] incorrect number of down stmts. got %v (%+v), want %v", i, len(stmts), stmts, test.down)
 		}
+	}
+}
+
+func TestKeepEmptyLines(t *testing.T) {
+	stmts, _, err := parseSQLMigration(strings.NewReader(emptyLineSQL), true)
+	if err != nil {
+		t.Errorf("Failed to parse SQL migration. %v", err)
+	}
+	expected := `INSERT INTO post (id, title, body)
+VALUES ('id_01', 'my_title', '
+this is an insert statement including empty lines.
+
+empty (blank) lines can be meaningful.
+
+leave the lines to keep the text syntax.
+');
+`
+	if stmts[0] != expected {
+		t.Errorf("incorrect stmts. got %v, want %v", stmts, expected)
 	}
 }
 
@@ -137,6 +155,20 @@ SELECT 4;           -- 4th stmt
 -- +goose Down
 -- comment
 DROP TABLE post;    -- 1st stmt
+`
+
+var emptyLineSQL = `-- +goose Up
+INSERT INTO post (id, title, body)
+VALUES ('id_01', 'my_title', '
+this is an insert statement including empty lines.
+
+empty (blank) lines can be meaningful.
+
+leave the lines to keep the text syntax.
+');
+
+-- +goose Down
+TRUNCATE TABLE post; 
 `
 
 var functxt = `-- +goose Up

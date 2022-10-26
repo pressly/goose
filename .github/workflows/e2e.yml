@@ -25,3 +25,16 @@ jobs:
       - name: Run e2e ${{ matrix.dialect }} tests
         run: |
           make test-e2e-${{ matrix.dialect }}
+  test-clickhouse:
+    name: Run clickhouse tests
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Install Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: "1.18"
+      - name: Run clickhouse test
+        run: make test-clickhouse

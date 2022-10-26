@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"runtime/debug"
+	"strconv"
 	"text/template"
 
 	"github.com/openbasehq/goose/v3"
@@ -26,6 +27,7 @@ var (
 	sslcert      = flags.String("ssl-cert", "", "file path to SSL certificates in pem format (only support on mysql)")
 	sslkey       = flags.String("ssl-key", "", "file path to SSL key in pem format (only support on mysql)")
 	noVersioning = flags.Bool("no-versioning", false, "apply migration commands with no versioning, in file order, from directory pointed to")
+	noColor      = flags.Bool("no-color", false, "disable color output (NO_COLOR env variable supported)")
 )
 var (
 	gooseVersion = ""
@@ -51,10 +53,17 @@ func main() {
 	goose.SetTableName(*table)
 
 	args := flags.Args()
-	if len(args) == 0 || *help {
+
+	if *help {
 		flags.Usage()
 		return
 	}
+
+	if len(args) == 0 {
+		flags.Usage()
+		os.Exit(1)
+	}
+
 	// The -dir option has not been set, check whether the env variable is set
 	// before defaulting to ".".
 	if *dir == defaultMigrationDir && os.Getenv(envGooseMigrationDir) != "" {
@@ -82,16 +91,18 @@ func main() {
 	args = mergeArgs(args)
 	if len(args) < 3 {
 		flags.Usage()
-		return
+		os.Exit(1)
 	}
 
 	driver, dbstring, command := args[0], args[1], args[2]
-	// To avoid breaking existing consumers, treat sqlite3 as sqlite.
-	// An implementation detail that consumers should not care which
-	// underlying driver is used. Internally uses the CGo-free port
-	// of SQLite: modernc.org/sqlite
-	if driver == "sqlite3" {
+	// To avoid breaking existing consumers. An implementation detail
+	// that consumers should not care which underlying driver is used.
+	switch driver {
+	case "sqlite3":
+		//  Internally uses the CGo-free port of SQLite: modernc.org/sqlite
 		driver = "sqlite"
+	case "postgres":
+		driver = "pgx"
 	}
 	db, err := goose.OpenDBWithDriver(driver, normalizeDBString(driver, dbstring, *certfile, *sslcert, *sslkey))
 	if err != nil {
@@ -107,8 +118,10 @@ func main() {
 	if len(args) > 3 {
 		arguments = append(arguments, args[3:]...)
 	}
-
 	options := []goose.OptionsFunc{}
+	if *noColor || checkNoColorFromEnv() {
+		options = append(options, goose.WithNoColor(true))
+	}
 	if *allowMissing {
 		options = append(options, goose.WithAllowMissing())
 	}
@@ -126,10 +139,20 @@ func main() {
 	}
 }
 
+func checkNoColorFromEnv() bool {
+	if s := os.Getenv(envNoColor); s != "" {
+		ok, _ := strconv.ParseBool(s)
+		return ok
+	}
+	return false
+}
+
 const (
 	envGooseDriver       = "GOOSE_DRIVER"
 	envGooseDBString     = "GOOSE_DBSTRING"
 	envGooseMigrationDir = "GOOSE_MIGRATION_DIR"
+	// https://no-color.org/
+	envNoColor = "NO_COLOR"
 )
 
 const (

@@ -3,13 +3,14 @@ package goose
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"regexp"
 	"strings"
 	"sync"
 
-	"github.com/pkg/errors"
+	"errors"
 )
 
 type parserState int
@@ -29,6 +30,7 @@ type stateMachine parserState
 func (s *stateMachine) Get() parserState {
 	return parserState(*s)
 }
+
 func (s *stateMachine) Set(new parserState) {
 	verboseInfo("StateMachine: %v => %v", *s, new)
 	*s = stateMachine(new)
@@ -65,6 +67,7 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 	stateMachine := stateMachine(start)
 	useTx = true
 
+	firstLineFound := false
 	for scanner.Scan() {
 		line := scanner.Text()
 		if verbose {
@@ -76,35 +79,39 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 
 			switch cmd {
 			case "+goose Up":
+				firstLineFound = true
 				switch stateMachine.Get() {
 				case start:
 					stateMachine.Set(gooseUp)
 				default:
-					return nil, false, errors.Errorf("duplicate '-- +goose Up' annotations; stateMachine=%v, see https://github.com/openbasehq/goose#sql-migrations", stateMachine)
+					return nil, false, fmt.Errorf("duplicate '-- +goose Up' annotations; stateMachine=%v, see https://github.com/pressly/goose#sql-migrations", stateMachine)
 				}
 				continue
 
 			case "+goose Down":
+				firstLineFound = true
 				switch stateMachine.Get() {
 				case gooseUp, gooseStatementEndUp:
 					stateMachine.Set(gooseDown)
 				default:
-					return nil, false, errors.Errorf("must start with '-- +goose Up' annotation, stateMachine=%v, see https://github.com/openbasehq/goose#sql-migrations", stateMachine)
+					return nil, false, fmt.Errorf("must start with '-- +goose Up' annotation, stateMachine=%v, see https://github.com/pressly/goose#sql-migrations", stateMachine)
 				}
 				continue
 
 			case "+goose StatementBegin":
+				firstLineFound = true
 				switch stateMachine.Get() {
 				case gooseUp, gooseStatementEndUp:
 					stateMachine.Set(gooseStatementBeginUp)
 				case gooseDown, gooseStatementEndDown:
 					stateMachine.Set(gooseStatementBeginDown)
 				default:
-					return nil, false, errors.Errorf("'-- +goose StatementBegin' must be defined after '-- +goose Up' or '-- +goose Down' annotation, stateMachine=%v, see https://github.com/openbasehq/goose#sql-migrations", stateMachine)
+					return nil, false, fmt.Errorf("'-- +goose StatementBegin' must be defined after '-- +goose Up' or '-- +goose Down' annotation, stateMachine=%v, see https://github.com/pressly/goose#sql-migrations", stateMachine)
 				}
 				continue
 
 			case "+goose StatementEnd":
+				firstLineFound = true
 				switch stateMachine.Get() {
 				case gooseStatementBeginUp:
 					stateMachine.Set(gooseStatementEndUp)
@@ -125,15 +132,15 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 			}
 		}
 
-		// Ignore empty lines.
-		if matchEmptyLines.MatchString(line) {
+		// Ignore empty lines until first line is found.
+		if !firstLineFound && matchEmptyLines.MatchString(line) {
 			verboseInfo("StateMachine: ignore empty line")
 			continue
 		}
 
 		// Write SQL line to a buffer.
 		if _, err := buf.WriteString(strings.ReplaceAll(line, "#{{ DEPLOY_ENV }}", os.Getenv("DEPLOY_ENV")) + "\n"); err != nil {
-			return nil, false, errors.Wrap(err, "failed to write to buf")
+			return nil, false, fmt.Errorf("failed to write to buf: %w", err)
 		}
 
 		// Read SQL body one by line, if we're in the right direction.
@@ -155,7 +162,7 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 				continue
 			}
 		default:
-			return nil, false, errors.Errorf("failed to parse migration: unexpected state %q on line %q, see https://github.com/openbasehq/goose#sql-migrations", stateMachine, line)
+			return nil, false, fmt.Errorf("failed to parse migration: unexpected state %q on line %q, see https://github.com/pressly/goose#sql-migrations", stateMachine, line)
 		}
 
 		switch stateMachine.Get() {
@@ -184,7 +191,7 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return nil, false, errors.Wrap(err, "failed to scan migration")
+		return nil, false, fmt.Errorf("failed to scan migration: %w", err)
 	}
 	// EOF
 
@@ -196,7 +203,7 @@ func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 	}
 
 	if bufferRemaining := strings.TrimSpace(buf.String()); len(bufferRemaining) > 0 {
-		return nil, false, errors.Errorf("failed to parse migration: state %q, direction: %v: unexpected unfinished SQL query: %q: missing semicolon?", stateMachine, direction, bufferRemaining)
+		return nil, false, fmt.Errorf("failed to parse migration: state %q, direction: %v: unexpected unfinished SQL query: %q: missing semicolon?", stateMachine, direction, bufferRemaining)
 	}
 
 	return stmts, useTx, nil
