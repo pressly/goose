@@ -2,12 +2,14 @@
 dist:
 	@mkdir -p ./bin
 	@rm -f ./bin/*
-	GOOS=darwin  GOARCH=amd64 go build -o ./bin/goose-darwin-amd64   ./cmd/goose
-	GOOS=darwin  GOARCH=arm64 go build -o ./bin/goose-darwin-arm64   ./cmd/goose
-	GOOS=linux   GOARCH=amd64 go build -o ./bin/goose-linux64        ./cmd/goose
-	GOOS=linux   GOARCH=386   go build -o ./bin/goose-linux386       ./cmd/goose
-	GOOS=windows GOARCH=amd64 go build -o ./bin/goose-windows64.exe  ./cmd/goose
-	GOOS=windows GOARCH=386   go build -o ./bin/goose-windows386.exe ./cmd/goose
+	GOOS=darwin  GOARCH=amd64 go build -o ./bin/goose-darwin-amd64      ./cmd/goose
+	GOOS=darwin  GOARCH=arm64 go build -o ./bin/goose-darwin-arm64      ./cmd/goose
+	GOOS=linux   GOARCH=amd64 go build -o ./bin/goose-linux-amd64       ./cmd/goose
+	GOOS=linux   GOARCH=arm64 go build -o ./bin/goose-linux-arm64       ./cmd/goose
+	GOOS=linux   GOARCH=386   go build -o ./bin/goose-linux-386         ./cmd/goose
+	GOOS=windows GOARCH=amd64 go build -o ./bin/goose-windows-amd64.exe ./cmd/goose
+	GOOS=windows GOARCH=arm64 go build -o ./bin/goose-windows-arm64.exe ./cmd/goose
+	GOOS=windows GOARCH=386   go build -o ./bin/goose-windows-386.exe   ./cmd/goose
 
 test-packages:
 	go test -v $$(go list ./... | grep -v -e /tests -e /bin -e /cmd -e /examples)
