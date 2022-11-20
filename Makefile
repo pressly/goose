@@ -2,7 +2,8 @@
 dist:
 	@mkdir -p ./bin
 	@rm -f ./bin/*
-	GOOS=darwin  GOARCH=amd64 go build -o ./bin/goose-darwin64       ./cmd/goose
+	GOOS=darwin  GOARCH=amd64 go build -o ./bin/goose-darwin-amd64   ./cmd/goose
+	GOOS=darwin  GOARCH=arm64 go build -o ./bin/goose-darwin-arm64   ./cmd/goose
 	GOOS=linux   GOARCH=amd64 go build -o ./bin/goose-linux64        ./cmd/goose
 	GOOS=linux   GOARCH=386   go build -o ./bin/goose-linux386       ./cmd/goose
 	GOOS=windows GOARCH=amd64 go build -o ./bin/goose-windows64.exe  ./cmd/goose
