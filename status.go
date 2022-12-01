@@ -62,3 +62,20 @@ func printMigrationStatus(db *sql.DB, version int64, script string) error {
 	log.Printf("    %-24s -- %v\n", appliedAt, script)
 	return nil
 }
+
+// Check if migration is pending.
+func HasPending(db *sql.DB, dir string) (bool, error) {
+	migrations, _ := CollectMigrations(dir, minVersion, maxVersion)
+	q := GetDialect().migrationSQL()
+	for _, migration := range migrations {
+		var row MigrationRecord
+		err := db.QueryRow(q, migration.Version).Scan(&row.TStamp, &row.IsApplied)
+		if err != nil && err != sql.ErrNoRows {
+			return true, fmt.Errorf("failed to query the latest migration: %w", err)
+		}
+		if !row.IsApplied {
+			return true, nil
+		}
+	}
+	return false, nil
+}

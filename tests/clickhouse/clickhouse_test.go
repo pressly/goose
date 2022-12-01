@@ -60,12 +60,18 @@ func TestClickUpDownAll(t *testing.T) {
 	currentVersion, err := goose.GetDBVersion(db)
 	check.NoError(t, err)
 	check.Number(t, currentVersion, 0)
+	hasPending, err := goose.HasPending(db, migrationDir)
+	check.NoError(t, err)
+	check.Bool(t, hasPending, true)
 
 	err = goose.Up(db, migrationDir)
 	check.NoError(t, err)
 	currentVersion, err = goose.GetDBVersion(db)
 	check.NoError(t, err)
 	check.Number(t, currentVersion, len(migrations))
+	hasPending, err = goose.HasPending(db, migrationDir)
+	check.NoError(t, err)
+	check.Bool(t, hasPending, false)
 
 	err = goose.DownTo(db, migrationDir, 0)
 	check.NoError(t, err)
@@ -78,6 +84,9 @@ func TestClickUpDownAll(t *testing.T) {
 	currentVersion, err = goose.GetDBVersion(db)
 	check.NoError(t, err)
 	check.Number(t, currentVersion, 0)
+	hasPending, err = goose.HasPending(db, migrationDir)
+	check.NoError(t, err)
+	check.Bool(t, hasPending, true)
 }
 
 func TestClickHouseFirstThree(t *testing.T) {
@@ -164,6 +173,9 @@ func TestRemoteImportMigration(t *testing.T) {
 	check.NoError(t, err)
 	_, err = goose.GetDBVersion(db)
 	check.NoError(t, err)
+	hasPending, err := goose.HasPending(db, migrationDir)
+	check.NoError(t, err)
+	check.Bool(t, hasPending, false)
 
 	var count int
 	err = db.QueryRow(`SELECT count(*) FROM taxi_zone_dictionary`).Scan(&count)
