@@ -30,7 +30,7 @@ type Migration struct {
 }
 
 func (m *Migration) String() string {
-	return fmt.Sprintf(m.Source)
+	return fmt.Sprint(m.Source)
 }
 
 // Up runs an up migration.
