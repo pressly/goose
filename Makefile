@@ -22,6 +22,9 @@ test-e2e-mysql:
 test-clickhouse:
 	go test -timeout=10m -count=1 -race -v ./tests/clickhouse -test.short
 
+test-vertica:
+	go test -count=1 -v ./tests/vertica
+
 docker-cleanup:
 	docker stop -t=0 $$(docker ps --filter="label=goose_test" -aq)
 

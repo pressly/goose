@@ -61,6 +61,7 @@ Drivers:
     redshift
     tidb
     clickhouse
+    vertica
 
 Examples:
     goose sqlite3 ./foo.db status
@@ -74,6 +75,8 @@ Examples:
     goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
     goose tidb "user:password@/dbname?parseTime=true" status
     goose mssql "sqlserver://user:password@dbname:1433?database=master" status
+    goose clickhouse "tcp://127.0.0.1:9000" status
+    goose vertica "vertica://user:password@localhost:5433/dbname?connection_load_balance=1" status
 
 Options:
 
