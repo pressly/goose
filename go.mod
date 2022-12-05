@@ -11,7 +11,7 @@ require (
 	github.com/ory/dockertest/v3 v3.9.1
 	github.com/vertica/vertica-sql-go v1.2.2
 	github.com/ziutek/mymysql v1.5.4
-	modernc.org/sqlite v1.19.2
+	modernc.org/sqlite v1.20.0
 )
 
 require (
@@ -65,8 +65,8 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	lukechampine.com/uint128 v1.2.0 // indirect
 	modernc.org/cc/v3 v3.40.0 // indirect
-	modernc.org/ccgo/v3 v3.16.12 // indirect
-	modernc.org/libc v1.20.3 // indirect
+	modernc.org/ccgo/v3 v3.16.13 // indirect
+	modernc.org/libc v1.21.5 // indirect
 	modernc.org/mathutil v1.5.0 // indirect
 	modernc.org/memory v1.4.0 // indirect
 	modernc.org/opt v0.1.3 // indirect
