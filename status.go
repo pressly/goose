@@ -62,3 +62,43 @@ func printMigrationStatus(db *sql.DB, version int64, script string) error {
 	log.Printf("    %-24s -- %v\n", appliedAt, script)
 	return nil
 }
+
+// DefailedStatus returns all migrations with current applied status
+func DetailedStatus(db *sql.DB, dir string, opts ...OptionsFunc) (Migrations, error) {
+	option := &options{}
+	for _, f := range opts {
+		f(option)
+	}
+	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+	if err != nil {
+		return nil, fmt.Errorf("failed to collect migrations: %w", err)
+	}
+	if option.noVersioning {
+		return migrations, nil
+	}
+
+	// must ensure that the version table exists if we're running on a pristine DB
+	if _, err := EnsureDBVersion(db); err != nil {
+		return nil, fmt.Errorf("failed to ensure DB version: %w", err)
+	}
+
+	records, err := listAllDBVersions(db)
+	if err != nil {
+		return nil, fmt.Errorf("list db migrations: %w", err)
+	}
+	recordsMap := make(map[int64]Migration, len(records))
+	for i := range records {
+		recordsMap[records[i].Version] = *records[i]
+	}
+
+	for i := range migrations {
+		record, ok := recordsMap[migrations[i].Version]
+		if !ok {
+			continue
+		}
+
+		migrations[i].IsApplied = record.IsApplied
+	}
+
+	return migrations, nil
+}
