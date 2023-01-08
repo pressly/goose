@@ -42,12 +42,24 @@ func Status(db *sql.DB, dir string, opts ...OptionsFunc) error {
 	return nil
 }
 
+type migrationSupported interface {
+	migration(db *sql.DB, versionID int64) (*MigrationRecord, error)
+}
+
 func printMigrationStatus(db *sql.DB, version int64, script string) error {
-	q := GetDialect().migrationSQL()
+	d := GetDialect()
 
-	var row MigrationRecord
+	var (
+		row *MigrationRecord
+		err error
+	)
 
-	err := db.QueryRow(q, version).Scan(&row.TStamp, &row.IsApplied)
+	if dd, ok := d.(migrationSupported); ok {
+		row, err = dd.migration(db, version)
+	} else {
+		err = db.QueryRow(d.migrationSQL(), version).Scan(&row.TStamp, &row.IsApplied)
+	}
+
 	if err != nil && err != sql.ErrNoRows {
 		return fmt.Errorf("failed to query the latest migration: %w", err)
 	}

@@ -7,6 +7,18 @@ import (
 	"time"
 )
 
+type migrateStatementSupported interface {
+	migrateStatement(db *sql.DB, sql string) error
+}
+
+type insertVersionSupported interface {
+	insertVersion(execer execer, versionID int64, isApplied bool) error
+}
+
+type deleteVersionSupported interface {
+	deleteVersion(execer execer, versionID int64) error
+}
+
 // Run a migration specified in raw SQL.
 //
 // Sections of the script can be annotated with a special comment,
@@ -37,13 +49,25 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 
 		if !noVersioning {
 			if direction {
-				if err := execQuery(tx.Exec, GetDialect().insertVersionSQL(), v, direction); err != nil {
+				if d, ok := GetDialect().(insertVersionSupported); ok {
+					err = d.insertVersion(tx, v, direction)
+				} else {
+					err = execQuery(tx.Exec, GetDialect().insertVersionSQL(), v, direction)
+				}
+
+				if err != nil {
 					verboseInfo("Rollback transaction")
 					tx.Rollback()
 					return fmt.Errorf("failed to insert new goose version: %w", err)
 				}
 			} else {
-				if err := execQuery(tx.Exec, GetDialect().deleteVersionSQL(), v); err != nil {
+				if d, ok := GetDialect().(deleteVersionSupported); ok {
+					err = d.deleteVersion(tx, v)
+				} else {
+					err = execQuery(tx.Exec, GetDialect().deleteVersionSQL(), v)
+				}
+
+				if err != nil {
 					verboseInfo("Rollback transaction")
 					tx.Rollback()
 					return fmt.Errorf("failed to delete goose version: %w", err)
@@ -59,20 +83,41 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 		return nil
 	}
 
+	var err error
+
 	// NO TRANSACTION.
 	for _, query := range statements {
 		verboseInfo("Executing statement: %s", clearStatement(query))
-		if err := execQuery(db.Exec, query); err != nil {
+
+		if d, ok := GetDialect().(migrateStatementSupported); ok {
+			err = d.migrateStatement(db, query)
+		} else {
+			err = execQuery(db.Exec, query)
+		}
+
+		if err != nil {
 			return fmt.Errorf("failed to execute SQL query %q: %w", clearStatement(query), err)
 		}
 	}
 	if !noVersioning {
 		if direction {
-			if err := execQuery(db.Exec, GetDialect().insertVersionSQL(), v, direction); err != nil {
+			if d, ok := GetDialect().(insertVersionSupported); ok {
+				err = d.insertVersion(db, v, direction)
+			} else {
+				err = execQuery(db.Exec, GetDialect().insertVersionSQL(), v, direction)
+			}
+
+			if err != nil {
 				return fmt.Errorf("failed to insert new goose version: %w", err)
 			}
 		} else {
-			if err := execQuery(db.Exec, GetDialect().deleteVersionSQL(), v); err != nil {
+			if d, ok := GetDialect().(deleteVersionSupported); ok {
+				err = d.deleteVersion(db, v)
+			} else {
+				err = execQuery(db.Exec, GetDialect().deleteVersionSQL(), v)
+			}
+
+			if err != nil {
 				return fmt.Errorf("failed to delete goose version: %w", err)
 			}
 		}

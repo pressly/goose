@@ -286,15 +286,23 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 	return 0, ErrNoNextVersion
 }
 
+type createVersionTableSupported interface {
+	createVersionTable(db *sql.DB) error
+}
+
 // Create the db version table
 // and insert the initial 0 value into it
 func createVersionTable(db *sql.DB) error {
+	d := GetDialect()
+	dd, ok := d.(createVersionTableSupported)
+	if ok {
+		return dd.createVersionTable(db)
+	}
+
 	txn, err := db.Begin()
 	if err != nil {
 		return err
 	}
-
-	d := GetDialect()
 
 	if _, err := txn.Exec(d.createVersionTableSQL()); err != nil {
 		txn.Rollback()
