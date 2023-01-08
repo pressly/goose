@@ -28,3 +28,7 @@ func OpenDBWithDriver(driver string, dbstring string) (*sql.DB, error) {
 		return nil, fmt.Errorf("unsupported driver %s", driver)
 	}
 }
+
+type execer interface {
+	Exec(query string, args ...interface{}) (sql.Result, error)
+}
