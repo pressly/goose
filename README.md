@@ -123,7 +123,8 @@ Create a new SQL migration.
     $ goose create add_some_column sql
     $ Created new file: 20170506082420_add_some_column.sql
 
-Edit the newly created file to define the behavior of your migration.
+Edit the newly created file to define the behavior of your migration.  
+For ydb first line should be `-- +goose NO TRANSACTION`, because ydb is not supported create table in transaction.
 
 You can also create a Go migration, if you then invoke it with [your own goose binary](#go-migrations):
 
