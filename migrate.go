@@ -140,6 +140,24 @@ func AddNamedMigration(filename string, up func(*sql.Tx) error, down func(*sql.T
 	registeredGoMigrations[v] = migration
 }
 
+// AddMigrationNoTx adds a migration without a transaction.
+func AddMigrationNoTx(up func(*sql.DB) error, down func(*sql.DB) error) {
+	_, filename, _, _ := runtime.Caller(1)
+	AddNamedMigrationNoTx(filename, up, down)
+}
+
+// AddNamedMigrationNoTx : Add a named migration without a transaction.
+func AddNamedMigrationNoTx(filename string, up func(*sql.DB) error, down func(*sql.DB) error) {
+	v, _ := NumericComponent(filename)
+	migration := &Migration{Version: v, Next: -1, Previous: -1, Registered: true, NoTx: true, UpFnNoTx: up, DownFnNoTx: down, Source: filename}
+
+	if existing, ok := registeredGoMigrations[v]; ok {
+		panic(fmt.Sprintf("failed to add migration %q: version conflicts with %q", filename, existing.Source))
+	}
+
+	registeredGoMigrations[v] = migration
+}
+
 func collectMigrationsFS(fsys fs.FS, dirpath string, current, target int64) (Migrations, error) {
 	if _, err := fs.Stat(fsys, dirpath); errors.Is(err, fs.ErrNotExist) {
 		return nil, fmt.Errorf("%s directory does not exist", dirpath)

@@ -24,8 +24,11 @@ type Migration struct {
 	Previous     int64  // previous version, -1 if none
 	Source       string // path to .sql script or go file
 	Registered   bool
+	NoTx         bool                // run migration without transaction
 	UpFn         func(*sql.Tx) error // Up go migration function
 	DownFn       func(*sql.Tx) error // Down go migration function
+	UpFnNoTx     func(*sql.DB) error // Up go migration function without transaction
+	DownFnNoTx   func(*sql.DB) error // Down go migration function without transaction
 	noVersioning bool
 }
 
@@ -79,39 +82,38 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 		if !m.Registered {
 			return fmt.Errorf("ERROR %v: failed to run Go migration: Go functions must be registered and built into a custom binary (see https://github.com/pressly/goose/tree/master/examples/go-migrations)", m.Source)
 		}
-		tx, err := db.Begin()
-		if err != nil {
-			return fmt.Errorf("ERROR failed to begin transaction: %w", err)
-		}
 
-		fn := m.UpFn
-		if !direction {
-			fn = m.DownFn
-		}
-
-		if fn != nil {
-			// Run Go migration function.
-			if err := fn(tx); err != nil {
-				tx.Rollback()
-				return fmt.Errorf("ERROR %v: failed to run Go migration function %T: %w", filepath.Base(m.Source), fn, err)
+		if !m.NoTx {
+			// TRANSACTION.
+			fn := m.UpFn
+			if !direction {
+				fn = m.DownFn
 			}
-		}
-		if !m.noVersioning {
-			if direction {
-				if _, err := tx.Exec(GetDialect().insertVersionSQL(), m.Version, direction); err != nil {
-					tx.Rollback()
-					return fmt.Errorf("ERROR failed to execute transaction: %w", err)
-				}
+
+			start := time.Now()
+			if err := runGoMigration(db, fn, m.Version, direction, m.noVersioning); err != nil {
+				return fmt.Errorf("ERROR %v: failed to run Go migration with transaction: %w", filepath.Base(m.Source), err)
+			}
+			finish := truncateDuration(time.Since(start))
+
+			if fn != nil {
+				log.Printf("OK   %s (%s)\n", filepath.Base(m.Source), finish)
 			} else {
-				if _, err := tx.Exec(GetDialect().deleteVersionSQL(), m.Version); err != nil {
-					tx.Rollback()
-					return fmt.Errorf("ERROR failed to execute transaction: %w", err)
-				}
+				log.Printf("EMPTY %s (%s)\n", filepath.Base(m.Source), finish)
 			}
+
+			return nil
 		}
+
+		// NO TRANSACTION.
+		fn := m.UpFnNoTx
+		if !direction {
+			fn = m.DownFnNoTx
+		}
+
 		start := time.Now()
-		if err := tx.Commit(); err != nil {
-			return fmt.Errorf("ERROR failed to commit transaction: %w", err)
+		if err := runGoMigrationNoTx(db, fn, m.Version, direction, m.noVersioning); err != nil {
+			return fmt.Errorf("ERROR %v: failed to run Go migration without transaction: %w", filepath.Base(m.Source), err)
 		}
 		finish := truncateDuration(time.Since(start))
 
