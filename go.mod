@@ -9,7 +9,7 @@ require (
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/jackc/pgx/v4 v4.17.2
 	github.com/ory/dockertest/v3 v3.9.1
-	github.com/vertica/vertica-sql-go v1.2.2
+	github.com/vertica/vertica-sql-go v1.3.1
 	github.com/ziutek/mymysql v1.5.4
 	modernc.org/sqlite v1.19.2
 )
@@ -24,6 +24,8 @@ require (
 	github.com/docker/docker v20.10.17+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
+	github.com/elastic/go-sysinfo v1.8.1 // indirect
+	github.com/elastic/go-windows v1.0.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
@@ -37,6 +39,7 @@ require (
 	github.com/jackc/pgproto3/v2 v2.3.1 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
 	github.com/jackc/pgtype v1.12.0 // indirect
+	github.com/joeshaw/multierror v0.0.0-20140124173710-69b34d4ec901 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/lib/pq v1.10.6 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
@@ -48,6 +51,7 @@ require (
 	github.com/paulmach/orb v0.7.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/prometheus/procfs v0.0.0-20190425082905-87a4384529e0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
@@ -63,6 +67,7 @@ require (
 	golang.org/x/text v0.3.8 // indirect
 	golang.org/x/tools v0.1.12 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	howett.net/plist v0.0.0-20181124034731-591f970eefbb // indirect
 	lukechampine.com/uint128 v1.2.0 // indirect
 	modernc.org/cc/v3 v3.40.0 // indirect
 	modernc.org/ccgo/v3 v3.16.12 // indirect
