@@ -16,3 +16,8 @@ func NewPostgres(options ...OptionsFunc) (db *sql.DB, cleanup func(), err error)
 func NewMariaDB(options ...OptionsFunc) (db *sql.DB, cleanup func(), err error) {
 	return newMariaDB(options...)
 }
+
+// NewVertica starts a Vertica docker container. Returns a db connection and a docker cleanup function.
+func NewVertica(options ...OptionsFunc) (db *sql.DB, cleanup func(), err error) {
+	return newVertica(options...)
+}

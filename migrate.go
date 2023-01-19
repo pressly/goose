@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"math"
 	"path"
 	"runtime"
 	"sort"
@@ -17,7 +18,7 @@ var (
 	// ErrNoNextVersion when the next migration version is not found.
 	ErrNoNextVersion = errors.New("no next version found")
 	// MaxVersion is the maximum allowed version.
-	MaxVersion int64 = 9223372036854775807 // max(int64)
+	MaxVersion int64 = math.MaxInt64
 
 	registeredGoMigrations = map[int64]*Migration{}
 )
