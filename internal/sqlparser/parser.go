@@ -1,15 +1,15 @@
-package goose
+package sqlparser
 
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
+	"log"
 	"regexp"
 	"strings"
 	"sync"
-
-	"errors"
 )
 
 type parserState int
@@ -55,7 +55,7 @@ var bufferPool = sync.Pool{
 // within a statement. For these cases, we provide the explicit annotations
 // 'StatementBegin' and 'StatementEnd' to allow the script to
 // tell us to ignore semicolons.
-func parseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool, err error) {
+func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool, err error) {
 	var buf bytes.Buffer
 	scanBuf := bufferPool.Get().([]byte)
 	defer bufferPool.Put(scanBuf)
@@ -228,4 +228,21 @@ func endsWithSemicolon(line string) bool {
 	}
 
 	return strings.HasSuffix(prev, ";")
+}
+
+var verbose bool
+
+func SetVersbose(b bool) {
+	verbose = b
+}
+
+const (
+	grayColor  = "\033[90m"
+	resetColor = "\033[00m"
+)
+
+func verboseInfo(s string, args ...interface{}) {
+	if verbose {
+		log.Printf(grayColor+s+resetColor, args...)
+	}
 }
