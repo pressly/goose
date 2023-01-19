@@ -12,11 +12,12 @@ import (
 	"text/template"
 
 	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v3/internal/cfg"
 )
 
 var (
 	flags        = flag.NewFlagSet("goose", flag.ExitOnError)
-	dir          = flags.String("dir", defaultMigrationDir, "directory with migration files")
+	dir          = flags.String("dir", cfg.DefaultMigrationDir, "directory with migration files")
 	table        = flags.String("table", "goose_db_version", "migrations table name")
 	verbose      = flags.Bool("v", false, "enable verbose mode")
 	help         = flags.Bool("h", false, "print help")
@@ -66,8 +67,8 @@ func main() {
 
 	// The -dir option has not been set, check whether the env variable is set
 	// before defaulting to ".".
-	if *dir == defaultMigrationDir && os.Getenv(envGooseMigrationDir) != "" {
-		*dir = os.Getenv(envGooseMigrationDir)
+	if *dir == cfg.DefaultMigrationDir && cfg.GOOSEMIGRATIONDIR != "" {
+		*dir = cfg.GOOSEMIGRATIONDIR
 	}
 
 	switch args[0] {
@@ -84,6 +85,11 @@ func main() {
 	case "fix":
 		if err := goose.Run("fix", nil, *dir); err != nil {
 			log.Fatalf("goose run: %v", err)
+		}
+		return
+	case "env":
+		for _, env := range cfg.List() {
+			fmt.Printf("%s=%q\n", env.Name, env.Value)
 		}
 		return
 	}
@@ -140,34 +146,19 @@ func main() {
 }
 
 func checkNoColorFromEnv() bool {
-	if s := os.Getenv(envNoColor); s != "" {
-		ok, _ := strconv.ParseBool(s)
-		return ok
-	}
-	return false
+	ok, _ := strconv.ParseBool(cfg.GOOSENOCOLOR)
+	return ok
 }
-
-const (
-	envGooseDriver       = "GOOSE_DRIVER"
-	envGooseDBString     = "GOOSE_DBSTRING"
-	envGooseMigrationDir = "GOOSE_MIGRATION_DIR"
-	// https://no-color.org/
-	envNoColor = "NO_COLOR"
-)
-
-const (
-	defaultMigrationDir = "."
-)
 
 func mergeArgs(args []string) []string {
 	if len(args) < 1 {
 		return args
 	}
-	if d := os.Getenv(envGooseDriver); d != "" {
-		args = append([]string{d}, args...)
+	if s := cfg.GOOSEDRIVER; s != "" {
+		args = append([]string{s}, args...)
 	}
-	if d := os.Getenv(envGooseDBString); d != "" {
-		args = append([]string{args[0], d}, args[1:]...)
+	if s := cfg.GOOSEDBSTRING; s != "" {
+		args = append([]string{args[0], s}, args[1:]...)
 	}
 	return args
 }
@@ -268,7 +259,7 @@ SELECT 'down SQL query';
 
 // initDir will create a directory with an empty SQL migration file.
 func gooseInit(dir string) error {
-	if dir == "" || dir == defaultMigrationDir {
+	if dir == "" || dir == cfg.DefaultMigrationDir {
 		dir = "migrations"
 	}
 	_, err := os.Stat(dir)
