@@ -36,3 +36,7 @@ start-postgres:
 		-p ${GOOSE_POSTGRES_PORT}:5432 \
 		-l goose_test \
 		postgres:14-alpine
+
+.PHONY: clean
+clean:
+	@find . -type f -name '*.FAIL' -delete

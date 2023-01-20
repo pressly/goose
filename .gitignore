@@ -9,3 +9,4 @@
 
 # Local testing
 .envrc
+*.FAIL

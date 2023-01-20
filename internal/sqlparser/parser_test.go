@@ -2,9 +2,14 @@ package sqlparser
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/pressly/goose/v3/internal/check"
 )
 
 func TestSemicolons(t *testing.T) {
@@ -374,3 +379,104 @@ FOR EACH ROW EXECUTE PROCEDURE  update_updated_at_column();
 DROP TRIGGER update_properties_updated_at;
 DROP FUNCTION update_updated_at_column();
 `
+
+func TestValidUp(t *testing.T) {
+	t.Parallel()
+	// Test valid "up" parser logic.
+	//
+	// This test expects each directory, such as: internal/sqlparser/testdata/valid-up/test01
+	//
+	// to contain exactly one migration file called "input.sql". We read this file and pass it
+	// to the parser. Then we compare the statements against the golden files.
+	// Each golden file is equivalent to one statement.
+	//
+	// ├── 01.golden.sql
+	// ├── 02.golden.sql
+	// ├── 03.golden.sql
+	// └── input.sql
+	tests := []struct {
+		Name            string
+		StatementsCount int
+	}{
+		{Name: "test01", StatementsCount: 3},
+		{Name: "test02", StatementsCount: 1},
+		{Name: "test03", StatementsCount: 1},
+		{Name: "test04", StatementsCount: 2},
+		{Name: "test05", StatementsCount: 2},
+		{Name: "test06", StatementsCount: 3},
+	}
+	for _, tc := range tests {
+		path := filepath.Join("testdata", "valid-up", tc.Name)
+		t.Run(tc.Name, func(t *testing.T) {
+			testValidUp(t, path, tc.StatementsCount)
+		})
+	}
+}
+
+func testValidUp(t *testing.T, dir string, count int) {
+	t.Helper()
+
+	f, err := os.Open(filepath.Join(dir, "input.sql"))
+	check.NoError(t, err)
+	t.Cleanup(func() { f.Close() })
+	statements, _, err := ParseSQLMigration(f, true)
+	check.NoError(t, err)
+	check.Number(t, len(statements), count)
+	compareStatements(t, dir, statements)
+}
+
+func compareStatements(t *testing.T, dir string, statements []string) {
+	t.Helper()
+
+	files, err := os.ReadDir(dir)
+	check.NoError(t, err)
+	for _, goldenFile := range files {
+		if goldenFile.Name() == "input.sql" {
+			continue
+		}
+		if !strings.HasSuffix(goldenFile.Name(), ".golden.sql") {
+			t.Fatalf("expecting golden file with format <name>.golden.sql: got: %q. Try running `make clean` to remove previous failed files?", goldenFile.Name())
+		}
+		before, _, ok := cut(goldenFile.Name(), ".")
+		if !ok {
+			t.Fatal(`failed to cut on file delimiter ".", must be of the format NN.golden.sql`)
+		}
+		index, err := strconv.Atoi(before)
+		check.NoError(t, err)
+		index--
+
+		goldenFilePath := filepath.Join(dir, goldenFile.Name())
+		by, err := os.ReadFile(goldenFilePath)
+		check.NoError(t, err)
+
+		got, want := strings.TrimSpace(statements[index]), strings.TrimSpace(string(by))
+
+		if got != want {
+			if isCIEnvironment() {
+				t.Errorf("input does not match expected golden file:\n\ngot:\n%s\n\nwant:\n%s\n", got, want)
+			} else {
+				t.Error("input does not match expected output; diff files with .FAIL to debug")
+				t.Logf("\ndiff %v %v",
+					filepath.Join("internal", "sqlparser", goldenFilePath+".FAIL"),
+					filepath.Join("internal", "sqlparser", goldenFilePath),
+				)
+				err := ioutil.WriteFile(goldenFilePath+".FAIL", []byte(got+"\n"), 0644)
+				check.NoError(t, err)
+			}
+		}
+	}
+}
+
+// copied directly from strings.Cut (go1.18) to support older Go versions.
+// In the future, replace this with the upstream function.
+func cut(s, sep string) (before, after string, found bool) {
+	if i := strings.Index(s, sep); i >= 0 {
+		return s[:i], s[i+len(sep):], true
+	}
+	return s, "", false
+}
+
+func isCIEnvironment() bool {
+	ok, _ := strconv.ParseBool(os.Getenv("CI"))
+	return ok
+}
