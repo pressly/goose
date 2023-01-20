@@ -401,7 +401,7 @@ func TestValidUp(t *testing.T) {
 		{Name: "test01", StatementsCount: 3},
 		{Name: "test02", StatementsCount: 1},
 		{Name: "test03", StatementsCount: 1},
-		{Name: "test04", StatementsCount: 2},
+		{Name: "test04", StatementsCount: 3},
 		{Name: "test05", StatementsCount: 2},
 		{Name: "test06", StatementsCount: 3},
 	}
@@ -419,6 +419,7 @@ func testValidUp(t *testing.T, dir string, count int) {
 	f, err := os.Open(filepath.Join(dir, "input.sql"))
 	check.NoError(t, err)
 	t.Cleanup(func() { f.Close() })
+	SetVersbose(true)
 	statements, _, err := ParseSQLMigration(f, true)
 	check.NoError(t, err)
 	check.Number(t, len(statements), count)

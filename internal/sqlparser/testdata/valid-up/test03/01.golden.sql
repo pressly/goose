@@ -11,6 +11,10 @@ BEGIN
                          v_url ALIAS FOR $3;
                      BEGIN ''; 
 
+-- 
+-- Notice how we scan through the results of a query in a FOR loop
+-- using the FOR <record> construct.
+--
 
     FOR referrer_keys IN SELECT * FROM cs_referrer_keys ORDER BY try_order LOOP
         a_output := a_output || '' IF v_'' || referrer_keys.kind || '' LIKE '''''''''' 
