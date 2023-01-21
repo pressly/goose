@@ -120,16 +120,16 @@ func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 				continue
 			}
 		}
-		// Once we've started parsing a statement (the buffer is starting to fill),
+		// Once we've started parsing a statement the buffer is no longer empty,
 		// we keep all comments up until the end of the statement (the buffer will be reset).
 		// All other comments in the file are ignored.
-		if strings.HasPrefix(strings.TrimSpace(line), "--") && buf.Len() == 0 {
-			verboseInfo("StateMachine: ignore comment")
-			continue
-		}
-		if buf.Len() == 0 && line == "" {
-			verboseInfo("StateMachine: ignore empty line")
-			continue
+		if buf.Len() == 0 {
+			// This check ensures leading comments prior to a statement, and empty
+			// lines are ignored.
+			if strings.HasPrefix(strings.TrimSpace(line), "--") || line == "" {
+				verboseInfo("StateMachine: ignore comment")
+				continue
+			}
 		}
 		switch stateMachine.Get() {
 		case gooseStatementEndDown, gooseStatementEndUp:
@@ -140,7 +140,6 @@ func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 				return nil, false, fmt.Errorf("failed to write to buf: %w", err)
 			}
 		}
-
 		// Read SQL body one by line, if we're in the right direction.
 		//
 		// 1) basic query with semicolon; 2) psql statement
