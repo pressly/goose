@@ -124,8 +124,7 @@ func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 		// we keep all comments up until the end of the statement (the buffer will be reset).
 		// All other comments in the file are ignored.
 		if buf.Len() == 0 {
-			// This check ensures leading comments prior to a statement, and empty
-			// lines are ignored.
+			// This check ensures leading comments prior to a statement and empty lines are ignored.
 			if strings.HasPrefix(strings.TrimSpace(line), "--") || line == "" {
 				verboseInfo("StateMachine: ignore comment")
 				continue
