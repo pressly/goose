@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"regexp"
 	"strings"
 	"sync"
 )
@@ -37,11 +36,10 @@ func (s *stateMachine) Set(new parserState) {
 
 const scanBufSize = 4 * 1024 * 1024
 
-var matchEmptyLines = regexp.MustCompile(`^\s*$`)
-
 var bufferPool = sync.Pool{
 	New: func() interface{} {
-		return make([]byte, scanBufSize)
+		buf := make([]byte, scanBufSize)
+		return &buf
 	},
 }
 
@@ -56,9 +54,9 @@ var bufferPool = sync.Pool{
 // 'StatementBegin' and 'StatementEnd' to allow the script to
 // tell us to ignore semicolons.
 func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool, err error) {
-	var buf bytes.Buffer
-	scanBuf := bufferPool.Get().([]byte)
-	defer bufferPool.Put(scanBuf)
+	scanBufPtr := bufferPool.Get().(*[]byte)
+	scanBuf := *scanBufPtr
+	defer bufferPool.Put(scanBufPtr)
 
 	scanner := bufio.NewScanner(r)
 	scanner.Buffer(scanBuf, scanBufSize)
@@ -66,19 +64,19 @@ func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 	stateMachine := stateMachine(start)
 	useTx = true
 
-	firstLineFound := false
+	var buf bytes.Buffer
 	for scanner.Scan() {
 		line := scanner.Text()
 		if verbose {
 			log.Println(line)
 		}
-
+		// TODO(mf): validate annotations to avoid common user errors:
+		// https://github.com/pressly/goose/issues/163#issuecomment-501736725
 		if strings.HasPrefix(line, "--") {
 			cmd := strings.TrimSpace(strings.TrimPrefix(line, "--"))
 
 			switch cmd {
 			case "+goose Up":
-				firstLineFound = true
 				switch stateMachine.Get() {
 				case start:
 					stateMachine.Set(gooseUp)
@@ -88,7 +86,6 @@ func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 				continue
 
 			case "+goose Down":
-				firstLineFound = true
 				switch stateMachine.Get() {
 				case gooseUp, gooseStatementEndUp:
 					stateMachine.Set(gooseDown)
@@ -98,7 +95,6 @@ func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 				continue
 
 			case "+goose StatementBegin":
-				firstLineFound = true
 				switch stateMachine.Get() {
 				case gooseUp, gooseStatementEndUp:
 					stateMachine.Set(gooseStatementBeginUp)
@@ -110,7 +106,6 @@ func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 				continue
 
 			case "+goose StatementEnd":
-				firstLineFound = true
 				switch stateMachine.Get() {
 				case gooseStatementBeginUp:
 					stateMachine.Set(gooseStatementEndUp)
@@ -125,14 +120,16 @@ func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 				continue
 
 			default:
-				// Ignore comments.
-				verboseInfo("StateMachine: ignore comment")
-				continue
+				// Once we've started parsing a statement (the buffer is starting to fill),
+				// we keep all comments up until the end of the statement (the buffer will be reset).
+				// All other comments in the file are ignored.
+				if buf.Len() == 0 {
+					verboseInfo("StateMachine: ignore comment")
+					continue
+				}
 			}
 		}
-
-		// Ignore empty lines until first line is found.
-		if !firstLineFound && matchEmptyLines.MatchString(line) {
+		if buf.Len() == 0 && line == "" {
 			verboseInfo("StateMachine: ignore empty line")
 			continue
 		}
@@ -211,8 +208,9 @@ func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 // Checks the line to see if the line has a statement-ending semicolon
 // or if the line contains a double-dash comment.
 func endsWithSemicolon(line string) bool {
-	scanBuf := bufferPool.Get().([]byte)
-	defer bufferPool.Put(scanBuf)
+	scanBufPtr := bufferPool.Get().(*[]byte)
+	scanBuf := *scanBufPtr
+	defer bufferPool.Put(scanBufPtr)
 
 	prev := ""
 	scanner := bufio.NewScanner(strings.NewReader(line))
