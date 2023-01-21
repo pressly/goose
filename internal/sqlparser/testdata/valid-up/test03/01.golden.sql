@@ -30,4 +30,3 @@ BEGIN
     EXECUTE a_output; 
 END; 
 ' LANGUAGE 'plpgsql';
--- +goose StatementEnd

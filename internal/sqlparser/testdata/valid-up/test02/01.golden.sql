@@ -31,4 +31,3 @@ $emp_audit$ LANGUAGE plpgsql;
 CREATE TRIGGER emp_audit
 AFTER INSERT OR UPDATE OR DELETE ON emp
     FOR EACH ROW EXECUTE FUNCTION process_emp_audit();
--- +goose StatementEnd

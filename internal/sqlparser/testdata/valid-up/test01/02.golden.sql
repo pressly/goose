@@ -19,4 +19,3 @@ CREATE FUNCTION emp_stamp() RETURNS trigger AS $emp_stamp$
         RETURN NEW;
     END;
 $emp_stamp$ LANGUAGE plpgsql;
--- +goose StatementEnd

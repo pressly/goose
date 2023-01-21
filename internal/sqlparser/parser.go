@@ -124,8 +124,13 @@ func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 				// we keep all comments up until the end of the statement (the buffer will be reset).
 				// All other comments in the file are ignored.
 				if buf.Len() == 0 {
-					verboseInfo("StateMachine: ignore comment")
-					continue
+					switch stateMachine.Get() {
+					case gooseStatementBeginDown, gooseStatementBeginUp:
+						// Keep this comments.
+					default:
+						verboseInfo("StateMachine: ignore comment")
+						continue
+					}
 				}
 			}
 		}
@@ -133,10 +138,14 @@ func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 			verboseInfo("StateMachine: ignore empty line")
 			continue
 		}
-
-		// Write SQL line to a buffer.
-		if _, err := buf.WriteString(line + "\n"); err != nil {
-			return nil, false, fmt.Errorf("failed to write to buf: %w", err)
+		switch stateMachine.Get() {
+		case gooseStatementEndDown, gooseStatementEndUp:
+			// Do not include the "+goose StatementEnd" annotation in the final statement.
+		default:
+			// Write SQL line to a buffer.
+			if _, err := buf.WriteString(line + "\n"); err != nil {
+				return nil, false, fmt.Errorf("failed to write to buf: %w", err)
+			}
 		}
 
 		// Read SQL body one by line, if we're in the right direction.
