@@ -26,8 +26,8 @@ second paragraph');
 
 
 
--- 1 this comment will be preserved
-  -- 2 this comment will be preserved
+-- 1 this comment will NOT be preserved
+  -- 2 this comment will NOT be preserved
 
 
 CREATE FUNCTION do_something(sql TEXT) RETURNS INTEGER AS $$

@@ -1,7 +1,3 @@
--- 1 this comment will be preserved
-  -- 2 this comment will be preserved
-
-
 CREATE FUNCTION do_something(sql TEXT) RETURNS INTEGER AS $$
 BEGIN
   -- initiate technology

@@ -118,21 +118,14 @@ func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 			case "+goose NO TRANSACTION":
 				useTx = false
 				continue
-
-			default:
-				// Once we've started parsing a statement (the buffer is starting to fill),
-				// we keep all comments up until the end of the statement (the buffer will be reset).
-				// All other comments in the file are ignored.
-				if buf.Len() == 0 {
-					switch stateMachine.Get() {
-					case gooseStatementBeginDown, gooseStatementBeginUp:
-						// Keep this comments.
-					default:
-						verboseInfo("StateMachine: ignore comment")
-						continue
-					}
-				}
 			}
+		}
+		// Once we've started parsing a statement (the buffer is starting to fill),
+		// we keep all comments up until the end of the statement (the buffer will be reset).
+		// All other comments in the file are ignored.
+		if strings.HasPrefix(strings.TrimSpace(line), "--") && buf.Len() == 0 {
+			verboseInfo("StateMachine: ignore comment")
+			continue
 		}
 		if buf.Len() == 0 && line == "" {
 			verboseInfo("StateMachine: ignore empty line")
