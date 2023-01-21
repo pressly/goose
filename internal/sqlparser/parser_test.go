@@ -2,7 +2,6 @@ package sqlparser
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -419,7 +418,6 @@ func testValidUp(t *testing.T, dir string, count int) {
 	f, err := os.Open(filepath.Join(dir, "input.sql"))
 	check.NoError(t, err)
 	t.Cleanup(func() { f.Close() })
-	SetVersbose(true)
 	statements, _, err := ParseSQLMigration(f, true)
 	check.NoError(t, err)
 	check.Number(t, len(statements), count)
@@ -461,7 +459,7 @@ func compareStatements(t *testing.T, dir string, statements []string) {
 					filepath.Join("internal", "sqlparser", goldenFilePath+".FAIL"),
 					filepath.Join("internal", "sqlparser", goldenFilePath),
 				)
-				err := ioutil.WriteFile(goldenFilePath+".FAIL", []byte(got+"\n"), 0644)
+				err := os.WriteFile(goldenFilePath+".FAIL", []byte(got+"\n"), 0644)
 				check.NoError(t, err)
 			}
 		}
