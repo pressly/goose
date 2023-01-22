@@ -70,6 +70,9 @@ func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 		if verbose {
 			log.Println(line)
 		}
+		if stateMachine.Get() == start && strings.TrimSpace(line) == "" {
+			continue
+		}
 		// TODO(mf): validate annotations to avoid common user errors:
 		// https://github.com/pressly/goose/issues/163#issuecomment-501736725
 		if strings.HasPrefix(line, "--") {
@@ -158,7 +161,7 @@ func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 				continue
 			}
 		default:
-			return nil, false, fmt.Errorf("failed to parse migration: unexpected state %q on line %q, see https://github.com/pressly/goose#sql-migrations", stateMachine, line)
+			return nil, false, fmt.Errorf("failed to parse migration: unexpected state %d on line %q, see https://github.com/pressly/goose#sql-migrations", stateMachine, line)
 		}
 
 		switch stateMachine.Get() {
@@ -199,7 +202,7 @@ func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 	}
 
 	if bufferRemaining := strings.TrimSpace(buf.String()); len(bufferRemaining) > 0 {
-		return nil, false, fmt.Errorf("failed to parse migration: state %q, direction: %v: unexpected unfinished SQL query: %q: missing semicolon?", stateMachine, direction, bufferRemaining)
+		return nil, false, fmt.Errorf("failed to parse migration: state %d, direction: %v: unexpected unfinished SQL query: %q: missing semicolon?", stateMachine, direction, bufferRemaining)
 	}
 
 	return stmts, useTx, nil

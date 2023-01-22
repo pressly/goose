@@ -403,6 +403,7 @@ func TestValidUp(t *testing.T) {
 		{Name: "test04", StatementsCount: 3},
 		{Name: "test05", StatementsCount: 2},
 		{Name: "test06", StatementsCount: 4},
+		{Name: "test07", StatementsCount: 1},
 	}
 	for _, tc := range tests {
 		path := filepath.Join("testdata", "valid-up", tc.Name)
