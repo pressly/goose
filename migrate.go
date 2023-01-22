@@ -123,22 +123,70 @@ func (ms Migrations) String() string {
 	return str
 }
 
-// AddMigration adds a migration.
-func AddMigration(up func(*sql.Tx) error, down func(*sql.Tx) error) {
+// GoMigration is a Go migration func that is run within a transaction.
+type GoMigration func(tx *sql.Tx) error
+
+// GoMigrationNoTx is a Go migration func that is run outside a transaction.
+type GoMigrationNoTx func(db *sql.DB) error
+
+// AddMigration adds Go migrations.
+func AddMigration(up, down GoMigration) {
 	_, filename, _, _ := runtime.Caller(1)
 	AddNamedMigration(filename, up, down)
 }
 
-// AddNamedMigration : Add a named migration.
-func AddNamedMigration(filename string, up func(*sql.Tx) error, down func(*sql.Tx) error) {
-	v, _ := NumericComponent(filename)
-	migration := &Migration{Version: v, Next: -1, Previous: -1, Registered: true, UpFn: up, DownFn: down, Source: filename}
-
-	if existing, ok := registeredGoMigrations[v]; ok {
-		panic(fmt.Sprintf("failed to add migration %q: version conflicts with %q", filename, existing.Source))
+// AddNamedMigration adds named Go migrations.
+func AddNamedMigration(filename string, up, down GoMigration) {
+	if err := register(filename, up, down, nil, nil); err != nil {
+		panic(err)
 	}
+}
 
-	registeredGoMigrations[v] = migration
+// AddMigrationNoTx adds Go migrations that will be run outside transaction.
+func AddMigrationNoTx(up, down GoMigrationNoTx) {
+	_, filename, _, _ := runtime.Caller(1)
+	AddNamedMigrationNoTx(filename, up, down)
+}
+
+// AddNamedMigrationNoTx adds named Go migrations that will be run outside transaction.
+func AddNamedMigrationNoTx(filename string, up, down GoMigrationNoTx) {
+	if err := register(filename, nil, nil, up, down); err != nil {
+		panic(err)
+	}
+}
+
+func register(
+	filename string,
+	up GoMigration,
+	down GoMigration,
+	upNoTx GoMigrationNoTx,
+	downNoTx GoMigrationNoTx,
+) error {
+	// Sanity check caller did not mix tx and non-tx based functions.
+	if (up != nil || down != nil) && (upNoTx != nil || downNoTx != nil) {
+		return fmt.Errorf("cannot mix tx and non-tx based go migrations functions")
+	}
+	v, _ := NumericComponent(filename)
+	if existing, ok := registeredGoMigrations[v]; ok {
+		return fmt.Errorf("failed to add migration %q: version %d conflicts with %q",
+			filename,
+			v,
+			existing.Source,
+		)
+	}
+	// Add to global as a registered migration.
+	registeredGoMigrations[v] = &Migration{
+		Version:    v,
+		Next:       -1,
+		Previous:   -1,
+		Registered: true,
+		Source:     filename,
+		UpFn:       up,
+		DownFn:     down,
+		UpFnNoTx:   upNoTx,
+		DownFnNoTx: downNoTx,
+	}
+	return nil
 }
 
 func collectMigrationsFS(fsys fs.FS, dirpath string, current, target int64) (Migrations, error) {
