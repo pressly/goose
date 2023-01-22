@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"io/fs"
+	"math"
 	"strconv"
 )
 
@@ -12,7 +13,7 @@ const VERSION = "v3.2.0"
 
 var (
 	minVersion      = int64(0)
-	maxVersion      = int64((1 << 63) - 1)
+	maxVersion      = math.MaxInt64
 	timestampFormat = "20060102150405"
 	verbose         = false
 	noColor         = false
@@ -64,7 +65,7 @@ func run(command string, db *sql.DB, dir string, args []string, options ...Optio
 
 		version, err := strconv.ParseInt(args[0], 10, 64)
 		if err != nil {
-			return fmt.Errorf("version must be a number (got '%s')", args[0])
+			return fmt.Errorf("version must be a number (got %q)", args[0])
 		}
 		if err := UpTo(db, dir, version, options...); err != nil {
 			return err
@@ -92,7 +93,7 @@ func run(command string, db *sql.DB, dir string, args []string, options ...Optio
 
 		version, err := strconv.ParseInt(args[0], 10, 64)
 		if err != nil {
-			return fmt.Errorf("version must be a number (got '%s')", args[0])
+			return fmt.Errorf("version must be a number (got %q)", args[0])
 		}
 		if err := DownTo(db, dir, version, options...); err != nil {
 			return err
