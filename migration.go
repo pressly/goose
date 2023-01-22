@@ -26,6 +26,7 @@ type Migration struct {
 	Previous             int64  // previous version, -1 if none
 	Source               string // path to .sql script or go file
 	Registered           bool
+	UseTx                bool
 	UpFn, DownFn         GoMigration
 	UpFnNoTx, DownFnNoTx GoMigrationNoTx
 	noVersioning         bool
@@ -84,25 +85,7 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 		}
 		start := time.Now()
 		var empty bool
-		switch {
-		case m.UpFnNoTx != nil || m.DownFnNoTx != nil:
-			// Run go-based migration outside a tx.
-			fn := m.DownFnNoTx
-			if direction {
-				fn = m.UpFnNoTx
-			}
-			empty = (fn == nil)
-			if err := runGoMigrationNoTx(
-				db,
-				fn,
-				m.Version,
-				direction,
-				filepath.Base(m.Source),
-				!m.noVersioning,
-			); err != nil {
-				return err
-			}
-		case m.UpFn != nil || m.DownFn != nil:
+		if m.UseTx {
 			// Run go-based migration inside a tx.
 			fn := m.DownFn
 			if direction {
@@ -114,10 +97,25 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 				fn,
 				m.Version,
 				direction,
-				filepath.Base(m.Source),
 				!m.noVersioning,
 			); err != nil {
-				return err
+				return fmt.Errorf("ERROR go migration: %q: %w", filepath.Base(m.Source), err)
+			}
+		} else {
+			// Run go-based migration outside a tx.
+			fn := m.DownFnNoTx
+			if direction {
+				fn = m.UpFnNoTx
+			}
+			empty = (fn == nil)
+			if err := runGoMigrationNoTx(
+				db,
+				fn,
+				m.Version,
+				direction,
+				!m.noVersioning,
+			); err != nil {
+				return fmt.Errorf("ERROR go migration no tx: %q: %w", filepath.Base(m.Source), err)
 			}
 		}
 		finish := truncateDuration(time.Since(start))
@@ -135,13 +133,12 @@ func runGoMigrationNoTx(
 	fn GoMigrationNoTx,
 	version int64,
 	direction bool,
-	filename string,
 	recordVersion bool,
 ) error {
 	if fn != nil {
 		// Run go migration function.
 		if err := fn(db); err != nil {
-			return fmt.Errorf("failed to run no tx go migration: %s: %w", filename, err)
+			return fmt.Errorf("failed to run go migration: %w", err)
 		}
 	}
 	if recordVersion {
@@ -155,7 +152,6 @@ func runGoMigration(
 	fn GoMigration,
 	version int64,
 	direction bool,
-	filename string,
 	recordVersion bool,
 ) error {
 	if fn == nil && !recordVersion {
@@ -163,23 +159,23 @@ func runGoMigration(
 	}
 	tx, err := db.Begin()
 	if err != nil {
-		return fmt.Errorf("ERROR failed to begin transaction: %w", err)
+		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	if fn != nil {
 		// Run go migration function.
 		if err := fn(tx); err != nil {
 			tx.Rollback()
-			return fmt.Errorf("failed to run go migration: %s: %w", filename, err)
+			return fmt.Errorf("failed to run go migration: %w", err)
 		}
 	}
 	if recordVersion {
 		if err := insertOrDeleteVersion(tx, version, direction); err != nil {
 			tx.Rollback()
-			return err
+			return fmt.Errorf("failed to update version: %w", err)
 		}
 	}
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("ERROR failed to commit transaction: %w", err)
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 	return nil
 }

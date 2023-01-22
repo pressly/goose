@@ -137,7 +137,7 @@ func AddMigration(up, down GoMigration) {
 
 // AddNamedMigration adds named Go migrations.
 func AddNamedMigration(filename string, up, down GoMigration) {
-	if err := register(filename, up, down, nil, nil); err != nil {
+	if err := register(filename, true, up, down, nil, nil); err != nil {
 		panic(err)
 	}
 }
@@ -150,17 +150,16 @@ func AddMigrationNoTx(up, down GoMigrationNoTx) {
 
 // AddNamedMigrationNoTx adds named Go migrations that will be run outside transaction.
 func AddNamedMigrationNoTx(filename string, up, down GoMigrationNoTx) {
-	if err := register(filename, nil, nil, up, down); err != nil {
+	if err := register(filename, false, nil, nil, up, down); err != nil {
 		panic(err)
 	}
 }
 
 func register(
 	filename string,
-	up GoMigration,
-	down GoMigration,
-	upNoTx GoMigrationNoTx,
-	downNoTx GoMigrationNoTx,
+	useTx bool,
+	up, down GoMigration,
+	upNoTx, downNoTx GoMigrationNoTx,
 ) error {
 	// Sanity check caller did not mix tx and non-tx based functions.
 	if (up != nil || down != nil) && (upNoTx != nil || downNoTx != nil) {
@@ -181,6 +180,7 @@ func register(
 		Previous:   -1,
 		Registered: true,
 		Source:     filename,
+		UseTx:      useTx,
 		UpFn:       up,
 		DownFn:     down,
 		UpFnNoTx:   upNoTx,
