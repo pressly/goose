@@ -15,17 +15,17 @@ $ ./goose-custom sqlite3 ./foo.db status
     Pending                  -- 00003_add_user_no_tx.go
 
 $ ./goose-custom sqlite3 ./foo.db up
-OK   00001_create_users_table.sql (711.58µs)
-OK   00002_rename_root.go (302.08µs)
-OK   00003_add_user_no_tx.go (648.71µs)
-goose: no migrations to run. current version: 3
+    OK   00001_create_users_table.sql (711.58µs)
+    OK   00002_rename_root.go (302.08µs)
+    OK   00003_add_user_no_tx.go (648.71µs)
+    goose: no migrations to run. current version: 3
 
 $ ./goose-custom sqlite3 ./foo.db status
     Applied At                  Migration
     =======================================
-    Sun Jan 22 20:54:32 2023 -- 00001_create_users_table.sql
-    Sun Jan 22 20:54:32 2023 -- 00002_rename_root.go
-    Sun Jan 22 20:54:32 2023 -- 00003_add_user_no_tx.go
+    00001_create_users_table.sql
+    00002_rename_root.go
+    00003_add_user_no_tx.go
 ```
 
 ## Best practice: Split migrations into a standalone package
