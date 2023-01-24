@@ -216,6 +216,9 @@ CREATE TABLE post (
 DROP TABLE post;
 ```
 
+Each migration file must have exactly one `-- +goose Up` annotation. The `-- +goose Down` annotation
+is optional. If the file has both annotations, then the `-- +goose Up` annotation **must** come first.
+
 Notice the annotations in the comments. Any statements following `-- +goose Up` will be executed as part of a forward migration, and any statements following `-- +goose Down` will be executed as part of a rollback.
 
 By default, all migrations are run within a transaction. Some statements like `CREATE DATABASE`, however, cannot be run within a transaction. You may optionally add `-- +goose NO TRANSACTION` to the top of your migration
