@@ -10,6 +10,3 @@ BEGIN
   RETURN 1;
 END;
 $$ LANGUAGE plpgsql;
-
--- 3 this comment will be preserved
-  -- 4 this comment will be preserved

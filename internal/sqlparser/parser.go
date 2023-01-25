@@ -167,23 +167,23 @@ func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 		switch stateMachine.Get() {
 		case gooseUp:
 			if endsWithSemicolon(line) {
-				stmts = append(stmts, buf.String())
+				stmts = append(stmts, cleanupStatement(buf.String()))
 				buf.Reset()
 				verboseInfo("StateMachine: store simple Up query")
 			}
 		case gooseDown:
 			if endsWithSemicolon(line) {
-				stmts = append(stmts, buf.String())
+				stmts = append(stmts, cleanupStatement(buf.String()))
 				buf.Reset()
 				verboseInfo("StateMachine: store simple Down query")
 			}
 		case gooseStatementEndUp:
-			stmts = append(stmts, buf.String())
+			stmts = append(stmts, cleanupStatement(buf.String()))
 			buf.Reset()
 			verboseInfo("StateMachine: store Up statement")
 			stateMachine.Set(gooseUp)
 		case gooseStatementEndDown:
-			stmts = append(stmts, buf.String())
+			stmts = append(stmts, cleanupStatement(buf.String()))
 			buf.Reset()
 			verboseInfo("StateMachine: store Down statement")
 			stateMachine.Set(gooseDown)
@@ -206,6 +206,16 @@ func ParseSQLMigration(r io.Reader, direction bool) (stmts []string, useTx bool,
 	}
 
 	return stmts, useTx, nil
+}
+
+// cleanupStatement attempts to find the last semicolon and trims
+// the remaining chars from the input string. This is useful for cleaning
+// up a statement containing trailing comments or empty lines.
+func cleanupStatement(input string) string {
+	if n := strings.LastIndex(input, ";"); n > 0 {
+		return input[:n+1]
+	}
+	return input
 }
 
 // Checks the line to see if the line has a statement-ending semicolon
