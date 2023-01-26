@@ -4,6 +4,7 @@ markdown doc
 
 first paragraph
 
+-- with a comment
     -- with an indent comment
 
 second paragraph');

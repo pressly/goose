@@ -2,7 +2,6 @@ package sqlparser
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -79,25 +78,6 @@ func TestSplitStatements(t *testing.T) {
 	}
 }
 
-func TestKeepEmptyLines(t *testing.T) {
-	stmts, _, err := ParseSQLMigration(strings.NewReader(emptyLineSQL), true)
-	if err != nil {
-		t.Errorf("Failed to parse SQL migration. %v", err)
-	}
-	expected := `INSERT INTO post (id, title, body)
-VALUES ('id_01', 'my_title', '
-this is an insert statement including empty lines.
-
-empty (blank) lines can be meaningful.
-
-leave the lines to keep the text syntax.
-');
-`
-	if stmts[0] != expected {
-		t.Errorf("incorrect stmts. got %v, want %v", stmts, expected)
-	}
-}
-
 func TestUseTransactions(t *testing.T) {
 	t.Parallel()
 
@@ -160,20 +140,6 @@ SELECT 4;           -- 4th stmt
 -- +goose Down
 -- comment
 DROP TABLE post;    -- 1st stmt
-`
-
-var emptyLineSQL = `-- +goose Up
-INSERT INTO post (id, title, body)
-VALUES ('id_01', 'my_title', '
-this is an insert statement including empty lines.
-
-empty (blank) lines can be meaningful.
-
-leave the lines to keep the text syntax.
-');
-
--- +goose Down
-TRUNCATE TABLE post; 
 `
 
 var functxt = `-- +goose Up
@@ -401,9 +367,10 @@ func TestValidUp(t *testing.T) {
 		{Name: "test01", StatementsCount: 3},
 		{Name: "test02", StatementsCount: 1},
 		{Name: "test03", StatementsCount: 1},
-		{Name: "test04", StatementsCount: 2},
+		{Name: "test04", StatementsCount: 3},
 		{Name: "test05", StatementsCount: 2},
-		{Name: "test06", StatementsCount: 3},
+		{Name: "test06", StatementsCount: 5},
+		{Name: "test07", StatementsCount: 1},
 	}
 	for _, tc := range tests {
 		path := filepath.Join("testdata", "valid-up", tc.Name)
@@ -428,16 +395,14 @@ func testValidUp(t *testing.T, dir string, count int) {
 func compareStatements(t *testing.T, dir string, statements []string) {
 	t.Helper()
 
-	files, err := os.ReadDir(dir)
+	files, err := filepath.Glob(filepath.Join(dir, "*.golden.sql"))
 	check.NoError(t, err)
+	if len(statements) != len(files) {
+		t.Fatalf("mismatch between parsed statements (%d) and golden files (%d), did you check in NN.golden.sql file in %q?", len(statements), len(files), dir)
+	}
 	for _, goldenFile := range files {
-		if goldenFile.Name() == "input.sql" {
-			continue
-		}
-		if !strings.HasSuffix(goldenFile.Name(), ".golden.sql") {
-			t.Fatalf("expecting golden file with format <name>.golden.sql: got: %q. Try running `make clean` to remove previous failed files?", goldenFile.Name())
-		}
-		before, _, ok := cut(goldenFile.Name(), ".")
+		goldenFile = filepath.Base(goldenFile)
+		before, _, ok := cut(goldenFile, ".")
 		if !ok {
 			t.Fatal(`failed to cut on file delimiter ".", must be of the format NN.golden.sql`)
 		}
@@ -445,7 +410,7 @@ func compareStatements(t *testing.T, dir string, statements []string) {
 		check.NoError(t, err)
 		index--
 
-		goldenFilePath := filepath.Join(dir, goldenFile.Name())
+		goldenFilePath := filepath.Join(dir, goldenFile)
 		by, err := os.ReadFile(goldenFilePath)
 		check.NoError(t, err)
 
@@ -460,7 +425,7 @@ func compareStatements(t *testing.T, dir string, statements []string) {
 					filepath.Join("internal", "sqlparser", goldenFilePath+".FAIL"),
 					filepath.Join("internal", "sqlparser", goldenFilePath),
 				)
-				err := ioutil.WriteFile(goldenFilePath+".FAIL", []byte(got+"\n"), 0644)
+				err := os.WriteFile(goldenFilePath+".FAIL", []byte(got+"\n"), 0644)
 				check.NoError(t, err)
 			}
 		}
