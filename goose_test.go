@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/pressly/goose/v3/internal/check"
 	_ "modernc.org/sqlite"
 )
 
@@ -172,7 +173,7 @@ func TestEmbeddedMigrations(t *testing.T) {
 	}
 
 	SetBaseFS(fsys)
-	SetDialect("sqlite3")
+	check.NoError(t, SetDialect("sqlite3"))
 	t.Cleanup(func() { SetBaseFS(nil) })
 
 	t.Run("Migration cycle", func(t *testing.T) {

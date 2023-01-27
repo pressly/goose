@@ -346,14 +346,14 @@ func createVersionTable(db *sql.DB) error {
 	d := GetDialect()
 
 	if _, err := txn.Exec(d.createVersionTableSQL()); err != nil {
-		txn.Rollback()
+		_ = txn.Rollback()
 		return err
 	}
 
 	version := 0
 	applied := true
 	if _, err := txn.Exec(d.insertVersionSQL(), version, applied); err != nil {
-		txn.Rollback()
+		_ = txn.Rollback()
 		return err
 	}
 

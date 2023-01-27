@@ -26,7 +26,7 @@ func TestVerticaUpDownAll(t *testing.T) {
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
 
-	goose.SetDialect("vertica")
+	check.NoError(t, goose.SetDialect("vertica"))
 
 	goose.SetTableName("goose_db_version")
 

@@ -30,7 +30,7 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 			verboseInfo("Executing statement: %s\n", clearStatement(query))
 			if err = execQuery(tx.Exec, query); err != nil {
 				verboseInfo("Rollback transaction")
-				tx.Rollback()
+				_ = tx.Rollback()
 				return fmt.Errorf("failed to execute SQL query %q: %w", clearStatement(query), err)
 			}
 		}
@@ -39,13 +39,13 @@ func runSQLMigration(db *sql.DB, statements []string, useTx bool, v int64, direc
 			if direction {
 				if err := execQuery(tx.Exec, GetDialect().insertVersionSQL(), v, direction); err != nil {
 					verboseInfo("Rollback transaction")
-					tx.Rollback()
+					_ = tx.Rollback()
 					return fmt.Errorf("failed to insert new goose version: %w", err)
 				}
 			} else {
 				if err := execQuery(tx.Exec, GetDialect().deleteVersionSQL(), v); err != nil {
 					verboseInfo("Rollback transaction")
-					tx.Rollback()
+					_ = tx.Rollback()
 					return fmt.Errorf("failed to delete goose version: %w", err)
 				}
 			}
@@ -95,12 +95,13 @@ func execQuery(fn func(string, ...interface{}) (sql.Result, error), query string
 	}()
 
 	t := time.Now()
-
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
 	for {
 		select {
 		case err := <-ch:
 			return err
-		case <-time.Tick(time.Minute):
+		case <-ticker.C:
 			verboseInfo("Executing statement still in progress for %v", time.Since(t).Round(time.Second))
 		}
 	}

@@ -17,7 +17,7 @@ func TestMigrateUpWithReset(t *testing.T) {
 
 	db, err := newDockerDB(t)
 	check.NoError(t, err)
-	goose.SetDialect(*dialect)
+	check.NoError(t, goose.SetDialect(*dialect))
 	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
 	check.NoError(t, err)
 	check.NumberNotZero(t, len(migrations))
@@ -46,7 +46,7 @@ func TestMigrateUpWithRedo(t *testing.T) {
 
 	db, err := newDockerDB(t)
 	check.NoError(t, err)
-	goose.SetDialect(*dialect)
+	check.NoError(t, goose.SetDialect(*dialect))
 	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
 	check.NoError(t, err)
 
@@ -84,7 +84,7 @@ func TestMigrateUpTo(t *testing.T) {
 	)
 	db, err := newDockerDB(t)
 	check.NoError(t, err)
-	goose.SetDialect(*dialect)
+	check.NoError(t, goose.SetDialect(*dialect))
 	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
 	check.NoError(t, err)
 	check.NumberNotZero(t, len(migrations))
@@ -106,7 +106,7 @@ func TestMigrateUpByOne(t *testing.T) {
 
 	db, err := newDockerDB(t)
 	check.NoError(t, err)
-	goose.SetDialect(*dialect)
+	check.NoError(t, goose.SetDialect(*dialect))
 	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
 	check.NoError(t, err)
 	check.NumberNotZero(t, len(migrations))
@@ -137,7 +137,7 @@ func TestMigrateFull(t *testing.T) {
 
 	db, err := newDockerDB(t)
 	check.NoError(t, err)
-	goose.SetDialect(*dialect)
+	check.NoError(t, goose.SetDialect(*dialect))
 	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
 	check.NoError(t, err)
 	check.NumberNotZero(t, len(migrations))
