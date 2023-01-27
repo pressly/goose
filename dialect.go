@@ -322,7 +322,7 @@ func (m ClickHouseDialect) migrationSQL() string {
 }
 
 func (m ClickHouseDialect) deleteVersionSQL() string {
-	return fmt.Sprintf("ALTER TABLE %s DELETE WHERE version_id = $1", TableName())
+	return fmt.Sprintf("ALTER TABLE %s DELETE WHERE version_id = $1 SETTINGS mutations_sync = 2", TableName())
 }
 
 ////////////////////////////
