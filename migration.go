@@ -164,13 +164,13 @@ func runGoMigration(
 	if fn != nil {
 		// Run go migration function.
 		if err := fn(tx); err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return fmt.Errorf("failed to run go migration: %w", err)
 		}
 	}
 	if recordVersion {
 		if err := insertOrDeleteVersion(tx, version, direction); err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return fmt.Errorf("failed to update version: %w", err)
 		}
 	}

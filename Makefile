@@ -40,3 +40,11 @@ start-postgres:
 .PHONY: clean
 clean:
 	@find . -type f -name '*.FAIL' -delete
+
+.PHONY: lint
+lint: tools
+	@golangci-lint run ./... --fix
+
+.PHONY: tools
+tools:
+	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.50.1

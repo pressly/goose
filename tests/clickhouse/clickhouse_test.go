@@ -21,7 +21,7 @@ func TestClickUpDownAll(t *testing.T) {
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
 
-	goose.SetDialect("clickhouse")
+	check.NoError(t, goose.SetDialect("clickhouse"))
 
 	retryCheckTableMutation := func(table string) func() error {
 		return func() error {
@@ -88,7 +88,7 @@ func TestClickHouseFirstThree(t *testing.T) {
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
 
-	goose.SetDialect("clickhouse")
+	check.NoError(t, goose.SetDialect("clickhouse"))
 
 	err = goose.Up(db, migrationDir)
 	check.NoError(t, err)
@@ -158,7 +158,7 @@ func TestRemoteImportMigration(t *testing.T) {
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
 
-	goose.SetDialect("clickhouse")
+	check.NoError(t, goose.SetDialect("clickhouse"))
 
 	err = goose.Up(db, migrationDir)
 	check.NoError(t, err)

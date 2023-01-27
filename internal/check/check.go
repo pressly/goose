@@ -84,11 +84,3 @@ func reflectToInt64(v interface{}) (int64, error) {
 	}
 	return 0, fmt.Errorf("invalid number: must be int64 type: got:%T", v)
 }
-
-func reflectToStr(v interface{}) (string, error) {
-	switch typ := v.(type) {
-	case string:
-		return reflect.ValueOf(typ).String(), nil
-	}
-	return "", fmt.Errorf("invalid string: got:%T", v)
-}

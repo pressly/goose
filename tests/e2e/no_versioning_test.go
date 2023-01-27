@@ -20,7 +20,7 @@ func TestNoVersioning(t *testing.T) {
 	)
 	db, err := newDockerDB(t)
 	check.NoError(t, err)
-	goose.SetDialect(*dialect)
+	check.NoError(t, goose.SetDialect(*dialect))
 
 	err = goose.Up(db, migrationsDir)
 	check.NoError(t, err)
