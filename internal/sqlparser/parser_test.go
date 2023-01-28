@@ -11,6 +11,15 @@ import (
 	"github.com/pressly/goose/v3/internal/check"
 )
 
+var (
+	debug = false
+)
+
+func TestMain(m *testing.M) {
+	debug, _ = strconv.ParseBool(os.Getenv("DEBUG_TEST"))
+	os.Exit(m.Run())
+}
+
 func TestSemicolons(t *testing.T) {
 	t.Parallel()
 
@@ -38,7 +47,6 @@ func TestSemicolons(t *testing.T) {
 
 func TestSplitStatements(t *testing.T) {
 	t.Parallel()
-	// SetVerbose(true)
 
 	type testData struct {
 		sql  string
@@ -59,7 +67,7 @@ func TestSplitStatements(t *testing.T) {
 
 	for i, test := range tt {
 		// up
-		stmts, _, err := ParseSQLMigration(strings.NewReader(test.sql), true)
+		stmts, _, err := ParseSQLMigration(strings.NewReader(test.sql), DirectionUp, debug)
 		if err != nil {
 			t.Error(fmt.Errorf("tt[%v] unexpected error: %w", i, err))
 		}
@@ -68,7 +76,7 @@ func TestSplitStatements(t *testing.T) {
 		}
 
 		// down
-		stmts, _, err = ParseSQLMigration(strings.NewReader(test.sql), false)
+		stmts, _, err = ParseSQLMigration(strings.NewReader(test.sql), DirectionDown, debug)
 		if err != nil {
 			t.Error(fmt.Errorf("tt[%v] unexpected error: %w", i, err))
 		}
@@ -97,7 +105,7 @@ func TestUseTransactions(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		_, useTx, err := ParseSQLMigration(f, true)
+		_, useTx, err := ParseSQLMigration(f, DirectionUp, debug)
 		if err != nil {
 			t.Error(err)
 		}
@@ -117,7 +125,7 @@ func TestParsingErrors(t *testing.T) {
 		downFirst,
 	}
 	for i, sql := range tt {
-		_, _, err := ParseSQLMigration(strings.NewReader(sql), true)
+		_, _, err := ParseSQLMigration(strings.NewReader(sql), DirectionUp, debug)
 		if err == nil {
 			t.Errorf("expected error on tt[%v] %q", i, sql)
 		}
@@ -386,7 +394,7 @@ func testValidUp(t *testing.T, dir string, count int) {
 	f, err := os.Open(filepath.Join(dir, "input.sql"))
 	check.NoError(t, err)
 	t.Cleanup(func() { f.Close() })
-	statements, _, err := ParseSQLMigration(f, true)
+	statements, _, err := ParseSQLMigration(f, DirectionUp, debug)
 	check.NoError(t, err)
 	check.Number(t, len(statements), count)
 	compareStatements(t, dir, statements)
