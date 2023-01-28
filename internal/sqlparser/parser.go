@@ -89,7 +89,7 @@ var bufferPool = sync.Pool{
 // within a statement. For these cases, we provide the explicit annotations
 // 'StatementBegin' and 'StatementEnd' to allow the script to
 // tell us to ignore semicolons.
-func ParseSQLMigration(r io.Reader, direction, verbose bool) (stmts []string, useTx bool, err error) {
+func ParseSQLMigration(r io.Reader, direction Direction, verbose bool) (stmts []string, useTx bool, err error) {
 	scanBufPtr := bufferPool.Get().(*[]byte)
 	scanBuf := *scanBufPtr
 	defer bufferPool.Put(scanBufPtr)
@@ -120,7 +120,7 @@ func ParseSQLMigration(r io.Reader, direction, verbose bool) (stmts []string, us
 				case start:
 					sm.set(gooseUp)
 				default:
-					return nil, false, fmt.Errorf("duplicate '-- +goose Up' annotations; stateMachine=%v, see https://github.com/pressly/goose#sql-migrations", sm)
+					return nil, false, fmt.Errorf("duplicate '-- +goose Up' annotations; stateMachine=%d, see https://github.com/pressly/goose#sql-migrations", sm.state)
 				}
 				continue
 
@@ -129,7 +129,7 @@ func ParseSQLMigration(r io.Reader, direction, verbose bool) (stmts []string, us
 				case gooseUp, gooseStatementEndUp:
 					sm.set(gooseDown)
 				default:
-					return nil, false, fmt.Errorf("must start with '-- +goose Up' annotation, stateMachine=%v, see https://github.com/pressly/goose#sql-migrations", sm)
+					return nil, false, fmt.Errorf("must start with '-- +goose Up' annotation, stateMachine=%d, see https://github.com/pressly/goose#sql-migrations", sm.state)
 				}
 				continue
 
@@ -140,7 +140,7 @@ func ParseSQLMigration(r io.Reader, direction, verbose bool) (stmts []string, us
 				case gooseDown, gooseStatementEndDown:
 					sm.set(gooseStatementBeginDown)
 				default:
-					return nil, false, fmt.Errorf("'-- +goose StatementBegin' must be defined after '-- +goose Up' or '-- +goose Down' annotation, stateMachine=%v, see https://github.com/pressly/goose#sql-migrations", sm)
+					return nil, false, fmt.Errorf("'-- +goose StatementBegin' must be defined after '-- +goose Up' or '-- +goose Down' annotation, stateMachine=%d, see https://github.com/pressly/goose#sql-migrations", sm.state)
 				}
 				continue
 
