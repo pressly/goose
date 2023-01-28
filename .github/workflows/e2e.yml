@@ -14,13 +14,12 @@ jobs:
     strategy:
       matrix:
         dialect: ["postgres", "mysql"]
-        go-version: "1.19"
 
     steps:
       - name: Install Go
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version: "1.19"
           check-latest: true
           cache: true
       - name: Checkout code
@@ -38,7 +37,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version: "1.19"
           check-latest: true
           cache: true
       - name: Run clickhouse test
@@ -53,7 +52,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version: "1.19"
           check-latest: true
           cache: true
       - name: Run vertica test
