@@ -72,7 +72,7 @@ func cleanup(r io.Reader) (string, error) {
 	// TODO(mf): is there a bette way to do this?
 	// kudos: https://stackoverflow.com/a/71979673/3562607
 	result := rg.ReplaceAllString(b.String(), "\n\n")
-	return strings.TrimSpace(result), nil
+	return "\n" + strings.TrimSpace(result) + "\n", nil
 }
 
 func dump(w io.Writer, options ConnectionOptions) error {
@@ -139,7 +139,6 @@ func runPgDump(w io.Writer, pgDumpPath string, connOptions ConnectionOptions) er
 	cmd.Env = append(cmd.Env, "PGPASSWORD="+connOptions.Password)
 	cmd.Stdout = w
 	cmd.Stderr = os.Stderr
-	fmt.Println(cmd.String())
 	return cmd.Run()
 
 }
