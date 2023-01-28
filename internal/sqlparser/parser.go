@@ -89,7 +89,7 @@ var bufferPool = sync.Pool{
 // within a statement. For these cases, we provide the explicit annotations
 // 'StatementBegin' and 'StatementEnd' to allow the script to
 // tell us to ignore semicolons.
-func ParseSQLMigration(r io.Reader, direction Direction, verbose bool) (stmts []string, useTx bool, err error) {
+func ParseSQLMigration(r io.Reader, direction, verbose bool) (stmts []string, useTx bool, err error) {
 	scanBufPtr := bufferPool.Get().(*[]byte)
 	scanBuf := *scanBufPtr
 	defer bufferPool.Put(scanBufPtr)
@@ -97,7 +97,7 @@ func ParseSQLMigration(r io.Reader, direction Direction, verbose bool) (stmts []
 	scanner := bufio.NewScanner(r)
 	scanner.Buffer(scanBuf, scanBufSize)
 
-	m := newStateMachine(start, verbose)
+	sm := newStateMachine(start, verbose)
 	useTx = true
 
 	var buf bytes.Buffer
@@ -106,7 +106,7 @@ func ParseSQLMigration(r io.Reader, direction Direction, verbose bool) (stmts []
 		if verbose {
 			log.Println(line)
 		}
-		if m.get() == start && strings.TrimSpace(line) == "" {
+		if sm.get() == start && strings.TrimSpace(line) == "" {
 			continue
 		}
 		// TODO(mf): validate annotations to avoid common user errors:
@@ -116,40 +116,40 @@ func ParseSQLMigration(r io.Reader, direction Direction, verbose bool) (stmts []
 
 			switch cmd {
 			case "+goose Up":
-				switch m.get() {
+				switch sm.get() {
 				case start:
-					m.set(gooseUp)
+					sm.set(gooseUp)
 				default:
-					return nil, false, fmt.Errorf("duplicate '-- +goose Up' annotations; stateMachine=%v, see https://github.com/pressly/goose#sql-migrations", m)
+					return nil, false, fmt.Errorf("duplicate '-- +goose Up' annotations; stateMachine=%v, see https://github.com/pressly/goose#sql-migrations", sm)
 				}
 				continue
 
 			case "+goose Down":
-				switch m.get() {
+				switch sm.get() {
 				case gooseUp, gooseStatementEndUp:
-					m.set(gooseDown)
+					sm.set(gooseDown)
 				default:
-					return nil, false, fmt.Errorf("must start with '-- +goose Up' annotation, stateMachine=%v, see https://github.com/pressly/goose#sql-migrations", m)
+					return nil, false, fmt.Errorf("must start with '-- +goose Up' annotation, stateMachine=%v, see https://github.com/pressly/goose#sql-migrations", sm)
 				}
 				continue
 
 			case "+goose StatementBegin":
-				switch m.get() {
+				switch sm.get() {
 				case gooseUp, gooseStatementEndUp:
-					m.set(gooseStatementBeginUp)
+					sm.set(gooseStatementBeginUp)
 				case gooseDown, gooseStatementEndDown:
-					m.set(gooseStatementBeginDown)
+					sm.set(gooseStatementBeginDown)
 				default:
-					return nil, false, fmt.Errorf("'-- +goose StatementBegin' must be defined after '-- +goose Up' or '-- +goose Down' annotation, stateMachine=%v, see https://github.com/pressly/goose#sql-migrations", m)
+					return nil, false, fmt.Errorf("'-- +goose StatementBegin' must be defined after '-- +goose Up' or '-- +goose Down' annotation, stateMachine=%v, see https://github.com/pressly/goose#sql-migrations", sm)
 				}
 				continue
 
 			case "+goose StatementEnd":
-				switch m.get() {
+				switch sm.get() {
 				case gooseStatementBeginUp:
-					m.set(gooseStatementEndUp)
+					sm.set(gooseStatementEndUp)
 				case gooseStatementBeginDown:
-					m.set(gooseStatementEndDown)
+					sm.set(gooseStatementEndDown)
 				default:
 					return nil, false, errors.New("'-- +goose StatementEnd' must be defined after '-- +goose StatementBegin', see https://github.com/pressly/goose#sql-migrations")
 				}
@@ -165,11 +165,11 @@ func ParseSQLMigration(r io.Reader, direction Direction, verbose bool) (stmts []
 		if buf.Len() == 0 {
 			// This check ensures leading comments and empty lines prior to a statement are ignored.
 			if strings.HasPrefix(strings.TrimSpace(line), "--") || line == "" {
-				m.print("ignore comment")
+				sm.print("ignore comment")
 				continue
 			}
 		}
-		switch m.get() {
+		switch sm.get() {
 		case gooseStatementEndDown, gooseStatementEndUp:
 			// Do not include the "+goose StatementEnd" annotation in the final statement.
 		default:
@@ -183,46 +183,46 @@ func ParseSQLMigration(r io.Reader, direction Direction, verbose bool) (stmts []
 		// 1) basic query with semicolon; 2) psql statement
 		//
 		// Export statement once we hit end of statement.
-		switch m.get() {
+		switch sm.get() {
 		case gooseUp, gooseStatementBeginUp, gooseStatementEndUp:
 			if direction == DirectionDown {
 				buf.Reset()
-				m.print("ignore down")
+				sm.print("ignore down")
 				continue
 			}
 		case gooseDown, gooseStatementBeginDown, gooseStatementEndDown:
 			if direction == DirectionUp {
 				buf.Reset()
-				m.print("ignore up")
+				sm.print("ignore up")
 				continue
 			}
 		default:
-			return nil, false, fmt.Errorf("failed to parse migration: unexpected state %d on line %q, see https://github.com/pressly/goose#sql-migrations", m.state, line)
+			return nil, false, fmt.Errorf("failed to parse migration: unexpected state %d on line %q, see https://github.com/pressly/goose#sql-migrations", sm.state, line)
 		}
 
-		switch m.get() {
+		switch sm.get() {
 		case gooseUp:
 			if endsWithSemicolon(line) {
 				stmts = append(stmts, cleanupStatement(buf.String()))
 				buf.Reset()
-				m.print("store simple Up query")
+				sm.print("store simple Up query")
 			}
 		case gooseDown:
 			if endsWithSemicolon(line) {
 				stmts = append(stmts, cleanupStatement(buf.String()))
 				buf.Reset()
-				m.print("store simple Down query")
+				sm.print("store simple Down query")
 			}
 		case gooseStatementEndUp:
 			stmts = append(stmts, cleanupStatement(buf.String()))
 			buf.Reset()
-			m.print("store Up statement")
-			m.set(gooseUp)
+			sm.print("store Up statement")
+			sm.set(gooseUp)
 		case gooseStatementEndDown:
 			stmts = append(stmts, cleanupStatement(buf.String()))
 			buf.Reset()
-			m.print("store Down statement")
-			m.set(gooseDown)
+			sm.print("store Down statement")
+			sm.set(gooseDown)
 		}
 	}
 	if err := scanner.Err(); err != nil {
@@ -230,7 +230,7 @@ func ParseSQLMigration(r io.Reader, direction Direction, verbose bool) (stmts []
 	}
 	// EOF
 
-	switch m.get() {
+	switch sm.get() {
 	case start:
 		return nil, false, errors.New("failed to parse migration: must start with '-- +goose Up' annotation, see https://github.com/pressly/goose#sql-migrations")
 	case gooseStatementBeginUp, gooseStatementBeginDown:
@@ -238,7 +238,7 @@ func ParseSQLMigration(r io.Reader, direction Direction, verbose bool) (stmts []
 	}
 
 	if bufferRemaining := strings.TrimSpace(buf.String()); len(bufferRemaining) > 0 {
-		return nil, false, fmt.Errorf("failed to parse migration: state %d, direction: %v: unexpected unfinished SQL query: %q: missing semicolon?", m.state, direction, bufferRemaining)
+		return nil, false, fmt.Errorf("failed to parse migration: state %d, direction: %v: unexpected unfinished SQL query: %q: missing semicolon?", sm.state, direction, bufferRemaining)
 	}
 
 	return stmts, useTx, nil
