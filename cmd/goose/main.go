@@ -13,6 +13,7 @@ import (
 
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/internal/cfg"
+	"github.com/pressly/goose/v3/internal/pgutil"
 )
 
 var (
@@ -137,6 +138,29 @@ func main() {
 	if *noVersioning {
 		options = append(options, goose.WithNoVersioning())
 	}
+
+	switch command {
+	case "dump":
+		if driver != "pgx" {
+			log.Fatalln("this command is only available for postgres")
+		}
+		connOptions, err := pgutil.NewConnectionOptions(dbstring)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		var clean bool
+		if len(args) == 4 && args[3] == "--clean" { // LOL
+			clean = true
+		}
+		out, err := pgutil.Dump(connOptions, clean)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		// TODO(mf): dump to stdout or to a file?
+		fmt.Fprintln(os.Stdout, out)
+		return
+	}
+
 	if err := goose.RunWithOptions(
 		command,
 		db,
