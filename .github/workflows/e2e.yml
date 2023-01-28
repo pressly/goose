@@ -12,8 +12,9 @@ jobs:
     timeout-minutes: 10
     runs-on: ubuntu-latest
     strategy:
+      max-parallel: 2
       matrix:
-        dialect: ["postgres", "mysql"]
+        dialect: ["postgres", "mysql", "vertica", "clickhouse"]
 
     steps:
       - name: Install Go
@@ -27,33 +28,3 @@ jobs:
       - name: Run e2e ${{ matrix.dialect }} tests
         run: |
           make test-e2e-${{ matrix.dialect }}
-  test-clickhouse:
-    name: Run clickhouse tests
-    timeout-minutes: 10
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Install Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: "1.19"
-          check-latest: true
-          cache: true
-      - name: Run clickhouse test
-        run: make test-clickhouse
-  test-vertica:
-    name: Run vertica tests
-    timeout-minutes: 10
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Install Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: "1.19"
-          check-latest: true
-          cache: true
-      - name: Run vertica test
-        run: make test-vertica
