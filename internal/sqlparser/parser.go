@@ -49,13 +49,13 @@ func newStateMachine(begin parserState, verbose bool) *stateMachine {
 	}
 }
 
-func (m *stateMachine) get() parserState {
-	return m.state
+func (s *stateMachine) get() parserState {
+	return s.state
 }
 
-func (m *stateMachine) set(new parserState) {
-	m.print("set %d => %d", m.state, new)
-	m.state = new
+func (s *stateMachine) set(new parserState) {
+	s.print("set %d => %d", s.state, new)
+	s.state = new
 }
 
 const (
@@ -63,9 +63,9 @@ const (
 	resetColor = "\033[00m"
 )
 
-func (m *stateMachine) print(msg string, args ...interface{}) {
+func (s *stateMachine) print(msg string, args ...interface{}) {
 	msg = "StateMachine: " + msg
-	if m.verbose {
+	if s.verbose {
 		log.Printf(grayColor+msg+resetColor, args...)
 	}
 }
