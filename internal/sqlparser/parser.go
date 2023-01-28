@@ -54,7 +54,7 @@ func (m *stateMachine) get() parserState {
 }
 
 func (m *stateMachine) set(new parserState) {
-	m.print("StateMachine: %v => %v", m.state, new)
+	m.print("StateMachine: %d => %d", m.state, new)
 	m.state = new
 }
 
