@@ -61,8 +61,7 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 		}
 		defer f.Close()
 
-		sqlparser.SetVersbose(verbose)
-		statements, useTx, err := sqlparser.ParseSQLMigration(f, direction)
+		statements, useTx, err := sqlparser.ParseSQLMigration(f, sqlparser.FromBool(direction), verbose)
 		if err != nil {
 			return fmt.Errorf("ERROR %v: failed to parse SQL migration file: %w", filepath.Base(m.Source), err)
 		}

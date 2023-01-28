@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/internal/check"
 	"github.com/pressly/goose/v3/internal/testdb"
 )
@@ -72,6 +73,11 @@ func TestMain(m *testing.M) {
 	}
 	migrationsDir = filepath.Join("testdata", *dialect, "migrations")
 	seedDir = filepath.Join("testdata", *dialect, "seed")
+
+	if err := goose.SetDialect(*dialect); err != nil {
+		log.Printf("failed to set dialect %q: %v\n", *dialect, err)
+		os.Exit(1)
+	}
 
 	exitCode := m.Run()
 	// Useful for debugging test services.

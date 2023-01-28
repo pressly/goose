@@ -321,8 +321,6 @@ func setupTestDB(t *testing.T, version int64) *sql.DB {
 	db, err := newDockerDB(t)
 	check.NoError(t, err)
 
-	check.NoError(t, goose.SetDialect(*dialect))
-
 	// Create goose table.
 	current, err := goose.EnsureDBVersion(db)
 	check.NoError(t, err)
