@@ -52,7 +52,7 @@ func ignore(input string) bool {
 	return false
 }
 
-var rg = regexp.MustCompile(`(\r\n?|\n){2,}`)
+var reAdjacentEmptyLines = regexp.MustCompile(`(?m)(\n){3,}`)
 
 func cleanup(r io.Reader) (string, error) {
 	var b strings.Builder
@@ -69,9 +69,7 @@ func cleanup(r io.Reader) (string, error) {
 	if err := sc.Err(); err != nil {
 		return "", err
 	}
-	// TODO(mf): is there a bette way to do this?
-	// kudos: https://stackoverflow.com/a/71979673/3562607
-	result := rg.ReplaceAllString(b.String(), "\n\n")
+	result := reAdjacentEmptyLines.ReplaceAllString(b.String(), "\n\n")
 	return "\n" + strings.TrimSpace(result) + "\n", nil
 }
 
