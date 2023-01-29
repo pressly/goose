@@ -140,7 +140,7 @@ func main() {
 	}
 
 	switch command {
-	case "dump":
+	case "schema":
 		if driver != "pgx" {
 			log.Fatalln("this command is only available for postgres")
 		}
@@ -152,7 +152,7 @@ func main() {
 		if len(args) == 4 && args[3] == "--clean" { // LOL
 			clean = true
 		}
-		out, err := pgutil.Dump(connOptions, clean)
+		out, err := pgutil.DumpSchema(connOptions, clean)
 		if err != nil {
 			log.Fatalln(err)
 		}

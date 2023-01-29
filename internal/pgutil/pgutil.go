@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-func Dump(options ConnectionOptions, clean bool) (string, error) {
+func DumpSchema(options ConnectionOptions, clean bool) (string, error) {
 	var b bytes.Buffer
 	if err := dump(&b, options); err != nil {
 		return "", err
