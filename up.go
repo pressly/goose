@@ -225,7 +225,7 @@ func UpByOne(db *sql.DB, dir string, opts ...OptionsFunc) error {
 func listAllDBVersions(db *sql.DB) (Migrations, error) {
 	rows, err := GetDialect().dbVersionQuery(db)
 	if err != nil {
-		return nil, createVersionTable(db)
+		return nil, CreateVersionTable(db)
 	}
 	var all Migrations
 	for rows.Next() {
