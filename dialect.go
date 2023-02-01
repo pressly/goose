@@ -8,6 +8,7 @@ import (
 // SQLDialect abstracts the details of specific SQL dialects
 // for goose's few SQL specific statements
 type SQLDialect interface {
+	versionTableExistsSQL() string // sql string to check if the version table exists
 	createVersionTableSQL() string // sql string to create the db version table
 	insertVersionSQL() string      // sql string to insert the initial version table row
 	deleteVersionSQL() string      // sql string to delete version
@@ -55,6 +56,11 @@ func SetDialect(d string) error {
 // PostgresDialect struct.
 type PostgresDialect struct{}
 
+func (pg PostgresDialect) versionTableExistsSQL() string {
+	return fmt.Sprintf(`SELECT 1 FROM information_schema.tables WHERE table_name = '%s';`,
+		TableName())
+}
+
 func (pg PostgresDialect) createVersionTableSQL() string {
 	return fmt.Sprintf(`CREATE TABLE %s (
             	id serial NOT NULL,
@@ -78,7 +84,7 @@ func (pg PostgresDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	return rows, err
 }
 
-func (m PostgresDialect) migrationSQL() string {
+func (pg PostgresDialect) migrationSQL() string {
 	return fmt.Sprintf("SELECT tstamp, is_applied FROM %s WHERE version_id=$1 ORDER BY tstamp DESC LIMIT 1", TableName())
 }
 
@@ -92,6 +98,11 @@ func (pg PostgresDialect) deleteVersionSQL() string {
 
 // MySQLDialect struct.
 type MySQLDialect struct{}
+
+func (m MySQLDialect) versionTableExistsSQL() string {
+	return fmt.Sprintf(`SELECT 1 FROM information_schema.tables WHERE table_name = '%s';`,
+		TableName())
+}
 
 func (m MySQLDialect) createVersionTableSQL() string {
 	return fmt.Sprintf(`CREATE TABLE %s (
@@ -130,6 +141,11 @@ func (m MySQLDialect) deleteVersionSQL() string {
 
 // SqlServerDialect struct.
 type SqlServerDialect struct{}
+
+func (m SqlServerDialect) versionTableExistsSQL() string {
+	return fmt.Sprintf(`SELECT 1 FROM information_schema.tables WHERE table_name = '%s';`,
+		TableName())
+}
 
 func (m SqlServerDialect) createVersionTableSQL() string {
 	return fmt.Sprintf(`CREATE TABLE %s (
@@ -181,6 +197,11 @@ func (m SqlServerDialect) deleteVersionSQL() string {
 // Sqlite3Dialect struct.
 type Sqlite3Dialect struct{}
 
+func (m Sqlite3Dialect) versionTableExistsSQL() string {
+	return fmt.Sprintf(`SELECT 1 FROM sqlite_master WHERE type='table' AND name='%s';`,
+		TableName())
+}
+
 func (m Sqlite3Dialect) createVersionTableSQL() string {
 	return fmt.Sprintf(`CREATE TABLE %s (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -218,6 +239,11 @@ func (m Sqlite3Dialect) deleteVersionSQL() string {
 // RedshiftDialect struct.
 type RedshiftDialect struct{}
 
+func (rs RedshiftDialect) versionTableExistsSQL() string {
+	return fmt.Sprintf(`SELECT 1 FROM information_schema.tables WHERE table_name = '%s';`,
+		TableName())
+}
+
 func (rs RedshiftDialect) createVersionTableSQL() string {
 	return fmt.Sprintf(`CREATE TABLE %s (
             	id integer NOT NULL identity(1, 1),
@@ -241,7 +267,7 @@ func (rs RedshiftDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	return rows, err
 }
 
-func (m RedshiftDialect) migrationSQL() string {
+func (rs RedshiftDialect) migrationSQL() string {
 	return fmt.Sprintf("SELECT tstamp, is_applied FROM %s WHERE version_id=$1 ORDER BY tstamp DESC LIMIT 1", TableName())
 }
 
@@ -255,6 +281,11 @@ func (rs RedshiftDialect) deleteVersionSQL() string {
 
 // TiDBDialect struct.
 type TiDBDialect struct{}
+
+func (m TiDBDialect) versionTableExistsSQL() string {
+	return fmt.Sprintf(`SELECT 1 FROM information_schema.tables WHERE table_name = '%s';`,
+		TableName())
+}
 
 func (m TiDBDialect) createVersionTableSQL() string {
 	return fmt.Sprintf(`CREATE TABLE %s (
@@ -294,6 +325,11 @@ func (m TiDBDialect) deleteVersionSQL() string {
 // ClickHouseDialect struct.
 type ClickHouseDialect struct{}
 
+func (m ClickHouseDialect) versionTableExistsSQL() string {
+	return fmt.Sprintf(`SELECT 1 FROM information_schema.tables WHERE table_name = '%s';`,
+		TableName())
+}
+
 func (m ClickHouseDialect) createVersionTableSQL() string {
 	return fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
       version_id Int64,
@@ -332,6 +368,11 @@ func (m ClickHouseDialect) deleteVersionSQL() string {
 // VerticaDialect struct.
 type VerticaDialect struct{}
 
+func (v VerticaDialect) versionTableExistsSQL() string {
+	return fmt.Sprintf(`SELECT 1 FROM v_catalog.tables WHERE table_name ILIKE '%s';`,
+		TableName())
+}
+
 func (v VerticaDialect) createVersionTableSQL() string {
 	return fmt.Sprintf(`CREATE TABLE %s (
                 id identity(1,1) NOT NULL,
@@ -355,7 +396,7 @@ func (v VerticaDialect) dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
 	return rows, err
 }
 
-func (m VerticaDialect) migrationSQL() string {
+func (v VerticaDialect) migrationSQL() string {
 	return fmt.Sprintf("SELECT tstamp, is_applied FROM %s WHERE version_id=? ORDER BY tstamp DESC LIMIT 1", TableName())
 }
 

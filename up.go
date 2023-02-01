@@ -223,9 +223,9 @@ func UpByOne(db *sql.DB, dir string, opts ...OptionsFunc) error {
 // listAllDBVersions returns a list of all migrations, ordered ascending.
 // TODO(mf): fairly cheap, but a nice-to-have is pagination support.
 func listAllDBVersions(db *sql.DB) (Migrations, error) {
-	rows, err := GetDialect().dbVersionQuery(db)
+	rows, err := dbVersionQuery(db)
 	if err != nil {
-		return nil, createVersionTable(db)
+		return nil, createVersionTableIfMissing(db, err)
 	}
 	var all Migrations
 	for rows.Next() {

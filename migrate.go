@@ -17,6 +17,9 @@ var (
 	ErrNoCurrentVersion = errors.New("no current version found")
 	// ErrNoNextVersion when the next migration version is not found.
 	ErrNoNextVersion = errors.New("no next version found")
+	// ErrVersionTableMissing when the goose version table is missing.
+	ErrVersionTableMissing = errors.New("version table doesn't exists")
+
 	// MaxVersion is the maximum allowed version.
 	MaxVersion int64 = math.MaxInt64
 
@@ -289,9 +292,9 @@ func versionFilter(v, current, target int64) bool {
 // EnsureDBVersion retrieves the current version for this DB.
 // Create and initialize the DB version table if it doesn't exist.
 func EnsureDBVersion(db *sql.DB) (int64, error) {
-	rows, err := GetDialect().dbVersionQuery(db)
+	rows, err := dbVersionQuery(db)
 	if err != nil {
-		return 0, createVersionTable(db)
+		return 0, createVersionTableIfMissing(db, err)
 	}
 	defer rows.Close()
 
@@ -333,6 +336,34 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 	}
 
 	return 0, ErrNoNextVersion
+}
+
+// dbVersionQuery query to check if the versions table exists and if so, query the versions table.
+// If the versions table does not exist, return an ErrVersionTableMissing error.
+func dbVersionQuery(db *sql.DB) (*sql.Rows, error) {
+	d := GetDialect()
+
+	rows, err := db.Query(d.versionTableExistsSQL())
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return nil, ErrVersionTableMissing
+	}
+
+	return d.dbVersionQuery(db)
+}
+
+// createVersionTableIfMissing creates the version table if the error is ErrVersionTableMissing.
+// Otherwise, returns the original error.
+func createVersionTableIfMissing(db *sql.DB, err error) error {
+	if !errors.Is(err, ErrVersionTableMissing) {
+		return fmt.Errorf("failed to query db versions: %w", err)
+	}
+
+	return createVersionTable(db)
 }
 
 // Create the db version table
