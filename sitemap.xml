@@ -71,12 +71,12 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://pressly.github.io/goose/blog/category/clickhouse/</loc>
+         <loc>https://pressly.github.io/goose/blog/category/blog/</loc>
          <lastmod>2023-02-02</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://pressly.github.io/goose/blog/category/blog/</loc>
+         <loc>https://pressly.github.io/goose/blog/category/clickhouse/</loc>
          <lastmod>2023-02-02</lastmod>
          <changefreq>daily</changefreq>
     </url>
