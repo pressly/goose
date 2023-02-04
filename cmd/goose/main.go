@@ -1,22 +1,19 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"flag"
 	"fmt"
 	"io/fs"
 	"log"
 	"os"
-	"path"
-	"path/filepath"
 	"runtime/debug"
 	"strconv"
 	"text/template"
 
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/internal/cfg"
-	"github.com/pressly/goose/v3/internal/sqlparser"
+	"github.com/pressly/goose/v3/internal/filemetadata"
 	"github.com/ryanuber/columnize"
 )
 
@@ -100,9 +97,9 @@ func main() {
 			fmt.Printf("%s=%q\n", env.Name, env.Value)
 		}
 		return
-	case "verify":
-		if err := verify(*dir, *verbose); err != nil {
-			log.Fatalf("goose verify: %v", err)
+	case "check":
+		if err := printCheck(*dir, *verbose); err != nil {
+			log.Fatalf("goose check: %v", err)
 		}
 		return
 	}
@@ -289,42 +286,18 @@ func gooseInit(dir string) error {
 	return goose.CreateWithTemplate(nil, dir, sqlMigrationTemplate, "initial", "sql")
 }
 
-func verify(file string, verbose bool) error {
-	stat, err := os.Stat(file)
+func printCheck(filename string, verbose bool) error {
+	metadata, err := filemetadata.Run(filename)
 	if err != nil {
 		return err
 	}
-	var files []string
-	if stat.IsDir() {
-		files, err = filepath.Glob(path.Join(file, "*.sql"))
-		if err != nil {
-			return err
-		}
-	} else {
-		files = append(files, file)
-	}
-	output := []string{"Txn | Up | Down | Name", "───|──|────|────"}
-	for _, file := range files {
-		by, err := os.ReadFile(file)
-		if err != nil {
-			log.Fatal(err)
-		}
-		up, txUp, err := sqlparser.ParseSQLMigration(bytes.NewReader(by), true)
-		if err != nil {
-			return fmt.Errorf("failed to parse up %q: error: %v", file, err)
-		}
-		down, txDown, err := sqlparser.ParseSQLMigration(bytes.NewReader(by), false)
-		if err != nil {
-			return fmt.Errorf("failed to parse down %q: error: %v", file, err)
-		}
-		if txUp != txDown {
-			return fmt.Errorf("fails to parse migration file correctly: txn clause mismatch")
-		}
+	output := []string{"Type | Txn | Up | Down | Name", "────|───|──|────|────"}
+	for _, m := range metadata {
 		txnStr := "✔"
-		if !txUp {
+		if !m.Tx {
 			txnStr = "✘"
 		}
-		msg := fmt.Sprintf("%s | %d | %d | %s", txnStr, len(up), len(down), filepath.Base(file))
+		msg := fmt.Sprintf("%s | %s | %d | %d | %s", m.FileType, txnStr, m.UpCount, m.DownCount, m.BaseName)
 		output = append(output, msg)
 	}
 	if verbose {
