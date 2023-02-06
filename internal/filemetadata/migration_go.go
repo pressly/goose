@@ -6,7 +6,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"log"
+	"io"
 )
 
 const (
@@ -24,16 +24,21 @@ func (g *goMigration) isValid() error {
 	switch g.name {
 	case registerGoFuncName, registerGoFuncNameNoTx:
 	default:
-		return fmt.Errorf("goose register function must be one of: %s or %s", registerGoFuncName, registerGoFuncNameNoTx)
+		return fmt.Errorf("goose register function must be one of: %s or %s",
+			registerGoFuncName,
+			registerGoFuncNameNoTx,
+		)
 	}
 	if g.useTx == nil {
-		return errors.New("parser error: failed to identify transaction: got nil bool")
+		return errors.New("validation error: failed to identify transaction: got nil bool")
 	}
+	// The up and down functions can either be named Go functions or "nil", an
+	// empty string means there is a flaw in our parsing logic of the Go source code.
 	if g.upFuncName == "" {
-		return fmt.Errorf("parser error: up function is empty string")
+		return fmt.Errorf("validation error: up function is empty string")
 	}
 	if g.downFuncName == "" {
-		return fmt.Errorf("parser error: down function is empty string")
+		return fmt.Errorf("validation error: down function is empty string")
 	}
 	return nil
 }
@@ -44,33 +49,32 @@ func convertGoMigration(g *goMigration) *FileMetadata {
 		Tx:       *g.useTx,
 	}
 	if g.upFuncName != "nil" {
-		m.UpCount++
+		m.UpCount = 1
 	}
 	if g.downFuncName != "nil" {
-		m.DownCount++
+		m.DownCount = 1
 	}
 	return m
 }
 
-func parseGoFile(filename string) (*goMigration, error) {
+func parseGoFile(r io.Reader) (*goMigration, error) {
 	astFile, err := parser.ParseFile(
 		token.NewFileSet(),
-		filename,
-		nil,
+		"", // filename
+		r,
 		parser.SkipObjectResolution,
 	)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	for _, decl := range astFile.Decls {
 		fn, ok := decl.(*ast.FuncDecl)
 		if !ok || fn == nil || fn.Name == nil {
 			continue
 		}
-		if fn.Name.Name != "init" {
-			continue
+		if fn.Name.Name == "init" {
+			return parseInitFunc(fn)
 		}
-		return parseInitFunc(fn)
 	}
 	return nil, errors.New("no init function")
 }
@@ -85,7 +89,7 @@ func parseInitFunc(fd *ast.FuncDecl) (*goMigration, error) {
 	if len(fd.Body.List) == 0 {
 		return nil, fmt.Errorf("no registered goose functions")
 	}
-	gf := &goMigration{}
+	gf := new(goMigration)
 	for _, statement := range fd.Body.List {
 		expr, ok := statement.(*ast.ExprStmt)
 		if !ok {

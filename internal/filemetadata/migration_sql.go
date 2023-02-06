@@ -1,9 +1,8 @@
 package filemetadata
 
 import (
-	"bytes"
 	"fmt"
-	"os"
+	"io"
 
 	"github.com/pressly/goose/v3/internal/sqlparser"
 )
@@ -22,25 +21,24 @@ func convertSQLMigration(s *sqlMigration) *FileMetadata {
 	}
 }
 
-func parseSQLFile(filename string) (*sqlMigration, error) {
-	by, err := os.ReadFile(filename)
+func parseSQLFile(r io.Reader, debug bool) (*sqlMigration, error) {
+	upStatements, txUp, err := sqlparser.ParseSQLMigration(r, sqlparser.DirectionUp, debug)
 	if err != nil {
 		return nil, err
 	}
-	up, txUp, err := sqlparser.ParseSQLMigration(bytes.NewReader(by), sqlparser.DirectionUp, false)
+	downStatements, txDown, err := sqlparser.ParseSQLMigration(r, sqlparser.DirectionDown, debug)
 	if err != nil {
 		return nil, err
 	}
-	down, txDown, err := sqlparser.ParseSQLMigration(bytes.NewReader(by), sqlparser.DirectionDown, false)
-	if err != nil {
-		return nil, err
-	}
+	// This case should never happen. Within a single .sql file if a +goose NO TRANSACTION
+	// annotation is set it must apply to the entire file, which includes all up
+	// and down statements.
 	if txUp != txDown {
-		return nil, fmt.Errorf("parser error: up and down txn mismatch")
+		return nil, fmt.Errorf("up and down txn do not match")
 	}
 	return &sqlMigration{
 		useTx:     txUp,
-		upCount:   len(up),
-		downCount: len(down),
+		upCount:   len(upStatements),
+		downCount: len(downStatements),
 	}, nil
 }

@@ -1,6 +1,7 @@
 package filemetadata
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path"
@@ -18,7 +19,7 @@ type FileMetadata struct {
 	UpCount, DownCount int
 }
 
-func Run(filename string) ([]*FileMetadata, error) {
+func Parse(filename string, debug bool) ([]*FileMetadata, error) {
 	stat, err := os.Stat(filename)
 	if err != nil {
 		return nil, err
@@ -39,31 +40,36 @@ func Run(filename string) ([]*FileMetadata, error) {
 
 	var metadata []*FileMetadata
 	for _, f := range files {
+		by, err := os.ReadFile(f)
+		if err != nil {
+			return nil, err
+		}
+		r := bytes.NewReader(by)
+
 		baseName := filepath.Base(f)
 		version, err := goose.NumericComponent(f)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse migration file %q: %w", f, err)
 		}
+
+		var m *FileMetadata
 		switch filepath.Ext(f) {
 		case ".sql":
-			sqlMigration, err := parseSQLFile(f)
+			sqlMigration, err := parseSQLFile(r, debug)
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse %q: %w", f, err)
+				return nil, fmt.Errorf("failed to parse sql file %q: %w", f, err)
 			}
-			m := convertSQLMigration(sqlMigration)
-			m.Version = version
-			m.BaseName = baseName
-			metadata = append(metadata, m)
+			m = convertSQLMigration(sqlMigration)
 		case ".go":
-			goMigration, err := parseGoFile(f)
+			goMigration, err := parseGoFile(r)
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse %q: %w", f, err)
+				return nil, fmt.Errorf("failed to parse go file %q: %w", f, err)
 			}
-			m := convertGoMigration(goMigration)
-			m.Version = version
-			m.BaseName = baseName
-			metadata = append(metadata, m)
+			m = convertGoMigration(goMigration)
 		}
+		m.Version = version
+		m.BaseName = baseName
+		metadata = append(metadata, m)
 	}
 	return metadata, nil
 }

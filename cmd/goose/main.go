@@ -287,7 +287,7 @@ func gooseInit(dir string) error {
 }
 
 func printCheck(filename string, verbose bool) error {
-	metadata, err := filemetadata.Run(filename)
+	metadata, err := filemetadata.Parse(filename, false)
 	if err != nil {
 		return err
 	}
