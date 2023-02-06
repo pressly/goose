@@ -1,7 +1,6 @@
 package filemetadata
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"path"
@@ -40,11 +39,10 @@ func Parse(filename string, debug bool) ([]*FileMetadata, error) {
 
 	var metadata []*FileMetadata
 	for _, f := range files {
-		by, err := os.ReadFile(f)
+		file, err := os.Open(f)
 		if err != nil {
 			return nil, err
 		}
-		r := bytes.NewReader(by)
 
 		baseName := filepath.Base(f)
 		version, err := goose.NumericComponent(f)
@@ -55,13 +53,13 @@ func Parse(filename string, debug bool) ([]*FileMetadata, error) {
 		var m *FileMetadata
 		switch filepath.Ext(f) {
 		case ".sql":
-			sqlMigration, err := parseSQLFile(r, debug)
+			sqlMigration, err := parseSQLFile(file, debug)
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse sql file %q: %w", f, err)
 			}
 			m = convertSQLMigration(sqlMigration)
 		case ".go":
-			goMigration, err := parseGoFile(r)
+			goMigration, err := parseGoFile(file)
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse go file %q: %w", f, err)
 			}
