@@ -97,9 +97,9 @@ func main() {
 			fmt.Printf("%s=%q\n", env.Name, env.Value)
 		}
 		return
-	case "check":
-		if err := printCheck(*dir, *verbose); err != nil {
-			log.Fatalf("goose check: %v", err)
+	case "validate":
+		if err := printValidate(*dir, *verbose); err != nil {
+			log.Fatalf("goose validate: %v", err)
 		}
 		return
 	}
@@ -286,7 +286,9 @@ func gooseInit(dir string) error {
 	return goose.CreateWithTemplate(nil, dir, sqlMigrationTemplate, "initial", "sql")
 }
 
-func printCheck(filename string, verbose bool) error {
+func printValidate(filename string, verbose bool) error {
+	// TODO(mf): we should introduce a --debug flag, which allows printing
+	// more internal debug information and leave verbose additional information.
 	metadata, err := filemetadata.Parse(filename, false)
 	if err != nil {
 		return err
@@ -297,7 +299,7 @@ func printCheck(filename string, verbose bool) error {
 		if !m.Tx {
 			txnStr = "✘"
 		}
-		msg := fmt.Sprintf("%s | %s | %d | %d | %s", m.FileType, txnStr, m.UpCount, m.DownCount, m.BaseName)
+		msg := fmt.Sprintf(" %s | %s | %d | %d | %s", m.FileType, txnStr, m.UpCount, m.DownCount, m.BaseName)
 		output = append(output, msg)
 	}
 	if verbose {
