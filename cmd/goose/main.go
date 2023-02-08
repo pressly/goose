@@ -9,12 +9,12 @@ import (
 	"os"
 	"runtime/debug"
 	"strconv"
+	"text/tabwriter"
 	"text/template"
 
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/internal/cfg"
 	"github.com/pressly/goose/v3/internal/filemetadata"
-	"github.com/ryanuber/columnize"
 )
 
 var (
@@ -288,22 +288,25 @@ func gooseInit(dir string) error {
 
 func printValidate(filename string, verbose bool) error {
 	// TODO(mf): we should introduce a --debug flag, which allows printing
-	// more internal debug information and leave verbose additional information.
+	// more internal debug information and leave verbose for additional information.
 	metadata, err := filemetadata.Parse(filename, false)
 	if err != nil {
 		return err
 	}
-	output := []string{"Type | Txn | Up | Down | Name", "────|───|──|────|────"}
+	if !verbose {
+		return nil
+	}
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', tabwriter.TabIndent)
+	fmtPattern := "%v\t%v\t%v\t%v\t%v\t\n"
+	fmt.Fprintf(w, fmtPattern, "Type", "Txn", "Up", "Down", "Name")
+	fmt.Fprintf(w, fmtPattern, "────", "───", "──", "────", "────")
 	for _, m := range metadata {
 		txnStr := "✔"
 		if !m.Tx {
 			txnStr = "✘"
 		}
-		msg := fmt.Sprintf(" %s | %s | %d | %d | %s", m.FileType, txnStr, m.UpCount, m.DownCount, m.BaseName)
-		output = append(output, msg)
+		fmt.Fprintf(w, fmtPattern, m.FileType, txnStr, m.UpCount, m.DownCount, m.BaseName)
 	}
-	if verbose {
-		fmt.Println(columnize.SimpleFormat(output))
-	}
+	_ = w.Flush()
 	return nil
 }

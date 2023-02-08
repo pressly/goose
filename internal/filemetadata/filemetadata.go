@@ -18,6 +18,8 @@ type FileMetadata struct {
 	UpCount, DownCount int
 }
 
+// Parse will parse either a directory or single file and return
+// metadata about the files. This supports both .sql and .go files.
 func Parse(filename string, debug bool) ([]*FileMetadata, error) {
 	stat, err := os.Stat(filename)
 	if err != nil {
