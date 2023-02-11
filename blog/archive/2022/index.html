@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../../assets/goose_logo_cropped.png">
-      <meta name="generator" content="mkdocs-1.4.2, mkdocs-material-9.0.10+insiders-4.29.0">
+      <meta name="generator" content="mkdocs-1.4.2, mkdocs-material-9.0.11+insiders-4.30.0">
     
     
       
@@ -724,6 +724,8 @@
       
         
       
+        
+      
     
     
       
@@ -876,6 +878,32 @@
   
   
     <li class="md-nav__item">
+      <a href="../../category/sql-migrations/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    
+  
+    SQL migrations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../category/testing/" class="md-nav__link">
         
   
@@ -943,6 +971,53 @@
       <header class="md-typeset">
         <h1 id="2022">2022</h1>
       </header>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+      <nav class="md-post__authors md-typeset">
+        
+          <span class="md-author">
+            <img src="https://github.com/mfridman.png" alt="Mike Fridman">
+          </span>
+        
+      </nav>
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2022-12-30 00:00:00">Dec 30, 2022</time></li>
+        
+          <li class="md-meta__item">
+            in
+            
+              <a href="../../category/blog/" class="md-meta__link">Blog</a>, 
+              <a href="../../category/sql-migrations/" class="md-meta__link">SQL migrations</a></li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="sql-migration-files-and-goose-annotations"><a class="toclink" href="../../2022/overview-sql-file/">SQL migration files and goose annotations</a></h2>
+<p>In this post we'll examine SQL migration files and <code>+goose</code> annotation comments, which are used to
+parse SQL statements and optionally modify how migrations are executed.</p>
+<p>As of this writing there are five <code>+goose</code> annotations:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- +goose Up</span>
+<span class="c1">-- +goose Down</span>
+<span class="c1">-- +goose StatementBegin</span>
+<span class="c1">-- +goose StatementEnd</span>
+<span class="c1">-- +goose NO TRANSACTION</span>
+</code></pre></div>
+
+    <nav class="md-post__action">
+      <a href="../../2022/overview-sql-file/">
+        Continue reading
+      </a>
+    </nav>
+  </div>
+</article>
       
         <article class="md-post md-post--excerpt">
   <header class="md-post__header">
@@ -1029,7 +1104,7 @@
       <div class="md-dialog__inner md-typeset"></div>
     </div>
     
-    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "navigation.tabs", "navigation.indexes", "navigation.top", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.6c7302c4.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "navigation.tabs", "navigation.indexes", "navigation.top", "content.code.annotate", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.6c7302c4.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
       <script src="../../../assets/javascripts/bundle.7ce0e818.min.js"></script>

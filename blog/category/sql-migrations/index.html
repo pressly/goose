@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://pressly.github.io/goose/blog/category/blog/">
+        <link rel="canonical" href="https://pressly.github.io/goose/blog/category/sql-migrations/">
       
       
-        <link rel="prev" href="../../archive/2021/">
+        <link rel="prev" href="../go-migrations/">
       
       
-        <link rel="next" href="../clickhouse/">
+        <link rel="next" href="../testing/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Blog - pressly/goose</title>
+        <title>SQL migrations - pressly/goose</title>
       
     
     
@@ -61,11 +61,11 @@
       
         <meta  property="og:type"  content="website" >
       
-        <meta  property="og:title"  content="Blog - pressly/goose" >
+        <meta  property="og:title"  content="SQL migrations - pressly/goose" >
       
         <meta  property="og:description"  content="The missing goose docs." >
       
-        <meta  property="og:image"  content="https://pressly.github.io/goose/assets/images/social/blog/category/blog.png" >
+        <meta  property="og:image"  content="https://pressly.github.io/goose/assets/images/social/blog/category/sql-migrations.png" >
       
         <meta  property="og:image:type"  content="image/png" >
       
@@ -73,15 +73,15 @@
       
         <meta  property="og:image:height"  content="630" >
       
-        <meta  property="og:url"  content="https://pressly.github.io/goose/blog/category/blog/" >
+        <meta  property="og:url"  content="https://pressly.github.io/goose/blog/category/sql-migrations/" >
       
         <meta  name="twitter:card"  content="summary_large_image" >
       
-        <meta  name="twitter:title"  content="Blog - pressly/goose" >
+        <meta  name="twitter:title"  content="SQL migrations - pressly/goose" >
       
         <meta  name="twitter:description"  content="The missing goose docs." >
       
-        <meta  name="twitter:image"  content="https://pressly.github.io/goose/assets/images/social/blog/category/blog.png" >
+        <meta  name="twitter:image"  content="https://pressly.github.io/goose/assets/images/social/blog/category/sql-migrations.png" >
       
     
     
@@ -102,7 +102,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#blog" class="md-skip">
+        <a href="#sql-migrations" class="md-skip">
           Skip to content
         </a>
       
@@ -134,7 +134,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Blog
+              SQL migrations
             
           </span>
         </div>
@@ -762,18 +762,9 @@
                 
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../blog/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -788,7 +779,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -876,9 +866,18 @@
                 
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../sql-migrations/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -893,6 +892,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -969,7 +969,7 @@
   <div class="md-content" data-md-component="content">
     <div class="md-content__inner">
       <header class="md-typeset">
-        <h1 id="blog">Blog</h1>
+        <h1 id="sql-migrations">SQL migrations</h1>
       </header>
       
         <article class="md-post md-post--excerpt">
@@ -991,8 +991,8 @@
           <li class="md-meta__item">
             in
             
-              <a href="./" class="md-meta__link">Blog</a>, 
-              <a href="../sql-migrations/" class="md-meta__link">SQL migrations</a></li>
+              <a href="../blog/" class="md-meta__link">Blog</a>, 
+              <a href="./" class="md-meta__link">SQL migrations</a></li>
         
         
       </ul>
@@ -1013,291 +1013,6 @@ parse SQL statements and optionally modify how migrations are executed.</p>
 
     <nav class="md-post__action">
       <a href="../../2022/overview-sql-file/">
-        Continue reading
-      </a>
-    </nav>
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-      <nav class="md-post__authors md-typeset">
-        
-          <span class="md-author">
-            <img src="https://github.com/mfridman.png" alt="Mike Fridman">
-          </span>
-        
-      </nav>
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2022-06-19 00:00:00">Jun 19, 2022</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Blog</a>, 
-              <a href="../clickhouse/" class="md-meta__link">ClickHouse</a></li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="improving-clickhouse-support"><a class="toclink" href="../../2022/improving-clickhouse/">Improving ClickHouse support</a></h2>
-<p><a href="https://clickhouse.com/">ClickHouse</a> is a an open-source column-oriented database that is well-suited for analytical workloads. Over the past few years we've seen more and more demand for improved ClickHouse support in goose.</p>
-<p>To summarize:</p>
-<ul>
-<li>Upgraded to the latest <code>/v2</code> driver: <a href="https://github.com/ClickHouse/clickhouse-go">ClickHouse/clickhouse-go</a></li>
-<li>Full end-end tests against the docker image: <a href="https://hub.docker.com/r/clickhouse/clickhouse-server/">clickhouse/clickhouse-server</a></li>
-<li>Bug fixes and improvements</li>
-</ul>
-<div class="admonition danger">
-<p>The <code>/v2</code> driver <a href="https://github.com/ClickHouse/clickhouse-go/issues/525">changed the DSN format</a>, so be prepared for a breaking change. This is actually a good thing, because it brings the format in-line with other databases.</p>
-</div>
-
-    <nav class="md-post__action">
-      <a href="../../2022/improving-clickhouse/">
-        Continue reading
-      </a>
-    </nav>
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-      <nav class="md-post__authors md-typeset">
-        
-          <span class="md-author">
-            <img src="https://github.com/mfridman.png" alt="Mike Fridman">
-          </span>
-        
-      </nav>
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2021-12-19 00:00:00">Dec 19, 2021</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Blog</a>, 
-              <a href="../general/" class="md-meta__link">General</a></li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="ad-hoc-migrations-with-no-versioning"><a class="toclink" href="../../2021/no-version-migrations/">Ad-hoc migrations with no versioning</a></h2>
-<p>This post describes a new feature recently added to <code>goose</code> -- the ability to apply migrations with <strong>no versioning</strong>. A common use case is to seed a database with data <em>after</em> versioned migrations have been applied.</p>
-
-    <nav class="md-post__action">
-      <a href="../../2021/no-version-migrations/">
-        Continue reading
-      </a>
-    </nav>
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-      <nav class="md-post__authors md-typeset">
-        
-          <span class="md-author">
-            <img src="https://github.com/mfridman.png" alt="Mike Fridman">
-          </span>
-        
-      </nav>
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2021-12-19 00:00:00">Dec 19, 2021</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Blog</a>, 
-              <a href="../general/" class="md-meta__link">General</a></li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="a-tour-of-goose-up-and-down-commands"><a class="toclink" href="../../2021/visualizing-up-down-commands/">A tour of goose up and down commands</a></h2>
-<p>A while ago a co-op student, who happened to be a visual leaner, asked if it were possible to explain <code>goose</code> commands visually. At the time we were still at an office, so we gathered around the whiteboard and doodled some diagrams.</p>
-<p>This post captures some of those whiteboard sketches, which seemed to help.</p>
-
-    <nav class="md-post__action">
-      <a href="../../2021/visualizing-up-down-commands/">
-        Continue reading
-      </a>
-    </nav>
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-      <nav class="md-post__authors md-typeset">
-        
-          <span class="md-author">
-            <img src="https://github.com/mfridman.png" alt="Mike Fridman">
-          </span>
-        
-      </nav>
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2021-10-16 00:00:00">Oct 16, 2021</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Blog</a>, 
-              <a href="../general/" class="md-meta__link">General</a></li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="adding-support-for-out-of-order-migrations"><a class="toclink" href="../../2021/out-of-order-migrations/">Adding support for out-of-order migrations</a></h2>
-<p>Starting with <code>goose</code> <a href="https://github.com/pressly/goose/releases/tag/v3.3.0">v3.3.0</a> we added the ability to apply missing (out-of-order) migrations. Thanks for all the the community feedback over the years.</p>
-
-    <nav class="md-post__action">
-      <a href="../../2021/out-of-order-migrations/">
-        Continue reading
-      </a>
-    </nav>
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-      <nav class="md-post__authors md-typeset">
-        
-          <span class="md-author">
-            <img src="https://github.com/mfridman.png" alt="Mike Fridman">
-          </span>
-        
-      </nav>
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2021-09-17 00:00:00">Sep 17, 2021</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Blog</a>, 
-              <a href="../testing/" class="md-meta__link">Testing</a></li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="better-tests-with-containers"><a class="toclink" href="../../2021/better-tests/">Better tests with containers</a></h2>
-<p>Managing state is hard. Managing database state is even harder. And coordinating state within a test suite is just always a bad time.</p>
-<p>But it doesn't have to be this way!</p>
-<p>There is a fantastic Go package called <a href="https://github.com/ory/dockertest">ory/dockertest</a> that allows you to spin up ephemeral docker containers. It'll work both locally (assuming you have Docker installed) and in your Continuous Integration (CI) pipelines.</p>
-
-    <nav class="md-post__action">
-      <a href="../../2021/better-tests/">
-        Continue reading
-      </a>
-    </nav>
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-      <nav class="md-post__authors md-typeset">
-        
-          <span class="md-author">
-            <img src="https://github.com/mfridman.png" alt="Mike Fridman">
-          </span>
-        
-      </nav>
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2021-08-21 00:00:00">Aug 21, 2021</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Blog</a>, 
-              <a href="../go-migrations/" class="md-meta__link">Go migrations</a></li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h3 id="embedding-migrations"><a class="toclink" href="../../2021/embed-sql-migrations/">Embedding migrations</a></h3>
-<p>Go continues to be boring while sprinkling quality of life features. One of the recent additions was the ability to embed files at compile time. Click here for <a href="https://golang.org/doc/go1.16#library-embed">go1.16 release notes</a>.</p>
-<p>Sine many users compile <code>goose</code> themselves, this new embed feature paves the way for embedding SQL files directly into the <code>goose</code> binary. This was <em>already</em> possible with existing tools, however, now that embedding is part of the standard library it's never been easier to offer this feature.</p>
-
-    <nav class="md-post__action">
-      <a href="../../2021/embed-sql-migrations/">
-        Continue reading
-      </a>
-    </nav>
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-      <nav class="md-post__authors md-typeset">
-        
-          <span class="md-author">
-            <img src="https://github.com/mfridman.png" alt="Mike Fridman">
-          </span>
-        
-      </nav>
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2021-07-01 00:00:00">Jul 1, 2021</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Blog</a></li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="hello-docs"><a class="toclink" href="../../2021/welcome/">Hello, docs!</a></h2>
-<p>Introductory blog post. I guess I'll write a few words.</p>
-
-    <nav class="md-post__action">
-      <a href="../../2021/welcome/">
         Continue reading
       </a>
     </nav>
