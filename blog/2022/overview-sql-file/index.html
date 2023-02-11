@@ -1301,17 +1301,16 @@ round trips.</p>
 <span class="c1">-- +goose Down</span>
 <span class="k">DROP</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">users</span><span class="p">;</span>
 </code></pre></div>
-<p>These annotations instruct <code>goose</code> to send the entire statement, which now contains multiples insert
-statements, in one shot. Yes, that's one large payload, but that's fine and this migration will
-execute in ~3s, which is an order of magnitude faster as compared to the previous example that took
-~38s.</p>
+<p>These annotations instruct <code>goose</code> to send the entire statement, which now contains multiples
+statements delimited by semicolons, in one shot. Yes, that's a large payload, but that's fine and
+the migration will execute in ~3s, which is an order of magnitude faster as compared to the previous
+example that ran in ~38s.</p>
 <h2 id="migrations-outside-transaction">Migrations outside transaction</h2>
 <p>All statements within a migration file are run within a transaction. Some statements, like
 <code>CREATE DATABASE</code> or <code>CREATE INDEX CONCURRENTLY</code>, cannot be run within a transaction block.</p>
-<p>For such cases add the <code>-- +goose NO TRANSACTION</code> annotation, usually placed towards the top of the
-file.</p>
-<p>This annotation instructs <code>goose</code> to run all statements within this file without transactions. This
-includes Up and Down statements.</p>
+<p>For such cases add the <code>-- +goose NO TRANSACTION</code> annotation, usually placed at the top of the file.</p>
+<p>This annotation instructs <code>goose</code> to run all statements within the file without transactions. This
+applies to both Up and Down statements.</p>
 <div class="highlight"><pre><span></span><code><span class="hll"><span class="c1">-- +goose NO TRANSACTION</span>
 </span>
 <span class="c1">-- +goose Up</span>
