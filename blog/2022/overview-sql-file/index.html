@@ -1231,14 +1231,13 @@ a semicolon to be properly recognized by <code>goose</code>.</p>
 <span class="k">language</span><span class="w"> </span><span class="n">plpgsql</span><span class="p">;</span>
 <span class="hll"><span class="c1">-- +goose StatementEnd</span>
 </span></code></pre></div>
-<p>When <code>goose</code> detects a <code>-- +goose StatementBegin</code> annotation it continues parsing the statement
-(ignoring semicolons) until <code>-- +goose StatementEnd</code> is detected. The resulting statement is
-stripped of leading and trailing comments / empty lines.</p>
+<p>When <code>goose</code> detects a <code>-- +goose StatementBegin</code> annotation it'll continue parsing statement(s),
+ignoring semicolons, until <code>-- +goose StatementEnd</code> is detected. The resulting statement is stripped
+of leading and trailing comments / empty lines.</p>
 <p>Comments and empty lines <ins>within</ins> a statement are preserved!</p>
 <h2 id="multiple-statements">Multiple statements</h2>
-<p>But that's not all, the <code>-- +goose StatementBegin</code> and <code>-- +goose StatementEnd</code> annotations can be
-used to combine multiple statements so they get sent as a single request instead of being sent
-one-by-one.</p>
+<p>But that's not all, the StatementBegin and StatementEnd annotations can be used to combine multiple
+statements so they get sent as a single request instead of being sent one-by-one.</p>
 <p>This is best illustrated with a contrived example. Suppose we have a migration that creates a
 <code>users</code> table and inserts 100,000 rows with distinct inserts.</p>
 <div class="highlight"><pre><span></span><code><span class="c1">-- +goose Up</span>
