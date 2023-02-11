@@ -1125,7 +1125,7 @@
 
 
 <h1 id="sql-migration-files-and-goose-annotations">SQL migration files and goose annotations</h1>
-<p>In this post we'll examine SQL migration files and <code>+goose</code> annotation comments, which are used to
+<p>In this post we'll explore SQL migration files and <code>+goose</code> annotation comments, which are used to
 parse SQL statements and optionally modify how migrations are executed.</p>
 <p>As of this writing there are five annotations:</p>
 <div class="highlight"><pre><span></span><code><span class="c1">-- +goose Up</span>
@@ -1138,8 +1138,8 @@ parse SQL statements and optionally modify how migrations are executed.</p>
 
 <div class="admonition success">
 <p class="admonition-title">bonus</p>
-<p>In addition to SQL migration files, the <code>goose</code> package can be used to write Go-based migrations and track both SQL and Go migrations in the same way.</p>
-<p>See the <a href="https://github.com/pressly/goose/tree/master/examples/go-migrations">repository example</a> for Go migrations, but we'll do a deep dive in a future post. Stay tuned!</p>
+<p>In addition to SQL migration files, the <ins><a href="https://pkg.go.dev/github.com/pressly/goose/v3"><code>goose</code> package</a></ins> can be used to write Go-based migrations and track both SQL and Go migrations in the same way.</p>
+<p>See <a href="https://github.com/pressly/goose/tree/master/examples/go-migrations">repository example</a> for Go migrations. We'll do a deep dive in a future post. Stay tuned!</p>
 </div>
 <h2 id="quick-start">Quick start</h2>
 <p>Here's a copy/pasteable <code>.sql</code> migration file to get started:</p>
@@ -1149,9 +1149,13 @@ parse SQL statements and optionally modify how migrations are executed.</p>
 <span class="c1">-- +goose Down</span>
 <span class="k">SELECT</span><span class="w"> </span><span class="s1">&#39;down SQL query&#39;</span><span class="p">;</span>
 </code></pre></div>
+<p>Remember, annotations are captured as comments and cannot have leading spaces:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- +goose Up ✅</span>
+<span class="w">    </span><span class="c1">-- +goose Up ❌ (error because leading whitespace)</span>
+</code></pre></div>
 <h2 id="the-basics">The basics</h2>
-<p>A SQL migration file must be suffixed with a <code>.sql</code> extension and is prefixed with either a
-timestamp or a sequential number.</p>
+<p>A SQL migration file must have a <code>.sql</code> extension and is prefixed with either a timestamp or a
+sequential number.</p>
 <p>There is a handy <code>goose create</code> command to stub out migration files in a consistent way:</p>
 <h4 id="timestamp">timestamp</h4>
 <div class="highlight"><pre><span></span><code>$<span class="w"> </span>goose<span class="w"> </span>-dir<span class="w"> </span>migrations<span class="w"> </span>create<span class="w"> </span>add_users_table<span class="w"> </span>sql
@@ -1168,10 +1172,6 @@ migrations/00001_add_users_table.sql
 <p>A SQL migration file can have both Up and Down migrations. For the curious, there is an open issue
 (<a href="https://github.com/pressly/goose/issues/374"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg></span> #374</a>) requesting support for
 migrations to be split in separate files.</p>
-<p>Annotations are captured as comments and cannot have leading spaces:</p>
-<div class="highlight"><pre><span></span><code><span class="c1">-- +goose Up ✅</span>
-<span class="w">    </span><span class="c1">-- +goose Up ❌ (error because leading whitespace)</span>
-</code></pre></div>
 <p>Each SQL migration file is expected to have exactly one <code>-- +goose Up</code> annotation.</p>
 <p>The <code>-- +goose Down</code> annotation is optional, but recommended, and <strong>must</strong> come after the Up
 annotation within the file. Example:</p>
@@ -1231,15 +1231,15 @@ a semicolon to be properly recognized by <code>goose</code>.</p>
 <span class="k">language</span><span class="w"> </span><span class="n">plpgsql</span><span class="p">;</span>
 <span class="hll"><span class="c1">-- +goose StatementEnd</span>
 </span></code></pre></div>
-<p>When <code>goose</code> detects a <code>-- +goose StatementBegin</code> annotation it'll continue parsing statement(s),
+<p>When <code>goose</code> detects a <code>-- +goose StatementBegin</code> annotation it continues parsing statement(s),
 ignoring semicolons, until <code>-- +goose StatementEnd</code> is detected. The resulting statement is stripped
 of leading and trailing comments / empty lines.</p>
-<p>Comments and empty lines <ins>within</ins> a statement are preserved!</p>
+<p>Comments and empty lines <ins>within</ins> the statement are preserved!</p>
 <h2 id="multiple-statements">Multiple statements</h2>
-<p>But that's not all, the StatementBegin and StatementEnd annotations can be used to combine multiple
-statements so they get sent as a single request instead of being sent one-by-one.</p>
+<p>But that's not all, the Begin and End annotations can be used to combine multiple statements so they
+get sent as a single request instead of being sent one-by-one.</p>
 <p>This is best illustrated with a contrived example. Suppose we have a migration that creates a
-<code>users</code> table and inserts 100,000 rows with distinct inserts.</p>
+<code>users</code> table and adds 100,000 rows with distinct <code>INSERT</code>'s.</p>
 <div class="highlight"><pre><span></span><code><span class="c1">-- +goose Up</span>
 <span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="p">(</span>
 <span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">int</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
@@ -1261,7 +1261,7 @@ statements so they get sent as a single request instead of being sent one-by-one
 </code></pre></div>
 <ol>
 <li>
-<p>This is a contrived example. Normally this would be a set of batched <code>INSERT</code>s with multiple
+<p>This is a contrived example. Normally this would be a set of batched <code>INSERT</code>'s with multiple
     column values, each enclosed with parentheses and separated by commas, like so:</p>
 <div class="highlight"><pre><span></span><code><span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="ss">&quot;users&quot;</span><span class="w"> </span><span class="p">(</span><span class="ss">&quot;id&quot;</span><span class="p">,</span><span class="w"> </span><span class="ss">&quot;username&quot;</span><span class="p">,</span><span class="w"> </span><span class="ss">&quot;name&quot;</span><span class="p">,</span><span class="w"> </span><span class="ss">&quot;surname&quot;</span><span class="p">)</span>
 <span class="k">VALUES</span>
@@ -1271,8 +1271,8 @@ statements so they get sent as a single request instead of being sent one-by-one
 </li>
 </ol>
 <p>The Up migration contains 100,001 unique statements and they are sent to the server one-by-one
-within the same transaction. This migration will take ~38 seconds to complete due to the number of
-round trips.</p>
+within the same transaction. This migration will take ~38s to complete due to the number of round
+trips.</p>
 <p>Using postgres as an example, here's what the logs show:</p>
 <div class="highlight"><pre><span></span><code>2023-02-11 14:56:12.166 UTC [61] LOG:  statement: INSERT INTO &quot;users&quot; (&quot;id&quot;, &quot;username&quot;, &quot;name&quot;, &quot;surname&quot;) VALUES (1, &#39;gallant_almeida7&#39;, &#39;Gallant&#39;, &#39;Almeida7&#39;);
 2023-02-11 14:56:12.167 UTC [61] LOG:  statement: INSERT INTO &quot;users&quot; (&quot;id&quot;, &quot;username&quot;, &quot;name&quot;, &quot;surname&quot;) VALUES (2, &#39;brave_spence8&#39;, &#39;Brave&#39;, &#39;Spence8&#39;);
