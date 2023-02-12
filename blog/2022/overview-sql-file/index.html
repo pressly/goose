@@ -1240,7 +1240,7 @@ of leading and trailing comments / empty lines.</p>
 <p>Comments and empty lines <ins>within</ins> the statement are preserved!</p>
 <h2 id="multiple-statements">Multiple statements</h2>
 <p>But that's not all, the Begin and End annotations can be used to combine multiple statements so they
-get sent as a single request instead of being sent one-by-one.</p>
+get sent as a single command instead of being sent one-by-one.</p>
 <p>This is best illustrated with a contrived example. Suppose we have a migration that creates a
 <code>users</code> table and adds 100,000 rows with distinct <code>INSERT</code>'s.</p>
 <div class="highlight"><pre><span></span><code><span class="c1">-- +goose Up</span>
@@ -1273,17 +1273,19 @@ get sent as a single request instead of being sent one-by-one.</p>
 </code></pre></div>
 </li>
 </ol>
-<p>The Up migration contains 100,001 unique statements and they are sent to the server one-by-one
-within the same transaction. This migration will take ~38s to complete due to the number of round
-trips.</p>
-<p>Using postgres as an example, here's what the logs show:</p>
-<div class="highlight"><pre><span></span><code>2023-02-11 14:56:12.166 UTC [61] LOG:  statement: INSERT INTO &quot;users&quot; (&quot;id&quot;, &quot;username&quot;, &quot;name&quot;, &quot;surname&quot;) VALUES (1, &#39;gallant_almeida7&#39;, &#39;Gallant&#39;, &#39;Almeida7&#39;);
-2023-02-11 14:56:12.167 UTC [61] LOG:  statement: INSERT INTO &quot;users&quot; (&quot;id&quot;, &quot;username&quot;, &quot;name&quot;, &quot;surname&quot;) VALUES (2, &#39;brave_spence8&#39;, &#39;Brave&#39;, &#39;Spence8&#39;);
-2023-02-11 14:56:12.168 UTC [61] LOG:  statement: INSERT INTO &quot;users&quot; (&quot;id&quot;, &quot;username&quot;, &quot;name&quot;, &quot;surname&quot;) VALUES (3, &#39;lucid_bardeen6&#39;, &#39;Lucid&#39;, &#39;Bardeen6&#39;);
+<p>The Up migration contains 100,001 unique statements, all executed within the same transaction, but
+sent to the database one-by-one. This migration will take ~38s to complete due to the number of
+round trips.</p>
+<p>Using PostgreSQL as an example, here's what the database logs show:</p>
+<div class="highlight"><pre><span></span><code>LOG:  statement: INSERT INTO &quot;users&quot; (&quot;id&quot;, &quot;username&quot;, &quot;name&quot;, &quot;surname&quot;) VALUES (1, &#39;gallant_almeida7&#39;, &#39;Gallant&#39;, &#39;Almeida7&#39;);
+LOG:  statement: INSERT INTO &quot;users&quot; (&quot;id&quot;, &quot;username&quot;, &quot;name&quot;, &quot;surname&quot;) VALUES (2, &#39;brave_spence8&#39;, &#39;Brave&#39;, &#39;Spence8&#39;);
+LOG:  statement: INSERT INTO &quot;users&quot; (&quot;id&quot;, &quot;username&quot;, &quot;name&quot;, &quot;surname&quot;) VALUES (3, &#39;lucid_bardeen6&#39;, &#39;Lucid&#39;, &#39;Bardeen6&#39;);
 [...] 100,000 log statements
 </code></pre></div>
-<p>However, if we want <code>goose</code> to send all inserts as one statement, we can wrap the inserts with
-<code>-- +goose StatementBegin</code> and <code>-- +goose StatementEnd</code> annotations.</p>
+<p>However, if we want to combine the inserts into a single command, we can wrap them with
+<code>-- +goose StatementBegin</code> and <code>-- +goose StatementEnd</code> annotations. Note, a single command still
+contains several statements separated by semicolons, but they get sent to the server in the same
+query string like so: <code>"INSERT INTO ...; INSERT INTO ...;"</code>.</p>
 <div class="highlight"><pre><span></span><code><span class="c1">-- +goose Up</span>
 <span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="p">(</span>
 <span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">int</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
@@ -1304,16 +1306,16 @@ trips.</p>
 <span class="c1">-- +goose Down</span>
 <span class="k">DROP</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">users</span><span class="p">;</span>
 </code></pre></div>
-<p>These annotations instruct <code>goose</code> to send the entire statement, which now contains multiples
-statements delimited by semicolons, in one shot. Yes, that's a large payload, but that's fine and
-the migration will execute in ~3s, which is an order of magnitude faster as compared to the previous
-example that ran in ~38s.</p>
+<p>These annotations instruct <code>goose</code> to send a single command, which now consists of multiples
+statements delimited by semicolons, in one shot.</p>
+<p>Yes, that's a larg<em>er</em> payload, but that's fine and the migration will execute in ~3s, which is an
+order of magnitude faster as compared to the previous example that ran in ~38s.</p>
 <h2 id="migrations-outside-transaction">Migrations outside transaction</h2>
 <p>All statements within a migration file are run within a transaction. Some statements, like
 <code>CREATE DATABASE</code> or <code>CREATE INDEX CONCURRENTLY</code>, cannot be run within a transaction block.</p>
 <p>For such cases add the <code>-- +goose NO TRANSACTION</code> annotation, usually placed at the top of the file.</p>
-<p>This annotation instructs <code>goose</code> to run all statements within the file without transactions. This
-applies to both Up and Down statements.</p>
+<p>This annotation instructs <code>goose</code> to run all statements within the file <ins>without transactions</ins>.
+This applies to all Up and Down statements within the file.</p>
 <div class="highlight"><pre><span></span><code><span class="hll"><span class="c1">-- +goose NO TRANSACTION</span>
 </span>
 <span class="c1">-- +goose Up</span>
