@@ -22,9 +22,13 @@ func OpenDBWithDriver(driver string, dbstring string) (*sql.DB, error) {
 	}
 
 	switch driver {
-	case "postgres", "pgx", "sqlite3", "sqlite", "mysql", "sqlserver", "clickhouse", "vertica":
+	case "postgres", "pgx", "sqlite3", "sqlite", "mysql", "sqlserver", "clickhouse", "vertica", "ydb":
 		return sql.Open(driver, dbstring)
 	default:
 		return nil, fmt.Errorf("unsupported driver %s", driver)
 	}
+}
+
+type execer interface {
+	Exec(query string, args ...interface{}) (sql.Result, error)
 }

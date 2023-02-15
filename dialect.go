@@ -17,6 +17,8 @@ type SQLDialect interface {
 
 var dialect SQLDialect = &PostgresDialect{}
 
+var dialects = map[string]SQLDialect{}
+
 // GetDialect gets the SQLDialect
 func GetDialect() SQLDialect {
 	return dialect
@@ -41,6 +43,8 @@ func SetDialect(d string) error {
 		dialect = &ClickHouseDialect{}
 	case "vertica":
 		dialect = &VerticaDialect{}
+	case "ydb":
+		dialect = dialects["ydb"]
 	default:
 		return fmt.Errorf("%q: unknown dialect", d)
 	}

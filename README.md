@@ -1,7 +1,7 @@
 # goose [![Goose CI](https://github.com/pressly/goose/actions/workflows/ci.yml/badge.svg)](https://github.com/pressly/goose/actions/workflows/ci.yml) [![Go Reference](https://pkg.go.dev/badge/github.com/pressly/goose/v3.svg)](https://pkg.go.dev/github.com/pressly/goose/v3)
 
 <p align="center">
-  <img src="assets/goose_logo.png" width="125"">
+  <img src="assets/goose_logo.png" width="125">
 </p>
 
 Goose is a database migration tool. Manage your database schema by creating incremental SQL changes or Go functions.
@@ -62,6 +62,7 @@ Drivers:
     tidb
     clickhouse
     vertica
+    ydb
 
 Examples:
     goose sqlite3 ./foo.db status
@@ -77,6 +78,7 @@ Examples:
     goose mssql "sqlserver://user:password@dbname:1433?database=master" status
     goose clickhouse "tcp://127.0.0.1:9000" status
     goose vertica "vertica://user:password@localhost:5433/dbname?connection_load_balance=1" status
+    goose ydb "grpcs://localhost:2135/local" status
 
 Options:
 
@@ -121,7 +123,8 @@ Create a new SQL migration.
     $ goose create add_some_column sql
     $ Created new file: 20170506082420_add_some_column.sql
 
-Edit the newly created file to define the behavior of your migration.
+Edit the newly created file to define the behavior of your migration.  
+For ydb first line should be `-- +goose NO TRANSACTION`, because ydb is not supported create table in transaction.
 
 You can also create a Go migration, if you then invoke it with [your own goose binary](#go-migrations):
 

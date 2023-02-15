@@ -25,7 +25,7 @@ tools:
 test-packages:
 	go test $(GO_TEST_FLAGS) $$(go list ./... | grep -v -e /tests -e /bin -e /cmd -e /examples)
 
-test-e2e: test-e2e-postgres test-e2e-mysql test-e2e-clickhouse test-e2e-vertica
+test-e2e: test-e2e-postgres test-e2e-mysql test-e2e-clickhouse test-e2e-vertica test-e2e-ydb
 
 test-e2e-postgres:
 	go test $(GO_TEST_FLAGS) ./tests/e2e -dialect=postgres
@@ -38,6 +38,9 @@ test-e2e-clickhouse:
 
 test-e2e-vertica:
 	go test $(GO_TEST_FLAGS) ./tests/vertica
+
+test-e2e-ydb:
+	YDB_LOG_SEVERITY_LEVEL=error go test -v ./tests/e2e -dialect=ydb
 
 docker-cleanup:
 	docker stop -t=0 $$(docker ps --filter="label=goose_test" -aq)
