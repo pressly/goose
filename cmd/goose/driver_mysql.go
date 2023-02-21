@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"regexp"
 
 	"github.com/go-sql-driver/mysql"
 	_ "github.com/ziutek/mymysql/godrv"
@@ -21,7 +20,7 @@ import (
 // type.
 func normalizeDBString(driver string, str string, certfile string, sslcert string, sslkey string) string {
 	if driver == "mysql" {
-		var isTLS = certfile != ""
+		isTLS := certfile != ""
 		if isTLS {
 			if err := registerTLSConfig(certfile, sslcert, sslkey); err != nil {
 				log.Fatalf("goose run: %v", err)
@@ -38,12 +37,7 @@ func normalizeDBString(driver string, str string, certfile string, sslcert strin
 
 const tlsConfigKey = "custom"
 
-var tlsReg = regexp.MustCompile(`(\?|&)tls=[^&]*(?:&|$)`)
-
 func normalizeMySQLDSN(dsn string, tls bool) (string, error) {
-	// If we are sharing a DSN in a different environment, it may contain a TLS
-	// setting key with a value name that is not "custom," so clear it.
-	dsn = tlsReg.ReplaceAllString(dsn, `$1`)
 	config, err := mysql.ParseDSN(dsn)
 	if err != nil {
 		return "", err
