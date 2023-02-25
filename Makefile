@@ -20,7 +20,7 @@ lint: tools
 
 .PHONY: tools
 tools:
-	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.50.1
+	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
 test-packages:
 	go test $(GO_TEST_FLAGS) $$(go list ./... | grep -v -e /tests -e /bin -e /cmd -e /examples)
