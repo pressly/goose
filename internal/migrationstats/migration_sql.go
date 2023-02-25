@@ -35,11 +35,9 @@ func parseSQLFile(r io.Reader, debug bool) (*sqlMigration, error) {
 	if err != nil {
 		return nil, err
 	}
-	// This case should never happen. Within a single .sql file if a +goose NO TRANSACTION
-	// annotation is set it must apply to the entire file, which includes all up
-	// and down statements.
+	// This is a sanity check to ensure that the parser is behaving as expected.
 	if txUp != txDown {
-		return nil, fmt.Errorf("up and down txn do not match")
+		return nil, fmt.Errorf("up and down statements must have the same transaction mode")
 	}
 	return &sqlMigration{
 		useTx:     txUp,
