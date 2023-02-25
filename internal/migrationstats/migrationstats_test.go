@@ -1,4 +1,4 @@
-package filemetadata
+package migrationstats
 
 import (
 	"strings"
@@ -29,7 +29,6 @@ func TestParsingGoMigrations(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g, err := parseGoFile(strings.NewReader(tc.input))
 			check.NoError(t, err)
-			check.NoError(t, g.isValid())
 			check.Equal(t, g.useTx != nil, true)
 			check.Bool(t, *g.useTx, tc.wantTx)
 			check.Equal(t, g.downFuncName, tc.wantDownName)

@@ -49,4 +49,4 @@ docker-start-postgres:
 		-e POSTGRES_DB=${GOOSE_POSTGRES_DBNAME} \
 		-p ${GOOSE_POSTGRES_PORT}:5432 \
 		-l goose_test \
-		postgres:14-alpine
+		postgres:14-alpine -c log_statement=all

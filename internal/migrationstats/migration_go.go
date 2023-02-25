@@ -1,4 +1,4 @@
-package filemetadata
+package migrationstats
 
 import (
 	"errors"
@@ -18,43 +18,6 @@ type goMigration struct {
 	name                     string
 	useTx                    *bool
 	upFuncName, downFuncName string
-}
-
-func (g *goMigration) isValid() error {
-	switch g.name {
-	case registerGoFuncName, registerGoFuncNameNoTx:
-	default:
-		return fmt.Errorf("goose register function must be one of: %s or %s",
-			registerGoFuncName,
-			registerGoFuncNameNoTx,
-		)
-	}
-	if g.useTx == nil {
-		return errors.New("validation error: failed to identify transaction: got nil bool")
-	}
-	// The up and down functions can either be named Go functions or "nil", an
-	// empty string means there is a flaw in our parsing logic of the Go source code.
-	if g.upFuncName == "" {
-		return fmt.Errorf("validation error: up function is empty string")
-	}
-	if g.downFuncName == "" {
-		return fmt.Errorf("validation error: down function is empty string")
-	}
-	return nil
-}
-
-func convertGoMigration(g *goMigration) *FileMetadata {
-	m := &FileMetadata{
-		FileType: "go",
-		Tx:       *g.useTx,
-	}
-	if g.upFuncName != "nil" {
-		m.UpCount = 1
-	}
-	if g.downFuncName != "nil" {
-		m.DownCount = 1
-	}
-	return m
 }
 
 func parseGoFile(r io.Reader) (*goMigration, error) {
@@ -139,8 +102,25 @@ func parseInitFunc(fd *ast.FuncDecl) (*goMigration, error) {
 			return nil, err
 		}
 	}
-	if err := gf.isValid(); err != nil {
-		return nil, err
+	// validation
+	switch gf.name {
+	case registerGoFuncName, registerGoFuncNameNoTx:
+	default:
+		return nil, fmt.Errorf("goose register function must be one of: %s or %s",
+			registerGoFuncName,
+			registerGoFuncNameNoTx,
+		)
+	}
+	if gf.useTx == nil {
+		return nil, errors.New("validation error: failed to identify transaction: got nil bool")
+	}
+	// The up and down functions can either be named Go functions or "nil", an
+	// empty string means there is a flaw in our parsing logic of the Go source code.
+	if gf.upFuncName == "" {
+		return nil, fmt.Errorf("validation error: up function is empty string")
+	}
+	if gf.downFuncName == "" {
+		return nil, fmt.Errorf("validation error: down function is empty string")
 	}
 	return gf, nil
 }

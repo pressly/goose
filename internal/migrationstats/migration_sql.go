@@ -1,4 +1,4 @@
-package filemetadata
+package migrationstats
 
 import (
 	"bytes"
@@ -12,15 +12,6 @@ import (
 type sqlMigration struct {
 	useTx              bool
 	upCount, downCount int
-}
-
-func convertSQLMigration(s *sqlMigration) *FileMetadata {
-	return &FileMetadata{
-		FileType:  "sql",
-		Tx:        s.useTx,
-		UpCount:   s.upCount,
-		DownCount: s.downCount,
-	}
 }
 
 func parseSQLFile(r io.Reader, debug bool) (*sqlMigration, error) {
