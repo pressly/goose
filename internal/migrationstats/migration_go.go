@@ -25,6 +25,9 @@ func parseGoFile(r io.Reader) (*goMigration, error) {
 		token.NewFileSet(),
 		"", // filename
 		r,
+		// We don't need to resolve imports, so we can skip it.
+		// This speeds up the parsing process.
+		// See https://github.com/golang/go/issues/46485
 		parser.SkipObjectResolution,
 	)
 	if err != nil {
