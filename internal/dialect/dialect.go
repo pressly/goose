@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/pressly/goose/v3/internal/dialect/dialectquery"
@@ -22,7 +23,7 @@ const (
 	Vertica    Dialect = "vertica"
 )
 
-func NewDialectStore(d Dialect, table string) (DialectStore, error) {
+func NewSQLDialect(d Dialect, table string) (SQLDialect, error) {
 	if table == "" {
 		return nil, errors.New("table name cannot be empty")
 	}
@@ -45,23 +46,23 @@ func NewDialectStore(d Dialect, table string) (DialectStore, error) {
 	case Vertica:
 		querier = dialectquery.NewVertica(table)
 	default:
-		return nil, errors.New("unknown dialect")
+		return nil, fmt.Errorf("unknown querier dialect: %v", d)
 	}
-	return &store{querier: querier}, nil
+	return &sqlDialect{querier: querier}, nil
 }
 
-// DialectStore is the interface that wraps the basic methods to create a
+// SQLDialect is the interface that wraps the basic methods to create a
 // dialect specific query.
 //
 // A dialect is a set of SQL statements that are specific to a database.
 //
-// By defining a dialect store interface, we can support multiple databases
+// By defining a dialect interface, we can support multiple databases
 // with a single codebase.
 //
 // The underlying implementation does not modify the error returned by the
 // database driver. It is the callers responsibility to assert for the correct
 // error, such as sql.ErrNoRows.
-type DialectStore interface {
+type SQLDialect interface {
 	// CreateVersionTable creates the version table within a transaction.
 	// This table is used to store goose migrations.
 	CreateVersionTable(ctx context.Context, tx *sql.Tx) error
@@ -83,17 +84,97 @@ type DialectStore interface {
 	//
 	// Returns the raw sql error if the query fails. It is the callers responsibility
 	// to assert for the correct error, such as sql.ErrNoRows.
-	GetMigration(ctx context.Context, db *sql.DB, version int64) (*MigrationRow, error)
+	GetMigration(ctx context.Context, db *sql.DB, version int64) (*GetMigrationResult, error)
 
-	// ListMigrations retrieves all migrations sorted in descending order.
+	// ListMigrations retrieves all migrations sorted in descending order by id.
 	// If there are no migrations, an empty slice is returned with no error.
 	//
 	// Note, the *MigrationRow object does not have a timestamp field.
-	ListMigrations(ctx context.Context, db *sql.DB) ([]*MigrationRow, error)
+	ListMigrations(ctx context.Context, db *sql.DB) ([]*ListMigrationsResult, error)
 }
 
-type MigrationRow struct {
-	VersionID int64
+type GetMigrationResult struct {
 	IsApplied bool
 	Timestamp time.Time
+}
+
+type ListMigrationsResult struct {
+	VersionID int64
+	IsApplied bool
+}
+
+type sqlDialect struct {
+	querier dialectquery.Querier
+}
+
+var _ SQLDialect = (*sqlDialect)(nil)
+
+func (s *sqlDialect) CreateVersionTable(ctx context.Context, tx *sql.Tx) error {
+	q := s.querier.CreateTable()
+	_, err := tx.ExecContext(ctx, q)
+	return err
+}
+
+func (s *sqlDialect) InsertVersion(ctx context.Context, tx *sql.Tx, version int64) error {
+	q := s.querier.InsertVersion()
+	_, err := tx.ExecContext(ctx, q, version, true)
+	return err
+}
+
+func (s *sqlDialect) InsertVersionNoTx(ctx context.Context, db *sql.DB, version int64) error {
+	q := s.querier.InsertVersion()
+	_, err := db.ExecContext(ctx, q, version, true)
+	return err
+}
+
+func (s *sqlDialect) DeleteVersion(ctx context.Context, tx *sql.Tx, version int64) error {
+	q := s.querier.DeleteVersion()
+	_, err := tx.ExecContext(ctx, q, version)
+	return err
+}
+
+func (s *sqlDialect) DeleteVersionNoTx(ctx context.Context, db *sql.DB, version int64) error {
+	q := s.querier.DeleteVersion()
+	_, err := db.ExecContext(ctx, q, version)
+	return err
+}
+
+func (s *sqlDialect) GetMigration(ctx context.Context, db *sql.DB, version int64) (*GetMigrationResult, error) {
+	q := s.querier.GetMigrationByVersion()
+	var timestamp time.Time
+	var isApplied bool
+	err := db.QueryRowContext(ctx, q, version).Scan(&timestamp, &isApplied)
+	if err != nil {
+		return nil, err
+	}
+	return &GetMigrationResult{
+		IsApplied: isApplied,
+		Timestamp: timestamp,
+	}, nil
+}
+
+func (s *sqlDialect) ListMigrations(ctx context.Context, db *sql.DB) ([]*ListMigrationsResult, error) {
+	q := s.querier.ListMigrations()
+	rows, err := db.QueryContext(ctx, q)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var migrations []*ListMigrationsResult
+	for rows.Next() {
+		var version int64
+		var isApplied bool
+		if err := rows.Scan(&version, &isApplied); err != nil {
+			return nil, err
+		}
+		migrations = append(migrations, &ListMigrationsResult{
+			VersionID: version,
+			IsApplied: isApplied,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return migrations, nil
 }
