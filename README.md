@@ -338,6 +338,9 @@ func Down(tx *sql.Tx) error {
 }
 ```
 
+Note that Go migration files must begin with a numeric value, followed by an
+underscore, and must not end with `*_test.go`.
+
 # Development
 
 This can be used to build local `goose` binaries without having the latest Go version installed locally.
