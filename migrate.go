@@ -9,6 +9,7 @@ import (
 	"path"
 	"runtime"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -232,6 +233,10 @@ func collectMigrationsFS(fsys fs.FS, dirpath string, current, target int64) (Mig
 		v, err := NumericComponent(file)
 		if err != nil {
 			continue // Skip any files that don't have version prefix.
+		}
+
+		if strings.HasSuffix(file, "_test.go") {
+			continue // Skip Go test files.
 		}
 
 		// Skip migrations already existing migrations registered via goose.AddMigration().
