@@ -41,7 +41,7 @@ func Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
 }
 
 func dbMigrationsStatus(ctx context.Context, db *sql.DB) (map[int64]bool, error) {
-	dbMigrations, err := getDialect().ListMigrations(ctx, db)
+	dbMigrations, err := store.ListMigrations(ctx, db)
 	if err != nil {
 		return nil, err
 	}

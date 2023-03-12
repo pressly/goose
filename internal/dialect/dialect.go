@@ -10,6 +10,7 @@ import (
 	"github.com/pressly/goose/v3/internal/dialect/dialectquery"
 )
 
+// Dialect is the type of database dialect.
 type Dialect string
 
 const (
@@ -23,7 +24,7 @@ const (
 	Vertica    Dialect = "vertica"
 )
 
-func NewSQLDialect(d Dialect, table string) (SQLDialect, error) {
+func NewStore(d Dialect, table string) (Store, error) {
 	if table == "" {
 		return nil, errors.New("table name cannot be empty")
 	}
@@ -48,21 +49,20 @@ func NewSQLDialect(d Dialect, table string) (SQLDialect, error) {
 	default:
 		return nil, fmt.Errorf("unknown querier dialect: %v", d)
 	}
-	return &sqlDialect{querier: querier}, nil
+	return &store{querier: querier}, nil
 }
 
-// SQLDialect is the interface that wraps the basic methods to create a
-// dialect specific query.
+// Store is the interface that wraps the basic methods for a database dialect.
 //
 // A dialect is a set of SQL statements that are specific to a database.
 //
-// By defining a dialect interface, we can support multiple databases
+// By defining a store interface, we can support multiple databases
 // with a single codebase.
 //
 // The underlying implementation does not modify the error returned by the
 // database driver. It is the callers responsibility to assert for the correct
 // error, such as sql.ErrNoRows.
-type SQLDialect interface {
+type Store interface {
 	// CreateVersionTable creates the version table within a transaction.
 	// This table is used to store goose migrations.
 	CreateVersionTable(ctx context.Context, tx *sql.Tx) error
@@ -103,43 +103,43 @@ type ListMigrationsResult struct {
 	IsApplied bool
 }
 
-type sqlDialect struct {
+type store struct {
 	querier dialectquery.Querier
 }
 
-var _ SQLDialect = (*sqlDialect)(nil)
+var _ Store = (*store)(nil)
 
-func (s *sqlDialect) CreateVersionTable(ctx context.Context, tx *sql.Tx) error {
+func (s *store) CreateVersionTable(ctx context.Context, tx *sql.Tx) error {
 	q := s.querier.CreateTable()
 	_, err := tx.ExecContext(ctx, q)
 	return err
 }
 
-func (s *sqlDialect) InsertVersion(ctx context.Context, tx *sql.Tx, version int64) error {
+func (s *store) InsertVersion(ctx context.Context, tx *sql.Tx, version int64) error {
 	q := s.querier.InsertVersion()
 	_, err := tx.ExecContext(ctx, q, version, true)
 	return err
 }
 
-func (s *sqlDialect) InsertVersionNoTx(ctx context.Context, db *sql.DB, version int64) error {
+func (s *store) InsertVersionNoTx(ctx context.Context, db *sql.DB, version int64) error {
 	q := s.querier.InsertVersion()
 	_, err := db.ExecContext(ctx, q, version, true)
 	return err
 }
 
-func (s *sqlDialect) DeleteVersion(ctx context.Context, tx *sql.Tx, version int64) error {
+func (s *store) DeleteVersion(ctx context.Context, tx *sql.Tx, version int64) error {
 	q := s.querier.DeleteVersion()
 	_, err := tx.ExecContext(ctx, q, version)
 	return err
 }
 
-func (s *sqlDialect) DeleteVersionNoTx(ctx context.Context, db *sql.DB, version int64) error {
+func (s *store) DeleteVersionNoTx(ctx context.Context, db *sql.DB, version int64) error {
 	q := s.querier.DeleteVersion()
 	_, err := db.ExecContext(ctx, q, version)
 	return err
 }
 
-func (s *sqlDialect) GetMigration(ctx context.Context, db *sql.DB, version int64) (*GetMigrationResult, error) {
+func (s *store) GetMigration(ctx context.Context, db *sql.DB, version int64) (*GetMigrationResult, error) {
 	q := s.querier.GetMigrationByVersion()
 	var timestamp time.Time
 	var isApplied bool
@@ -153,7 +153,7 @@ func (s *sqlDialect) GetMigration(ctx context.Context, db *sql.DB, version int64
 	}, nil
 }
 
-func (s *sqlDialect) ListMigrations(ctx context.Context, db *sql.DB) ([]*ListMigrationsResult, error) {
+func (s *store) ListMigrations(ctx context.Context, db *sql.DB) ([]*ListMigrationsResult, error) {
 	q := s.querier.ListMigrations()
 	rows, err := db.QueryContext(ctx, q)
 	if err != nil {

@@ -296,7 +296,7 @@ func versionFilter(v, current, target int64) bool {
 // Create and initialize the DB version table if it doesn't exist.
 func EnsureDBVersion(db *sql.DB) (int64, error) {
 	ctx := context.Background()
-	dbMigrations, err := getDialect().ListMigrations(ctx, db)
+	dbMigrations, err := store.ListMigrations(ctx, db)
 	if err != nil {
 		return 0, createVersionTable(ctx, db)
 	}
@@ -330,11 +330,11 @@ func createVersionTable(ctx context.Context, db *sql.DB) error {
 	if err != nil {
 		return err
 	}
-	if err := getDialect().CreateVersionTable(ctx, txn); err != nil {
+	if err := store.CreateVersionTable(ctx, txn); err != nil {
 		_ = txn.Rollback()
 		return err
 	}
-	if err := getDialect().InsertVersion(ctx, txn, 0); err != nil {
+	if err := store.InsertVersion(ctx, txn, 0); err != nil {
 		_ = txn.Rollback()
 		return err
 	}

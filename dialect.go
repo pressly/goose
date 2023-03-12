@@ -7,16 +7,12 @@ import (
 )
 
 func init() {
-	sqlDialect, _ = dialect.NewSQLDialect(dialect.Postgres, TableName())
+	store, _ = dialect.NewStore(dialect.Postgres, TableName())
 }
 
-var sqlDialect dialect.SQLDialect
+var store dialect.Store
 
-func getDialect() dialect.SQLDialect {
-	return sqlDialect
-}
-
-// SetDialect sets the SQLDialect to use for the goose package.
+// SetDialect sets the dialect to use for the goose package.
 func SetDialect(s string) error {
 	var d dialect.Dialect
 	switch s {
@@ -40,6 +36,6 @@ func SetDialect(s string) error {
 		return fmt.Errorf("%q: unknown dialect", s)
 	}
 	var err error
-	sqlDialect, err = dialect.NewSQLDialect(d, TableName())
+	store, err = dialect.NewStore(d, TableName())
 	return err
 }

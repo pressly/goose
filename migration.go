@@ -188,16 +188,16 @@ func runGoMigration(
 
 func insertOrDeleteVersion(ctx context.Context, tx *sql.Tx, version int64, direction bool) error {
 	if direction {
-		return getDialect().InsertVersion(ctx, tx, version)
+		return store.InsertVersion(ctx, tx, version)
 	}
-	return getDialect().DeleteVersion(ctx, tx, version)
+	return store.DeleteVersion(ctx, tx, version)
 }
 
 func insertOrDeleteVersionNoTx(ctx context.Context, db *sql.DB, version int64, direction bool) error {
 	if direction {
-		return getDialect().InsertVersionNoTx(ctx, db, version)
+		return store.InsertVersionNoTx(ctx, db, version)
 	}
-	return getDialect().DeleteVersionNoTx(ctx, db, version)
+	return store.DeleteVersionNoTx(ctx, db, version)
 }
 
 // NumericComponent looks for migration scripts with names in the form:
