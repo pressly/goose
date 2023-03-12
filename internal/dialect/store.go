@@ -17,9 +17,8 @@ import (
 // By defining a store interface, we can support multiple databases
 // with a single codebase.
 //
-// The underlying implementation does not modify the error returned by the
-// database driver. It is the callers responsibility to assert for the correct
-// error, such as sql.ErrNoRows.
+// The underlying implementation does not modify the error. It is the callers
+// responsibility to assert for the correct error, such as sql.ErrNoRows.
 type Store interface {
 	// CreateVersionTable creates the version table within a transaction.
 	// This table is used to store goose migrations.
@@ -45,13 +44,12 @@ type Store interface {
 	GetMigration(ctx context.Context, db *sql.DB, version int64) (*GetMigrationResult, error)
 
 	// ListMigrations retrieves all migrations sorted in descending order by id.
-	// If there are no migrations, an empty slice is returned with no error.
 	//
-	// Note, the *MigrationRow object does not have a timestamp field.
+	// If there are no migrations, an empty slice is returned with no error.
 	ListMigrations(ctx context.Context, db *sql.DB) ([]*ListMigrationsResult, error)
 }
 
-// NewStore returns a new Store for the given dialect and table name.
+// NewStore returns a new Store for the given dialect.
 //
 // The table name is used to store the goose migrations.
 func NewStore(d Dialect, table string) (Store, error) {
