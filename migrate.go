@@ -307,6 +307,12 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 	// TODO(mf): for historic reasons, we continue to use the is_applied column,
 	// but at some point we need to deprecate this logic and ideally remove
 	// this column.
+	//
+	// For context, see this comment:
+	// https://github.com/pressly/goose/pull/131#pullrequestreview-178409168
+	//
+	// The dbMigrations list is expected to be ordered by descending ID. But
+	// in the future we should be able to query the last record only.
 	skipLookup := make(map[int64]struct{})
 	for _, m := range dbMigrations {
 		// Have we already marked this version to be skipped?
