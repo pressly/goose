@@ -51,7 +51,7 @@ func printMigrationStatus(ctx context.Context, db *sql.DB, version int64, script
 		return fmt.Errorf("failed to query the latest migration: %w", err)
 	}
 	appliedAt := "Pending"
-	if m.IsApplied {
+	if m != nil && m.IsApplied {
 		appliedAt = m.Timestamp.Format(time.ANSIC)
 	}
 	log.Printf("    %-24s -- %v\n", appliedAt, script)
