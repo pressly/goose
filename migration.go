@@ -19,6 +19,16 @@ type MigrationRecord struct {
 	IsApplied bool // was this a result of up() or down()
 }
 
+type migrationOptions struct {
+	isDryRun bool
+}
+
+type MigrationOptionsFunc func(o *migrationOptions)
+
+func MigrationWithDryRun() MigrationOptionsFunc {
+	return func(mo *migrationOptions) { mo.isDryRun = true }
+}
+
 // Migration struct.
 type Migration struct {
 	Version              int64
@@ -37,22 +47,30 @@ func (m *Migration) String() string {
 }
 
 // Up runs an up migration.
-func (m *Migration) Up(db *sql.DB) error {
-	if err := m.run(db, true); err != nil {
+func (m *Migration) Up(db *sql.DB, opts ...MigrationOptionsFunc) error {
+	option := &migrationOptions{}
+	for _, f := range opts {
+		f(option)
+	}
+	if err := m.run(db, true /* direction */, option.isDryRun); err != nil {
 		return err
 	}
 	return nil
 }
 
 // Down runs a down migration.
-func (m *Migration) Down(db *sql.DB) error {
-	if err := m.run(db, false); err != nil {
+func (m *Migration) Down(db *sql.DB, opts ...MigrationOptionsFunc) error {
+	option := &migrationOptions{}
+	for _, f := range opts {
+		f(option)
+	}
+	if err := m.run(db, false /* direction */, option.isDryRun); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (m *Migration) run(db *sql.DB, direction bool) error {
+func (m *Migration) run(db *sql.DB, direction bool, isDryRun bool) error {
 	switch filepath.Ext(m.Source) {
 	case ".sql":
 		f, err := baseFS.Open(m.Source)
@@ -66,6 +84,10 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 			return fmt.Errorf("ERROR %v: failed to parse SQL migration file: %w", filepath.Base(m.Source), err)
 		}
 
+		if isDryRun {
+			log.Printf("DRY-RUN %s\n", filepath.Base(m.Source))
+			return nil
+		}
 		start := time.Now()
 		if err := runSQLMigration(db, statements, useTx, m.Version, direction, m.noVersioning); err != nil {
 			return fmt.Errorf("ERROR %v: failed to run SQL migration: %w", filepath.Base(m.Source), err)
@@ -73,14 +95,18 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 		finish := truncateDuration(time.Since(start))
 
 		if len(statements) > 0 {
-			log.Printf("OK   %s (%s)\n", filepath.Base(m.Source), finish)
+			log.Printf("OK      %s (%s)\n", filepath.Base(m.Source), finish)
 		} else {
-			log.Printf("EMPTY %s (%s)\n", filepath.Base(m.Source), finish)
+			log.Printf("EMPTY   %s (%s)\n", filepath.Base(m.Source), finish)
 		}
 
 	case ".go":
 		if !m.Registered {
 			return fmt.Errorf("ERROR %v: failed to run Go migration: Go functions must be registered and built into a custom binary (see https://github.com/pressly/goose/tree/master/examples/go-migrations)", m.Source)
+		}
+		if isDryRun {
+			log.Printf("DRY-RUN %s (%s)\n", filepath.Base(m.Source))
+			return nil
 		}
 		start := time.Now()
 		var empty bool
@@ -119,9 +145,9 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 		}
 		finish := truncateDuration(time.Since(start))
 		if !empty {
-			log.Printf("OK   %s (%s)\n", filepath.Base(m.Source), finish)
+			log.Printf("OK      %s (%s)\n", filepath.Base(m.Source), finish)
 		} else {
-			log.Printf("EMPTY %s (%s)\n", filepath.Base(m.Source), finish)
+			log.Printf("EMPTY   %s (%s)\n", filepath.Base(m.Source), finish)
 		}
 	}
 	return nil

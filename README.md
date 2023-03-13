@@ -30,6 +30,7 @@ Goose supports [embedding SQL migrations](#embedded-sql-migrations), which means
     - goose pkg doesn't have any vendor dependencies anymore
 - We use timestamped migrations by default but recommend a hybrid approach of using timestamps in the development process and sequential versions in production.
 - Supports missing (out-of-order) migrations with the `-allow-missing` flag, or if using as a library supply the functional option `goose.WithAllowMissing()` to Up, UpTo or UpByOne.
+- Supports performing dry runs with the `-dry-run` flag, or if using as a library supply the functional option `goose.WithDryRun()` to Up, UpTo or UpByOne.
 - Supports applying ad-hoc migrations without tracking them in the schema table. Useful for seeding a database after migrations have been applied. Use `-no-versioning` flag or the functional option `goose.WithNoVersioning()`.
 
 # Install
@@ -86,6 +87,8 @@ Options:
     	file path to root CA's certificates in pem format (only supported on mysql)
   -dir string
     	directory with migration files (default ".")
+  -dry-run
+    	prints out the migrations it would apply and exits before applying them
   -h	print help
   -no-versioning
     	apply migration commands with no versioning, in file order, from directory pointed to

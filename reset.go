@@ -30,7 +30,7 @@ func Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
 		if !statuses[migration.Version] {
 			continue
 		}
-		if err = migration.Down(db); err != nil {
+		if err = migration.Down(db, option.toMigrationOptionsFunc()); err != nil {
 			return fmt.Errorf("failed to db-down: %w", err)
 		}
 	}

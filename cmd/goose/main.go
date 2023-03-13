@@ -35,6 +35,7 @@ var (
 	sslkey       = flags.String("ssl-key", "", "file path to SSL key in pem format (only support on mysql)")
 	noVersioning = flags.Bool("no-versioning", false, "apply migration commands with no versioning, in file order, from directory pointed to")
 	noColor      = flags.Bool("no-color", false, "disable color output (NO_COLOR env variable supported)")
+	isDryRun     = flags.Bool("dry-run", false, "prints out the migrations it would apply and exits before applying them")
 )
 var (
 	gooseVersion = ""
@@ -144,6 +145,9 @@ func main() {
 	}
 	if *allowMissing {
 		options = append(options, goose.WithAllowMissing())
+	}
+	if *isDryRun {
+		options = append(options, goose.WithDryRun())
 	}
 	if *noVersioning {
 		options = append(options, goose.WithNoVersioning())
