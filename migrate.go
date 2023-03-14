@@ -308,7 +308,7 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 	// but at some point we need to deprecate this logic and ideally remove
 	// this column.
 	//
-	// For context, see this comment:
+	// For context, see:
 	// https://github.com/pressly/goose/pull/131#pullrequestreview-178409168
 	//
 	// The dbMigrations list is expected to be ordered by descending ID. But

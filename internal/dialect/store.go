@@ -34,9 +34,6 @@ type Store interface {
 	// DeleteVersionNoTx deletes a version id from the version table without a transaction.
 	DeleteVersionNoTx(ctx context.Context, db *sql.DB, version int64) error
 
-	// TODO(mf): this is inefficient. Only used in one place to list migrations one-by-one
-	// but we can do better. Oh, and selecting by version id does not have an index ...
-	//
 	// GetMigrationRow retrieves a single migration by version id.
 	//
 	// Returns the raw sql error if the query fails. It is the callers responsibility
