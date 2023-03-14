@@ -1,6 +1,7 @@
 package goose
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -38,7 +39,8 @@ func (m *Migration) String() string {
 
 // Up runs an up migration.
 func (m *Migration) Up(db *sql.DB) error {
-	if err := m.run(db, true); err != nil {
+	ctx := context.Background()
+	if err := m.run(ctx, db, true); err != nil {
 		return err
 	}
 	return nil
@@ -46,13 +48,14 @@ func (m *Migration) Up(db *sql.DB) error {
 
 // Down runs a down migration.
 func (m *Migration) Down(db *sql.DB) error {
-	if err := m.run(db, false); err != nil {
+	ctx := context.Background()
+	if err := m.run(ctx, db, false); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (m *Migration) run(db *sql.DB, direction bool) error {
+func (m *Migration) run(ctx context.Context, db *sql.DB, direction bool) error {
 	switch filepath.Ext(m.Source) {
 	case ".sql":
 		f, err := baseFS.Open(m.Source)
@@ -67,7 +70,7 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 		}
 
 		start := time.Now()
-		if err := runSQLMigration(db, statements, useTx, m.Version, direction, m.noVersioning); err != nil {
+		if err := runSQLMigration(ctx, db, statements, useTx, m.Version, direction, m.noVersioning); err != nil {
 			return fmt.Errorf("ERROR %v: failed to run SQL migration: %w", filepath.Base(m.Source), err)
 		}
 		finish := truncateDuration(time.Since(start))
@@ -92,6 +95,7 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 			}
 			empty = (fn == nil)
 			if err := runGoMigration(
+				ctx,
 				db,
 				fn,
 				m.Version,
@@ -108,6 +112,7 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 			}
 			empty = (fn == nil)
 			if err := runGoMigrationNoTx(
+				ctx,
 				db,
 				fn,
 				m.Version,
@@ -128,6 +133,7 @@ func (m *Migration) run(db *sql.DB, direction bool) error {
 }
 
 func runGoMigrationNoTx(
+	ctx context.Context,
 	db *sql.DB,
 	fn GoMigrationNoTx,
 	version int64,
@@ -141,12 +147,13 @@ func runGoMigrationNoTx(
 		}
 	}
 	if recordVersion {
-		return insertOrDeleteVersionNoTx(db, version, direction)
+		return insertOrDeleteVersionNoTx(ctx, db, version, direction)
 	}
 	return nil
 }
 
 func runGoMigration(
+	ctx context.Context,
 	db *sql.DB,
 	fn GoMigration,
 	version int64,
@@ -168,7 +175,7 @@ func runGoMigration(
 		}
 	}
 	if recordVersion {
-		if err := insertOrDeleteVersion(tx, version, direction); err != nil {
+		if err := insertOrDeleteVersion(ctx, tx, version, direction); err != nil {
 			_ = tx.Rollback()
 			return fmt.Errorf("failed to update version: %w", err)
 		}
@@ -179,22 +186,18 @@ func runGoMigration(
 	return nil
 }
 
-func insertOrDeleteVersion(tx *sql.Tx, version int64, direction bool) error {
+func insertOrDeleteVersion(ctx context.Context, tx *sql.Tx, version int64, direction bool) error {
 	if direction {
-		_, err := tx.Exec(GetDialect().insertVersionSQL(), version, direction)
-		return err
+		return store.InsertVersion(ctx, tx, version)
 	}
-	_, err := tx.Exec(GetDialect().deleteVersionSQL(), version)
-	return err
+	return store.DeleteVersion(ctx, tx, version)
 }
 
-func insertOrDeleteVersionNoTx(db *sql.DB, version int64, direction bool) error {
+func insertOrDeleteVersionNoTx(ctx context.Context, db *sql.DB, version int64, direction bool) error {
 	if direction {
-		_, err := db.Exec(GetDialect().insertVersionSQL(), version, direction)
-		return err
+		return store.InsertVersionNoTx(ctx, db, version)
 	}
-	_, err := db.Exec(GetDialect().deleteVersionSQL(), version)
-	return err
+	return store.DeleteVersionNoTx(ctx, db, version)
 }
 
 // NumericComponent looks for migration scripts with names in the form:

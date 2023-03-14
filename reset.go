@@ -1,6 +1,7 @@
 package goose
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"sort"
@@ -8,6 +9,7 @@ import (
 
 // Reset rolls back all migrations
 func Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
+	ctx := context.Background()
 	option := &options{}
 	for _, f := range opts {
 		f(option)
@@ -20,7 +22,7 @@ func Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
 		return DownTo(db, dir, minVersion, opts...)
 	}
 
-	statuses, err := dbMigrationsStatus(db)
+	statuses, err := dbMigrationsStatus(ctx, db)
 	if err != nil {
 		return fmt.Errorf("failed to get status of migrations: %w", err)
 	}
@@ -38,30 +40,20 @@ func Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
 	return nil
 }
 
-func dbMigrationsStatus(db *sql.DB) (map[int64]bool, error) {
-	rows, err := GetDialect().dbVersionQuery(db)
+func dbMigrationsStatus(ctx context.Context, db *sql.DB) (map[int64]bool, error) {
+	dbMigrations, err := store.ListMigrations(ctx, db)
 	if err != nil {
-		return map[int64]bool{}, nil
+		return nil, err
 	}
-	defer rows.Close()
-
 	// The most recent record for each migration specifies
 	// whether it has been applied or rolled back.
+	results := make(map[int64]bool)
 
-	result := make(map[int64]bool)
-
-	for rows.Next() {
-		var row MigrationRecord
-		if err = rows.Scan(&row.VersionID, &row.IsApplied); err != nil {
-			return nil, fmt.Errorf("failed to scan row: %w", err)
-		}
-
-		if _, ok := result[row.VersionID]; ok {
+	for _, m := range dbMigrations {
+		if _, ok := results[m.VersionID]; ok {
 			continue
 		}
-
-		result[row.VersionID] = row.IsApplied
+		results[m.VersionID] = m.IsApplied
 	}
-
-	return result, nil
+	return results, nil
 }

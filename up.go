@@ -1,6 +1,7 @@
 package goose
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -34,6 +35,7 @@ func withApplyUpByOne() OptionsFunc {
 
 // UpTo migrates up to a specific version.
 func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
+	ctx := context.Background()
 	option := &options{}
 	for _, f := range opts {
 		f(option)
@@ -58,7 +60,7 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 	if _, err := EnsureDBVersion(db); err != nil {
 		return err
 	}
-	dbMigrations, err := listAllDBVersions(db)
+	dbMigrations, err := listAllDBVersions(ctx, db)
 	if err != nil {
 		return err
 	}
@@ -222,28 +224,19 @@ func UpByOne(db *sql.DB, dir string, opts ...OptionsFunc) error {
 
 // listAllDBVersions returns a list of all migrations, ordered ascending.
 // TODO(mf): fairly cheap, but a nice-to-have is pagination support.
-func listAllDBVersions(db *sql.DB) (Migrations, error) {
-	rows, err := GetDialect().dbVersionQuery(db)
+func listAllDBVersions(ctx context.Context, db *sql.DB) (Migrations, error) {
+	dbMigrations, err := store.ListMigrations(ctx, db)
 	if err != nil {
-		return nil, createVersionTable(db)
+		return nil, err
 	}
-	var all Migrations
-	for rows.Next() {
-		var versionID int64
-		var isApplied bool
-		if err := rows.Scan(&versionID, &isApplied); err != nil {
-			return nil, err
-		}
+	all := make(Migrations, 0, len(dbMigrations))
+	for _, m := range dbMigrations {
 		all = append(all, &Migration{
-			Version: versionID,
+			Version: m.VersionID,
 		})
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
+	// ListMigrations returns migrations in descending order by id.
+	// But we want to return them in ascending order by version_id, so we re-sort.
 	sort.SliceStable(all, func(i, j int) bool {
 		return all[i].Version < all[j].Version
 	})
