@@ -86,7 +86,7 @@ func (ms Migrations) versioned() (Migrations, error) {
 
 	// assume that the user will never have more than 19700101000000 migrations
 	for _, m := range ms {
-		// parse version as timestmap
+		// parse version as timestamp
 		versionTime, err := time.Parse(timestampFormat, fmt.Sprintf("%d", m.Version))
 
 		if versionTime.Before(time.Unix(0, 0)) || err != nil {
@@ -103,7 +103,7 @@ func (ms Migrations) timestamped() (Migrations, error) {
 
 	// assume that the user will never have more than 19700101000000 migrations
 	for _, m := range ms {
-		// parse version as timestmap
+		// parse version as timestamp
 		versionTime, err := time.Parse(timestampFormat, fmt.Sprintf("%d", m.Version))
 		if err != nil {
 			// probably not a timestamp

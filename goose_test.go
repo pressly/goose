@@ -136,7 +136,7 @@ func TestCustomBinary(t *testing.T) {
 	}
 	t.Cleanup(func() {
 		if err := os.Remove("./go.db"); err != nil {
-			t.Logf("failed to remove %s resouces: %v", t.Name(), err)
+			t.Logf("failed to remove %s resources: %v", t.Name(), err)
 		}
 	})
 
@@ -160,7 +160,7 @@ func TestEmbeddedMigrations(t *testing.T) {
 	}
 	t.Cleanup(func() {
 		if err := os.Remove("./sql_embed.db"); err != nil {
-			t.Logf("failed to remove %s resouces: %v", t.Name(), err)
+			t.Logf("failed to remove %s resources: %v", t.Name(), err)
 		}
 	})
 
