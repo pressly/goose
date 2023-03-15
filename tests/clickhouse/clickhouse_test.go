@@ -1,6 +1,8 @@
 package clickhouse_test
 
 import (
+	"log"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -10,6 +12,13 @@ import (
 	"github.com/pressly/goose/v3/internal/testdb"
 )
 
+func TestMain(m *testing.M) {
+	if err := goose.SetDialect("clickhouse"); err != nil {
+		log.Fatal(err)
+	}
+	os.Exit(m.Run())
+}
+
 func TestClickUpDownAll(t *testing.T) {
 	t.Parallel()
 
@@ -17,8 +26,6 @@ func TestClickUpDownAll(t *testing.T) {
 	db, cleanup, err := testdb.NewClickHouse()
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
-
-	check.NoError(t, goose.SetDialect("clickhouse"))
 
 	/*
 		This test applies all up migrations, asserts we have all the entries in
@@ -69,8 +76,6 @@ func TestClickHouseFirstThree(t *testing.T) {
 	db, cleanup, err := testdb.NewClickHouse()
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
-
-	check.NoError(t, goose.SetDialect("clickhouse"))
 
 	err = goose.Up(db, migrationDir)
 	check.NoError(t, err)
@@ -139,8 +144,6 @@ func TestRemoteImportMigration(t *testing.T) {
 	db, cleanup, err := testdb.NewClickHouse()
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
-
-	check.NoError(t, goose.SetDialect("clickhouse"))
 
 	err = goose.Up(db, migrationDir)
 	check.NoError(t, err)
