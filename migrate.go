@@ -1,6 +1,7 @@
 package goose
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -85,7 +86,7 @@ func (ms Migrations) versioned() (Migrations, error) {
 
 	// assume that the user will never have more than 19700101000000 migrations
 	for _, m := range ms {
-		// parse version as timestmap
+		// parse version as timestamp
 		versionTime, err := time.Parse(timestampFormat, fmt.Sprintf("%d", m.Version))
 
 		if versionTime.Before(time.Unix(0, 0)) || err != nil {
@@ -102,7 +103,7 @@ func (ms Migrations) timestamped() (Migrations, error) {
 
 	// assume that the user will never have more than 19700101000000 migrations
 	for _, m := range ms {
-		// parse version as timestmap
+		// parse version as timestamp
 		versionTime, err := time.Parse(timestampFormat, fmt.Sprintf("%d", m.Version))
 		if err != nil {
 			// probably not a timestamp
@@ -294,74 +295,55 @@ func versionFilter(v, current, target int64) bool {
 // EnsureDBVersion retrieves the current version for this DB.
 // Create and initialize the DB version table if it doesn't exist.
 func EnsureDBVersion(db *sql.DB) (int64, error) {
-	rows, err := GetDialect().dbVersionQuery(db)
+	ctx := context.Background()
+	dbMigrations, err := store.ListMigrations(ctx, db)
 	if err != nil {
-		return 0, createVersionTable(db)
+		return 0, createVersionTable(ctx, db)
 	}
-	defer rows.Close()
-
 	// The most recent record for each migration specifies
 	// whether it has been applied or rolled back.
 	// The first version we find that has been applied is the current version.
-
-	toSkip := make([]int64, 0)
-
-	for rows.Next() {
-		var row MigrationRecord
-		if err = rows.Scan(&row.VersionID, &row.IsApplied); err != nil {
-			return 0, fmt.Errorf("failed to scan row: %w", err)
-		}
-
-		// have we already marked this version to be skipped?
-		skip := false
-		for _, v := range toSkip {
-			if v == row.VersionID {
-				skip = true
-				break
-			}
-		}
-
-		if skip {
+	//
+	// TODO(mf): for historic reasons, we continue to use the is_applied column,
+	// but at some point we need to deprecate this logic and ideally remove
+	// this column.
+	//
+	// For context, see:
+	// https://github.com/pressly/goose/pull/131#pullrequestreview-178409168
+	//
+	// The dbMigrations list is expected to be ordered by descending ID. But
+	// in the future we should be able to query the last record only.
+	skipLookup := make(map[int64]struct{})
+	for _, m := range dbMigrations {
+		// Have we already marked this version to be skipped?
+		if _, ok := skipLookup[m.VersionID]; ok {
 			continue
 		}
-
-		// if version has been applied we're done
-		if row.IsApplied {
-			return row.VersionID, nil
+		// If version has been applied we are done.
+		if m.IsApplied {
+			return m.VersionID, nil
 		}
-
-		// latest version of migration has not been applied.
-		toSkip = append(toSkip, row.VersionID)
+		// Latest version of migration has not been applied.
+		skipLookup[m.VersionID] = struct{}{}
 	}
-	if err := rows.Err(); err != nil {
-		return 0, fmt.Errorf("failed to get next row: %w", err)
-	}
-
 	return 0, ErrNoNextVersion
 }
 
-// Create the db version table
-// and insert the initial 0 value into it
-func createVersionTable(db *sql.DB) error {
+// createVersionTable creates the db version table and inserts the
+// initial 0 value into it.
+func createVersionTable(ctx context.Context, db *sql.DB) error {
 	txn, err := db.Begin()
 	if err != nil {
 		return err
 	}
-
-	d := GetDialect()
-
-	if _, err := txn.Exec(d.createVersionTableSQL()); err != nil {
+	if err := store.CreateVersionTable(ctx, txn); err != nil {
 		_ = txn.Rollback()
 		return err
 	}
-
-	version := 0
-	applied := true
-	if _, err := txn.Exec(d.insertVersionSQL(), version, applied); err != nil {
+	if err := store.InsertVersion(ctx, txn, 0); err != nil {
 		_ = txn.Rollback()
 		return err
 	}
-
 	return txn.Commit()
 }
 

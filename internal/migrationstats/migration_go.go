@@ -91,7 +91,7 @@ func parseInitFunc(fd *ast.FuncDecl) (*goMigration, error) {
 		getNameFromExpr := func(expr ast.Expr) (string, error) {
 			arg, ok := expr.(*ast.Ident)
 			if !ok {
-				return "", fmt.Errorf("failed to assert argument identifer: got %T", arg)
+				return "", fmt.Errorf("failed to assert argument identifier: got %T", arg)
 			}
 			return arg.Name, nil
 		}
