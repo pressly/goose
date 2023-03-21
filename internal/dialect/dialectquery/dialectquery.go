@@ -26,35 +26,3 @@ type Querier interface {
 	// The query should return the version_id and is_applied columns.
 	ListMigrations() string
 }
-
-func NewPostgres(table string) Querier {
-	return &postgres{table: table}
-}
-
-func NewMysql(table string) Querier {
-	return &mysql{table: table}
-}
-
-func NewSqlite3(table string) Querier {
-	return &sqlite3{table: table}
-}
-
-func NewSqlserver(table string) Querier {
-	return &sqlserver{table: table}
-}
-
-func NewRedshift(table string) Querier {
-	return &redshift{table: table}
-}
-
-func NewTidb(table string) Querier {
-	return &tidb{table: table}
-}
-
-func NewClickhouse(table string) Querier {
-	return &clickhouse{table: table}
-}
-
-func NewVertica(table string) Querier {
-	return &vertica{table: table}
-}

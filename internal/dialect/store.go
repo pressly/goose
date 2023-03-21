@@ -56,21 +56,21 @@ func NewStore(d Dialect, table string) (Store, error) {
 	var querier dialectquery.Querier
 	switch d {
 	case Postgres:
-		querier = dialectquery.NewPostgres(table)
+		querier = &dialectquery.Postgres{Table: table}
 	case Mysql:
-		querier = dialectquery.NewMysql(table)
+		querier = &dialectquery.Mysql{Table: table}
 	case Sqlite3:
-		querier = dialectquery.NewSqlite3(table)
+		querier = &dialectquery.Sqlite3{Table: table}
 	case Sqlserver:
-		querier = dialectquery.NewSqlserver(table)
+		querier = &dialectquery.Sqlserver{Table: table}
 	case Redshift:
-		querier = dialectquery.NewRedshift(table)
+		querier = &dialectquery.Redshift{Table: table}
 	case Tidb:
-		querier = dialectquery.NewTidb(table)
+		querier = &dialectquery.Tidb{Table: table}
 	case Clickhouse:
-		querier = dialectquery.NewClickhouse(table)
+		querier = &dialectquery.Clickhouse{Table: table}
 	case Vertica:
-		querier = dialectquery.NewVertica(table)
+		querier = &dialectquery.Vertica{Table: table}
 	default:
 		return nil, fmt.Errorf("unknown querier dialect: %v", d)
 	}
