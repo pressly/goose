@@ -2,11 +2,13 @@ package dialectquery
 
 import "fmt"
 
-type postgres struct {
-	table string
+type Postgres struct {
+	Table string
 }
 
-func (p *postgres) CreateTable() string {
+var _ Querier = (*Postgres)(nil)
+
+func (p *Postgres) CreateTable() string {
 	q := `CREATE TABLE %s (
 		id serial NOT NULL,
 		version_id bigint NOT NULL,
@@ -14,25 +16,25 @@ func (p *postgres) CreateTable() string {
 		tstamp timestamp NULL default now(),
 		PRIMARY KEY(id)
 	)`
-	return fmt.Sprintf(q, p.table)
+	return fmt.Sprintf(q, p.Table)
 }
 
-func (p *postgres) InsertVersion() string {
+func (p *Postgres) InsertVersion() string {
 	q := `INSERT INTO %s (version_id, is_applied) VALUES ($1, $2)`
-	return fmt.Sprintf(q, p.table)
+	return fmt.Sprintf(q, p.Table)
 }
 
-func (p *postgres) DeleteVersion() string {
+func (p *Postgres) DeleteVersion() string {
 	q := `DELETE FROM %s WHERE version_id=$1`
-	return fmt.Sprintf(q, p.table)
+	return fmt.Sprintf(q, p.Table)
 }
 
-func (p *postgres) GetMigrationByVersion() string {
+func (p *Postgres) GetMigrationByVersion() string {
 	q := `SELECT tstamp, is_applied FROM %s WHERE version_id=$1 ORDER BY tstamp DESC LIMIT 1`
-	return fmt.Sprintf(q, p.table)
+	return fmt.Sprintf(q, p.Table)
 }
 
-func (p *postgres) ListMigrations() string {
+func (p *Postgres) ListMigrations() string {
 	q := `SELECT version_id, is_applied from %s ORDER BY id DESC`
-	return fmt.Sprintf(q, p.table)
+	return fmt.Sprintf(q, p.Table)
 }

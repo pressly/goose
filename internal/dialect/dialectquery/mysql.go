@@ -2,11 +2,13 @@ package dialectquery
 
 import "fmt"
 
-type mysql struct {
-	table string
+type Mysql struct {
+	Table string
 }
 
-func (m *mysql) CreateTable() string {
+var _ Querier = (*Mysql)(nil)
+
+func (m *Mysql) CreateTable() string {
 	q := `CREATE TABLE %s (
 		id serial NOT NULL,
 		version_id bigint NOT NULL,
@@ -14,25 +16,25 @@ func (m *mysql) CreateTable() string {
 		tstamp timestamp NULL default now(),
 		PRIMARY KEY(id)
 	)`
-	return fmt.Sprintf(q, m.table)
+	return fmt.Sprintf(q, m.Table)
 }
 
-func (m *mysql) InsertVersion() string {
+func (m *Mysql) InsertVersion() string {
 	q := `INSERT INTO %s (version_id, is_applied) VALUES (?, ?)`
-	return fmt.Sprintf(q, m.table)
+	return fmt.Sprintf(q, m.Table)
 }
 
-func (m *mysql) DeleteVersion() string {
+func (m *Mysql) DeleteVersion() string {
 	q := `DELETE FROM %s WHERE version_id=?`
-	return fmt.Sprintf(q, m.table)
+	return fmt.Sprintf(q, m.Table)
 }
 
-func (m *mysql) GetMigrationByVersion() string {
+func (m *Mysql) GetMigrationByVersion() string {
 	q := `SELECT tstamp, is_applied FROM %s WHERE version_id=? ORDER BY tstamp DESC LIMIT 1`
-	return fmt.Sprintf(q, m.table)
+	return fmt.Sprintf(q, m.Table)
 }
 
-func (m *mysql) ListMigrations() string {
+func (m *Mysql) ListMigrations() string {
 	q := `SELECT version_id, is_applied from %s ORDER BY id DESC`
-	return fmt.Sprintf(q, m.table)
+	return fmt.Sprintf(q, m.Table)
 }
