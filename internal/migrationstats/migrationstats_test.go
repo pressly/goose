@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pressly/goose/v3/internal/check"
+	"github.com/pressly/goose/v4/internal/check"
 )
 
 func TestParsingGoMigrations(t *testing.T) {
@@ -53,7 +53,7 @@ var (
 import (
 	"database/sql"
 
-	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v4"
 )
 
 func init() {
@@ -69,7 +69,7 @@ func down001(tx *sql.Tx) error { return nil }`
 import (
 	"database/sql"
 
-	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v4"
 )
 
 func init() {
@@ -83,7 +83,7 @@ func down002(tx *sql.Tx) error { return nil }`
 import (
 	"database/sql"
 
-	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v4"
 )
 
 func init() {
@@ -97,7 +97,7 @@ func up003(tx *sql.Tx) error { return nil }`
 import (
 	"database/sql"
 
-	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v4"
 )
 
 func init() {
@@ -110,7 +110,7 @@ var (
 import (
 	"database/sql"
 
-	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v4"
 )
 
 func init() {
@@ -126,7 +126,7 @@ func down001(db *sql.DB) error { return nil }`
 import (
 	"database/sql"
 
-	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v4"
 )
 
 func init() {
@@ -140,7 +140,7 @@ func down002(db *sql.DB) error { return nil }`
 import (
 	"database/sql"
 
-	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v4"
 )
 
 func init() {
@@ -154,7 +154,7 @@ func up003(db *sql.DB) error { return nil }`
 import (
 	"database/sql"
 
-	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v4"
 )
 
 func init() {
@@ -172,7 +172,7 @@ func init() {}`
 import (
 	"database/sql"
 
-	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v4"
 )
 
 func init() {

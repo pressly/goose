@@ -15,10 +15,10 @@ import (
 	"text/tabwriter"
 	"text/template"
 
-	"github.com/pressly/goose/v3"
-	"github.com/pressly/goose/v3/internal/cfg"
-	"github.com/pressly/goose/v3/internal/migrationstats"
-	"github.com/pressly/goose/v3/internal/migrationstats/migrationstatsos"
+	"github.com/pressly/goose/v4"
+	"github.com/pressly/goose/v4/internal/cfg"
+	"github.com/pressly/goose/v4/internal/migrationstats"
+	"github.com/pressly/goose/v4/internal/migrationstats/migrationstatsos"
 )
 
 var (
