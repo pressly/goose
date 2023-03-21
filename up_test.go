@@ -2,34 +2,49 @@ package goose
 
 import (
 	"testing"
+
+	"github.com/pressly/goose/v4/internal/check"
+	"github.com/pressly/goose/v4/internal/dialectadapter"
+	"github.com/pressly/goose/v4/internal/migration"
 )
 
 func TestFindMissingMigrations(t *testing.T) {
-	known := Migrations{
+	t.Parallel()
+
+	// Test case: database has migrations 1, 3, 4, 5, 7
+	// Missing migrations: 2, 6
+	// Filesystem has migrations 1, 2, 3, 4, 5, 6, 7, 8
+
+	dbMigrations := []*dialectadapter.ListMigrationsResult{
 		{Version: 1},
 		{Version: 3},
 		{Version: 4},
 		{Version: 5},
 		{Version: 7}, // <-- database max version_id
 	}
-	new := Migrations{
-		{Version: 1},
-		{Version: 2}, // missing migration
-		{Version: 3},
-		{Version: 4},
-		{Version: 5},
-		{Version: 6}, // missing migration
-		{Version: 7}, // <-- database max version_id
-		{Version: 8}, // new migration
+	fsMigrations := []*migration.Migration{
+		newMigration(1),
+		newMigration(2), // missing migration
+		newMigration(3),
+		newMigration(4),
+		newMigration(5),
+		newMigration(6), // missing migration
+		newMigration(7), // ----- database max version_id -----
+		newMigration(8), // new migration
 	}
-	got := findMissingMigrations(known, new, 7)
-	if len(got) != 2 {
-		t.Fatalf("invalid migration count: got:%d want:%d", len(got), 2)
-	}
-	if got[0].Version != 2 {
-		t.Errorf("expecting first migration: got:%d want:%d", got[0].Version, 2)
-	}
-	if got[1].Version != 6 {
-		t.Errorf("expecting second migration: got:%d want:%d", got[0].Version, 6)
+	got := findMissingMigrations(dbMigrations, fsMigrations, 7)
+	check.Number(t, len(got), 2)
+	check.Number(t, got[0].versionID, 2)
+	check.Number(t, got[1].versionID, 6)
+
+	// Sanity check.
+	check.Number(t, len(findMissingMigrations(nil, nil, 0)), 0)
+	check.Number(t, len(findMissingMigrations(dbMigrations, nil, 0)), 0)
+	check.Number(t, len(findMissingMigrations(nil, fsMigrations, 0)), 0)
+}
+
+func newMigration(version int64) *migration.Migration {
+	return &migration.Migration{
+		Version: version,
 	}
 }

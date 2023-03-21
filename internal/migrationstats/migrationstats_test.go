@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pressly/goose/v3/internal/check"
+	"github.com/pressly/goose/v4/internal/check"
 )
 
 func TestParsingGoMigrations(t *testing.T) {
@@ -53,51 +53,51 @@ var (
 import (
 	"database/sql"
 
-	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v4"
 )
 
 func init() {
 	goose.AddMigration(up001, down001)
 }
 
-func up001(tx *sql.Tx) error { return nil }
+func up001(ctx context.Context, tx *sql.Tx) error { return nil }
 
-func down001(tx *sql.Tx) error { return nil }`
+func down001(ctx context.Context, tx *sql.Tx) error { return nil }`
 
 	downOnly = `package testgo
 
 import (
 	"database/sql"
 
-	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v4"
 )
 
 func init() {
 	goose.AddMigration(nil, down002)
 }
 
-func down002(tx *sql.Tx) error { return nil }`
+func down002(ctx context.Context, tx *sql.Tx) error { return nil }`
 
 	upOnly = `package testgo
 
 import (
 	"database/sql"
 
-	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v4"
 )
 
 func init() {
 	goose.AddMigration(up003, nil)
 }
 
-func up003(tx *sql.Tx) error { return nil }`
+func up003(ctx context.Context, tx *sql.Tx) error { return nil }`
 
 	upAndDownNil = `package testgo
 
 import (
 	"database/sql"
 
-	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v4"
 )
 
 func init() {
@@ -110,51 +110,51 @@ var (
 import (
 	"database/sql"
 
-	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v4"
 )
 
 func init() {
 	goose.AddMigrationNoTx(up001, down001)
 }
 
-func up001(db *sql.DB) error { return nil }
+func up001(ctx context.Context, db *sql.DB) error { return nil }
 
-func down001(db *sql.DB) error { return nil }`
+func down001(ctx context.Context, db *sql.DB) error { return nil }`
 
 	downOnlyNoTx = `package testgo
 
 import (
 	"database/sql"
 
-	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v4"
 )
 
 func init() {
 	goose.AddMigrationNoTx(nil, down002)
 }
 
-func down002(db *sql.DB) error { return nil }`
+func down002(ctx context.Context, db *sql.DB) error { return nil }`
 
 	upOnlyNoTx = `package testgo
 
 import (
 	"database/sql"
 
-	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v4"
 )
 
 func init() {
 	goose.AddMigrationNoTx(up003, nil)
 }
 
-func up003(db *sql.DB) error { return nil }`
+func up003(ctx context.Context, db *sql.DB) error { return nil }`
 
 	upAndDownNilNoTx = `package testgo
 
 import (
 	"database/sql"
 
-	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v4"
 )
 
 func init() {
@@ -172,7 +172,7 @@ func init() {}`
 import (
 	"database/sql"
 
-	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v4"
 )
 
 func init() {

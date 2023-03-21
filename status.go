@@ -4,56 +4,77 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
-	"path/filepath"
 	"time"
+
+	"github.com/pressly/goose/v4/internal/migration"
 )
 
-// Status prints the status of all migrations.
-func Status(db *sql.DB, dir string, opts ...OptionsFunc) error {
-	ctx := context.Background()
-	option := &options{}
-	for _, f := range opts {
-		f(option)
-	}
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
-	if err != nil {
-		return fmt.Errorf("failed to collect migrations: %w", err)
-	}
-	if option.noVersioning {
-		log.Println("    Applied At                  Migration")
-		log.Println("    =======================================")
-		for _, current := range migrations {
-			log.Printf("    %-24s -- %v\n", "no versioning", filepath.Base(current.Source))
-		}
-		return nil
-	}
-
-	// must ensure that the version table exists if we're running on a pristine DB
-	if _, err := EnsureDBVersion(db); err != nil {
-		return fmt.Errorf("failed to ensure DB version: %w", err)
-	}
-
-	log.Println("    Applied At                  Migration")
-	log.Println("    =======================================")
-	for _, migration := range migrations {
-		if err := printMigrationStatus(ctx, db, migration.Version, filepath.Base(migration.Source)); err != nil {
-			return fmt.Errorf("failed to print status: %w", err)
-		}
-	}
-
-	return nil
+type MigrationStatus struct {
+	Applied   bool
+	AppliedAt time.Time
+	Source    *Source
 }
 
-func printMigrationStatus(ctx context.Context, db *sql.DB, version int64, script string) error {
-	m, err := store.GetMigration(ctx, db, TableName(), version)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return fmt.Errorf("failed to query the latest migration: %w", err)
+type StatusOptions struct {
+	// IncludeNilMigrations will include a migration status for a record in the database but not in
+	// the filesystem. This is common when migration files are squashed and replaced with a single
+	// migration file referencing a version that has already been applied, such as
+	// 00001_squashed.go.
+	// includeNilMigrations bool
+
+	// Limit limits the number of migrations returned. Default is 0, which means no limit.
+	// limit int
+	// Sort order possible values are: ASC and DESC. Default is ASC.
+	// order string
+}
+
+// Status returns the status of all migrations. The returned slice is ordered by ascending version.
+//
+// The provided StatusOptions is optional and may be nil if defaults should be used.
+//
+// It is safe for concurrent use.
+func (p *Provider) Status(ctx context.Context, opts *StatusOptions) (_ []*MigrationStatus, retErr error) {
+	conn, cleanup, err := p.initialize(ctx)
+	if err != nil {
+		return nil, err
 	}
-	appliedAt := "Pending"
-	if m != nil && m.IsApplied {
-		appliedAt = m.Timestamp.Format(time.ANSIC)
+	defer func() {
+		retErr = errors.Join(retErr, cleanup())
+	}()
+
+	// TODO(mf): add support for limit and order. Also would be nice to refactor the list query to
+	// support limiting the set.
+
+	status := make([]*MigrationStatus, 0, len(p.migrations))
+	for _, m := range p.migrations {
+		migrationStatus := &MigrationStatus{
+			Source: convertMigration(m),
+		}
+		dbResult, err := p.store.GetMigration(ctx, conn, m.Version)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return nil, err
+		}
+		if dbResult != nil {
+			migrationStatus.Applied = true
+			migrationStatus.AppliedAt = dbResult.Timestamp
+		}
+		status = append(status, migrationStatus)
 	}
-	log.Printf("    %-24s -- %v\n", appliedAt, script)
-	return nil
+
+	return status, nil
+}
+
+func convertMigration(m *migration.Migration) *Source {
+	var typ SourceType
+	switch {
+	case m.IsGo():
+		typ = SourceTypeGo
+	case m.IsSQL():
+		typ = SourceTypeSQL
+	}
+	return &Source{
+		Fullpath: m.Fullpath,
+		Version:  m.Version,
+		Type:     typ,
+	}
 }

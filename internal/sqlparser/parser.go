@@ -14,9 +14,18 @@ import (
 type Direction string
 
 const (
+	DirectionAll  Direction = "all"
 	DirectionUp   Direction = "up"
 	DirectionDown Direction = "down"
 )
+
+func (d Direction) String() string {
+	return string(d)
+}
+
+func (d Direction) ToBool() bool {
+	return d == DirectionUp
+}
 
 func FromBool(b bool) Direction {
 	if b {
