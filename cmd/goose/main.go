@@ -35,7 +35,7 @@ var (
 	sslkey       = flags.String("ssl-key", "", "file path to SSL key in pem format (only support on mysql)")
 	noVersioning = flags.Bool("no-versioning", false, "apply migration commands with no versioning, in file order, from directory pointed to")
 	noColor      = flags.Bool("no-color", false, "disable color output (NO_COLOR env variable supported)")
-	lockSession  = flags.String("lock", "none", "acquire exclusive session level advisory lock before running migrations (postgres only)")
+	lock         = flags.String("lock", "none", "lock mode to use when running migrations: none (default) or session")
 )
 var (
 	gooseVersion = ""
@@ -149,7 +149,7 @@ func main() {
 	if *noVersioning {
 		options = append(options, goose.WithNoVersioning())
 	}
-	switch *lockSession {
+	switch *lock {
 	case "none":
 		options = append(options, goose.WithLock(goose.LockModeNone))
 	case "session":
@@ -157,7 +157,7 @@ func main() {
 	case "transaction":
 		log.Fatalf("goose: lock=transaction is not supported yet, use lock=session or omit flag to disable locking")
 	default:
-		log.Fatalf(`goose: invalid lock mode: %s, must be one of "none", "session", "transaction"`, *lockSession)
+		log.Fatalf(`goose: invalid lock mode: %s, must be one of "none", "session", "transaction"`, *lock)
 	}
 	if err := goose.RunWithOptions(
 		command,
