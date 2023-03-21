@@ -7,12 +7,18 @@ import (
 	"io/fs"
 	"log"
 	"os"
+	"path/filepath"
 	"runtime/debug"
+	"sort"
 	"strconv"
+	"strings"
+	"text/tabwriter"
 	"text/template"
 
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/internal/cfg"
+	"github.com/pressly/goose/v3/internal/migrationstats"
+	"github.com/pressly/goose/v3/internal/migrationstats/migrationstatsos"
 )
 
 var (
@@ -93,6 +99,11 @@ func main() {
 	case "env":
 		for _, env := range cfg.List() {
 			fmt.Printf("%s=%q\n", env.Name, env.Value)
+		}
+		return
+	case "validate":
+		if err := printValidate(*dir, *verbose); err != nil {
+			log.Fatalf("goose validate: %v", err)
 		}
 		return
 	}
@@ -244,14 +255,14 @@ var sqlMigrationTemplate = template.Must(template.New("goose.sql-migration").Par
 --
 -- A single goose .sql file holds both Up and Down migrations.
 -- 
--- All goose .sql files are expected to have a -- +goose Up directive.
--- The -- +goose Down directive is optional, but recommended, and must come after the Up directive.
+-- All goose .sql files are expected to have a -- +goose Up annotation.
+-- The -- +goose Down annotation is optional, but recommended, and must come after the Up annotation.
 -- 
--- The -- +goose NO TRANSACTION directive may be added to the top of the file to run statements 
+-- The -- +goose NO TRANSACTION annotation may be added to the top of the file to run statements 
 -- outside a transaction. Both Up and Down migrations within this file will be run without a transaction.
 -- 
 -- More complex statements that have semicolons within them must be annotated with 
--- the -- +goose StatementBegin and -- +goose StatementEnd directives to be properly recognized.
+-- the -- +goose StatementBegin and -- +goose StatementEnd annotations to be properly recognized.
 -- 
 -- Use GitHub issues for reporting bugs and requesting features, enjoy!
 
@@ -279,4 +290,60 @@ func gooseInit(dir string) error {
 		return err
 	}
 	return goose.CreateWithTemplate(nil, dir, sqlMigrationTemplate, "initial", "sql")
+}
+
+func gatherFilenames(filename string) ([]string, error) {
+	stat, err := os.Stat(filename)
+	if err != nil {
+		return nil, err
+	}
+	var filenames []string
+	if stat.IsDir() {
+		for _, pattern := range []string{"*.sql", "*.go"} {
+			file, err := filepath.Glob(filepath.Join(filename, pattern))
+			if err != nil {
+				return nil, err
+			}
+			filenames = append(filenames, file...)
+		}
+	} else {
+		filenames = append(filenames, filename)
+	}
+	sort.Strings(filenames)
+	return filenames, nil
+}
+
+func printValidate(filename string, verbose bool) error {
+	filenames, err := gatherFilenames(filename)
+	if err != nil {
+		return err
+	}
+	fileWalker := migrationstatsos.NewFileWalker(filenames...)
+	stats, err := migrationstats.GatherStats(fileWalker, false)
+	if err != nil {
+		return err
+	}
+	// TODO(mf): we should introduce a --debug flag, which allows printing
+	// more internal debug information and leave verbose for additional information.
+	if !verbose {
+		return nil
+	}
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', tabwriter.TabIndent)
+	fmtPattern := "%v\t%v\t%v\t%v\t%v\t\n"
+	fmt.Fprintf(w, fmtPattern, "Type", "Txn", "Up", "Down", "Name")
+	fmt.Fprintf(w, fmtPattern, "────", "───", "──", "────", "────")
+	for _, m := range stats {
+		txnStr := "✔"
+		if !m.Tx {
+			txnStr = "✘"
+		}
+		fmt.Fprintf(w, fmtPattern,
+			strings.TrimPrefix(filepath.Ext(m.FileName), "."),
+			txnStr,
+			m.UpCount,
+			m.DownCount,
+			filepath.Base(m.FileName),
+		)
+	}
+	return w.Flush()
 }
