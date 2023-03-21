@@ -60,8 +60,33 @@ func (s *store) UnlockSession(ctx context.Context, conn *sql.Conn) error {
 	switch t := s.querier.(type) {
 	case *dialectquery.Postgres:
 		return retry.Do(ctx, s.retry, func(ctx context.Context) error {
-			if _, err := conn.ExecContext(ctx, t.AdvisoryUnlockSession(), defaultLockID); err != nil {
+			var unlocked bool
+			row := conn.QueryRowContext(ctx, t.AdvisoryUnlockSession(), defaultLockID)
+			if err := row.Scan(&unlocked); err != nil {
 				return retry.RetryableError(err)
+			}
+			if !unlocked {
+				// TODO(mf): provide the user with some documentation on how they
+				// can unlock the session manually. Although this might not be an issue
+				// for 99.9% of users since pg_advisory_unlock_all() will release all session
+				// level advisory locks held by the current session.
+				// (This function is implicitly invoked at session end, even if the client disconnects ungracefully.)
+				//
+				// TODO(mf): - we may not want to return an error here or bother checking the return value!
+				//
+				// SELECT pid,granted,((classid::bigint<<32)|objid::bigint)AS goose_lock_id FROM pg_locks WHERE locktype='advisory';
+				//
+				// | pid | granted | goose_lock_id       |
+				// |-----|---------|---------------------|
+				// | 191 | t       | 5887940537704921958 |
+				//
+				// A graceful way to unlock the session is to kill the process:
+				// SELECT pg_cancel_backend(120);
+				//
+				// A more forceful way to unlock the session is to terminate the process:
+				// SELECT pg_terminate_backend(120);
+
+				return errors.New("failed to unlock session")
 			}
 			return nil
 		})
