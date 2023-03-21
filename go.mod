@@ -1,6 +1,6 @@
 module github.com/pressly/goose/v3
 
-go 1.18
+go 1.19
 
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.7.0
