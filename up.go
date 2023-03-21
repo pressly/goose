@@ -81,6 +81,9 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) (retErr er
 			if err := store.UnlockSession(ctx, conn); err != nil {
 				retErr = multierr.Append(retErr, err)
 			}
+			if err := conn.Close(); err != nil {
+				retErr = multierr.Append(retErr, err)
+			}
 		}()
 	case LockModeAdvisoryTransaction:
 		return errors.New("advisory level transaction lock is not supported")
