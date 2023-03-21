@@ -7,7 +7,5 @@ CREATE TABLE post (
     PRIMARY KEY(id)
 );
 
-SELECT pg_sleep(30);
-
 -- +goose Down
 DROP TABLE post;
