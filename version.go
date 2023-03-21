@@ -1,12 +1,17 @@
 package goose
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+
+	"go.uber.org/multierr"
 )
 
 // Version prints the current version of the database.
-func Version(db *sql.DB, dir string, opts ...OptionsFunc) error {
+func Version(db *sql.DB, dir string, opts ...OptionsFunc) (retErr error) {
+	ctx := context.Background()
+
 	option := &options{}
 	for _, f := range opts {
 		f(option)
@@ -22,6 +27,21 @@ func Version(db *sql.DB, dir string, opts ...OptionsFunc) error {
 		}
 		log.Printf("goose: file version %v\n", current)
 		return nil
+	}
+
+	if option.lock {
+		conn, err := db.Conn(ctx)
+		if err != nil {
+			return err
+		}
+		if err := store.LockSession(ctx, conn); err != nil {
+			return err
+		}
+		defer func() {
+			if err := store.UnlockSession(ctx, conn); err != nil {
+				retErr = multierr.Append(retErr, err)
+			}
+		}()
 	}
 
 	current, err := GetDBVersion(db)

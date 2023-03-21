@@ -1,11 +1,16 @@
 package goose
 
 import (
+	"context"
 	"database/sql"
+
+	"go.uber.org/multierr"
 )
 
 // Redo rolls back the most recently applied migration, then runs it again.
-func Redo(db *sql.DB, dir string, opts ...OptionsFunc) error {
+func Redo(db *sql.DB, dir string, opts ...OptionsFunc) (retErr error) {
+	ctx := context.Background()
+
 	option := &options{}
 	for _, f := range opts {
 		f(option)
@@ -14,6 +19,22 @@ func Redo(db *sql.DB, dir string, opts ...OptionsFunc) error {
 	if err != nil {
 		return err
 	}
+
+	if option.lock {
+		conn, err := db.Conn(ctx)
+		if err != nil {
+			return err
+		}
+		if err := store.LockSession(ctx, conn); err != nil {
+			return err
+		}
+		defer func() {
+			if err := store.UnlockSession(ctx, conn); err != nil {
+				retErr = multierr.Append(retErr, err)
+			}
+		}()
+	}
+
 	var (
 		currentVersion int64
 	)

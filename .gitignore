@@ -10,3 +10,5 @@
 # Local testing
 .envrc
 *.FAIL
+
+/x

@@ -7,12 +7,15 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"go.uber.org/multierr"
 )
 
 type options struct {
 	allowMissing bool
 	applyUpByOne bool
 	noVersioning bool
+	lock         bool
 }
 
 type OptionsFunc func(o *options)
@@ -29,12 +32,20 @@ func WithNoColor(b bool) OptionsFunc {
 	return func(o *options) { noColor = b }
 }
 
+// WithLock is an experimental feature and is only supported for Postgres.
+//
+// The underlying implementation obtains an exclusive session level
+// advisory lock on the database.
+func WithLock() OptionsFunc {
+	return func(o *options) { o.lock = true }
+}
+
 func withApplyUpByOne() OptionsFunc {
 	return func(o *options) { o.applyUpByOne = true }
 }
 
 // UpTo migrates up to a specific version.
-func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
+func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) (retErr error) {
 	ctx := context.Background()
 	option := &options{}
 	for _, f := range opts {
@@ -43,6 +54,21 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 	foundMigrations, err := CollectMigrations(dir, minVersion, version)
 	if err != nil {
 		return err
+	}
+
+	if option.lock {
+		conn, err := db.Conn(ctx)
+		if err != nil {
+			return err
+		}
+		if err := store.LockSession(ctx, conn); err != nil {
+			return err
+		}
+		defer func() {
+			if err := store.UnlockSession(ctx, conn); err != nil {
+				retErr = multierr.Append(retErr, err)
+			}
+		}()
 	}
 
 	if option.noVersioning {

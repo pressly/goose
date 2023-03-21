@@ -5,10 +5,12 @@ import (
 	"database/sql"
 	"fmt"
 	"sort"
+
+	"go.uber.org/multierr"
 )
 
 // Reset rolls back all migrations
-func Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
+func Reset(db *sql.DB, dir string, opts ...OptionsFunc) (retErr error) {
 	ctx := context.Background()
 	option := &options{}
 	for _, f := range opts {
@@ -18,6 +20,22 @@ func Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
 	if err != nil {
 		return fmt.Errorf("failed to collect migrations: %w", err)
 	}
+
+	if option.lock {
+		conn, err := db.Conn(ctx)
+		if err != nil {
+			return err
+		}
+		if err := store.LockSession(ctx, conn); err != nil {
+			return err
+		}
+		defer func() {
+			if err := store.UnlockSession(ctx, conn); err != nil {
+				retErr = multierr.Append(retErr, err)
+			}
+		}()
+	}
+
 	if option.noVersioning {
 		return DownTo(db, dir, minVersion, opts...)
 	}

@@ -8,8 +8,10 @@ require (
 	github.com/go-sql-driver/mysql v1.7.0
 	github.com/jackc/pgx/v5 v5.3.1
 	github.com/ory/dockertest/v3 v3.9.1
+	github.com/sethvargo/go-retry v0.2.4
 	github.com/vertica/vertica-sql-go v1.3.1
 	github.com/ziutek/mymysql v1.5.4
+	go.uber.org/multierr v1.10.0
 	modernc.org/sqlite v1.21.0
 )
 

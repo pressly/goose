@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"path/filepath"
 	"time"
+
+	"go.uber.org/multierr"
 )
 
 // Status prints the status of all migrations.
-func Status(db *sql.DB, dir string, opts ...OptionsFunc) error {
+func Status(db *sql.DB, dir string, opts ...OptionsFunc) (retErr error) {
 	ctx := context.Background()
 	option := &options{}
 	for _, f := range opts {
@@ -27,6 +29,21 @@ func Status(db *sql.DB, dir string, opts ...OptionsFunc) error {
 			log.Printf("    %-24s -- %v\n", "no versioning", filepath.Base(current.Source))
 		}
 		return nil
+	}
+
+	if option.lock {
+		conn, err := db.Conn(ctx)
+		if err != nil {
+			return err
+		}
+		if err := store.LockSession(ctx, conn); err != nil {
+			return err
+		}
+		defer func() {
+			if err := store.UnlockSession(ctx, conn); err != nil {
+				retErr = multierr.Append(retErr, err)
+			}
+		}()
 	}
 
 	// must ensure that the version table exists if we're running on a pristine DB

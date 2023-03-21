@@ -1,12 +1,17 @@
 package goose
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+
+	"go.uber.org/multierr"
 )
 
 // Down rolls back a single migration from the current version.
-func Down(db *sql.DB, dir string, opts ...OptionsFunc) error {
+func Down(db *sql.DB, dir string, opts ...OptionsFunc) (retErr error) {
+	ctx := context.Background()
+
 	option := &options{}
 	for _, f := range opts {
 		f(option)
@@ -15,6 +20,22 @@ func Down(db *sql.DB, dir string, opts ...OptionsFunc) error {
 	if err != nil {
 		return err
 	}
+
+	if option.lock {
+		conn, err := db.Conn(ctx)
+		if err != nil {
+			return err
+		}
+		if err := store.LockSession(ctx, conn); err != nil {
+			return err
+		}
+		defer func() {
+			if err := store.UnlockSession(ctx, conn); err != nil {
+				retErr = multierr.Append(retErr, err)
+			}
+		}()
+	}
+
 	if option.noVersioning {
 		if len(migrations) == 0 {
 			return nil
@@ -35,7 +56,9 @@ func Down(db *sql.DB, dir string, opts ...OptionsFunc) error {
 }
 
 // DownTo rolls back migrations to a specific version.
-func DownTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
+func DownTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) (retErr error) {
+	ctx := context.Background()
+
 	option := &options{}
 	for _, f := range opts {
 		f(option)
@@ -44,6 +67,22 @@ func DownTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 	if err != nil {
 		return err
 	}
+
+	if option.lock {
+		conn, err := db.Conn(ctx)
+		if err != nil {
+			return err
+		}
+		if err := store.LockSession(ctx, conn); err != nil {
+			return err
+		}
+		defer func() {
+			if err := store.UnlockSession(ctx, conn); err != nil {
+				retErr = multierr.Append(retErr, err)
+			}
+		}()
+	}
+
 	if option.noVersioning {
 		return downToNoVersioning(db, migrations, version)
 	}

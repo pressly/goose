@@ -2,6 +2,9 @@ package dialectquery
 
 // Querier is the interface that wraps the basic methods to create a dialect
 // specific query.
+//
+// Important, if an implementation does not support a method, it should return
+// an empty string and the caller should handle it as an error.
 type Querier interface {
 	// CreateTable returns the SQL query string to create the db version table.
 	CreateTable() string
