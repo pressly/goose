@@ -3,6 +3,7 @@ package goose
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"sort"
 
@@ -21,7 +22,8 @@ func Reset(db *sql.DB, dir string, opts ...OptionsFunc) (retErr error) {
 		return fmt.Errorf("failed to collect migrations: %w", err)
 	}
 
-	if option.lock {
+	switch option.lockMode {
+	case LockModeAdvisorySession:
 		conn, err := db.Conn(ctx)
 		if err != nil {
 			return err
@@ -34,6 +36,8 @@ func Reset(db *sql.DB, dir string, opts ...OptionsFunc) (retErr error) {
 				retErr = multierr.Append(retErr, err)
 			}
 		}()
+	case LockModeAdvisoryTransaction:
+		return errors.New("advisory level transaction lock is not supported")
 	}
 
 	if option.noVersioning {

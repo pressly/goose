@@ -15,7 +15,7 @@ type options struct {
 	allowMissing bool
 	applyUpByOne bool
 	noVersioning bool
-	lock         bool
+	lockMode     LockMode
 }
 
 type OptionsFunc func(o *options)
@@ -32,12 +32,24 @@ func WithNoColor(b bool) OptionsFunc {
 	return func(o *options) { noColor = b }
 }
 
+type LockMode int
+
+const (
+	LockModeNone LockMode = iota
+	LockModeAdvisorySession
+	LockModeAdvisoryTransaction
+)
+
 // WithLock is an experimental feature and is only supported for Postgres.
 //
-// The underlying implementation obtains an exclusive session level
-// advisory lock on the database.
-func WithLock() OptionsFunc {
-	return func(o *options) { o.lock = true }
+// LockModeNone is the default and does not acquire any locks.
+//
+// LockModeAdvisorySession obtains an exclusive session level advisory
+// lock on the database.
+//
+// LockModeAdvisoryTransaction is not yet supported and will return an error.
+func WithLock(mode LockMode) OptionsFunc {
+	return func(o *options) { o.lockMode = mode }
 }
 
 func withApplyUpByOne() OptionsFunc {
@@ -56,7 +68,8 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) (retErr er
 		return err
 	}
 
-	if option.lock {
+	switch option.lockMode {
+	case LockModeAdvisorySession:
 		conn, err := db.Conn(ctx)
 		if err != nil {
 			return err
@@ -69,6 +82,8 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) (retErr er
 				retErr = multierr.Append(retErr, err)
 			}
 		}()
+	case LockModeAdvisoryTransaction:
+		return errors.New("advisory level transaction lock is not supported")
 	}
 
 	if option.noVersioning {

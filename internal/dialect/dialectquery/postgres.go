@@ -45,7 +45,7 @@ func (p *Postgres) AdvisoryLockSession() string {
 	return `SELECT pg_advisory_lock($1)`
 }
 
-// AdvisoryUnlockSession returns the query to release  an exclusive session level
+// AdvisoryUnlockSession returns the query to release an exclusive session level
 // advisory lock.
 func (p *Postgres) AdvisoryUnlockSession() string {
 	return `SELECT pg_advisory_unlock($1)`

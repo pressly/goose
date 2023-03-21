@@ -3,6 +3,7 @@ package goose
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"go.uber.org/multierr"
 )
@@ -20,7 +21,8 @@ func Redo(db *sql.DB, dir string, opts ...OptionsFunc) (retErr error) {
 		return err
 	}
 
-	if option.lock {
+	switch option.lockMode {
+	case LockModeAdvisorySession:
 		conn, err := db.Conn(ctx)
 		if err != nil {
 			return err
@@ -33,6 +35,8 @@ func Redo(db *sql.DB, dir string, opts ...OptionsFunc) (retErr error) {
 				retErr = multierr.Append(retErr, err)
 			}
 		}()
+	case LockModeAdvisoryTransaction:
+		return errors.New("advisory level transaction lock is not supported")
 	}
 
 	var (
