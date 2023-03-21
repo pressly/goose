@@ -1,0 +1,22 @@
+package migrations
+
+import (
+	"database/sql"
+
+	"github.com/pressly/goose/v4"
+)
+
+func init() {
+	// BackfillEmails
+	goose.AddMigration(up00003, down00003)
+}
+
+func up00003(tx *sql.Tx) error {
+	// This code is executed when the migration is applied.
+	return nil
+}
+
+func down00003(tx *sql.Tx) error {
+	// This code is executed when the migration is rolled back.
+	return nil
+}

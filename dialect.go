@@ -3,39 +3,38 @@ package goose
 import (
 	"fmt"
 
-	"github.com/pressly/goose/v3/internal/dialect"
+	"github.com/pressly/goose/v4/internal/dialectadapter"
 )
 
-func init() {
-	store, _ = dialect.NewStore(dialect.Postgres, TableName())
+// Dialect is the type of database dialect.
+type Dialect string
+
+const (
+	DialectPostgres   Dialect = "postgres"
+	DialectMySQL      Dialect = "mysql"
+	DialectSQLite3    Dialect = "sqlite3"
+	DialectMSSQL      Dialect = "mssql"
+	DialectRedshift   Dialect = "redshift"
+	DialectTiDB       Dialect = "tidb"
+	DialectClickHouse Dialect = "clickhouse"
+	DialectVertica    Dialect = "vertica"
+)
+
+var dialectLookup = map[Dialect]dialectadapter.Dialect{
+	DialectPostgres:   dialectadapter.Postgres,
+	DialectMySQL:      dialectadapter.Mysql,
+	DialectSQLite3:    dialectadapter.Sqlite3,
+	DialectMSSQL:      dialectadapter.Sqlserver,
+	DialectRedshift:   dialectadapter.Redshift,
+	DialectTiDB:       dialectadapter.Tidb,
+	DialectClickHouse: dialectadapter.Clickhouse,
+	DialectVertica:    dialectadapter.Vertica,
 }
 
-var store dialect.Store
-
-// SetDialect sets the dialect to use for the goose package.
-func SetDialect(s string) error {
-	var d dialect.Dialect
-	switch s {
-	case "postgres", "pgx":
-		d = dialect.Postgres
-	case "mysql":
-		d = dialect.Mysql
-	case "sqlite3", "sqlite":
-		d = dialect.Sqlite3
-	case "mssql", "azuresql":
-		d = dialect.Sqlserver
-	case "redshift":
-		d = dialect.Redshift
-	case "tidb":
-		d = dialect.Tidb
-	case "clickhouse":
-		d = dialect.Clickhouse
-	case "vertica":
-		d = dialect.Vertica
-	default:
-		return fmt.Errorf("%q: unknown dialect", s)
+func ParseDialect(s string) (Dialect, error) {
+	dialect := Dialect(s)
+	if _, ok := dialectLookup[dialect]; !ok {
+		return "", fmt.Errorf("unknown dialect: %s", s)
 	}
-	var err error
-	store, err = dialect.NewStore(d, TableName())
-	return err
+	return dialect, nil
 }

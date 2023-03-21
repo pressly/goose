@@ -1,15 +1,21 @@
-module github.com/pressly/goose/v3
+module github.com/pressly/goose/v4
 
-go 1.18
+go 1.19
 
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.9.0
+	github.com/charmbracelet/lipgloss v0.7.1
 	github.com/go-sql-driver/mysql v1.7.0
 	github.com/jackc/pgx/v5 v5.3.1
 	github.com/microsoft/go-mssqldb v0.21.0
 	github.com/ory/dockertest/v3 v3.10.0
+	github.com/peterbourgon/ff/v3 v3.3.0
+	github.com/sethvargo/go-retry v0.2.4
 	github.com/vertica/vertica-sql-go v1.3.2
+	github.com/xo/dburl v0.13.1
 	github.com/ziutek/mymysql v1.5.4
+	go.uber.org/multierr v1.11.0
+	golang.org/x/sync v0.1.0
 	modernc.org/sqlite v1.21.1
 )
 
@@ -19,6 +25,7 @@ require (
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/andybalholm/brotli v1.0.5 // indirect
+	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.0 // indirect
 	github.com/containerd/continuity v0.3.0 // indirect
 	github.com/docker/cli v23.0.3+incompatible // indirect
@@ -42,9 +49,13 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/klauspost/compress v1.16.4 // indirect
 	github.com/lib/pq v1.10.7 // indirect
+	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.18 // indirect
+	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moby/term v0.0.0-20221205130635-1aeaba878587 // indirect
+	github.com/muesli/reflow v0.3.0 // indirect
+	github.com/muesli/termenv v0.15.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc2 // indirect
 	github.com/opencontainers/runc v1.1.6 // indirect
@@ -53,6 +64,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/procfs v0.9.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
+	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect

@@ -1,45 +1,31 @@
 package goose
 
 import (
-	"database/sql"
-	"fmt"
+	"context"
+
+	"go.uber.org/multierr"
 )
 
-// Version prints the current version of the database.
-func Version(db *sql.DB, dir string, opts ...OptionsFunc) error {
-	option := &options{}
-	for _, f := range opts {
-		f(option)
-	}
-	if option.noVersioning {
-		var current int64
-		migrations, err := CollectMigrations(dir, minVersion, maxVersion)
-		if err != nil {
-			return fmt.Errorf("failed to collect migrations: %w", err)
-		}
-		if len(migrations) > 0 {
-			current = migrations[len(migrations)-1].Version
-		}
-		log.Printf("goose: file version %v\n", current)
-		return nil
-	}
-
-	current, err := GetDBVersion(db)
+// GetDBVersion retrieves the current database version.
+func (p *Provider) GetDBVersion(ctx context.Context) (_ int64, retErr error) {
+	conn, cleanup, err := p.initialize(ctx)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	log.Printf("goose: version %v\n", current)
-	return nil
-}
+	defer func() {
+		retErr = multierr.Append(retErr, cleanup())
+	}()
+	// Ensure version table exists.
+	if err := p.ensureVersionTable(ctx, conn); err != nil {
+		return 0, err
+	}
 
-var tableName = "goose_db_version"
-
-// TableName returns goose db version table name
-func TableName() string {
-	return tableName
-}
-
-// SetTableName set goose db version table name
-func SetTableName(n string) {
-	tableName = n
+	res, err := p.store.ListMigrationsConn(ctx, conn)
+	if err != nil {
+		return 0, err
+	}
+	if len(res) == 0 {
+		return 0, nil
+	}
+	return res[0].Version, nil
 }

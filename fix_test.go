@@ -1,79 +1,70 @@
 package goose
 
 import (
-	"fmt"
 	"os"
-	"os/exec"
-	"strings"
+	"path/filepath"
 	"testing"
-	"time"
+
+	"github.com/pressly/goose/v4/internal/check"
 )
 
 func TestFix(t *testing.T) {
-	t.Parallel()
-
+	t.Cleanup(func() {
+		// Reset the global state.
+		registeredGoMigrations = make(map[int64]*migration)
+	})
 	dir := t.TempDir()
-	defer os.Remove("./bin/fix-goose") // clean up
 
-	commands := []string{
-		"go build -o ./bin/fix-goose ./cmd/goose",
-		fmt.Sprintf("./bin/fix-goose -dir=%s create create_table", dir),
-		fmt.Sprintf("./bin/fix-goose -dir=%s create add_users", dir),
-		fmt.Sprintf("./bin/fix-goose -dir=%s create add_indices", dir),
-		fmt.Sprintf("./bin/fix-goose -dir=%s create update_users", dir),
-		fmt.Sprintf("./bin/fix-goose -dir=%s fix", dir),
+	// Seed directory with some migrations.
+	seed := []string{
+		"00001_create_users_table.sql",
+		"00002_add_lots_of_users.sql",
+		// 00003 is missing
+		"00004_insert_a_bunch_of_data.go",
+		"20000210231205_create_users_table.sql",
+		"20010210231205_add_lots_of_users.sql",
+		"20020210231205_backfill_emails.go",
+		"20030210231205_insert_a_bunch_of_data.go",
 	}
-
-	for _, cmd := range commands {
-		args := strings.Split(cmd, " ")
-		time.Sleep(1 * time.Second)
-		cmd := exec.Command(args[0], args[1:]...)
-		cmd.Env = os.Environ()
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			t.Fatalf("%s:\n%v\n\n%s", err, cmd, out)
+	for _, name := range seed {
+		_, err := os.Create(filepath.Join(dir, name))
+		check.NoError(t, err)
+		if filepath.Ext(name) == ".go" {
+			err = register(filepath.Join(dir, name), false, nil, nil, nil, nil)
+			check.NoError(t, err)
 		}
 	}
 
-	files, err := os.ReadDir(dir)
-	if err != nil {
-		t.Fatal(err)
+	res, err := Fix(dir)
+	check.NoError(t, err)
+	check.Number(t, len(res), 4)
+
+	want := []struct {
+		wantOld string
+		wantNew string
+	}{
+		{
+			wantOld: "20000210231205_create_users_table.sql",
+			wantNew: "00005_create_users_table.sql",
+		},
+		{
+			wantOld: "20010210231205_add_lots_of_users.sql",
+			wantNew: "00006_add_lots_of_users.sql",
+		},
+		{
+			wantOld: "20020210231205_backfill_emails.go",
+			wantNew: "00007_backfill_emails.go",
+		},
+		{
+			wantOld: "20030210231205_insert_a_bunch_of_data.go",
+			wantNew: "00008_insert_a_bunch_of_data.go",
+		},
 	}
 
-	// check that the files are in order
-	for i, f := range files {
-		expected := fmt.Sprintf("%05v", i+1)
-		if !strings.HasPrefix(f.Name(), expected) {
-			t.Errorf("failed to find %s prefix in %s", expected, f.Name())
-		}
-	}
-
-	// add more migrations and then fix it
-	commands = []string{
-		fmt.Sprintf("./bin/fix-goose -dir=%s create remove_column", dir),
-		fmt.Sprintf("./bin/fix-goose -dir=%s create create_books_table", dir),
-		fmt.Sprintf("./bin/fix-goose -dir=%s fix", dir),
-	}
-
-	for _, cmd := range commands {
-		args := strings.Split(cmd, " ")
-		time.Sleep(1 * time.Second)
-		out, err := exec.Command(args[0], args[1:]...).CombinedOutput()
-		if err != nil {
-			t.Fatalf("%s:\n%v\n\n%s", err, cmd, out)
-		}
-	}
-
-	files, err = os.ReadDir(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// check that the files still in order
-	for i, f := range files {
-		expected := fmt.Sprintf("%05v", i+1)
-		if !strings.HasPrefix(f.Name(), expected) {
-			t.Errorf("failed to find %s prefix in %s", expected, f.Name())
-		}
+	for i := range res {
+		wantOld := filepath.Join(dir, want[i].wantOld)
+		wantNew := filepath.Join(dir, want[i].wantNew)
+		check.Equal(t, res[i].OldPath, wantOld)
+		check.Equal(t, res[i].NewPath, wantNew)
 	}
 }
