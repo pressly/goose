@@ -35,6 +35,7 @@ var (
 	sslkey       = flags.String("ssl-key", "", "file path to SSL key in pem format (only support on mysql)")
 	noVersioning = flags.Bool("no-versioning", false, "apply migration commands with no versioning, in file order, from directory pointed to")
 	noColor      = flags.Bool("no-color", false, "disable color output (NO_COLOR env variable supported)")
+	lock         = flags.Bool("lock", false, "acquire a lock before running migrations (only supported on postgres)")
 )
 var (
 	gooseVersion = ""
@@ -147,6 +148,9 @@ func main() {
 	}
 	if *noVersioning {
 		options = append(options, goose.WithNoVersioning())
+	}
+	if *lock {
+		options = append(options, goose.WithLock())
 	}
 	if err := goose.RunWithOptions(
 		command,
