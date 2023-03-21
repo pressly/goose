@@ -1,0 +1,22 @@
+package migrations
+
+import (
+	"database/sql"
+
+	"github.com/pressly/goose/v4"
+)
+
+func init() {
+	// InsertABunchOfData
+	goose.AddMigrationNoTx(up00004, down00004)
+}
+
+func up00004(ctx context.Context, db *sql.DB) error {
+	// This code is executed when the migration is applied.
+	return nil
+}
+
+func down00004(ctx context.Context, db *sql.DB) error {
+	// This code is executed when the migration is rolled back.
+	return nil
+}

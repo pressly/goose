@@ -3,52 +3,74 @@ package goose
 import (
 	"fmt"
 	"os"
-	"path/filepath"
+	"strconv"
 	"strings"
+	"time"
 )
 
-const seqVersionTemplate = "%05v"
+type FixResult struct {
+	OldPath string
+	NewPath string
+}
 
-func Fix(dir string) error {
-	// always use osFS here because it's modifying operation
-	migrations, err := collectMigrationsFS(osFS{}, dir, minVersion, maxVersion)
+func Fix(dir string) ([]FixResult, error) {
+	if dir == "" {
+		return nil, fmt.Errorf("dir is required")
+	}
+	sources, err := collect(osFS{}, dir, true, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	// split into timestamped and versioned migrations
-	tsMigrations, err := migrations.timestamped()
+	// split into timestamped and versioned sources
+	tsSources, err := timestamped(sources)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	vMigrations, err := migrations.versioned()
+	vSources, err := versioned(sources)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	// Initial version.
-	version := int64(1)
-	if last, err := vMigrations.Last(); err == nil {
-		version = last.Version + 1
+	// Find the next version number to use for the timestamped migrations
+	// by finding the highest version number in the versioned migrations.
+	var version int64 = 1
+	if len(vSources) > 0 {
+		version = vSources[len(vSources)-1] + 1
 	}
-
 	// fix filenames by replacing timestamps with sequential versions
-	for _, tsm := range tsMigrations {
-		oldPath := tsm.Source
+	results := make([]FixResult, 0, len(tsSources))
+	for _, tsm := range tsSources {
+		oldPath := tsm.Fullpath
 		newPath := strings.Replace(
 			oldPath,
-			fmt.Sprintf("%d", tsm.Version),
-			fmt.Sprintf(seqVersionTemplate, version),
+			strconv.FormatInt(tsm.Version, 10),
+			fmt.Sprintf(seqVersionFormat, version),
 			1,
 		)
-
 		if err := os.Rename(oldPath, newPath); err != nil {
-			return err
+			return nil, err
 		}
-
-		log.Printf("RENAMED %s => %s", filepath.Base(oldPath), filepath.Base(newPath))
+		results = append(results, FixResult{
+			OldPath: oldPath,
+			NewPath: newPath,
+		})
 		version++
 	}
+	return results, nil
+}
 
-	return nil
+func timestamped(in []*Source) ([]*Source, error) {
+	var out []*Source
+	// assume that the user will never have more than 19700101000000 migrations
+	for _, src := range in {
+		// parse version as timestamp
+		versionTime, err := time.Parse(timestampFormat, fmt.Sprintf("%d", src.Version))
+		if err != nil {
+			// probably not a timestamp
+			continue
+		}
+		if versionTime.After(time.Unix(0, 0)) {
+			out = append(out, src)
+		}
+	}
+	return out, nil
 }

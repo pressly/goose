@@ -1,0 +1,89 @@
+package goose
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"path/filepath"
+	"runtime"
+
+	"github.com/pressly/goose/v4/internal/migration"
+)
+
+// GoMigration is a Go migration func that is run within a transaction.
+type GoMigration func(ctx context.Context, tx *sql.Tx) error
+
+// GoMigrationNoTx is a Go migration func that is run outside a transaction.
+type GoMigrationNoTx func(ctx context.Context, db *sql.DB) error
+
+// AddMigration adds a Go migration.
+//
+// This function is intended to be called from a versioned Go migration file, and will panic at
+// build time if a duplicate version is detected.
+//
+// Example:
+//
+//	func init() {
+//	    goose.AddMigration(Up00002, Down00002)
+//	}
+func AddMigration(up, down GoMigration) {
+	_, filename, _, _ := runtime.Caller(1)
+	if err := register(filename, true, up, down, nil, nil); err != nil {
+		panic(err)
+	}
+}
+
+// AddMigrationNoTx adds a Go migration that will be run outside a transaction.
+//
+// This function is intended to be called from a versioned Go migration file, and will panic at
+// build time if a duplicate version is detected.
+//
+// Example:
+//
+//	func init() {
+//	    goose.AddMigrationNoTx(Up00002, Down00002)
+//	}
+func AddMigrationNoTx(up, down GoMigrationNoTx) {
+	_, filename, _, _ := runtime.Caller(1)
+	if err := register(filename, false, nil, nil, up, down); err != nil {
+		panic(err)
+	}
+}
+
+func register(
+	filename string,
+	useTx bool,
+	up, down GoMigration,
+	upNoTx, downNoTx GoMigrationNoTx,
+) error {
+	// Sanity check caller did not mix tx and non-tx based functions.
+	if (up != nil || down != nil) && (upNoTx != nil || downNoTx != nil) {
+		return fmt.Errorf("cannot mix tx and non-tx based Go migration functions")
+	}
+	// TODO(mf): should we ignore the error here? Double-check what the original code did.
+	version, err := NumericComponent(filename)
+	if err != nil {
+		return err
+	}
+	if existing, ok := registeredGoMigrations[version]; ok {
+		return fmt.Errorf("failed to add migration %q: version %d conflicts with %q",
+			filename,
+			version,
+			filepath.Base(existing.Fullpath),
+		)
+	}
+	// Add to global as a registered migration.
+	registeredGoMigrations[version] = &migration.Migration{
+		Type:     migration.TypeGo,
+		Fullpath: filename,
+		Version:  version,
+		Go: &migration.Go{
+			UseTx:      useTx,
+			UpFn:       up,
+			DownFn:     down,
+			UpFnNoTx:   upNoTx,
+			DownFnNoTx: downNoTx,
+		},
+	}
+	return nil
+}

@@ -1,44 +1,23 @@
 package goose
 
-import (
-	"database/sql"
-)
+import "context"
 
 // Redo rolls back the most recently applied migration, then runs it again.
-func Redo(db *sql.DB, dir string, opts ...OptionsFunc) error {
-	option := &options{}
-	for _, f := range opts {
-		f(option)
-	}
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+//
+// Important, it is not safe to run this function concurrently with other goose functions.
+func (p *Provider) Redo(ctx context.Context) ([]*MigrationResult, error) {
+	// feat(mf): lock the database to prevent concurrent migrations. Each of these functions should
+	// be run within the same lock?
+	downResult, err := p.Down(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	var (
-		currentVersion int64
-	)
-	if option.noVersioning {
-		if len(migrations) == 0 {
-			return nil
-		}
-		currentVersion = migrations[len(migrations)-1].Version
-	} else {
-		if currentVersion, err = GetDBVersion(db); err != nil {
-			return err
-		}
-	}
-
-	current, err := migrations.Current(currentVersion)
+	upResult, err := p.UpByOne(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	current.noVersioning = option.noVersioning
-
-	if err := current.Down(db); err != nil {
-		return err
-	}
-	if err := current.Up(db); err != nil {
-		return err
-	}
-	return nil
+	return []*MigrationResult{
+		downResult,
+		upResult,
+	}, nil
 }

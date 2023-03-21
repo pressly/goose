@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pressly/goose/v3/internal/check"
+	"github.com/pressly/goose/v4/internal/check"
 )
 
 var (
