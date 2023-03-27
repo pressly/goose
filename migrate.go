@@ -1,9 +1,9 @@
 package goose
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/pressly/goose/v3/internal"
 	"io/fs"
 	"math"
 	"path"
@@ -125,10 +125,10 @@ func (ms Migrations) String() string {
 }
 
 // GoMigration is a Go migration func that is run within a transaction.
-type GoMigration func(tx *sql.Tx) error
+type GoMigration func(tx internal.GooseTx) error
 
 // GoMigrationNoTx is a Go migration func that is run outside a transaction.
-type GoMigrationNoTx func(db *sql.DB) error
+type GoMigrationNoTx func(db internal.GooseDB) error
 
 // AddMigration adds Go migrations.
 func AddMigration(up, down GoMigration) {
@@ -293,7 +293,7 @@ func versionFilter(v, current, target int64) bool {
 
 // EnsureDBVersion retrieves the current version for this DB.
 // Create and initialize the DB version table if it doesn't exist.
-func EnsureDBVersion(db *sql.DB) (int64, error) {
+func EnsureDBVersion(db internal.GooseDB) (int64, error) {
 	rows, err := GetDialect().dbVersionQuery(db)
 	if err != nil {
 		return 0, createVersionTable(db)
@@ -342,7 +342,7 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 
 // Create the db version table
 // and insert the initial 0 value into it
-func createVersionTable(db *sql.DB) error {
+func createVersionTable(db internal.GooseDB) error {
 	txn, err := db.Begin()
 	if err != nil {
 		return err
@@ -366,7 +366,7 @@ func createVersionTable(db *sql.DB) error {
 }
 
 // GetDBVersion is an alias for EnsureDBVersion, but returns -1 in error.
-func GetDBVersion(db *sql.DB) (int64, error) {
+func GetDBVersion(db internal.GooseDB) (int64, error) {
 	version, err := EnsureDBVersion(db)
 	if err != nil {
 		return -1, err

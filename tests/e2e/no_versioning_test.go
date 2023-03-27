@@ -1,7 +1,8 @@
 package e2e
 
 import (
-	"database/sql"
+	"context"
+	"github.com/pressly/goose/v3/internal"
 	"testing"
 
 	"github.com/pressly/goose/v3"
@@ -18,7 +19,7 @@ func TestNoVersioning(t *testing.T) {
 		// These are owners created by migration files.
 		wantOwnerCount = 4
 	)
-	db, err := newDockerDB(t)
+	db, err := newDockerDB(t, true)
 	check.NoError(t, err)
 
 	err = goose.Up(db, migrationsDir)
@@ -130,19 +131,19 @@ func TestNoVersioning(t *testing.T) {
 	})
 }
 
-func countSeedOwners(db *sql.DB) (int, error) {
+func countSeedOwners(db internal.GooseDB) (int, error) {
 	q := `SELECT count(*)FROM owners WHERE owner_name LIKE'seed-user-%'`
 	var count int
-	if err := db.QueryRow(q).Scan(&count); err != nil {
+	if err := db.QueryRowContext(context.Background(), q).Scan(&count); err != nil {
 		return 0, err
 	}
 	return count, nil
 }
 
-func countOwners(db *sql.DB) (int, error) {
+func countOwners(db internal.GooseDB) (int, error) {
 	q := `SELECT count(*)FROM owners`
 	var count int
-	if err := db.QueryRow(q).Scan(&count); err != nil {
+	if err := db.QueryRowContext(context.Background(), q).Scan(&count); err != nil {
 		return 0, err
 	}
 	return count, nil

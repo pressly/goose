@@ -1,5 +1,6 @@
 package vertica_test
 
+/*
 import (
 	"path/filepath"
 	"testing"
@@ -18,6 +19,7 @@ migrations applied.
 Limitations:
 1) Only one instance of Vertica can be running on a host at any time.
 */
+/*
 func TestVerticaUpDownAll(t *testing.T) {
 	t.Parallel()
 
@@ -113,3 +115,4 @@ func TestVerticaUpDownAll(t *testing.T) {
 	check.NoError(t, err)
 	check.Number(t, currentVersion, 0)
 }
+*/

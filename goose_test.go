@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
+	"github.com/pressly/goose/v3/internal"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -176,12 +177,14 @@ func TestEmbeddedMigrations(t *testing.T) {
 	check.NoError(t, SetDialect("sqlite3"))
 	t.Cleanup(func() { SetBaseFS(nil) })
 
+	gooseConn := internal.SqlToGooseAdapter{Conn: db}
+
 	t.Run("Migration cycle", func(t *testing.T) {
-		if err := Up(db, ""); err != nil {
+		if err := Up(gooseConn, ""); err != nil {
 			t.Errorf("Failed to run 'up' migrations: %s", err)
 		}
 
-		ver, err := GetDBVersion(db)
+		ver, err := GetDBVersion(gooseConn)
 		if err != nil {
 			t.Fatalf("Failed to get migrations version: %s", err)
 		}
@@ -190,11 +193,11 @@ func TestEmbeddedMigrations(t *testing.T) {
 			t.Errorf("Expected version 3 after 'up', got %d", ver)
 		}
 
-		if err := Reset(db, ""); err != nil {
+		if err := Reset(gooseConn, ""); err != nil {
 			t.Errorf("Failed to run 'down' migrations: %s", err)
 		}
 
-		ver, err = GetDBVersion(db)
+		ver, err = GetDBVersion(gooseConn)
 		if err != nil {
 			t.Fatalf("Failed to get migrations version: %s", err)
 		}
@@ -207,7 +210,7 @@ func TestEmbeddedMigrations(t *testing.T) {
 	t.Run("Create uses os fs", func(t *testing.T) {
 		tmpDir := t.TempDir()
 
-		if err := Create(db, tmpDir, "test", "sql"); err != nil {
+		if err := Create(gooseConn, tmpDir, "test", "sql"); err != nil {
 			t.Errorf("Failed to create migration: %s", err)
 		}
 
