@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"github.com/pressly/goose/v3/internal"
 	"testing"
 
 	"github.com/pressly/goose/v3"
@@ -317,7 +316,7 @@ func TestMigrateAllowMissingDown(t *testing.T) {
 
 // setupTestDB is helper to setup a DB and apply migrations
 // up to the specified version.
-func setupTestDB(t *testing.T, version int64) internal.GooseDB {
+func setupTestDB(t *testing.T, version int64) goose.Connection {
 	db, err := newDockerDB(t, true)
 	check.NoError(t, err)
 

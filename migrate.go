@@ -3,7 +3,6 @@ package goose
 import (
 	"errors"
 	"fmt"
-	"github.com/pressly/goose/v3/internal"
 	"io/fs"
 	"math"
 	"path"
@@ -125,10 +124,10 @@ func (ms Migrations) String() string {
 }
 
 // GoMigration is a Go migration func that is run within a transaction.
-type GoMigration func(tx internal.GooseTx) error
+type GoMigration func(tx Tx) error
 
 // GoMigrationNoTx is a Go migration func that is run outside a transaction.
-type GoMigrationNoTx func(db internal.GooseDB) error
+type GoMigrationNoTx func(db Connection) error
 
 // AddMigration adds Go migrations.
 func AddMigration(up, down GoMigration) {
@@ -293,7 +292,7 @@ func versionFilter(v, current, target int64) bool {
 
 // EnsureDBVersion retrieves the current version for this DB.
 // Create and initialize the DB version table if it doesn't exist.
-func EnsureDBVersion(db internal.GooseDB) (int64, error) {
+func EnsureDBVersion(db Connection) (int64, error) {
 	rows, err := GetDialect().dbVersionQuery(db)
 	if err != nil {
 		return 0, createVersionTable(db)
@@ -342,7 +341,7 @@ func EnsureDBVersion(db internal.GooseDB) (int64, error) {
 
 // Create the db version table
 // and insert the initial 0 value into it
-func createVersionTable(db internal.GooseDB) error {
+func createVersionTable(db Connection) error {
 	txn, err := db.Begin()
 	if err != nil {
 		return err
@@ -366,7 +365,7 @@ func createVersionTable(db internal.GooseDB) error {
 }
 
 // GetDBVersion is an alias for EnsureDBVersion, but returns -1 in error.
-func GetDBVersion(db internal.GooseDB) (int64, error) {
+func GetDBVersion(db Connection) (int64, error) {
 	version, err := EnsureDBVersion(db)
 	if err != nil {
 		return -1, err

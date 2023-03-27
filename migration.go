@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/pressly/goose/v3/internal"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -38,7 +37,7 @@ func (m *Migration) String() string {
 }
 
 // Up runs an up migration.
-func (m *Migration) Up(db internal.GooseDB) error {
+func (m *Migration) Up(db Connection) error {
 	if err := m.run(db, true); err != nil {
 		return err
 	}
@@ -46,14 +45,14 @@ func (m *Migration) Up(db internal.GooseDB) error {
 }
 
 // Down runs a down migration.
-func (m *Migration) Down(db internal.GooseDB) error {
+func (m *Migration) Down(db Connection) error {
 	if err := m.run(db, false); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (m *Migration) run(db internal.GooseDB, direction bool) error {
+func (m *Migration) run(db Connection, direction bool) error {
 	switch filepath.Ext(m.Source) {
 	case ".sql":
 		f, err := baseFS.Open(m.Source)
@@ -129,7 +128,7 @@ func (m *Migration) run(db internal.GooseDB, direction bool) error {
 }
 
 func runGoMigrationNoTx(
-	db internal.GooseDB,
+	db Connection,
 	fn GoMigrationNoTx,
 	version int64,
 	direction bool,
@@ -148,7 +147,7 @@ func runGoMigrationNoTx(
 }
 
 func runGoMigration(
-	db internal.GooseDB,
+	db Connection,
 	fn GoMigration,
 	version int64,
 	direction bool,
@@ -180,7 +179,7 @@ func runGoMigration(
 	return nil
 }
 
-func insertOrDeleteVersion(tx internal.GooseTx, version int64, direction bool) error {
+func insertOrDeleteVersion(tx Tx, version int64, direction bool) error {
 	if direction {
 		_, err := tx.Exec(GetDialect().insertVersionSQL(), version, direction)
 		return err
@@ -189,7 +188,7 @@ func insertOrDeleteVersion(tx internal.GooseTx, version int64, direction bool) e
 	return err
 }
 
-func insertOrDeleteVersionNoTx(db internal.GooseDB, version int64, direction bool) error {
+func insertOrDeleteVersionNoTx(db Connection, version int64, direction bool) error {
 	if direction {
 		_, err := db.ExecContext(context.Background(), GetDialect().insertVersionSQL(), version, direction)
 		return err

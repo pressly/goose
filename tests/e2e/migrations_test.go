@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/pressly/goose/v3/internal"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -209,7 +208,7 @@ func TestMigrateFull(t *testing.T) {
 	}
 }
 
-func getCurrentGooseVersion(db internal.GooseDB, gooseTable string) (int64, error) {
+func getCurrentGooseVersion(db goose.Connection, gooseTable string) (int64, error) {
 	var gotVersion int64
 	if err := db.QueryRowContext(context.Background(),
 		fmt.Sprintf("select max(version_id) from %s", gooseTable),
@@ -219,7 +218,7 @@ func getCurrentGooseVersion(db internal.GooseDB, gooseTable string) (int64, erro
 	return gotVersion, nil
 }
 
-func getGooseVersionCount(db internal.GooseDB, gooseTable string) (int64, error) {
+func getGooseVersionCount(db goose.Connection, gooseTable string) (int64, error) {
 	var gotVersion int64
 	if err := db.QueryRowContext(context.Background(),
 		fmt.Sprintf("SELECT count(*) FROM %s WHERE version_id > 0", gooseTable),
@@ -229,7 +228,7 @@ func getGooseVersionCount(db internal.GooseDB, gooseTable string) (int64, error)
 	return gotVersion, nil
 }
 
-func getTableNames(db internal.GooseDB) ([]string, error) {
+func getTableNames(db goose.Connection) ([]string, error) {
 	var query string
 	switch *dialect {
 	case dialectPostgres:

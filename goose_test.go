@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
-	"github.com/pressly/goose/v3/internal"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -177,7 +176,7 @@ func TestEmbeddedMigrations(t *testing.T) {
 	check.NoError(t, SetDialect("sqlite3"))
 	t.Cleanup(func() { SetBaseFS(nil) })
 
-	gooseConn := internal.SqlToGooseAdapter{Conn: db}
+	gooseConn := SqlDbToGooseAdapter{Conn: db}
 
 	t.Run("Migration cycle", func(t *testing.T) {
 		if err := Up(gooseConn, ""); err != nil {

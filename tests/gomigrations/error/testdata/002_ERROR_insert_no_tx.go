@@ -2,8 +2,6 @@ package gomigrations
 
 import (
 	"fmt"
-	"github.com/pressly/goose/v3/internal"
-
 	"github.com/pressly/goose/v3"
 )
 
@@ -11,7 +9,7 @@ func init() {
 	goose.AddMigrationNoTx(up002, nil)
 }
 
-func up002(db internal.GooseDB) error {
+func up002(db goose.Connection) error {
 	for i := 1; i <= 100; i++ {
 		q := "INSERT INTO foo VALUES ($1)"
 		if _, err := db.Exec(q, i); err != nil {

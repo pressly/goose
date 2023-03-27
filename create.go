@@ -2,7 +2,6 @@ package goose
 
 import (
 	"fmt"
-	"github.com/pressly/goose/v3/internal"
 	"os"
 	"path/filepath"
 	"text/template"
@@ -24,7 +23,7 @@ func SetSequential(s bool) {
 }
 
 // Create writes a new blank migration file.
-func CreateWithTemplate(db internal.GooseDB, dir string, tmpl *template.Template, name, migrationType string) error {
+func CreateWithTemplate(db Connection, dir string, tmpl *template.Template, name, migrationType string) error {
 	var version string
 	if sequential {
 		// always use DirFS here because it's modifying operation
@@ -81,7 +80,7 @@ func CreateWithTemplate(db internal.GooseDB, dir string, tmpl *template.Template
 }
 
 // Create writes a new blank migration file.
-func Create(db internal.GooseDB, dir, name, migrationType string) error {
+func Create(db Connection, dir, name, migrationType string) error {
 	return CreateWithTemplate(db, dir, nil, name, migrationType)
 }
 

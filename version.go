@@ -2,11 +2,10 @@ package goose
 
 import (
 	"fmt"
-	"github.com/pressly/goose/v3/internal"
 )
 
 // Version prints the current version of the database.
-func Version(db internal.GooseDB, dir string, opts ...OptionsFunc) error {
+func Version(db Connection, dir string, opts ...OptionsFunc) error {
 	option := &options{}
 	for _, f := range opts {
 		f(option)

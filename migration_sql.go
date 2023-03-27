@@ -3,7 +3,6 @@ package goose
 import (
 	"database/sql"
 	"fmt"
-	"github.com/pressly/goose/v3/internal"
 	"regexp"
 	"time"
 )
@@ -16,7 +15,7 @@ import (
 //
 // All statements following an Up or Down directive are grouped together
 // until another direction directive is found.
-func runSQLMigration(db internal.GooseDB, statements []string, useTx bool, v int64, direction bool, noVersioning bool) error {
+func runSQLMigration(db Connection, statements []string, useTx bool, v int64, direction bool, noVersioning bool) error {
 	if useTx {
 		// TRANSACTION.
 

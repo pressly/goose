@@ -2,11 +2,10 @@ package goose
 
 import (
 	"fmt"
-	"github.com/pressly/goose/v3/internal"
 )
 
 // Down rolls back a single migration from the current version.
-func Down(db internal.GooseDB, dir string, opts ...OptionsFunc) error {
+func Down(db Connection, dir string, opts ...OptionsFunc) error {
 	option := &options{}
 	for _, f := range opts {
 		f(option)
@@ -35,7 +34,7 @@ func Down(db internal.GooseDB, dir string, opts ...OptionsFunc) error {
 }
 
 // DownTo rolls back migrations to a specific version.
-func DownTo(db internal.GooseDB, dir string, version int64, opts ...OptionsFunc) error {
+func DownTo(db Connection, dir string, version int64, opts ...OptionsFunc) error {
 	option := &options{}
 	for _, f := range opts {
 		f(option)
@@ -77,7 +76,7 @@ func DownTo(db internal.GooseDB, dir string, version int64, opts ...OptionsFunc)
 
 // downToNoVersioning applies down migrations down to, but not including, the
 // target version.
-func downToNoVersioning(db internal.GooseDB, migrations Migrations, version int64) error {
+func downToNoVersioning(db Connection, migrations Migrations, version int64) error {
 	var finalVersion int64
 	for i := len(migrations) - 1; i >= 0; i-- {
 		if version >= migrations[i].Version {

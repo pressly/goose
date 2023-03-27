@@ -1,11 +1,7 @@
 package goose
 
-import (
-	"github.com/pressly/goose/v3/internal"
-)
-
 // Redo rolls back the most recently applied migration, then runs it again.
-func Redo(db internal.GooseDB, dir string, opts ...OptionsFunc) error {
+func Redo(db Connection, dir string, opts ...OptionsFunc) error {
 	option := &options{}
 	for _, f := range opts {
 		f(option)

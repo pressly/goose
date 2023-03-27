@@ -1,10 +1,9 @@
 package testdb
 
 import (
-	"context"
+	"database/sql"
 	"fmt"
-	"github.com/jackc/pgx/v4"
-	"github.com/pressly/goose/v3/internal"
+	"github.com/pressly/goose/v3"
 	"log"
 	"strconv"
 
@@ -23,7 +22,7 @@ const (
 	POSTGRES_PASSWORD = "password1"
 )
 
-func newPostgres(opts ...OptionsFunc) (internal.GooseDB, func(), error) {
+func newPostgres(opts ...OptionsFunc) (goose.Connection, func(), error) {
 	option := &options{}
 	for _, f := range opts {
 		f(option)
@@ -77,21 +76,21 @@ func newPostgres(opts ...OptionsFunc) (internal.GooseDB, func(), error) {
 		POSTGRES_PASSWORD,
 		POSTGRES_DB,
 	)
-	var conn *pgx.Conn
+	var db *sql.DB
 	// Exponential backoff-retry, because the application in the container
 	// might not be ready to accept connections yet.
 	if err := pool.Retry(
 		func() error {
 			var err error
-			conn, err = pgx.Connect(context.Background(), psqlInfo)
+			db, err = sql.Open("pgx", psqlInfo)
 			if err != nil {
 				return err
 			}
-			return conn.Ping(context.Background())
+			return db.Ping()
 		},
 	); err != nil {
 		return nil, cleanup, fmt.Errorf("could not connect to docker database: %v", err)
 	}
 
-	return internal.PgxToGooseAdapter{Conn: conn}, cleanup, nil
+	return goose.SqlDbToGooseAdapter{Conn: db}, cleanup, nil
 }

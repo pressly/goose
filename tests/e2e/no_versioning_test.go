@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"context"
-	"github.com/pressly/goose/v3/internal"
 	"testing"
 
 	"github.com/pressly/goose/v3"
@@ -131,7 +130,7 @@ func TestNoVersioning(t *testing.T) {
 	})
 }
 
-func countSeedOwners(db internal.GooseDB) (int, error) {
+func countSeedOwners(db goose.Connection) (int, error) {
 	q := `SELECT count(*)FROM owners WHERE owner_name LIKE'seed-user-%'`
 	var count int
 	if err := db.QueryRowContext(context.Background(), q).Scan(&count); err != nil {
@@ -140,7 +139,7 @@ func countSeedOwners(db internal.GooseDB) (int, error) {
 	return count, nil
 }
 
-func countOwners(db internal.GooseDB) (int, error) {
+func countOwners(db goose.Connection) (int, error) {
 	q := `SELECT count(*)FROM owners`
 	var count int
 	if err := db.QueryRowContext(context.Background(), q).Scan(&count); err != nil {

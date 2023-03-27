@@ -3,7 +3,6 @@ package e2e
 import (
 	"flag"
 	"fmt"
-	"github.com/pressly/goose/v3/internal"
 	"log"
 	"os"
 	"os/signal"
@@ -96,13 +95,13 @@ func TestMain(m *testing.M) {
 }
 
 // newDockerDB starts a database container and returns a usable SQL connection.
-func newDockerDB(t *testing.T, transactionsSupported bool) (internal.GooseDB, error) {
+func newDockerDB(t *testing.T, transactionsSupported bool) (goose.Connection, error) {
 	options := []testdb.OptionsFunc{
 		testdb.WithBindPort(*bindPort),
 		testdb.WithDebug(*debug),
 	}
 	var (
-		db      internal.GooseDB
+		db      goose.Connection
 		cleanup func()
 		err     error
 	)
