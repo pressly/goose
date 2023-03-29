@@ -56,7 +56,7 @@ func TestGoMigrationByOne(t *testing.T) {
 		options := goose.DefaultOptions().
 			SetDir("testdata").
 			SetVerbose(testing.Verbose()).
-			SetExcludeVersions([]int64{2})
+			SetExcludeFilenames("002_ERROR_insert_no_tx.go")
 		p, err := goose.NewProvider(goose.DialectPostgres, db, options)
 		check.NoError(t, err)
 		check.Number(t, len(p.ListMigrations()), 3)

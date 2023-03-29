@@ -6,8 +6,6 @@ import (
 	"runtime"
 )
 
-var registeredGoMigrations = make(map[int64]*migration)
-
 // GoMigration is a Go migration func that is run within a transaction.
 type GoMigration func(tx *sql.Tx) error
 

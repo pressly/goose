@@ -91,7 +91,7 @@ func TestAllowMissingUpWithRedo(t *testing.T) {
 			goose.DialectPostgres,
 			te.db,
 			// exclude migration 6 because it doesn't exist yet on the filesystem.
-			defaultOptions.SetExcludeVersions([]int64{6}),
+			defaultOptions.SetExcludeFilenames("00006_f.sql"),
 		)
 		check.NoError(t, err)
 
@@ -174,7 +174,7 @@ func TestAllowMissingUpWithReset(t *testing.T) {
 			goose.DialectPostgres,
 			te.db,
 			// exclude migration 6 because it doesn't exist yet on the filesystem.
-			defaultOptions.SetExcludeVersions([]int64{6}),
+			defaultOptions.SetExcludeFilenames("00006_f.sql"),
 		)
 		check.NoError(t, err)
 
@@ -249,7 +249,7 @@ func TestMigrateAllowMissingDown(t *testing.T) {
 			goose.DialectPostgres,
 			te.db,
 			// exclude migration 6 because it doesn't exist yet on the filesystem.
-			defaultOptions.SetExcludeVersions([]int64{6}),
+			defaultOptions.SetExcludeFilenames("00006_f.sql"),
 		)
 		check.NoError(t, err)
 

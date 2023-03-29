@@ -33,8 +33,8 @@ type Options struct {
 	NoVersioning bool
 
 	// Development.
-	Debug           bool
-	ExcludeVersions map[int64]bool
+	Debug            bool
+	ExcludeFilenames []string
 
 	// Unimplemented.
 	lazyParsing bool
@@ -42,11 +42,10 @@ type Options struct {
 
 func DefaultOptions() Options {
 	return Options{
-		TableName:       defaultTableName,
-		Dir:             defaultDir,
-		Filesystem:      osFS{},
-		Logger:          &stdLogger{},
-		ExcludeVersions: make(map[int64]bool),
+		TableName:  defaultTableName,
+		Dir:        defaultDir,
+		Filesystem: osFS{},
+		Logger:     &stdLogger{},
 	}
 }
 
@@ -127,16 +126,12 @@ func (o Options) SetDebug(b bool) Options {
 	return o
 }
 
-// SetExcludeVersions returns a new Options value with ExcludeVersions set to the given value.
-// ExcludeVersions is a list of migration versions to exclude when reading migrations from
-// the filesystem. This is useful for skipping migrations in tests or development.
+// SetExcludeFilenames returns a new Options value with ExcludeFilenames set to the given value.
+// ExcludeFilenames is a list of filenames to exclude when reading (and parsing) migrations from the
+// filesystem. This is useful for skipping migrations in tests or development.
 //
 // Default: include all migrations.
-func (o Options) SetExcludeVersions(versions []int64) Options {
-	excluded := make(map[int64]bool, len(versions))
-	for _, v := range versions {
-		excluded[v] = true
-	}
-	o.ExcludeVersions = excluded
+func (o Options) SetExcludeFilenames(filenames ...string) Options {
+	o.ExcludeFilenames = filenames
 	return o
 }

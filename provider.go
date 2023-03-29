@@ -1,12 +1,10 @@
 package goose
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"math"
 	"path"
@@ -18,7 +16,6 @@ import (
 
 	"github.com/pressly/goose/v4/internal/dialect"
 	"github.com/pressly/goose/v4/internal/sqlparser"
-	"go.uber.org/multierr"
 )
 
 const (
@@ -72,7 +69,13 @@ func NewProvider(dbDialect Dialect, db *sql.DB, opt Options) (*Provider, error) 
 	// to discover half way through that there is a SQL parsing error. This partially addresses a
 	// case where a migration is applied, but the next migration fails.
 	// https://github.com/pressly/goose/issues/222
-	migrations, err := collectMigrations(registeredGoMigrations, opt.Filesystem, opt.Dir, opt.Debug, opt.ExcludeVersions)
+	migrations, err := collectMigrations(
+		registeredGoMigrations,
+		opt.Filesystem,
+		opt.Dir,
+		opt.Debug,
+		opt.ExcludeFilenames,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -152,8 +155,8 @@ func (p *Provider) UpTo(ctx context.Context, version int64) ([]*MigrationResult,
 }
 
 // ApplyVersion applies exactly one migration at the specified version. If a migration cannot be
-// found for the specified version, this method returns ErrNoCurrentVersion. If the migration has been
-// applied already, this method returns ErrAlreadyApplied.
+// found for the specified version, this method returns ErrNoCurrentVersion. If the migration has
+// been applied already, this method returns ErrAlreadyApplied.
 //
 // If the direction is true, the migration will be applied. If the direction is false, the migration
 // will be rolled back.
@@ -361,95 +364,6 @@ func (p *Provider) timestamped() ([]*migration, error) {
 	return migrations, nil
 }
 
-func (p *Provider) up(ctx context.Context, upByOne bool, version int64) ([]*MigrationResult, error) {
-	if version < 1 {
-		return nil, fmt.Errorf("version must be a number greater than zero: %d", version)
-	}
-
-	conn, err := p.db.Conn(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer conn.Close()
-
-	// feat(mf): this is where a session level advisory lock would be acquired to ensure that only
-	// one goose process is running at a time. Also need to lock the Provider itself with a mutex.
-	// https://github.com/pressly/goose/issues/335
-
-	if p.opt.NoVersioning {
-		return p.runMigrations(ctx, conn, p.migrations, sqlparser.DirectionUp, upByOne)
-	}
-
-	if err := p.ensureVersionTable(ctx, conn); err != nil {
-		return nil, err
-	}
-
-	dbMigrations, err := p.store.ListMigrationsConn(ctx, conn)
-	if err != nil {
-		return nil, err
-	}
-	currentVersion := dbMigrations[0].Version
-	// lookupAppliedInDB is a map of all applied migrations in the database.
-	lookupAppliedInDB := make(map[int64]bool)
-	for _, m := range dbMigrations {
-		lookupAppliedInDB[m.Version] = true
-	}
-
-	missingMigrations := findMissingMigrations(dbMigrations, p.migrations)
-
-	// feature(mf): It is very possible someone may want to apply ONLY new migrations and skip
-	// missing migrations entirely. At the moment this is not supported, but leaving this comment
-	// because that's where that logic will be handled.
-	if len(missingMigrations) > 0 && !p.opt.AllowMissing {
-		var collected []string
-		for _, v := range missingMigrations {
-			collected = append(collected, strconv.FormatInt(v, 10))
-		}
-		msg := "migration"
-		if len(collected) > 1 {
-			msg += "s"
-		}
-		return nil, fmt.Errorf("found %d missing %s: %s",
-			len(missingMigrations), msg, strings.Join(collected, ","))
-	}
-
-	var migrationsToApply []*migration
-	if p.opt.AllowMissing {
-		for _, v := range missingMigrations {
-			m, err := p.getMigration(v)
-			if err != nil {
-				return nil, err
-			}
-			migrationsToApply = append(migrationsToApply, m)
-		}
-	}
-	// filter all migrations with a version greater than the supplied version (min) and less than or
-	// equal to the requested version (max).
-	for _, m := range p.migrations {
-		if lookupAppliedInDB[m.version] {
-			continue
-		}
-		if m.version > currentVersion && m.version <= version {
-			migrationsToApply = append(migrationsToApply, m)
-		}
-	}
-	if len(migrationsToApply) == 0 {
-		if upByOne {
-			return nil, ErrNoNextVersion
-		}
-		return nil, nil
-	}
-
-	// feat(mf): this is where can (optionally) group multiple migrations to be run in a single
-	// transaction. The default is to apply each migration sequentially on its own.
-	// https://github.com/pressly/goose/issues/222
-	//
-	// Note, we can't use a single transaction for all migrations because some may have to be run in
-	// their own transaction.
-
-	return p.runMigrations(ctx, conn, migrationsToApply, sqlparser.DirectionUp, upByOne)
-}
-
 // findMissingMigrations returns a list of migrations that are missing from the database. A missing
 // migration is one that has a version less than the max version in the database.
 func findMissingMigrations(
@@ -476,133 +390,6 @@ func findMissingMigrations(
 	return missing
 }
 
-func (p *Provider) runMigrations(
-	ctx context.Context,
-	conn *sql.Conn,
-	migrations []*migration,
-	direction sqlparser.Direction,
-	byOne bool,
-) ([]*MigrationResult, error) {
-	length := len(migrations)
-	if byOne {
-		length = 1
-	}
-	results := make([]*MigrationResult, 0, length)
-	for _, m := range migrations {
-		start := time.Now()
-
-		if err := p.runIndividually(ctx, conn, direction, m); err != nil {
-			return nil, fmt.Errorf("failed to run %s migration: %s: %w",
-				m.migrationType,
-				filepath.Base(m.source),
-				err,
-			)
-		}
-
-		results = append(results, &MigrationResult{
-			Migration: m.toMigration(),
-			Duration:  time.Since(start),
-		})
-		if byOne && len(results) == 1 {
-			break
-		}
-	}
-	return results, nil
-}
-
-func (p *Provider) down(ctx context.Context, downByOne bool, version int64) ([]*MigrationResult, error) {
-	if version < 0 {
-		return nil, fmt.Errorf("version must be a number greater than or equal zero: %d", version)
-	}
-
-	conn, err := p.db.Conn(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer conn.Close()
-
-	// feat(mf): this is where a session level advisory lock would be acquired to ensure that only
-	// one goose process is running at a time. Also need to lock the Provider itself with a mutex.
-	// https://github.com/pressly/goose/issues/335
-
-	if err := p.ensureVersionTable(ctx, conn); err != nil {
-		return nil, err
-	}
-
-	if p.opt.NoVersioning {
-		if downByOne && len(p.migrations) == 0 {
-			return nil, ErrNoNextVersion
-		}
-		var downMigrations []*migration
-		if downByOne {
-			downMigrations = append(downMigrations, p.migrations[len(p.migrations)-1])
-		} else {
-			downMigrations = p.migrations
-		}
-		return p.runMigrations(ctx, conn, downMigrations, sqlparser.DirectionDown, downByOne)
-	}
-
-	dbMigrations, err := p.store.ListMigrationsConn(ctx, conn)
-	if err != nil {
-		return nil, err
-	}
-	if dbMigrations[0].Version == 0 {
-		return nil, ErrNoCurrentVersion
-	}
-
-	// This is the sequential path.
-
-	var downMigrations []*migration
-	for _, dbMigration := range dbMigrations {
-		if dbMigration.Version <= version {
-			break
-		}
-		m, err := p.getMigration(dbMigration.Version)
-		if err != nil {
-			return nil, err
-		}
-		downMigrations = append(downMigrations, m)
-	}
-	return p.runMigrations(ctx, conn, downMigrations, sqlparser.DirectionDown, downByOne)
-}
-
-// runIndividually runs an individual migration, opening a new transaction if the migration is safe
-// to run in a transaction. Otherwise, it runs the migration outside of a transaction with the
-// supplied connection.
-func (p *Provider) runIndividually(
-	ctx context.Context,
-	conn *sql.Conn,
-	direction sqlparser.Direction,
-	m *migration,
-) error {
-	switch m.migrationType {
-	case MigrationTypeSQL:
-		if m.sqlMigration.useTx {
-			return p.runSQLBeginTx(ctx, conn, direction, m)
-		} else {
-			return p.runSQLNoTx(ctx, conn, direction, m)
-		}
-	case MigrationTypeGo:
-		if m.goMigration.useTx {
-			return p.runGoBeginTx(ctx, conn, direction, m)
-		} else {
-			// bug(mf): this is a potential deadlock scenario. We're running the Go migration with a
-			// *sql.DB, but if/when we introduce locking (which will likely use *sql.Conn) AND if
-			// the user set max open connections to 1, then this will deadlock.
-			//
-			// A potential solution is to expose a third Go register function *sql.Conn. Or continue
-			// to use *sql.DB, but to use a separate connection pool for Go migrations and document
-			// that the user should set max open connections greater than 1.
-			//
-			// In the Provider constructor we can also throw an error  when a user set max open
-			// connections to 1 and has Go migrations that are registered to run outside of a
-			// transaction.
-			return p.runGoNoTx(ctx, direction, m)
-		}
-	}
-	return fmt.Errorf("unknown migration type: %s", m.migrationType)
-}
-
 // getMigration returns the migration with the given version. If no migration is found, then
 // ErrNoCurrentVersion is returned.
 func (p *Provider) getMigration(version int64) (*migration, error) {
@@ -626,284 +413,21 @@ func (p *Provider) ensureVersionTable(ctx context.Context, conn *sql.Conn) (retE
 	})
 }
 
-type migration struct {
-	version int64
-	source  string
-
-	// A migration can be either a GoMigration or a SQL migration, but not both.
-	// The migrationType field is used to determine which one is set.
-	//
-	// Note, the migration type may be sql but *sqlMigration may be nil.
-	// This is because the SQL files are parsed in either the Provider
-	// constructor or at the time of starting a migration operation.
-	migrationType MigrationType
-	goMigration   *goMigration
-	sqlMigration  *sqlMigration
-}
-
-type goMigration struct {
-	// We use an explicit bool instead of relying on pointer because all funcs
-	// may be nil, but registered. For example: goose.AddMigration(nil, nil)
-	useTx bool
-
-	// Only one of these func pairs will be set:
-	upFn, downFn GoMigration
-	// -- or --
-	upFnNoTx, downFnNoTx GoMigrationNoTx
-}
-
-type sqlMigration struct {
-	useTx          bool
-	upStatements   []string
-	downStatements []string
-}
-
-// isEmpty returns true if the migration is a registered Go migration with
-// no up/down functions, or a SQL file with no valid statements.
-func (m *migration) isEmpty() bool {
-	if m.migrationType == MigrationTypeSQL {
-		return len(m.sqlMigration.upStatements) == 0 && len(m.sqlMigration.downStatements) == 0
-	}
-	if m.goMigration.useTx {
-		return m.goMigration.upFn == nil && m.goMigration.downFn == nil
-	}
-	return m.goMigration.upFnNoTx == nil && m.goMigration.downFnNoTx == nil
-}
-
-func (m *migration) toMigration() Migration {
-	return Migration{
-		Type:    m.migrationType,
-		Source:  m.source,
-		Version: m.version,
-	}
-}
-
-func (m *migration) getSQLStatements(direction sqlparser.Direction) []string {
-	if direction == sqlparser.DirectionDown {
-		return m.sqlMigration.downStatements
-	}
-	return m.sqlMigration.upStatements
-}
-
-func (p *Provider) beginTx(
-	ctx context.Context,
-	conn *sql.Conn,
-	direction sqlparser.Direction,
-	version int64,
-	fn func(tx *sql.Tx) error,
-) (retErr error) {
-	tx, err := conn.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if retErr != nil {
-			retErr = multierr.Append(retErr, tx.Rollback())
-		}
-	}()
-	if err := fn(tx); err != nil {
-		return err
-	}
-	if !p.opt.NoVersioning {
-		if err := p.store.InsertOrDelete(ctx, tx, direction.ToBool(), version); err != nil {
-			return err
-		}
-	}
-	return tx.Commit()
-}
-
-func (p *Provider) runGoBeginTx(
-	ctx context.Context,
-	conn *sql.Conn,
-	direction sqlparser.Direction,
-	m *migration,
-) (retErr error) {
-	return p.beginTx(ctx, conn, direction, m.version, func(tx *sql.Tx) error {
-		fn := m.goMigration.downFn
-		if direction == sqlparser.DirectionUp {
-			fn = m.goMigration.upFn
-		}
-		if fn != nil {
-			return fn(tx)
-		}
-		return nil
-	})
-}
-
-func (p *Provider) runSQLBeginTx(
-	ctx context.Context,
-	conn *sql.Conn,
-	direction sqlparser.Direction,
-	m *migration,
-) error {
-	return p.beginTx(ctx, conn, direction, m.version, func(tx *sql.Tx) error {
-		statements := m.getSQLStatements(direction)
-		for _, query := range statements {
-			if _, err := tx.ExecContext(ctx, query); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-}
-
-func (p *Provider) runSQLNoTx(
-	ctx context.Context,
-	conn *sql.Conn,
-	direction sqlparser.Direction,
-	m *migration,
-) error {
-	statements := m.getSQLStatements(direction)
-	for _, query := range statements {
-		if _, err := conn.ExecContext(ctx, query); err != nil {
-			return err
-		}
-	}
-	if p.opt.NoVersioning {
-		return nil
-	}
-	return p.store.InsertOrDeleteConn(ctx, conn, direction.ToBool(), m.version)
-}
-
-func (p *Provider) runGoNoTx(
-	ctx context.Context,
-	direction sqlparser.Direction,
-	m *migration,
-) error {
-	fn := m.goMigration.downFnNoTx
-	if direction == sqlparser.DirectionUp {
-		fn = m.goMigration.upFnNoTx
-	}
-	if fn != nil {
-		if err := fn(p.db); err != nil {
-			return err
-		}
-	}
-	if p.opt.NoVersioning {
-		return nil
-	}
-	return p.store.InsertOrDeleteNoTx(ctx, p.db, direction.ToBool(), m.version)
-}
-
-func collectMigrations(
-	registered map[int64]*migration,
+func checkUnregisteredGoMigrations(
 	fsys fs.FS,
 	dir string,
-	debug bool,
-	exclude map[int64]bool,
-) ([]*migration, error) {
-	if _, err := fs.Stat(fsys, dir); errors.Is(err, fs.ErrNotExist) {
-		return nil, fmt.Errorf("directory does not exist: %s", dir)
-	}
-	// Sanity check the directory does not contain versioned Go migrations that have
-	// not been registred. This check ensures users didn't accidentally create a
-	// valid looking Go migration file and forget to register it.
-	//
-	// This is almost always a user error.
-	if err := checkUnregisteredGoMigrations(fsys, dir, registered); err != nil {
-		return nil, err
-	}
-
-	unsorted := make(map[int64]*migration)
-
-	checkDuplicate := func(version int64, filename string) error {
-		existing, ok := unsorted[version]
-		if ok {
-			return fmt.Errorf("found duplicate migration version %d:\n\texisting:%v\n\tcurrent:%v",
-				version,
-				existing.source,
-				filename,
-			)
-		}
-		return nil
-	}
-
-	sqlFiles, err := fs.Glob(fsys, path.Join(dir, "*.sql"))
-	if err != nil {
-		return nil, err
-	}
-	for _, filename := range sqlFiles {
-		version, err := NumericComponent(filename)
-		if err != nil {
-			return nil, err
-		}
-		if err := checkDuplicate(version, filename); err != nil {
-			return nil, err
-		}
-		r, err := fsys.Open(filename)
-		if err != nil {
-			return nil, err
-		}
-		by, err := io.ReadAll(r)
-		if err != nil {
-			return nil, err
-		}
-		if err := r.Close(); err != nil {
-			return nil, err
-		}
-		upStatements, txUp, err := sqlparser.ParseSQLMigration(
-			bytes.NewReader(by),
-			sqlparser.DirectionUp,
-			debug,
-		)
-		if err != nil {
-			return nil, err
-		}
-		downStatements, txDown, err := sqlparser.ParseSQLMigration(
-			bytes.NewReader(by),
-			sqlparser.DirectionDown,
-			debug,
-		)
-		if err != nil {
-			return nil, err
-		}
-		// This is a sanity check to ensure that the parser is behaving as expected.
-		if txUp != txDown {
-			return nil, fmt.Errorf("up and down statements must have the same transaction mode")
-		}
-		unsorted[version] = &migration{
-			migrationType: MigrationTypeSQL,
-			source:        filename,
-			version:       version,
-			sqlMigration: &sqlMigration{
-				useTx:          txUp,
-				upStatements:   upStatements,
-				downStatements: downStatements,
-			},
-		}
-	}
-
-	for _, goMigration := range registered {
-		if _, err := NumericComponent(goMigration.source); err != nil {
-			return nil, err
-		}
-		if err := checkDuplicate(goMigration.version, goMigration.source); err != nil {
-			return nil, err
-		}
-		unsorted[goMigration.version] = goMigration
-	}
-
-	all := make([]*migration, 0, len(unsorted))
-	for _, u := range unsorted {
-		if exclude[u.version] {
-			continue
-		}
-		all = append(all, u)
-	}
-	// Sort migrations in ascending order by version id
-	sort.Slice(all, func(i, j int) bool {
-		return all[i].version < all[j].version
-	})
-	return all, nil
-}
-
-func checkUnregisteredGoMigrations(fsys fs.FS, dir string, registered map[int64]*migration) error {
+	registered map[int64]*migration,
+	exclude map[string]bool,
+) error {
 	goMigrationFiles, err := fs.Glob(fsys, path.Join(dir, "*.go"))
 	if err != nil {
 		return err
 	}
 	var unregistered []string
 	for _, filename := range goMigrationFiles {
+		if exclude[filename] {
+			continue
+		}
 		if strings.HasSuffix(filename, "_test.go") {
 			continue // Skip Go test files.
 		}
@@ -911,8 +435,8 @@ func checkUnregisteredGoMigrations(fsys fs.FS, dir string, registered map[int64]
 		if err != nil {
 			continue
 		}
-		// Success, skip version because it has already been registered
-		// via AddMigration or AddMigrationNoTx.
+		// Success, skip version because it has already been registered via AddMigration or
+		// AddMigrationNoTx.
 		if _, ok := registered[version]; ok {
 			continue
 		}
@@ -941,12 +465,13 @@ func checkUnregisteredGoMigrations(fsys fs.FS, dir string, registered map[int64]
 
 // NumericComponent parses the version from the migration file name.
 //
-// XXX_descriptivename.ext where XXX specifies the version number
-// and ext specifies the type of migration.
+// XXX_descriptivename.ext where XXX specifies the version number and ext specifies the type of
+// migration, either .sql or .go.
 func NumericComponent(name string) (int64, error) {
 	base := filepath.Base(name)
-	// TODO(mf): should we silently ignore non .sql and .go files? Potentially
-	// adding an -ignore or -exlude flag
+	// TODO(mf): should we silently ignore non .sql and .go files? Potentially adding an -ignore or
+	// -exlude flag
+	//
 	// https://github.com/pressly/goose/issues/331#issuecomment-1101556360
 	if ext := filepath.Ext(base); ext != ".go" && ext != ".sql" {
 		return 0, errors.New("migration file does not have .sql or .go file extension")
