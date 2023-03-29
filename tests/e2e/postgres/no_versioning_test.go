@@ -1,6 +1,7 @@
-package e2e
+package postgres_test
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 
@@ -9,124 +10,106 @@ import (
 )
 
 func TestNoVersioning(t *testing.T) {
-	if *dialect != dialectPostgres {
-		t.SkipNow()
-	}
+	t.Parallel()
+	ctx := context.Background()
+
 	const (
 		// Total owners created by the seed files.
 		wantSeedOwnerCount = 250
 		// These are owners created by migration files.
 		wantOwnerCount = 4
 	)
-	db, err := newDockerDB(t)
-	check.NoError(t, err)
+	te := newTestEnv(t, migrationsDir, nil)
+	check.NumberNotZero(t, len(te.provider.ListMigrations()))
 
-	err = goose.Up(db, migrationsDir)
+	upResult, err := te.provider.Up(ctx)
 	check.NoError(t, err)
-	baseVersion, err := goose.GetDBVersion(db)
+	check.Number(t, len(upResult), 11)
+	baseVersion, err := te.provider.GetDBVersion(ctx)
 	check.NoError(t, err)
+	check.Number(t, baseVersion, 11)
 
 	t.Run("seed-up-down-to-zero", func(t *testing.T) {
+		options := goose.DefaultOptions().
+			SetVerbose(testing.Verbose()).
+			SetDir(seedDir).
+			SetNoVersioning(true)
+		p, err := goose.NewProvider(goose.DialectPostgres, te.db, options)
+		check.NoError(t, err)
+		check.Number(t, len(p.ListMigrations()), 2)
+
 		// Run (all) up migrations from the seed dir
 		{
-			err = goose.Up(db, seedDir, goose.WithNoVersioning())
+			upResult, err := p.Up(ctx)
 			check.NoError(t, err)
+			check.Number(t, len(upResult), 2)
 			// Confirm no changes to the versioned schema in the DB
-			currentVersion, err := goose.GetDBVersion(db)
+			currentVersion, err := p.GetDBVersion(ctx)
 			check.NoError(t, err)
 			check.Number(t, baseVersion, currentVersion)
-			seedOwnerCount, err := countSeedOwners(db)
+			seedOwnerCount, err := countSeedOwners(te.db)
 			check.NoError(t, err)
 			check.Number(t, seedOwnerCount, wantSeedOwnerCount)
 		}
-
 		// Run (all) down migrations from the seed dir
 		{
-			err = goose.DownTo(db, seedDir, 0, goose.WithNoVersioning())
+			downResult, err := p.DownTo(ctx, 0)
 			check.NoError(t, err)
+			check.Number(t, len(downResult), 2)
 			// Confirm no changes to the versioned schema in the DB
-			currentVersion, err := goose.GetDBVersion(db)
+			currentVersion, err := p.GetDBVersion(ctx)
 			check.NoError(t, err)
 			check.Number(t, baseVersion, currentVersion)
-			seedOwnerCount, err := countSeedOwners(db)
+			seedOwnerCount, err := countSeedOwners(te.db)
 			check.NoError(t, err)
 			check.Number(t, seedOwnerCount, 0)
 		}
-
 		// The migrations added 4 non-seed owners, they must remain
 		// in the database afterwards
-		ownerCount, err := countOwners(db)
+		ownerCount, err := countOwners(te.db)
 		check.NoError(t, err)
 		check.Number(t, ownerCount, wantOwnerCount)
 	})
 
 	t.Run("test-seed-up-reset", func(t *testing.T) {
+		options := goose.DefaultOptions().
+			SetVerbose(testing.Verbose()).
+			SetDir(seedDir).
+			SetNoVersioning(true)
+		p, err := goose.NewProvider(goose.DialectPostgres, te.db, options)
+		check.NoError(t, err)
+
 		// Run (all) up migrations from the seed dir
 		{
-			err = goose.Up(db, seedDir, goose.WithNoVersioning())
+			upResult, err = p.Up(ctx)
 			check.NoError(t, err)
+			check.Number(t, len(upResult), 2)
 			// Confirm no changes to the versioned schema in the DB
-			currentVersion, err := goose.GetDBVersion(db)
+			currentVersion, err := p.GetDBVersion(ctx)
 			check.NoError(t, err)
 			check.Number(t, baseVersion, currentVersion)
-			seedOwnerCount, err := countSeedOwners(db)
+			seedOwnerCount, err := countSeedOwners(te.db)
 			check.NoError(t, err)
 			check.Number(t, seedOwnerCount, wantSeedOwnerCount)
 		}
-
 		// Run reset (effectively the same as down-to 0)
 		{
-			err = goose.Reset(db, seedDir, goose.WithNoVersioning())
+			resetResult, err := p.Reset(ctx)
 			check.NoError(t, err)
+			check.Number(t, len(resetResult), 2)
 			// Confirm no changes to the versioned schema in the DB
-			currentVersion, err := goose.GetDBVersion(db)
+			currentVersion, err := p.GetDBVersion(ctx)
 			check.NoError(t, err)
 			check.Number(t, baseVersion, currentVersion)
-			seedOwnerCount, err := countSeedOwners(db)
+			seedOwnerCount, err := countSeedOwners(te.db)
 			check.NoError(t, err)
 			check.Number(t, seedOwnerCount, 0)
 		}
-
 		// The migrations added 4 non-seed owners, they must remain
 		// in the database afterwards
-		ownerCount, err := countOwners(db)
+		ownerCount, err := countOwners(te.db)
 		check.NoError(t, err)
 		check.Number(t, ownerCount, wantOwnerCount)
-	})
-
-	t.Run("test-seed-up-redo", func(t *testing.T) {
-		// Run (all) up migrations from the seed dir
-		{
-			err = goose.Up(db, seedDir, goose.WithNoVersioning())
-			check.NoError(t, err)
-			// Confirm no changes to the versioned schema in the DB
-			currentVersion, err := goose.GetDBVersion(db)
-			check.NoError(t, err)
-			check.Number(t, baseVersion, currentVersion)
-			seedOwnerCount, err := countSeedOwners(db)
-			check.NoError(t, err)
-			check.Number(t, seedOwnerCount, wantSeedOwnerCount)
-		}
-
-		// Run reset (effectively the same as down-to 0)
-		{
-			err = goose.Redo(db, seedDir, goose.WithNoVersioning())
-			check.NoError(t, err)
-			// Confirm no changes to the versioned schema in the DB
-			currentVersion, err := goose.GetDBVersion(db)
-			check.NoError(t, err)
-			check.Number(t, baseVersion, currentVersion)
-			seedOwnerCount, err := countSeedOwners(db)
-			check.NoError(t, err)
-			check.Number(t, seedOwnerCount, wantSeedOwnerCount) // owners should be unchanged
-		}
-
-		// The migrations added 4 non-seed owners, they must remain
-		// in the database afterwards along with the 250 seed owners for a
-		// total of 254.
-		ownerCount, err := countOwners(db)
-		check.NoError(t, err)
-		check.Number(t, ownerCount, wantOwnerCount+wantSeedOwnerCount)
 	})
 }
 

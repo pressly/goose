@@ -28,16 +28,16 @@ test-packages:
 test-e2e: test-e2e-postgres test-e2e-mysql test-e2e-clickhouse test-e2e-vertica
 
 test-e2e-postgres:
-	go test $(GO_TEST_FLAGS) ./tests/e2e -dialect=postgres
+	go test $(GO_TEST_FLAGS) ./tests/e2e/postgres
 
 test-e2e-mysql:
-	go test $(GO_TEST_FLAGS) ./tests/e2e -dialect=mysql
+	go test $(GO_TEST_FLAGS) ./tests/e2e/mysql
 
 test-e2e-clickhouse:
-	go test $(GO_TEST_FLAGS) ./tests/clickhouse -test.short
+	go test $(GO_TEST_FLAGS) ./tests/e2e/clickhouse -test.short
 
 test-e2e-vertica:
-	go test $(GO_TEST_FLAGS) ./tests/vertica
+	go test $(GO_TEST_FLAGS) ./tests/e2e/vertica
 
 docker-cleanup:
 	docker stop -t=0 $$(docker ps --filter="label=goose_test" -aq)
@@ -50,3 +50,9 @@ docker-start-postgres:
 		-p ${GOOSE_POSTGRES_PORT}:5432 \
 		-l goose_test \
 		postgres:14-alpine -c log_statement=all
+
+comments:
+	rg --type go --ignore-case '//.*(todo|feat)\('
+
+gh-links:
+	rg --type go --ignore-case '//.*github.com/.*/(issues|pull)/[0-9]+'

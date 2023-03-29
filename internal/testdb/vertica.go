@@ -15,7 +15,7 @@ import (
 const (
 	// https://hub.docker.com/r/vertica/vertica-ce
 	VERTICA_IMAGE   = "vertica/vertica-ce"
-	VERTICA_VERSION = "12.0.0-0"
+	VERTICA_VERSION = "12.0.3-0"
 	VERTICA_DB      = "testdb"
 )
 
@@ -35,6 +35,7 @@ func newVertica(opts ...OptionsFunc) (*sql.DB, func(), error) {
 		Env: []string{
 			"VERTICA_DB_NAME=" + VERTICA_DB,
 			"VMART_ETL_SCRIPT=", // Don't install VMART data inside container.
+			"VERTICA_MEMDEBUG=2",
 		},
 		Labels:       map[string]string{"goose_test": "1"},
 		PortBindings: make(map[docker.Port][]docker.PortBinding),
@@ -76,7 +77,7 @@ func newVertica(opts ...OptionsFunc) (*sql.DB, func(), error) {
 
 	var db *sql.DB
 	// Give vertica a head start since the container takes a little bit to start up.
-	time.Sleep(time.Second * 15)
+	time.Sleep(time.Second * 30)
 
 	// Exponential backoff-retry, because the application in the container
 	// might not be ready to accept connections yet.

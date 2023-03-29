@@ -1,6 +1,8 @@
 package vertica_test
 
 import (
+	"context"
+	"database/sql"
 	"path/filepath"
 	"testing"
 	"time"
@@ -10,38 +12,30 @@ import (
 	"github.com/pressly/goose/v4/internal/testdb"
 )
 
-/*
-This test applies all up migrations, asserts we have all the entries in
-the versions table, applies all down migration and asserts we have zero
-migrations applied.
+// This test applies all up migrations, asserts we have all the entries in
+// the versions table, applies all down migration and asserts we have zero
+// migrations applied.
 
-Limitations:
-1) Only one instance of Vertica can be running on a host at any time.
-*/
-func TestVerticaUpDownAll(t *testing.T) {
+// Limitations:
+// 1) Only one instance of Vertica can be running on a host at any time.
+func TestUpDownAll(t *testing.T) {
 	t.Parallel()
+	ctx := context.Background()
 
 	migrationDir := filepath.Join("testdata", "migrations")
-	db, cleanup, err := testdb.NewVertica()
-	check.NoError(t, err)
-	t.Cleanup(cleanup)
+	te := newTestEnv(t, migrationDir)
+	migrations := te.provider.ListMigrations()
+	check.Number(t, len(migrations), 3)
 
-	check.NoError(t, goose.SetDialect("vertica"))
-
-	goose.SetTableName("goose_db_version")
-
-	migrations, err := goose.CollectMigrations(migrationDir, 0, goose.MaxVersion)
-	check.NoError(t, err)
-
-	currentVersion, err := goose.GetDBVersion(db)
+	currentVersion, err := te.provider.GetDBVersion(ctx)
 	check.NoError(t, err)
 	check.Number(t, currentVersion, 0)
 
-	err = goose.Up(db, migrationDir)
+	_, err = te.provider.Up(ctx)
 	check.NoError(t, err)
-	currentVersion, err = goose.GetDBVersion(db)
+	currentVersion, err = te.provider.GetDBVersion(ctx)
 	check.NoError(t, err)
-	check.Number(t, currentVersion, len(migrations))
+	check.Number(t, currentVersion, len(te.provider.ListMigrations()))
 
 	type result struct {
 		TestKey    int64     `db:"test_key"`
@@ -51,7 +45,7 @@ func TestVerticaUpDownAll(t *testing.T) {
 		IsCurrent  bool      `db:"is_current"`
 		ExternalID string    `db:"external_id"`
 	}
-	rows, err := db.Query(`SELECT * FROM testing.dim_test_scd ORDER BY test_key`)
+	rows, err := te.db.Query(`SELECT * FROM testing.dim_test_scd ORDER BY test_key`)
 	check.NoError(t, err)
 	var results []result
 	for rows.Next() {
@@ -105,11 +99,37 @@ func TestVerticaUpDownAll(t *testing.T) {
 		check.Equal(t, result.ExternalID, want[i].ExternalID)
 	}
 
-	err = goose.DownTo(db, migrationDir, 0)
+	_, err = te.provider.DownTo(ctx, 0)
 	check.NoError(t, err)
 	check.NoError(t, err)
 
-	currentVersion, err = goose.GetDBVersion(db)
+	currentVersion, err = te.provider.GetDBVersion(ctx)
 	check.NoError(t, err)
 	check.Number(t, currentVersion, 0)
+}
+
+type te struct {
+	provider *goose.Provider
+	db       *sql.DB
+}
+
+func newTestEnv(t *testing.T, dir string) *te {
+	t.Helper()
+
+	db, cleanup, err := testdb.NewVertica()
+	check.NoError(t, err)
+	t.Cleanup(cleanup)
+	options := goose.DefaultOptions().
+		SetVerbose(testing.Verbose()).
+		SetDir(dir)
+	provider, err := goose.NewProvider(goose.DialectVertica, db, options)
+	check.NoError(t, err)
+	check.NoError(t, provider.Ping(context.Background()))
+	t.Cleanup(func() {
+		check.NoError(t, provider.Close())
+	})
+	return &te{
+		provider: provider,
+		db:       db,
+	}
 }
