@@ -10,6 +10,7 @@ require (
 	github.com/ory/dockertest/v3 v3.9.1
 	github.com/vertica/vertica-sql-go v1.3.1
 	github.com/ziutek/mymysql v1.5.4
+	go.uber.org/multierr v1.10.0
 	modernc.org/sqlite v1.21.0
 )
 

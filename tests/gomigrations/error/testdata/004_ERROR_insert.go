@@ -19,7 +19,7 @@ func up004(tx *sql.Tx) error {
 			return fmt.Errorf("simulate error: too many inserts")
 		}
 		q := "INSERT INTO foo VALUES ($1)"
-		if _, err := tx.Exec(q); err != nil {
+		if _, err := tx.Exec(q, i); err != nil {
 			return err
 		}
 	}

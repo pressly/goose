@@ -2,34 +2,42 @@ package goose
 
 import (
 	"testing"
+
+	"github.com/pressly/goose/v4/internal/check"
+	"github.com/pressly/goose/v4/internal/dialect"
 )
 
 func TestFindMissingMigrations(t *testing.T) {
-	known := Migrations{
+	t.Parallel()
+
+	// Test case: database has migrations 1, 3, 4, 5, 7
+	// Missing migrations: 2, 6
+	// Filesystem has migrations 1, 2, 3, 4, 5, 6, 7, 8
+
+	dbMigrations := []*dialect.ListMigrationsResult{
 		{Version: 1},
 		{Version: 3},
 		{Version: 4},
 		{Version: 5},
 		{Version: 7},
 	}
-	new := Migrations{
-		{Version: 1},
-		{Version: 2}, // missing migration
-		{Version: 3},
-		{Version: 4},
-		{Version: 5},
-		{Version: 6}, // missing migration
-		{Version: 7}, // <-- database max version_id
-		{Version: 8}, // new migration
+	fsMigrations := []*migration{
+		{version: 1},
+		{version: 2}, // missing migration
+		{version: 3},
+		{version: 4},
+		{version: 5},
+		{version: 6}, // missing migration
+		{version: 7}, // ----- database max version_id -----
+		{version: 8}, // new migration
 	}
-	got := findMissingMigrations(known, new)
-	if len(got) != 2 {
-		t.Fatalf("invalid migration count: got:%d want:%d", len(got), 2)
-	}
-	if got[0].Version != 2 {
-		t.Errorf("expecting first migration: got:%d want:%d", got[0].Version, 2)
-	}
-	if got[1].Version != 6 {
-		t.Errorf("expecting second migration: got:%d want:%d", got[0].Version, 6)
-	}
+	got := findMissingMigrations(dbMigrations, fsMigrations)
+	check.Number(t, len(got), 2)
+	check.Number(t, got[0], 2)
+	check.Number(t, got[1], 6)
+
+	// Sanity check.
+	check.Number(t, len(findMissingMigrations(nil, nil)), 0)
+	check.Number(t, len(findMissingMigrations(dbMigrations, nil)), 0)
+	check.Number(t, len(findMissingMigrations(nil, fsMigrations)), 0)
 }

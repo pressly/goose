@@ -1,8 +1,8 @@
 package clickhouse_test
 
 import (
-	"log"
-	"os"
+	"context"
+	"database/sql"
 	"path/filepath"
 	"testing"
 	"time"
@@ -12,75 +12,48 @@ import (
 	"github.com/pressly/goose/v4/internal/testdb"
 )
 
-func TestMain(m *testing.M) {
-	if err := goose.SetDialect("clickhouse"); err != nil {
-		log.Fatal(err)
-	}
-	os.Exit(m.Run())
-}
-
-func TestClickUpDownAll(t *testing.T) {
+func TestUpDownAll(t *testing.T) {
 	t.Parallel()
+	ctx := context.Background()
 
-	migrationDir := filepath.Join("testdata", "migrations")
-	db, cleanup, err := testdb.NewClickHouse()
-	check.NoError(t, err)
-	t.Cleanup(cleanup)
+	te := newTestEnv(t, filepath.Join("testdata", "migrations"))
+	migrations := te.provider.ListMigrations()
+	check.Number(t, len(migrations), 3)
 
-	/*
-		This test applies all up migrations, asserts we have all the entries in
-		the versions table, applies all down migration and asserts we have zero
-		migrations applied.
+	// This test applies all up migrations, asserts we have all the entries in
+	// the versions table, applies all down migration and asserts we have zero
+	// migrations applied.
 
-		ClickHouse performs UPDATES and DELETES asynchronously,
-		but we can best-effort check mutations and their progress.
-
-		This is especially important for down migrations where rows are deleted
-		from the versions table.
-
-		For the sake of testing, there might be a way to modifying the server
-		(or queries) to perform all operations synchronously?
-
-		Ref: https://clickhouse.com/docs/en/operations/system-tables/mutations/
-		Ref: https://clickhouse.com/docs/en/sql-reference/statements/alter/#mutations
-		Ref: https://clickhouse.com/blog/how-to-update-data-in-click-house/
-	*/
-
-	// Collect migrations so we don't have to hard-code the currentVersion
-	// in an assertion later in the test.
-	migrations, err := goose.CollectMigrations(migrationDir, 0, goose.MaxVersion)
-	check.NoError(t, err)
-
-	currentVersion, err := goose.GetDBVersion(db)
+	currentVersion, err := te.provider.GetDBVersion(ctx)
 	check.NoError(t, err)
 	check.Number(t, currentVersion, 0)
 
-	err = goose.Up(db, migrationDir)
+	_, err = te.provider.Up(ctx)
 	check.NoError(t, err)
-	currentVersion, err = goose.GetDBVersion(db)
+	currentVersion, err = te.provider.GetDBVersion(ctx)
 	check.NoError(t, err)
-	check.Number(t, currentVersion, len(migrations))
+	check.Number(t, currentVersion, len(te.provider.ListMigrations()))
 
-	err = goose.DownTo(db, migrationDir, 0)
+	_, err = te.provider.DownTo(ctx, 0)
 	check.NoError(t, err)
 
-	currentVersion, err = goose.GetDBVersion(db)
+	currentVersion, err = te.provider.GetDBVersion(ctx)
 	check.NoError(t, err)
 	check.Number(t, currentVersion, 0)
 }
 
 func TestClickHouseFirstThree(t *testing.T) {
 	t.Parallel()
+	ctx := context.Background()
 
-	migrationDir := filepath.Join("testdata", "migrations")
-	db, cleanup, err := testdb.NewClickHouse()
+	te := newTestEnv(t, filepath.Join("testdata", "migrations"))
+	migrations := te.provider.ListMigrations()
+	check.Number(t, len(migrations), 3)
+
+	_, err := te.provider.UpTo(ctx, 3)
 	check.NoError(t, err)
-	t.Cleanup(cleanup)
 
-	err = goose.Up(db, migrationDir)
-	check.NoError(t, err)
-
-	currentVersion, err := goose.GetDBVersion(db)
+	currentVersion, err := te.provider.GetDBVersion(ctx)
 	check.NoError(t, err)
 	check.Number(t, currentVersion, 3)
 
@@ -91,7 +64,7 @@ func TestClickHouseFirstThree(t *testing.T) {
 		countryCode    string    `db:"country_code"`
 		sourceID       int64     `db:"source_id"`
 	}
-	rows, err := db.Query(`SELECT * FROM clickstream ORDER BY customer_id`)
+	rows, err := te.db.Query(`SELECT * FROM clickstream ORDER BY customer_id`)
 	check.NoError(t, err)
 	var results []result
 	for rows.Next() {
@@ -128,6 +101,7 @@ func TestClickHouseFirstThree(t *testing.T) {
 
 func TestRemoteImportMigration(t *testing.T) {
 	t.Parallel()
+	ctx := context.Background()
 	// TODO(mf): use TestMain and create a proper "long" or "remote" flag.
 	if !testing.Short() {
 		t.Skip("skipping test")
@@ -140,18 +114,43 @@ func TestRemoteImportMigration(t *testing.T) {
 	// We may want to host this ourselves. Or just don't bother with SOURCE(HTTP(URL..
 	// and craft a long INSERT statement.
 
-	migrationDir := filepath.Join("testdata", "migrations-remote")
-	db, cleanup, err := testdb.NewClickHouse()
-	check.NoError(t, err)
-	t.Cleanup(cleanup)
+	te := newTestEnv(t, filepath.Join("testdata", "migrations-remote"))
+	migrations := te.provider.ListMigrations()
+	check.Number(t, len(migrations), 1)
 
-	err = goose.Up(db, migrationDir)
+	_, err := te.provider.Up(ctx)
 	check.NoError(t, err)
-	_, err = goose.GetDBVersion(db)
+	_, err = te.provider.GetDBVersion(ctx)
 	check.NoError(t, err)
 
 	var count int
-	err = db.QueryRow(`SELECT count(*) FROM taxi_zone_dictionary`).Scan(&count)
+	err = te.db.QueryRow(`SELECT count(*) FROM taxi_zone_dictionary`).Scan(&count)
 	check.NoError(t, err)
 	check.Number(t, count, 265)
+}
+
+type te struct {
+	provider *goose.Provider
+	db       *sql.DB
+}
+
+func newTestEnv(t *testing.T, dir string) *te {
+	t.Helper()
+
+	db, cleanup, err := testdb.NewClickHouse()
+	check.NoError(t, err)
+	t.Cleanup(cleanup)
+	options := goose.DefaultOptions().
+		SetVerbose(testing.Verbose()).
+		SetDir(dir)
+	provider, err := goose.NewProvider(goose.DialectClickHouse, db, options)
+	check.NoError(t, err)
+	check.NoError(t, provider.Ping(context.Background()))
+	t.Cleanup(func() {
+		check.NoError(t, provider.Close())
+	})
+	return &te{
+		provider: provider,
+		db:       db,
+	}
 }

@@ -18,6 +18,10 @@ const (
 	DirectionDown Direction = "down"
 )
 
+func (d Direction) ToBool() bool {
+	return d == DirectionUp
+}
+
 func FromBool(b bool) Direction {
 	if b {
 		return DirectionUp

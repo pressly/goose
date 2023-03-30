@@ -2,264 +2,98 @@ package goose
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"fmt"
-	"sort"
+	"strconv"
 	"strings"
+
+	"github.com/pressly/goose/v4/internal/sqlparser"
 )
 
-type options struct {
-	allowMissing bool
-	applyUpByOne bool
-	noVersioning bool
-}
-
-type OptionsFunc func(o *options)
-
-func WithAllowMissing() OptionsFunc {
-	return func(o *options) { o.allowMissing = true }
-}
-
-func WithNoVersioning() OptionsFunc {
-	return func(o *options) { o.noVersioning = true }
-}
-
-func WithNoColor(b bool) OptionsFunc {
-	return func(o *options) { noColor = b }
-}
-
-func withApplyUpByOne() OptionsFunc {
-	return func(o *options) { o.applyUpByOne = true }
-}
-
-// UpTo migrates up to a specific version.
-func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
-	ctx := context.Background()
-	option := &options{}
-	for _, f := range opts {
-		f(option)
-	}
-	foundMigrations, err := CollectMigrations(dir, minVersion, version)
-	if err != nil {
-		return err
+func (p *Provider) up(ctx context.Context, upByOne bool, version int64) ([]*MigrationResult, error) {
+	if version < 1 {
+		return nil, fmt.Errorf("version must be a number greater than zero: %d", version)
 	}
 
-	if option.noVersioning {
-		if len(foundMigrations) == 0 {
-			return nil
-		}
-		if option.applyUpByOne {
-			// For up-by-one this means keep re-applying the first
-			// migration over and over.
-			version = foundMigrations[0].Version
-		}
-		return upToNoVersioning(db, foundMigrations, version)
-	}
-
-	if _, err := EnsureDBVersion(db); err != nil {
-		return err
-	}
-	dbMigrations, err := listAllDBVersions(ctx, db)
-	if err != nil {
-		return err
-	}
-
-	missingMigrations := findMissingMigrations(dbMigrations, foundMigrations)
-
-	// feature(mf): It is very possible someone may want to apply ONLY new migrations
-	// and skip missing migrations altogether. At the moment this is not supported,
-	// but leaving this comment because that's where that logic will be handled.
-	if len(missingMigrations) > 0 && !option.allowMissing {
-		var collected []string
-		for _, m := range missingMigrations {
-			output := fmt.Sprintf("version %d: %s", m.Version, m.Source)
-			collected = append(collected, output)
-		}
-		return fmt.Errorf("error: found %d missing migrations:\n\t%s",
-			len(missingMigrations), strings.Join(collected, "\n\t"))
-	}
-
-	if option.allowMissing {
-		return upWithMissing(
-			db,
-			missingMigrations,
-			foundMigrations,
-			dbMigrations,
-			option,
-		)
-	}
-
-	var current int64
-	for {
-		var err error
-		current, err = GetDBVersion(db)
-		if err != nil {
-			return err
-		}
-		next, err := foundMigrations.Next(current)
-		if err != nil {
-			if errors.Is(err, ErrNoNextVersion) {
-				break
-			}
-			return fmt.Errorf("failed to find next migration: %v", err)
-		}
-		if err := next.Up(db); err != nil {
-			return err
-		}
-		if option.applyUpByOne {
-			return nil
-		}
-	}
-	// At this point there are no more migrations to apply. But we need to maintain
-	// the following behaviour:
-	// UpByOne returns an error to signifying there are no more migrations.
-	// Up and UpTo return nil
-	log.Printf("goose: no migrations to run. current version: %d\n", current)
-	if option.applyUpByOne {
-		return ErrNoNextVersion
-	}
-	return nil
-}
-
-// upToNoVersioning applies up migrations up to, and including, the
-// target version.
-func upToNoVersioning(db *sql.DB, migrations Migrations, version int64) error {
-	var finalVersion int64
-	for _, current := range migrations {
-		if current.Version > version {
-			break
-		}
-		current.noVersioning = true
-		if err := current.Up(db); err != nil {
-			return err
-		}
-		finalVersion = current.Version
-	}
-	log.Printf("goose: up to current file version: %d\n", finalVersion)
-	return nil
-}
-
-func upWithMissing(
-	db *sql.DB,
-	missingMigrations Migrations,
-	foundMigrations Migrations,
-	dbMigrations Migrations,
-	option *options,
-) error {
-	lookupApplied := make(map[int64]bool)
-	for _, found := range dbMigrations {
-		lookupApplied[found.Version] = true
-	}
-
-	// Apply all missing migrations first.
-	for _, missing := range missingMigrations {
-		if err := missing.Up(db); err != nil {
-			return err
-		}
-		// Apply one migration and return early.
-		if option.applyUpByOne {
-			return nil
-		}
-		// TODO(mf): do we need this check? It's a bit redundant, but we may
-		// want to keep it as a safe-guard. Maybe we should instead have
-		// the underlying query (if possible) return the current version as
-		// part of the same transaction.
-		current, err := GetDBVersion(db)
-		if err != nil {
-			return err
-		}
-		if current == missing.Version {
-			lookupApplied[missing.Version] = true
-			continue
-		}
-		return fmt.Errorf("error: missing migration:%d does not match current db version:%d",
-			current, missing.Version)
-	}
-
-	// We can no longer rely on the database version_id to be sequential because
-	// missing (out-of-order) migrations get applied before newer migrations.
-
-	for _, found := range foundMigrations {
-		// TODO(mf): instead of relying on this lookup, consider hitting
-		// the database directly?
-		// Alternatively, we can skip a bunch migrations and start the cursor
-		// at a version that represents 100% applied migrations. But this is
-		// risky, and we should aim to keep this logic simple.
-		if lookupApplied[found.Version] {
-			continue
-		}
-		if err := found.Up(db); err != nil {
-			return err
-		}
-		if option.applyUpByOne {
-			return nil
-		}
-	}
-	current, err := GetDBVersion(db)
-	if err != nil {
-		return err
-	}
-	// At this point there are no more migrations to apply. But we need to maintain
-	// the following behaviour:
-	// UpByOne returns an error to signifying there are no more migrations.
-	// Up and UpTo return nil
-	log.Printf("goose: no migrations to run. current version: %d\n", current)
-	if option.applyUpByOne {
-		return ErrNoNextVersion
-	}
-	return nil
-}
-
-// Up applies all available migrations.
-func Up(db *sql.DB, dir string, opts ...OptionsFunc) error {
-	return UpTo(db, dir, maxVersion, opts...)
-}
-
-// UpByOne migrates up by a single version.
-func UpByOne(db *sql.DB, dir string, opts ...OptionsFunc) error {
-	opts = append(opts, withApplyUpByOne())
-	return UpTo(db, dir, maxVersion, opts...)
-}
-
-// listAllDBVersions returns a list of all migrations, ordered ascending.
-// TODO(mf): fairly cheap, but a nice-to-have is pagination support.
-func listAllDBVersions(ctx context.Context, db *sql.DB) (Migrations, error) {
-	dbMigrations, err := store.ListMigrations(ctx, db)
+	conn, err := p.db.Conn(ctx)
 	if err != nil {
 		return nil, err
 	}
-	all := make(Migrations, 0, len(dbMigrations))
-	for _, m := range dbMigrations {
-		all = append(all, &Migration{
-			Version: m.VersionID,
-		})
-	}
-	// ListMigrations returns migrations in descending order by id.
-	// But we want to return them in ascending order by version_id, so we re-sort.
-	sort.SliceStable(all, func(i, j int) bool {
-		return all[i].Version < all[j].Version
-	})
-	return all, nil
-}
+	defer conn.Close()
 
-// findMissingMigrations migrations returns all missing migrations.
-// A migrations is considered missing if it has a version less than the
-// current known max version.
-func findMissingMigrations(knownMigrations, newMigrations Migrations) Migrations {
-	max := knownMigrations[len(knownMigrations)-1].Version
-	existing := make(map[int64]bool)
-	for _, known := range knownMigrations {
-		existing[known.Version] = true
+	// feat(mf): this is where a session level advisory lock would be acquired to ensure that only
+	// one goose process is running at a time. Also need to lock the Provider itself with a mutex.
+	// https://github.com/pressly/goose/issues/335
+
+	if p.opt.NoVersioning {
+		return p.runMigrations(ctx, conn, p.migrations, sqlparser.DirectionUp, upByOne)
 	}
-	var missing Migrations
-	for _, new := range newMigrations {
-		if !existing[new.Version] && new.Version < max {
-			missing = append(missing, new)
+
+	if err := p.ensureVersionTable(ctx, conn); err != nil {
+		return nil, err
+	}
+
+	dbMigrations, err := p.store.ListMigrationsConn(ctx, conn)
+	if err != nil {
+		return nil, err
+	}
+	currentVersion := dbMigrations[0].Version
+	// lookupAppliedInDB is a map of all applied migrations in the database.
+	lookupAppliedInDB := make(map[int64]bool)
+	for _, m := range dbMigrations {
+		lookupAppliedInDB[m.Version] = true
+	}
+
+	missingMigrations := findMissingMigrations(dbMigrations, p.migrations)
+
+	// feature(mf): It is very possible someone may want to apply ONLY new migrations and skip
+	// missing migrations entirely. At the moment this is not supported, but leaving this comment
+	// because that's where that logic will be handled.
+	if len(missingMigrations) > 0 && !p.opt.AllowMissing {
+		var collected []string
+		for _, v := range missingMigrations {
+			collected = append(collected, strconv.FormatInt(v, 10))
+		}
+		msg := "migration"
+		if len(collected) > 1 {
+			msg += "s"
+		}
+		return nil, fmt.Errorf("found %d missing %s: %s",
+			len(missingMigrations), msg, strings.Join(collected, ","))
+	}
+
+	var migrationsToApply []*migration
+	if p.opt.AllowMissing {
+		for _, v := range missingMigrations {
+			m, err := p.getMigration(v)
+			if err != nil {
+				return nil, err
+			}
+			migrationsToApply = append(migrationsToApply, m)
 		}
 	}
-	sort.SliceStable(missing, func(i, j int) bool {
-		return missing[i].Version < missing[j].Version
-	})
-	return missing
+	// filter all migrations with a version greater than the supplied version (min) and less than or
+	// equal to the requested version (max).
+	for _, m := range p.migrations {
+		if lookupAppliedInDB[m.version] {
+			continue
+		}
+		if m.version > currentVersion && m.version <= version {
+			migrationsToApply = append(migrationsToApply, m)
+		}
+	}
+	if len(migrationsToApply) == 0 {
+		if upByOne {
+			return nil, ErrNoNextVersion
+		}
+		return nil, nil
+	}
+
+	// feat(mf): this is where can (optionally) group multiple migrations to be run in a single
+	// transaction. The default is to apply each migration sequentially on its own.
+	// https://github.com/pressly/goose/issues/222
+	//
+	// Note, we can't use a single transaction for all migrations because some may have to be run in
+	// their own transaction.
+
+	return p.runMigrations(ctx, conn, migrationsToApply, sqlparser.DirectionUp, upByOne)
 }
