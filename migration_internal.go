@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/fs"
 	"path"
+	"path/filepath"
 	"sort"
 
 	"github.com/pressly/goose/v4/internal/sqlparser"
@@ -101,7 +102,7 @@ func collectMigrations(
 		return nil, err
 	}
 	for _, filename := range sqlFiles {
-		if exclude[filename] {
+		if exclude[filepath.Base(filename)] {
 			continue
 		}
 		version, err := NumericComponent(filename)
@@ -155,7 +156,7 @@ func collectMigrations(
 	}
 
 	for _, goMigration := range registered {
-		if exclude[goMigration.source] {
+		if exclude[filepath.Base(goMigration.source)] {
 			continue
 		}
 		if _, err := NumericComponent(goMigration.source); err != nil {

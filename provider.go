@@ -412,7 +412,7 @@ func checkUnregisteredGoMigrations(
 	}
 	var unregistered []string
 	for _, filename := range goMigrationFiles {
-		if exclude[filename] {
+		if exclude[filepath.Base(filename)] {
 			continue
 		}
 		if strings.HasSuffix(filename, "_test.go") {
