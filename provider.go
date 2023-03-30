@@ -333,19 +333,6 @@ func (p *Provider) Status(ctx context.Context, opts *StatusOptions) ([]*Migratio
 	return status, nil
 }
 
-func (p *Provider) versioned() ([]*migration, error) {
-	var migrations []*migration
-	// assume that the user will never have more than 19700101000000 migrations
-	for _, m := range p.migrations {
-		// parse version as timestamp
-		versionTime, err := time.Parse(timestampFormat, fmt.Sprintf("%d", m.version))
-		if versionTime.Before(time.Unix(0, 0)) || err != nil {
-			migrations = append(migrations, m)
-		}
-	}
-	return migrations, nil
-}
-
 // timestamped gets the timestamped migrations.
 func (p *Provider) timestamped() ([]*migration, error) {
 	var migrations []*migration

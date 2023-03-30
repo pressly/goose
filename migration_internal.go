@@ -64,13 +64,13 @@ func collectMigrations(
 	fsys fs.FS,
 	dir string,
 	debug bool,
-	filenames []string,
+	excludeFilenames []string,
 ) ([]*migration, error) {
 	if _, err := fs.Stat(fsys, dir); errors.Is(err, fs.ErrNotExist) {
 		return nil, fmt.Errorf("directory does not exist: %s", dir)
 	}
-	exclude := make(map[string]bool, len(filenames))
-	for _, v := range filenames {
+	exclude := make(map[string]bool, len(excludeFilenames))
+	for _, v := range excludeFilenames {
 		exclude[v] = true
 	}
 	// Sanity check the directory does not contain versioned Go migrations that have
