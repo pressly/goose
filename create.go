@@ -60,13 +60,7 @@ func Create(
 	version := now.Format(timestampFormat)
 	if opt.Sequential {
 		// TODO(mf): do not parse all the files, no need to do this in this case.
-		migrations, err := collectMigrations(
-			registeredGoMigrations,
-			osFS{},
-			dir,
-			false,
-			nil,
-		)
+		migrations, err := collectMigrations(registeredGoMigrations, osFS{}, dir, false, nil)
 		if err != nil {
 			return "", err
 		}
@@ -74,10 +68,11 @@ func Create(
 		if err != nil {
 			return "", err
 		}
-		version = fmt.Sprintf(seqVersionFormat, 1)
+		var v int64 = 1
 		if len(vMigrations) > 0 {
-			version = fmt.Sprintf(seqVersionFormat, vMigrations[len(vMigrations)-1].version+1)
+			v = vMigrations[len(vMigrations)-1].version + 1
 		}
+		version = fmt.Sprintf(seqVersionFormat, v)
 	}
 	filename := fmt.Sprintf("%v_%v.%v", version, snakeCase(name), string(migrationType))
 

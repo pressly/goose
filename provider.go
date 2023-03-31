@@ -333,24 +333,6 @@ func (p *Provider) Status(ctx context.Context, opts *StatusOptions) ([]*Migratio
 	return status, nil
 }
 
-// timestamped gets the timestamped migrations.
-func (p *Provider) timestamped() ([]*migration, error) {
-	var migrations []*migration
-	// assume that the user will never have more than 19700101000000 migrations
-	for _, m := range p.migrations {
-		// parse version as timestamp
-		versionTime, err := time.Parse(timestampFormat, fmt.Sprintf("%d", m.version))
-		if err != nil {
-			// probably not a timestamp
-			continue
-		}
-		if versionTime.After(time.Unix(0, 0)) {
-			migrations = append(migrations, m)
-		}
-	}
-	return migrations, nil
-}
-
 // findMissingMigrations returns a list of migrations that are missing from the database. A missing
 // migration is one that has a version less than the max version in the database.
 func findMissingMigrations(
