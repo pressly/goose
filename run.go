@@ -27,10 +27,11 @@ func (p *Provider) runMigrations(
 	// state.
 	for _, m := range migrations {
 		if m.migrationType == MigrationTypeSQL && !m.sqlParsed {
-			parsedSQLMigration, err := parseSQL(p.opt.Filesystem, m.source, p.opt.Debug, direction)
+			parsedSQLMigration, err := parseSQL(p.opt.Filesystem, m.source, p.opt.Debug)
 			if err != nil {
 				return nil, err
 			}
+			m.sqlParsed = true
 			m.sqlMigration = parsedSQLMigration
 		}
 	}

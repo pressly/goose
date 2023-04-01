@@ -57,7 +57,11 @@ func (m *migration) getSQLStatements(direction sqlparser.Direction) ([]string, e
 	return m.sqlMigration.upStatements, nil
 }
 
-func parseSQL(fsys fs.FS, filename string, debug bool, d sqlparser.Direction) (*sqlMigration, error) {
+func parseSQL(fsys fs.FS, filename string, debug bool) (*sqlMigration, error) {
+	//  We parse both up and down statements. This is done to ensure that the SQL migration is
+	// valid in both directions.
+	d := sqlparser.DirectionAll
+
 	r, err := fsys.Open(filename)
 	if err != nil {
 		return nil, err
