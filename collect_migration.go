@@ -31,7 +31,7 @@ type migration struct {
 	// Note, the sqlParsed field is used to determine if the SQL migration has been parsed. This is
 	// done to avoid parsing the SQL migration if it is never needed (e.g. the user is running a Go
 	// migration). Also, the majority of the time migrations are incremental, so it is likely that
-	// the user will only want to run the last few migrations, and there is not need to parse ALL
+	// the user will only want to run the last few migrations, and there is no need to parse ALL
 	// previous migrations.
 	goMigration *goMigration
 
