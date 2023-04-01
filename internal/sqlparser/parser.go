@@ -14,6 +14,7 @@ import (
 type Direction string
 
 const (
+	DirectionAll  Direction = "all"
 	DirectionUp   Direction = "up"
 	DirectionDown Direction = "down"
 )

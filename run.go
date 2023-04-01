@@ -22,6 +22,19 @@ func (p *Provider) runMigrations(
 	if byOne {
 		length = 1
 	}
+	// Lazy parse SQL migrations (if any). We do this before running any migrations so that we can
+	// fail fast if there are any errors and avoid leaving the database in a partially migrated
+	// state.
+	for _, m := range migrations {
+		if m.migrationType == MigrationTypeSQL && !m.sqlParsed {
+			parsedSQLMigration, err := parseSQL(p.opt.Filesystem, m.source, p.opt.Debug)
+			if err != nil {
+				return nil, err
+			}
+			m.sqlParsed = true
+			m.sqlMigration = parsedSQLMigration
+		}
+	}
 	results := make([]*MigrationResult, 0, length)
 	for _, m := range migrations {
 		start := time.Now()
@@ -134,7 +147,10 @@ func (p *Provider) runSQLBeginTx(
 	m *migration,
 ) error {
 	return p.beginTx(ctx, conn, direction, m.version, func(tx *sql.Tx) error {
-		statements := m.getSQLStatements(direction)
+		statements, err := m.getSQLStatements(direction)
+		if err != nil {
+			return err
+		}
 		for _, query := range statements {
 			if _, err := tx.ExecContext(ctx, query); err != nil {
 				return err
@@ -150,7 +166,10 @@ func (p *Provider) runSQLNoTx(
 	direction sqlparser.Direction,
 	m *migration,
 ) error {
-	statements := m.getSQLStatements(direction)
+	statements, err := m.getSQLStatements(direction)
+	if err != nil {
+		return err
+	}
 	for _, query := range statements {
 		if _, err := conn.ExecContext(ctx, query); err != nil {
 			return err
