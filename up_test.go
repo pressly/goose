@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/pressly/goose/v4/internal/check"
-	"github.com/pressly/goose/v4/internal/dialect"
+	"github.com/pressly/goose/v4/internal/dialectadapter"
 )
 
 func TestFindMissingMigrations(t *testing.T) {
@@ -14,7 +14,7 @@ func TestFindMissingMigrations(t *testing.T) {
 	// Missing migrations: 2, 6
 	// Filesystem has migrations 1, 2, 3, 4, 5, 6, 7, 8
 
-	dbMigrations := []*dialect.ListMigrationsResult{
+	dbMigrations := []*dialectadapter.ListMigrationsResult{
 		{Version: 1},
 		{Version: 3},
 		{Version: 4},

@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/pressly/goose/v4/internal/sqlparser"
@@ -39,8 +40,8 @@ type migration struct {
 	sqlMigration *sqlMigration
 }
 
-func (m *migration) toMigration() Migration {
-	return Migration{
+func (m *migration) toMigration() *Migration {
+	return &Migration{
 		Type:    m.migrationType,
 		Source:  m.source,
 		Version: m.version,
@@ -227,4 +228,27 @@ type sqlMigration struct {
 	useTx          bool
 	upStatements   []string
 	downStatements []string
+}
+
+// NumericComponent parses the version from the migration file name.
+//
+// XXX_descriptivename.ext where XXX specifies the version number and ext specifies the type of
+// migration, either .sql or .go.
+func NumericComponent(name string) (int64, error) {
+	base := filepath.Base(name)
+	if ext := filepath.Ext(base); ext != ".go" && ext != ".sql" {
+		return 0, errors.New("migration file does not have .sql or .go file extension")
+	}
+	idx := strings.Index(base, "_")
+	if idx < 0 {
+		return 0, errors.New("no filename separator '_' found")
+	}
+	n, err := strconv.ParseInt(base[:idx], 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse version: %w", err)
+	}
+	if n < 1 {
+		return 0, errors.New("migration version must be greater than zero")
+	}
+	return n, nil
 }

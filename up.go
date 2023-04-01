@@ -3,11 +3,42 @@ package goose
 import (
 	"context"
 	"fmt"
+	"math"
+	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/pressly/goose/v4/internal/dialectadapter"
 	"github.com/pressly/goose/v4/internal/sqlparser"
 )
+
+// Up applies all available migrations. If there are no migrations to apply, this method returns
+// empty list and nil error.
+func (p *Provider) Up(ctx context.Context) ([]*MigrationResult, error) {
+	return p.up(ctx, false, math.MaxInt64)
+}
+
+// UpByOne applies the next available migration. If there are no migrations to apply, this method
+// returns ErrNoNextVersion.
+func (p *Provider) UpByOne(ctx context.Context) (*MigrationResult, error) {
+	res, err := p.up(ctx, true, math.MaxInt64)
+	if err != nil {
+		return nil, err
+	}
+	if len(res) == 0 {
+		return nil, ErrNoNextVersion
+	}
+	return res[0], nil
+}
+
+// UpTo applies all available migrations up to and including the specified version. If there are no
+// migrations to apply, this method returns empty list and nil error.
+//
+// For example, suppose there are 3 new migrations available 9, 10, 11. The current database version
+// is 8 and the requested version is 10. In this scenario only versions 9 and 10 will be applied.
+func (p *Provider) UpTo(ctx context.Context, version int64) ([]*MigrationResult, error) {
+	return p.up(ctx, false, version)
+}
 
 func (p *Provider) up(ctx context.Context, upByOne bool, version int64) ([]*MigrationResult, error) {
 	if version < 1 {
@@ -96,4 +127,30 @@ func (p *Provider) up(ctx context.Context, upByOne bool, version int64) ([]*Migr
 	// their own transaction.
 
 	return p.runMigrations(ctx, conn, migrationsToApply, sqlparser.DirectionUp, upByOne)
+}
+
+// findMissingMigrations returns a list of migrations that are missing from the database. A missing
+// migration is one that has a version less than the max version in the database.
+func findMissingMigrations(
+	dbMigrations []*dialectadapter.ListMigrationsResult,
+	fsMigrations []*migration,
+) []int64 {
+	existing := make(map[int64]bool)
+	var max int64
+	for _, m := range dbMigrations {
+		existing[m.Version] = true
+		if m.Version > max {
+			max = m.Version
+		}
+	}
+	var missing []int64
+	for _, m := range fsMigrations {
+		if !existing[m.version] && m.version < max {
+			missing = append(missing, m.version)
+		}
+	}
+	sort.Slice(missing, func(i, j int) bool {
+		return missing[i] < missing[j]
+	})
+	return missing
 }

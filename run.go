@@ -11,6 +11,12 @@ import (
 	"go.uber.org/multierr"
 )
 
+// MigrationResult is the result of a successful migration operation.
+type MigrationResult struct {
+	Migration *Migration
+	Duration  time.Duration
+}
+
 func (p *Provider) runMigrations(
 	ctx context.Context,
 	conn *sql.Conn,

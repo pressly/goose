@@ -1,4 +1,4 @@
-package dialect
+package dialectadapter
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pressly/goose/v4/internal/dialect/dialectquery"
+	"github.com/pressly/goose/v4/internal/dialectadapter/dialectquery"
 )
 
 // EXPERIMENTAL: This is an experimental feature and may change in the future.

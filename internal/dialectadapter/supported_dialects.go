@@ -1,4 +1,4 @@
-package dialect
+package dialectadapter
 
 // Dialect is the type of database dialect.
 type Dialect string

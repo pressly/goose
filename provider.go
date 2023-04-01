@@ -5,14 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"math"
-	"path/filepath"
-	"sort"
-	"strconv"
 	"strings"
-	"time"
 
-	"github.com/pressly/goose/v4/internal/dialect"
+	"github.com/pressly/goose/v4/internal/dialectadapter"
 	"github.com/pressly/goose/v4/internal/sqlparser"
 )
 
@@ -22,13 +17,9 @@ const (
 
 type Provider struct {
 	db         *sql.DB
-	store      dialect.Store
+	store      dialectadapter.Store
 	opt        Options
 	migrations []*migration
-	// feat(mf): this is where we can store the migrations in a map instead of a slice. This will
-	// speed up the lookup of migrations by version.
-	//
-	// versions      []int64 versionToMigration map[int64]*migration
 }
 
 func NewProvider(dbDialect Dialect, db *sql.DB, opt Options) (*Provider, error) {
@@ -44,16 +35,10 @@ func NewProvider(dbDialect Dialect, db *sql.DB, opt Options) (*Provider, error) 
 	if db == nil {
 		return nil, errors.New("db cannot be nil")
 	}
-	if opt.Dir == "" {
-		return nil, errors.New("dir cannot be empty")
+	if err := validateMandatoryOptions(opt); err != nil {
+		return nil, err
 	}
-	if opt.TableName == "" {
-		return nil, errors.New("table name cannot be empty")
-	}
-	if opt.Filesystem == nil {
-		return nil, errors.New("filesystem cannot be nil")
-	}
-	store, err := dialect.NewStore(internalDialect, opt.TableName)
+	store, err := dialectadapter.NewStore(internalDialect, opt.TableName)
 	if err != nil {
 		return nil, err
 	}
@@ -75,184 +60,12 @@ func NewProvider(dbDialect Dialect, db *sql.DB, opt Options) (*Provider, error) 
 	}, nil
 }
 
-func (p *Provider) ListMigrations() []Migration {
-	migrations := make([]Migration, 0, len(p.migrations))
+func (p *Provider) ListMigrations() []*Migration {
+	migrations := make([]*Migration, 0, len(p.migrations))
 	for _, m := range p.migrations {
 		migrations = append(migrations, m.toMigration())
 	}
 	return migrations
-}
-
-type Dialect string
-
-const (
-	DialectPostgres   Dialect = "postgres"
-	DialectMySQL      Dialect = "mysql"
-	DialectSQLite3    Dialect = "sqlite3"
-	DialectMSSQL      Dialect = "mssql"
-	DialectRedshift   Dialect = "redshift"
-	DialectTiDB       Dialect = "tidb"
-	DialectClickHouse Dialect = "clickhouse"
-	DialectVertica    Dialect = "vertica"
-)
-
-var dialectLookup = map[Dialect]dialect.Dialect{
-	DialectPostgres:   dialect.Postgres,
-	DialectMySQL:      dialect.Mysql,
-	DialectSQLite3:    dialect.Sqlite3,
-	DialectMSSQL:      dialect.Sqlserver,
-	DialectRedshift:   dialect.Redshift,
-	DialectTiDB:       dialect.Tidb,
-	DialectClickHouse: dialect.Clickhouse,
-	DialectVertica:    dialect.Vertica,
-}
-
-// MigrationResult is the result of a successful migration operation.
-type MigrationResult struct {
-	Migration Migration
-	Duration  time.Duration
-}
-
-// Up applies all available migrations. If there are no migrations to apply, this method returns
-// empty list and nil error.
-func (p *Provider) Up(ctx context.Context) ([]*MigrationResult, error) {
-	return p.up(ctx, false, math.MaxInt64)
-}
-
-// UpByOne applies the next available migration. If there are no migrations to apply, this method
-// returns ErrNoNextVersion.
-func (p *Provider) UpByOne(ctx context.Context) (*MigrationResult, error) {
-	res, err := p.up(ctx, true, math.MaxInt64)
-	if err != nil {
-		return nil, err
-	}
-	if len(res) == 0 {
-		return nil, ErrNoNextVersion
-	}
-	return res[0], nil
-}
-
-// UpTo applies all available migrations up to and including the specified version. If there are no
-// migrations to apply, this method returns empty list and nil error.
-//
-// For example, suppose there are 3 new migrations available 9, 10, 11. The current database version
-// is 8 and the requested version is 10. In this scenario only versions 9 and 10 will be applied.
-func (p *Provider) UpTo(ctx context.Context, version int64) ([]*MigrationResult, error) {
-	return p.up(ctx, false, version)
-}
-
-// ApplyVersion applies exactly one migration at the specified version. If a migration cannot be
-// found for the specified version, this method returns ErrNoCurrentVersion. If the migration has
-// been applied already, this method returns ErrAlreadyApplied.
-//
-// If the direction is true, the migration will be applied. If the direction is false, the migration
-// will be rolled back.
-func (p *Provider) ApplyVersion(ctx context.Context, version int64, direction bool) (*MigrationResult, error) {
-	m, err := p.getMigration(version)
-	if err != nil {
-		return nil, err
-	}
-	conn, err := p.db.Conn(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer conn.Close()
-
-	if err := p.ensureVersionTable(ctx, conn); err != nil {
-		return nil, err
-	}
-
-	result, err := p.store.GetMigration(ctx, conn, version)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return nil, err
-	}
-	if result != nil {
-		return nil, ErrAlreadyApplied
-	}
-
-	d := sqlparser.DirectionDown
-	if direction {
-		d = sqlparser.DirectionUp
-	}
-	results, err := p.runMigrations(ctx, conn, []*migration{m}, d, true)
-	if err != nil {
-		return nil, err
-	}
-	if len(results) == 0 {
-		return nil, ErrAlreadyApplied
-	}
-	return results[0], nil
-}
-
-// Down rolls back the most recently applied migration.
-//
-// If using out-of-order migrations, this method will roll back the most recently applied migration
-// that was applied out-of-order. ???
-func (p *Provider) Down(ctx context.Context) (*MigrationResult, error) {
-	res, err := p.down(ctx, true, 0)
-	if err != nil {
-		return nil, err
-	}
-	if len(res) == 0 {
-		return nil, ErrNoCurrentVersion
-	}
-	return res[0], nil
-}
-
-// DownTo rolls back all migrations down to but not including the specified version.
-//
-// For example, suppose we are currently at migrations 11 and the requested version is 9. In this
-// scenario only migrations 11 and 10 will be rolled back.
-func (p *Provider) DownTo(ctx context.Context, version int64) ([]*MigrationResult, error) {
-	return p.down(ctx, false, version)
-}
-
-// GetDBVersion retrieves the current database version.
-func (p *Provider) GetDBVersion(ctx context.Context) (int64, error) {
-	conn, err := p.db.Conn(ctx)
-	if err != nil {
-		return 0, err
-	}
-	defer conn.Close()
-
-	if err := p.ensureVersionTable(ctx, conn); err != nil {
-		return 0, err
-	}
-	res, err := p.store.ListMigrationsConn(ctx, conn)
-	if err != nil {
-		return 0, err
-	}
-	if len(res) == 0 {
-		return 0, nil
-	}
-	return res[0].Version, nil
-}
-
-type RedoResult struct {
-	DownResult *MigrationResult
-	UpResult   *MigrationResult
-}
-
-// Redo rolls back the most recently applied migration, then runs it again.
-func (p *Provider) Redo(ctx context.Context) (*RedoResult, error) {
-	// feat(mf): lock the database to prevent concurrent migrations.
-	downResult, err := p.Down(ctx)
-	if err != nil {
-		return nil, err
-	}
-	upResult, err := p.UpByOne(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return &RedoResult{
-		DownResult: downResult,
-		UpResult:   upResult,
-	}, nil
-}
-
-// Reset rolls back all migrations. It is an alias for DownTo(0).
-func (p *Provider) Reset(ctx context.Context) ([]*MigrationResult, error) {
-	return p.DownTo(ctx, 0)
 }
 
 // Ping attempts to ping the database to verify a connection is available.
@@ -263,87 +76,6 @@ func (p *Provider) Ping(ctx context.Context) error {
 // Close closes the database connection.
 func (p *Provider) Close() error {
 	return p.db.Close()
-}
-
-type MigrationStatus struct {
-	Applied   bool
-	AppliedAt time.Time
-	Migration Migration
-}
-
-type StatusOptions struct {
-	// IncludeNilMigrations will include a migration status for a record in the database but not in
-	// the filesystem. This is common when migration files are squashed and replaced with a single
-	// migration file referencing a version that has already been applied, such as
-	// 00001_squashed.go.
-	// includeNilMigrations bool
-
-	// Limit limits the number of migrations returned. Default is 0, which means no limit.
-	// limit int
-	// Sort order possible values are: ASC and DESC. Default is ASC.
-	// order string
-}
-
-// Status returns the status of all migrations. The returned slice is ordered by ascending version.
-//
-// The provided StatusOptions is optional and may be nil if defaults should be used.
-func (p *Provider) Status(ctx context.Context, opts *StatusOptions) ([]*MigrationStatus, error) {
-	conn, err := p.db.Conn(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer conn.Close()
-
-	if err := p.ensureVersionTable(ctx, conn); err != nil {
-		return nil, err
-	}
-
-	// TODO(mf): add support for limit and order. Also would be nice to refactor the list query to
-	// support limiting the set.
-
-	status := make([]*MigrationStatus, 0, len(p.migrations))
-	for _, m := range p.migrations {
-		migrationStatus := &MigrationStatus{
-			Migration: m.toMigration(),
-		}
-		dbResult, err := p.store.GetMigration(ctx, conn, m.version)
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return nil, err
-		}
-		if dbResult != nil {
-			migrationStatus.Applied = true
-			migrationStatus.AppliedAt = dbResult.Timestamp
-		}
-		status = append(status, migrationStatus)
-	}
-
-	return status, nil
-}
-
-// findMissingMigrations returns a list of migrations that are missing from the database. A missing
-// migration is one that has a version less than the max version in the database.
-func findMissingMigrations(
-	dbMigrations []*dialect.ListMigrationsResult,
-	fsMigrations []*migration,
-) []int64 {
-	existing := make(map[int64]bool)
-	var max int64
-	for _, m := range dbMigrations {
-		existing[m.Version] = true
-		if m.Version > max {
-			max = m.Version
-		}
-	}
-	var missing []int64
-	for _, m := range fsMigrations {
-		if !existing[m.version] && m.version < max {
-			missing = append(missing, m.version)
-		}
-	}
-	sort.Slice(missing, func(i, j int) bool {
-		return missing[i] < missing[j]
-	})
-	return missing
 }
 
 // getMigration returns the migration with the given version. If no migration is found, then
@@ -369,25 +101,15 @@ func (p *Provider) ensureVersionTable(ctx context.Context, conn *sql.Conn) (retE
 	})
 }
 
-// NumericComponent parses the version from the migration file name.
-//
-// XXX_descriptivename.ext where XXX specifies the version number and ext specifies the type of
-// migration, either .sql or .go.
-func NumericComponent(name string) (int64, error) {
-	base := filepath.Base(name)
-	if ext := filepath.Ext(base); ext != ".go" && ext != ".sql" {
-		return 0, errors.New("migration file does not have .sql or .go file extension")
+func validateMandatoryOptions(opt Options) error {
+	if opt.Dir == "" {
+		return errors.New("dir cannot be empty")
 	}
-	idx := strings.Index(base, "_")
-	if idx < 0 {
-		return 0, errors.New("no filename separator '_' found")
+	if opt.TableName == "" {
+		return errors.New("table name cannot be empty")
 	}
-	n, err := strconv.ParseInt(base[:idx], 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("failed to parse version: %w", err)
+	if opt.Filesystem == nil {
+		return errors.New("filesystem cannot be nil")
 	}
-	if n < 1 {
-		return 0, errors.New("migration version must be greater than zero")
-	}
-	return n, nil
+	return nil
 }
