@@ -37,7 +37,6 @@ type Options struct {
 	ExcludeFilenames []string
 
 	// Unimplemented.
-	lazyParsing bool
 }
 
 func DefaultOptions() Options {

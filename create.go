@@ -54,13 +54,10 @@ func Create(
 	now := time.Now()
 	if opt.timeFunc != nil {
 		now = opt.timeFunc()
-	} else {
-		now = time.Now()
 	}
 	version := now.Format(timestampFormat)
 	if opt.Sequential {
-		// TODO(mf): do not parse all the files, no need to do this in this case.
-		migrations, err := collectMigrations(registeredGoMigrations, osFS{}, dir, false, nil)
+		migrations, err := collectMigrations(osFS{}, dir, nil, false)
 		if err != nil {
 			return "", err
 		}

@@ -5,9 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"io/fs"
 	"math"
-	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -59,22 +57,11 @@ func NewProvider(dbDialect Dialect, db *sql.DB, opt Options) (*Provider, error) 
 	if err != nil {
 		return nil, err
 	}
-
-	// feat(mf): the provider does not need to parse all the sql files on startup, they can be lazy
-	// loaded when an operation is invoked. This will speed up initialization time, but may cause
-	// issues if the sql files are malformed.
-	//
-	// There is probably an optimization in the operation itself where we look ahead and parse only
-	// the required files. That way we don't end up in a situation where we commit migrations only
-	// to discover half way through that there is a SQL parsing error. This partially addresses a
-	// case where a migration is applied, but the next migration fails.
-	// https://github.com/pressly/goose/issues/222
 	migrations, err := collectMigrations(
-		registeredGoMigrations,
 		opt.Filesystem,
 		opt.Dir,
-		opt.Debug,
 		opt.ExcludeFilenames,
+		opt.Debug,
 	)
 	if err != nil {
 		return nil, err
@@ -382,66 +369,12 @@ func (p *Provider) ensureVersionTable(ctx context.Context, conn *sql.Conn) (retE
 	})
 }
 
-func checkUnregisteredGoMigrations(
-	fsys fs.FS,
-	dir string,
-	registered map[int64]*migration,
-	exclude map[string]bool,
-) error {
-	goMigrationFiles, err := fs.Glob(fsys, path.Join(dir, "*.go"))
-	if err != nil {
-		return err
-	}
-	var unregistered []string
-	for _, filename := range goMigrationFiles {
-		if exclude[filepath.Base(filename)] {
-			continue
-		}
-		if strings.HasSuffix(filename, "_test.go") {
-			continue // Skip Go test files.
-		}
-		version, err := NumericComponent(filename)
-		if err != nil {
-			continue
-		}
-		// Success, skip version because it has already been registered via AddMigration or
-		// AddMigrationNoTx.
-		if _, ok := registered[version]; ok {
-			continue
-		}
-		unregistered = append(unregistered, filename)
-	}
-	// Success, all Go migration files have been registered.
-	if len(unregistered) == 0 {
-		return nil
-	}
-
-	f := "file"
-	if len(unregistered) > 1 {
-		f += "s"
-	}
-	var b strings.Builder
-
-	b.WriteString(fmt.Sprintf("error: detected %d unregistered Go %s:\n", len(unregistered), f))
-	for _, name := range unregistered {
-		b.WriteString("\t" + name + "\n")
-	}
-	b.WriteString("\n")
-	b.WriteString("go functions must be registered and built into a custom binary see:\nhttps://github.com/pressly/goose/tree/master/examples/go-migrations")
-
-	return errors.New(b.String())
-}
-
 // NumericComponent parses the version from the migration file name.
 //
 // XXX_descriptivename.ext where XXX specifies the version number and ext specifies the type of
 // migration, either .sql or .go.
 func NumericComponent(name string) (int64, error) {
 	base := filepath.Base(name)
-	// TODO(mf): should we silently ignore non .sql and .go files? Potentially adding an -ignore or
-	// -exlude flag
-	//
-	// https://github.com/pressly/goose/issues/331#issuecomment-1101556360
 	if ext := filepath.Ext(base); ext != ".go" && ext != ".sql" {
 		return 0, errors.New("migration file does not have .sql or .go file extension")
 	}

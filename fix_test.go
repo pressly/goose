@@ -1,7 +1,6 @@
 package goose
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -18,7 +17,7 @@ func TestFix(t *testing.T) {
 	seed := []string{
 		"00001_create_users_table.sql",
 		"00002_add_lots_of_users.sql",
-		"00003_backfill_emails.go",
+		// 00003 is missing
 		"00004_insert_a_bunch_of_data.go",
 		"20000210231205_create_users_table.sql",
 		"20010210231205_add_lots_of_users.sql",
@@ -34,7 +33,36 @@ func TestFix(t *testing.T) {
 		}
 	}
 
-	out, err := Fix(dir)
+	res, err := Fix(dir)
 	check.NoError(t, err)
-	fmt.Println(out)
+	check.Number(t, len(res), 4)
+
+	want := []struct {
+		wantOld string
+		wantNew string
+	}{
+		{
+			wantOld: "20000210231205_create_users_table.sql",
+			wantNew: "00005_create_users_table.sql",
+		},
+		{
+			wantOld: "20010210231205_add_lots_of_users.sql",
+			wantNew: "00006_add_lots_of_users.sql",
+		},
+		{
+			wantOld: "20020210231205_backfill_emails.go",
+			wantNew: "00007_backfill_emails.go",
+		},
+		{
+			wantOld: "20030210231205_insert_a_bunch_of_data.go",
+			wantNew: "00008_insert_a_bunch_of_data.go",
+		},
+	}
+
+	for i := range res {
+		wantOld := filepath.Join(dir, want[i].wantOld)
+		wantNew := filepath.Join(dir, want[i].wantNew)
+		check.Equal(t, res[i].OldPath, wantOld)
+		check.Equal(t, res[i].NewPath, wantNew)
+	}
 }

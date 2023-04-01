@@ -17,8 +17,7 @@ func Fix(dir string) ([]FixResult, error) {
 	if dir == "" {
 		return nil, fmt.Errorf("dir is required")
 	}
-	// TODO(mf): do not parse all the files, no need to do this in this case.
-	migrations, err := collectMigrations(registeredGoMigrations, osFS{}, dir, false, nil)
+	migrations, err := collectMigrations(osFS{}, dir, nil, false)
 	if err != nil {
 		return nil, err
 	}
@@ -51,8 +50,8 @@ func Fix(dir string) ([]FixResult, error) {
 			return nil, err
 		}
 		results = append(results, FixResult{
-			oldPath,
-			newPath,
+			OldPath: oldPath,
+			NewPath: newPath,
 		})
 		version++
 	}

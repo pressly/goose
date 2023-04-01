@@ -70,7 +70,7 @@ func TestSequential(t *testing.T) {
 		if tc.typ == MigrationTypeGo {
 			// Must register the migration to avoid an error:
 			// "go functions must be registered and built into a custom binary..."
-			err = register(filepath.Base(filename), tc.opt.NoTx, nil, nil, nil, nil)
+			err := register(filepath.Base(filename), tc.opt.NoTx, nil, nil, nil, nil)
 			check.NoError(t, err)
 		}
 	}

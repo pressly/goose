@@ -22,6 +22,18 @@ func (p *Provider) runMigrations(
 	if byOne {
 		length = 1
 	}
+	// Lazy parse SQL migrations (if any). We do this before running any migrations so that we can
+	// fail fast if there are any errors and avoid leaving the database in a partially migrated
+	// state.
+	for _, m := range migrations {
+		if m.migrationType == MigrationTypeSQL && !m.sqlParsed {
+			parsedSQLMigration, err := parseSQL(p.opt.Filesystem, m.source, p.opt.Debug, direction)
+			if err != nil {
+				return nil, err
+			}
+			m.sqlMigration = parsedSQLMigration
+		}
+	}
 	results := make([]*MigrationResult, 0, length)
 	for _, m := range migrations {
 		start := time.Now()
