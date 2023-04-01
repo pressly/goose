@@ -12,8 +12,10 @@ import (
 )
 
 func TestSequential(t *testing.T) {
-	t.Parallel()
-
+	t.Cleanup(func() {
+		// Reset the global state.
+		registeredGoMigrations = make(map[int64]*migration)
+	})
 	dir := t.TempDir()
 
 	tt := []struct {
