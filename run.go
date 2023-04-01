@@ -146,7 +146,10 @@ func (p *Provider) runSQLBeginTx(
 	m *migration,
 ) error {
 	return p.beginTx(ctx, conn, direction, m.version, func(tx *sql.Tx) error {
-		statements := m.getSQLStatements(direction)
+		statements, err := m.getSQLStatements(direction)
+		if err != nil {
+			return err
+		}
 		for _, query := range statements {
 			if _, err := tx.ExecContext(ctx, query); err != nil {
 				return err
@@ -162,7 +165,10 @@ func (p *Provider) runSQLNoTx(
 	direction sqlparser.Direction,
 	m *migration,
 ) error {
-	statements := m.getSQLStatements(direction)
+	statements, err := m.getSQLStatements(direction)
+	if err != nil {
+		return err
+	}
 	for _, query := range statements {
 		if _, err := conn.ExecContext(ctx, query); err != nil {
 			return err

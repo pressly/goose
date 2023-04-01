@@ -4,8 +4,6 @@ import (
 	std "log"
 )
 
-var log Logger = &stdLogger{}
-
 // Logger is standard logger interface
 type Logger interface {
 	Fatal(v ...interface{})
@@ -13,11 +11,6 @@ type Logger interface {
 	Print(v ...interface{})
 	Println(v ...interface{})
 	Printf(format string, v ...interface{})
-}
-
-// SetLogger sets the logger for package output
-func SetLogger(l Logger) {
-	log = l
 }
 
 // stdLogger is a default logger that outputs to a stdlib's log.std logger.

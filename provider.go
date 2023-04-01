@@ -276,12 +276,12 @@ type StatusOptions struct {
 	// the filesystem. This is common when migration files are squashed and replaced with a single
 	// migration file referencing a version that has already been applied, such as
 	// 00001_squashed.go.
-	includeNilMigrations bool
+	// includeNilMigrations bool
 
 	// Limit limits the number of migrations returned. Default is 0, which means no limit.
-	limit int
+	// limit int
 	// Sort order possible values are: ASC and DESC. Default is ASC.
-	order string
+	// order string
 }
 
 // Status returns the status of all migrations. The returned slice is ordered by ascending version.

@@ -29,10 +29,10 @@ type migration struct {
 	// field is used to determine which one is set.
 	//
 	// Note, the sqlParsed field is used to determine if the SQL migration has been parsed. This is
-	// done to avoid parsing the SQL migration if it is never needed (e.g. if the user only wants to
-	// run Go migrations). The majority of the times migrations are incremental, so it is likely
-	// that the user will only want to run the last few migrations, and there is not need to parse
-	// the previous migrations. Or if the user only wants to run Go migrations.
+	// done to avoid parsing the SQL migration if it is never needed (e.g. the user is running a Go
+	// migration). Also, the majority of the time migrations are incremental, so it is likely that
+	// the user will only want to run the last few migrations, and there is not need to parse ALL
+	// previous migrations.
 	goMigration *goMigration
 
 	sqlParsed    bool
@@ -47,11 +47,14 @@ func (m *migration) toMigration() Migration {
 	}
 }
 
-func (m *migration) getSQLStatements(direction sqlparser.Direction) []string {
-	if direction == sqlparser.DirectionDown {
-		return m.sqlMigration.downStatements
+func (m *migration) getSQLStatements(direction sqlparser.Direction) ([]string, error) {
+	if !m.sqlParsed || m.sqlMigration == nil {
+		return nil, errors.New("SQL migration has not been parsed")
 	}
-	return m.sqlMigration.upStatements
+	if direction == sqlparser.DirectionDown {
+		return m.sqlMigration.downStatements, nil
+	}
+	return m.sqlMigration.upStatements, nil
 }
 
 func parseSQL(fsys fs.FS, filename string, debug bool, d sqlparser.Direction) (*sqlMigration, error) {
