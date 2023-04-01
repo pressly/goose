@@ -25,8 +25,9 @@ type Options struct {
 	Filesystem fs.FS
 
 	// Commonly modified options.
-	Logger  Logger
-	Verbose bool
+	Logger   Logger
+	Verbose  bool
+	LockMode LockMode
 
 	// Features.
 	AllowMissing bool
@@ -132,5 +133,39 @@ func (o Options) SetDebug(b bool) Options {
 // Default: include all migrations.
 func (o Options) SetExcludeFilenames(filenames ...string) Options {
 	o.ExcludeFilenames = filenames
+	return o
+}
+
+type LockMode int
+
+const (
+	LockModeNone LockMode = iota
+	LockModeAdvisorySession
+	LockModeAdvisoryTransaction
+	LockModeFile
+)
+
+func (l LockMode) String() string {
+	switch l {
+	case LockModeNone:
+		return "none"
+	case LockModeAdvisorySession:
+		return "advisory-session"
+	case LockModeAdvisoryTransaction:
+		return "advisory-transaction"
+	case LockModeFile:
+		return "file"
+	default:
+		return "unknown"
+	}
+}
+
+// SetLockMode returns a new Options value with LockMode set to the given value. LockMode is the
+// locking mode to use when applying migrations. Locking is used to prevent multiple instances of
+// goose from applying migrations concurrently.
+//
+// Default: LockModeNone
+func (o Options) SetLockMode(m LockMode) Options {
+	o.LockMode = m
 	return o
 }

@@ -51,7 +51,7 @@ docker-start-postgres:
 		-l goose_test \
 		postgres:14-alpine -c log_statement=all
 
-comments:
+todo:
 	rg --type go --ignore-case '//.*(todo|feat)\('
 
 gh-links:

@@ -10,6 +10,7 @@ import (
 
 	"github.com/pressly/goose/v4/internal/dialectadapter"
 	"github.com/pressly/goose/v4/internal/sqlparser"
+	"go.uber.org/multierr"
 )
 
 // Up applies all available migrations. If there are no migrations to apply, this method returns
@@ -40,27 +41,25 @@ func (p *Provider) UpTo(ctx context.Context, version int64) ([]*MigrationResult,
 	return p.up(ctx, false, version)
 }
 
-func (p *Provider) up(ctx context.Context, upByOne bool, version int64) ([]*MigrationResult, error) {
+func (p *Provider) up(ctx context.Context, upByOne bool, version int64) (_ []*MigrationResult, retErr error) {
 	if version < 1 {
 		return nil, fmt.Errorf("version must be a number greater than zero: %d", version)
 	}
 
-	conn, err := p.db.Conn(ctx)
+	conn, cleanup, err := p.initialize(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
-
-	// feat(mf): this is where a session level advisory lock would be acquired to ensure that only
-	// one goose process is running at a time. Also need to lock the Provider itself with a mutex.
-	// https://github.com/pressly/goose/issues/335
+	defer func() {
+		retErr = multierr.Append(retErr, cleanup())
+	}()
+	// Ensure version table exists.
+	if err := p.ensureVersionTable(ctx, conn); err != nil {
+		return nil, err
+	}
 
 	if p.opt.NoVersioning {
 		return p.runMigrations(ctx, conn, p.migrations, sqlparser.DirectionUp, upByOne)
-	}
-
-	if err := p.ensureVersionTable(ctx, conn); err != nil {
-		return nil, err
 	}
 
 	dbMigrations, err := p.store.ListMigrationsConn(ctx, conn)
