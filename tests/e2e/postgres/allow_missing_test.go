@@ -205,9 +205,8 @@ func TestAllowMissingUpWithReset(t *testing.T) {
 
 		current, err := p.GetDBVersion(ctx)
 		check.NoError(t, err)
-		maxVersionID := all[len(all)-1].Version
 		// Expecting max(version_id) to be highest version in testdata
-		check.Number(t, current, maxVersionID)
+		check.Number(t, current, p.GetLastVersion())
 	}
 	// Migrate everything down using Reset.
 	{

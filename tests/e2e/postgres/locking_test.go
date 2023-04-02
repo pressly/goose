@@ -30,7 +30,7 @@ func TestLockModeAdvisorySession(t *testing.T) {
 	check.NoError(t, err)
 
 	migrations := provider1.ListMigrations()
-	wantVersion := migrations[len(migrations)-1].Version
+	maxVersion := provider1.GetLastVersion()
 
 	// Since the lock mode is advisory session, only one of these providers is expected to apply ALL
 	// the migrations. The other provider should apply NO migrations. The test MUST fail if both
@@ -46,7 +46,7 @@ func TestLockModeAdvisorySession(t *testing.T) {
 			res1 = len(results)
 			currentVersion, err := provider1.GetDBVersion(ctx)
 			check.NoError(t, err)
-			check.Number(t, currentVersion, wantVersion)
+			check.Number(t, currentVersion, maxVersion)
 			return nil
 		})
 		g.Go(func() error {
@@ -56,7 +56,7 @@ func TestLockModeAdvisorySession(t *testing.T) {
 			res2 = len(results)
 			currentVersion, err := provider2.GetDBVersion(ctx)
 			check.NoError(t, err)
-			check.Number(t, currentVersion, wantVersion)
+			check.Number(t, currentVersion, maxVersion)
 			return nil
 		})
 		check.NoError(t, g.Wait())
@@ -131,7 +131,7 @@ func TestLockModeAdvisorySession(t *testing.T) {
 		check.NoError(t, err)
 		currentVersion, err := provider1.GetDBVersion(context.Background())
 		check.NoError(t, err)
-		check.Number(t, currentVersion, wantVersion)
+		check.Number(t, currentVersion, maxVersion)
 	}
 
 	t.Run("down_to", func(t *testing.T) {
@@ -174,7 +174,7 @@ func TestLockModeAdvisorySession(t *testing.T) {
 		check.NoError(t, err)
 		currentVersion, err := provider1.GetDBVersion(context.Background())
 		check.NoError(t, err)
-		check.Number(t, currentVersion, wantVersion)
+		check.Number(t, currentVersion, maxVersion)
 	}
 
 	t.Run("down_by_one", func(t *testing.T) {
