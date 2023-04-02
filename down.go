@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/pressly/goose/v4/internal/sqlparser"
+	"go.uber.org/multierr"
 )
 
 // Down rolls back the most recently applied migration.
@@ -30,21 +31,19 @@ func (p *Provider) DownTo(ctx context.Context, version int64) ([]*MigrationResul
 	return p.down(ctx, false, version)
 }
 
-func (p *Provider) down(ctx context.Context, downByOne bool, version int64) ([]*MigrationResult, error) {
+func (p *Provider) down(ctx context.Context, downByOne bool, version int64) (_ []*MigrationResult, retErr error) {
 	if version < 0 {
 		return nil, fmt.Errorf("version must be a number greater than or equal zero: %d", version)
 	}
 
-	conn, err := p.db.Conn(ctx)
+	conn, cleanup, err := p.initialize(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
-
-	// feat(mf): this is where a session level advisory lock would be acquired to ensure that only
-	// one goose process is running at a time. Also need to lock the Provider itself with a mutex.
-	// https://github.com/pressly/goose/issues/335
-
+	defer func() {
+		retErr = multierr.Append(retErr, cleanup())
+	}()
+	// Ensure version table exists.
 	if err := p.ensureVersionTable(ctx, conn); err != nil {
 		return nil, err
 	}
@@ -67,7 +66,7 @@ func (p *Provider) down(ctx context.Context, downByOne bool, version int64) ([]*
 		return nil, err
 	}
 	if dbMigrations[0].Version == 0 {
-		return nil, ErrNoCurrentVersion
+		return nil, nil
 	}
 
 	// This is the sequential path.

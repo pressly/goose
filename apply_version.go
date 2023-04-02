@@ -4,8 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/pressly/goose/v4/internal/sqlparser"
+	"go.uber.org/multierr"
 )
 
 // ApplyVersion applies exactly one migration at the specified version. If a migration cannot be
@@ -14,17 +16,24 @@ import (
 //
 // If the direction is true, the migration will be applied. If the direction is false, the migration
 // will be rolled back.
-func (p *Provider) ApplyVersion(ctx context.Context, version int64, direction bool) (*MigrationResult, error) {
+func (p *Provider) ApplyVersion(ctx context.Context, version int64, direction bool) (_ *MigrationResult, retErr error) {
+	if version < 1 {
+		return nil, fmt.Errorf("invalid version: %d", version)
+	}
+
 	m, err := p.getMigration(version)
 	if err != nil {
 		return nil, err
 	}
-	conn, err := p.db.Conn(ctx)
+
+	conn, cleanup, err := p.initialize(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
-
+	defer func() {
+		retErr = multierr.Append(retErr, cleanup())
+	}()
+	// Ensure version table exists.
 	if err := p.ensureVersionTable(ctx, conn); err != nil {
 		return nil, err
 	}

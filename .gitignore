@@ -10,3 +10,4 @@
 # Local testing
 .envrc
 *.FAIL
+/scripts

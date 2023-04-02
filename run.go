@@ -206,3 +206,38 @@ func (p *Provider) runGoNoTx(
 	}
 	return p.store.InsertOrDeleteNoTx(ctx, p.db, direction.ToBool(), m.version)
 }
+
+func (p *Provider) initializeWithLock(ctx context.Context) (*sql.Conn, func() error, error) {
+	conn, err := p.db.Conn(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	switch p.opt.LockMode {
+	case LockModeAdvisorySession:
+		if err := p.store.LockSession(ctx, conn); err != nil {
+			return nil, nil, err
+		}
+		cleanup := func() error {
+			return multierr.Append(p.store.UnlockSession(ctx, conn), conn.Close())
+		}
+		return conn, cleanup, nil
+	case LockModeNone, LockModeAdvisoryTransaction:
+		cleanup := func() error {
+			return conn.Close()
+		}
+		return conn, cleanup, nil
+	default:
+		return nil, nil, fmt.Errorf("invalid lock mode: %d", p.opt.LockMode)
+	}
+}
+
+func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, error) {
+	if p.store.IsSupported() {
+		return p.initializeWithLock(ctx)
+	}
+	conn, err := p.db.Conn(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	return conn, conn.Close, nil
+}

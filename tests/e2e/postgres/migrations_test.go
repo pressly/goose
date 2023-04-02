@@ -20,8 +20,8 @@ func TestUpDownAll(t *testing.T) {
 		maxIdleConns int
 		useDefaults  bool
 	}{
-		// Single connection ensures goose is able to function correctly when multiple
-		// connections are not available.
+		// Single connection ensures goose is able to function correctly when multiple connections
+		// are not available.
 		{name: "single_conn", maxOpenConns: 1, maxIdleConns: 1},
 		{name: "defaults", useDefaults: true},
 	}
@@ -50,7 +50,7 @@ func TestUpDownAll(t *testing.T) {
 				check.Number(t, len(upResult), len(migrations))
 				currentVersion, err := te.provider.GetDBVersion(ctx)
 				check.NoError(t, err)
-				check.Number(t, currentVersion, migrations[len(migrations)-1].Version)
+				check.Number(t, currentVersion, te.provider.GetLastVersion())
 				// Validate the db migration version actually matches what goose claims it is
 				gotVersion, err := getMaxVersionID(te.db, te.opt.TableName)
 				check.NoError(t, err)
@@ -137,6 +137,7 @@ func TestMigrateUpByOneWithRedo(t *testing.T) {
 	te := newTestEnv(t, migrationsDir, nil)
 	migrations := te.provider.ListMigrations()
 	check.NumberNotZero(t, len(migrations))
+	maxVersion := te.provider.GetLastVersion()
 
 	for i := 0; i < len(migrations); i++ {
 		originalUpResult, err := te.provider.UpByOne(ctx)
@@ -154,7 +155,6 @@ func TestMigrateUpByOneWithRedo(t *testing.T) {
 		check.Number(t, currentVersion, migrations[i].Version)
 	}
 	// Once everything is tested the version should match the highest testdata version
-	maxVersion := migrations[len(migrations)-1].Version
 	currentVersion, err := te.provider.GetDBVersion(ctx)
 	check.NoError(t, err)
 	check.Number(t, currentVersion, maxVersion)
@@ -167,6 +167,7 @@ func TestMigrateUpByOne(t *testing.T) {
 	te := newTestEnv(t, migrationsDir, nil)
 	migrations := te.provider.ListMigrations()
 	check.NumberNotZero(t, len(migrations))
+	maxVersion := te.provider.GetLastVersion()
 
 	// Apply all migrations one-by-one.
 	var counter int
@@ -183,7 +184,6 @@ func TestMigrateUpByOne(t *testing.T) {
 		check.Number(t, result.Migration.Version, counter)
 	}
 	// Once everything is tested the version should match the highest testdata version
-	maxVersion := migrations[len(migrations)-1].Version
 	currentVersion, err := te.provider.GetDBVersion(ctx)
 	check.NoError(t, err)
 	check.Number(t, currentVersion, maxVersion)

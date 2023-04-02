@@ -68,6 +68,15 @@ func (p *Provider) ListMigrations() []*Migration {
 	return migrations
 }
 
+// GetLastVersion returns the version of the last migration found in the migrations directory
+// (sorted by version). If there are no migrations, then 0 is returned.
+func (p *Provider) GetLastVersion() int64 {
+	if len(p.migrations) == 0 {
+		return 0
+	}
+	return p.migrations[len(p.migrations)-1].version
+}
+
 // Ping attempts to ping the database to verify a connection is available.
 func (p *Provider) Ping(ctx context.Context) error {
 	return p.db.PingContext(ctx)

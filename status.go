@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"time"
+
+	"go.uber.org/multierr"
 )
 
 type MigrationStatus struct {
@@ -29,13 +31,15 @@ type StatusOptions struct {
 // Status returns the status of all migrations. The returned slice is ordered by ascending version.
 //
 // The provided StatusOptions is optional and may be nil if defaults should be used.
-func (p *Provider) Status(ctx context.Context, opts *StatusOptions) ([]*MigrationStatus, error) {
-	conn, err := p.db.Conn(ctx)
+func (p *Provider) Status(ctx context.Context, opts *StatusOptions) (_ []*MigrationStatus, retErr error) {
+	conn, cleanup, err := p.initialize(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
-
+	defer func() {
+		retErr = multierr.Append(retErr, cleanup())
+	}()
+	// Ensure version table exists.
 	if err := p.ensureVersionTable(ctx, conn); err != nil {
 		return nil, err
 	}
