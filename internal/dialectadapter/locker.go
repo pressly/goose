@@ -28,8 +28,8 @@ var (
 // The only database that currently supports locking is Postgres. Other databases will return
 // ErrLockNotImplemented.
 type Locker interface {
-	// IsLockingEnabled returns true if the database supports locking.
-	IsLockingEnabled() bool
+	// IsSupported returns true if the database supports locking.
+	IsSupported() bool
 
 	// LockSession and UnlockSession are used to lock the database for the duration of a session.
 	//
@@ -41,7 +41,7 @@ type Locker interface {
 	LockTransaction(ctx context.Context, tx *sql.Tx) error
 }
 
-func (s *store) IsLockingEnabled() bool {
+func (s *store) IsSupported() bool {
 	switch s.querier.(type) {
 	case *dialectquery.Postgres:
 		return true

@@ -234,7 +234,7 @@ func (p *Provider) initializeWithLock(ctx context.Context) (*sql.Conn, func() er
 }
 
 func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, error) {
-	if p.store.IsLockingEnabled() {
+	if p.store.IsSupported() {
 		return p.initializeWithLock(ctx)
 	}
 	conn, err := p.db.Conn(ctx)
