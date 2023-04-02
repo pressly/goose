@@ -142,7 +142,6 @@ const (
 	LockModeNone LockMode = iota
 	LockModeAdvisorySession
 	LockModeAdvisoryTransaction
-	LockModeFile
 )
 
 func (l LockMode) String() string {
@@ -153,8 +152,6 @@ func (l LockMode) String() string {
 		return "advisory-session"
 	case LockModeAdvisoryTransaction:
 		return "advisory-transaction"
-	case LockModeFile:
-		return "file"
 	default:
 		return "unknown"
 	}

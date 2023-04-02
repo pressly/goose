@@ -226,8 +226,6 @@ func (p *Provider) initializeWithLock(ctx context.Context) (*sql.Conn, func() er
 			return conn.Close()
 		}
 		return conn, cleanup, nil
-	case LockModeFile:
-		return nil, nil, fmt.Errorf("file lock mode is not supported")
 	default:
 		return nil, nil, fmt.Errorf("invalid lock mode: %d", p.opt.LockMode)
 	}
