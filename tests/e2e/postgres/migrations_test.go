@@ -20,8 +20,8 @@ func TestUpDownAll(t *testing.T) {
 		maxIdleConns int
 		useDefaults  bool
 	}{
-		// Single connection ensures goose is able to function correctly when multiple
-		// connections are not available.
+		// Single connection ensures goose is able to function correctly when multiple connections
+		// are not available.
 		{name: "single_conn", maxOpenConns: 1, maxIdleConns: 1},
 		{name: "defaults", useDefaults: true},
 	}

@@ -47,6 +47,7 @@ func (p *Provider) down(ctx context.Context, downByOne bool, version int64) (_ [
 	if err := p.ensureVersionTable(ctx, conn); err != nil {
 		return nil, err
 	}
+
 	if p.opt.NoVersioning {
 		if downByOne && len(p.migrations) == 0 {
 			return nil, ErrNoNextVersion
@@ -65,7 +66,7 @@ func (p *Provider) down(ctx context.Context, downByOne bool, version int64) (_ [
 		return nil, err
 	}
 	if dbMigrations[0].Version == 0 {
-		return nil, ErrNoCurrentVersion
+		return nil, nil
 	}
 
 	// This is the sequential path.
