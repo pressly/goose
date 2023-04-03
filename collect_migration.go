@@ -40,6 +40,13 @@ type migration struct {
 	sqlMigration *sqlMigration
 }
 
+func (m *migration) useTx() bool {
+	if m.migrationType == MigrationTypeSQL {
+		return m.sqlMigration.useTx
+	}
+	return m.goMigration.useTx
+}
+
 func (m *migration) toMigration() *Migration {
 	return &Migration{
 		Type:    m.migrationType,
@@ -58,8 +65,22 @@ func (m *migration) getSQLStatements(direction sqlparser.Direction) ([]string, e
 	return m.sqlMigration.upStatements, nil
 }
 
+func parseSQLMigrations(fsys fs.FS, debug bool, migrations []*migration) error {
+	for _, m := range migrations {
+		if m.migrationType == MigrationTypeSQL && !m.sqlParsed {
+			parsedSQLMigration, err := parseSQL(fsys, m.source, debug)
+			if err != nil {
+				return err
+			}
+			m.sqlParsed = true
+			m.sqlMigration = parsedSQLMigration
+		}
+	}
+	return nil
+}
+
 func parseSQL(fsys fs.FS, filename string, debug bool) (*sqlMigration, error) {
-	//  We parse both up and down statements. This is done to ensure that the SQL migration is
+	// We parse both up and down statements. This is done to ensure that the SQL migration is
 	// valid in both directions.
 	d := sqlparser.DirectionAll
 
@@ -107,7 +128,7 @@ func parseSQL(fsys fs.FS, filename string, debug bool) (*sqlMigration, error) {
 // sorted in ascending order by version id. Note, Go migrations are gathered from the global
 // registeredGoMigrations map and are gauranteed to be unique.
 //
-// Note, SQL migrations are not parsed, and will be lazily parsed when the migration is run.
+// Important, SQL migrations are not parsed, and will be lazily parsed when the migration is run.
 //
 // The excludeFilenames parameter is a list of filenames to exclude entirely.
 func collectMigrations(fsys fs.FS, dir string, excludeFilenames []string, debug bool) ([]*migration, error) {

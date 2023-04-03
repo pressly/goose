@@ -24,25 +24,25 @@ func (p *Provider) runMigrations(
 	direction sqlparser.Direction,
 	byOne bool,
 ) ([]*MigrationResult, error) {
-	length := len(migrations)
+	if len(migrations) == 0 {
+		return nil, nil
+	}
+	apply := migrations
 	if byOne {
-		length = 1
+		apply = append(apply, migrations[0])
 	}
 	// Lazy parse SQL migrations (if any). We do this before running any migrations so that we can
 	// fail fast if there are any errors and avoid leaving the database in a partially migrated
 	// state.
-	for _, m := range migrations {
-		if m.migrationType == MigrationTypeSQL && !m.sqlParsed {
-			parsedSQLMigration, err := parseSQL(p.opt.Filesystem, m.source, p.opt.Debug)
-			if err != nil {
-				return nil, err
-			}
-			m.sqlParsed = true
-			m.sqlMigration = parsedSQLMigration
-		}
+	if err := parseSQLMigrations(p.opt.Filesystem, p.opt.Debug, apply); err != nil {
+		return nil, err
 	}
-	results := make([]*MigrationResult, 0, length)
-	for _, m := range migrations {
+
+	// Run migrations individually, opening a new transaction for each migration if the migration
+	// is safe to run in a transaction.
+
+	results := make([]*MigrationResult, 0, len(apply))
+	for _, m := range apply {
 		start := time.Now()
 
 		if err := p.runIndividually(ctx, conn, direction, m); err != nil {

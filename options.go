@@ -38,6 +38,9 @@ type Options struct {
 	ExcludeFilenames []string
 
 	// Unimplemented.
+	//
+	// See run_grouped.go for more details.
+	groupedMigrations bool
 }
 
 func DefaultOptions() Options {
@@ -164,5 +167,26 @@ func (l LockMode) String() string {
 // Default: LockModeNone
 func (o Options) SetLockMode(m LockMode) Options {
 	o.LockMode = m
+	return o
+}
+
+// setGroupedMigrations returns a new Options value with GroupedMigrations set to the given value.
+// GroupedMigrations enables the ability to share a single transaction across multiple migrations.
+//
+// For more information, see: TODO(mf): add link to docs
+//
+// For example, say we have 6 new migrations to apply: 11,12,13,14,15,16. But migration 14 is marked
+// with -- +goose NO TRANSACTION. Then the migrations will be applied in 3 groups:
+//
+//  1. migrations 11,12,13 will be applied in a single transaction and committed
+//  2. migration 14 will be applied outside transaction and committed
+//  3. migrations 15,16 will be applied in a single transaction and committed
+//
+// This feature is useful to avoid leaving the database in a partially migrated state. But, keep in
+// mind there may be performance implications if you have a large number of migrations.
+//
+// Default: false
+func (o Options) setGroupedMigrations(b bool) Options {
+	o.groupedMigrations = b
 	return o
 }
