@@ -221,7 +221,7 @@ func (p *Provider) initializeWithLock(ctx context.Context) (*sql.Conn, func() er
 			return multierr.Append(p.store.UnlockSession(ctx, conn), conn.Close())
 		}
 		return conn, cleanup, nil
-	case LockModeNone, LockModeAdvisoryTransaction:
+	case LockModeNone:
 		cleanup := func() error {
 			return conn.Close()
 		}
