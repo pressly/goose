@@ -33,7 +33,8 @@ type Locker interface {
 
 	// LockSession and UnlockSession are used to lock the database for the duration of a session.
 	//
-	// The session is defined as the duration of a single connection.
+	// The session is defined as the duration of a single connection and both methods must be called
+	// on the same connection.
 	LockSession(ctx context.Context, conn *sql.Conn) error
 	UnlockSession(ctx context.Context, conn *sql.Conn) error
 

@@ -58,6 +58,10 @@ func (p *Provider) up(ctx context.Context, upByOne bool, version int64) (_ []*Mi
 		return nil, err
 	}
 
+	if len(p.migrations) == 0 {
+		return nil, nil
+	}
+
 	if p.opt.NoVersioning {
 		return p.runMigrations(ctx, conn, p.migrations, sqlparser.DirectionUp, upByOne)
 	}

@@ -48,6 +48,10 @@ func (p *Provider) down(ctx context.Context, downByOne bool, version int64) (_ [
 		return nil, err
 	}
 
+	if len(p.migrations) == 0 {
+		return nil, nil
+	}
+
 	if p.opt.NoVersioning {
 		if downByOne && len(p.migrations) == 0 {
 			return nil, ErrNoNextVersion
