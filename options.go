@@ -40,7 +40,7 @@ type Options struct {
 	// Unimplemented.
 	//
 	// See run_grouped.go for more details.
-	groupedMigrations bool
+	groupedMigrations bool //nolint:golint,unused
 }
 
 func DefaultOptions() Options {
@@ -176,7 +176,7 @@ func (o Options) SetLockMode(m LockMode) Options {
 // For more information, see: TODO(mf): add link to docs
 //
 // For example, say we have 6 new migrations to apply: 11,12,13,14,15,16. But migration 14 is marked
-// with -- +goose NO TRANSACTION. Then the migrations will be applied in 3 groups:
+// with -- +goose NO TRANSACTION. Then the migrations will be applied sequentially in 3 groups:
 //
 //  1. migrations 11,12,13 will be applied in a single transaction and committed
 //  2. migration 14 will be applied outside transaction and committed
@@ -186,7 +186,7 @@ func (o Options) SetLockMode(m LockMode) Options {
 // mind there may be performance implications if you have a large number of migrations.
 //
 // Default: false
-func (o Options) setGroupedMigrations(b bool) Options {
+func (o Options) setGroupedMigrations(b bool) Options { //nolint:golint,unused
 	o.groupedMigrations = b
 	return o
 }
