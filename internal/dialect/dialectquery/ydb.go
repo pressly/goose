@@ -9,30 +9,29 @@ type Ydb struct {
 var _ Querier = (*Ydb)(nil)
 
 func (c *Ydb) CreateTable() string {
-	q := `CREATE TABLE %s (
-		id Uint64,
+	return fmt.Sprintf(`CREATE TABLE %s (
+		hash Uint64,
 		version_id Uint64,
-		is_applied Bool,
+		is_applied UInt8,
+		date Datetime,
 		tstamp Datetime,
-		PRIMARY KEY(id, version_id)
-	)`
-	return fmt.Sprintf(q, c.Table)
+
+		PRIMARY KEY(hash, version_id)
+	);`, c.Table)
 }
 
 func (c *Ydb) InsertVersion() string {
-	q := `
-		INSERT INTO versions (id, version_id, is_applied, tstamp) 
-		VALUES (Digest::NumericHash($version_id), $version_id, $is_applied, CurrentUtcDatetime());`
-	return fmt.Sprintf(q, c.Table, c.Table)
+	q := `UPSERT INTO %s (hash, version_id, is_applied) VALUES (Digest::IntHash64(CAST($1 AS Uint64)), CAST($1 AS Uint64), $2)`
+	return fmt.Sprintf(q, c.Table)
 }
 
 func (c *Ydb) DeleteVersion() string {
-	q := `ALTER TABLE %s DELETE WHERE version_id = $1`
+	q := `ALTER TABLE %s DELETE WHERE hash = Digest::IntHash64(CAST($1 AS Uint64)) AND version_id = $1 SETTINGS mutations_sync = 2`
 	return fmt.Sprintf(q, c.Table)
 }
 
 func (c *Ydb) GetMigrationByVersion() string {
-	q := `SELECT tstamp, is_applied FROM %s WHERE version_id = $1 ORDER BY tstamp DESC LIMIT 1`
+	q := `SELECT tstamp, is_applied FROM %s WHERE hash = Digest::IntHash64(CAST($1 AS Uint64)) AND version_id = $1 ORDER BY tstamp DESC LIMIT 1`
 	return fmt.Sprintf(q, c.Table)
 }
 

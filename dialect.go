@@ -33,7 +33,7 @@ func SetDialect(s string) error {
 	case "vertica":
 		d = dialect.Vertica
 	case "ydb":
-		d = dialect.YDB
+		d = dialect.Ydb
 	default:
 		return fmt.Errorf("%q: unknown dialect", s)
 	}

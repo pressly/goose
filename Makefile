@@ -40,7 +40,7 @@ test-e2e-vertica:
 	go test $(GO_TEST_FLAGS) ./tests/vertica
 
 test-e2e-ydb:
-	YDB_LOG_SEVERITY_LEVEL=error go test -v ./tests/e2e -dialect=ydb
+	go test $(GO_TEST_FLAGS) -parallel=1 ./tests/e2e -dialect=ydb
 
 docker-cleanup:
 	docker stop -t=0 $$(docker ps --filter="label=goose_test" -aq)

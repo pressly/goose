@@ -12,5 +12,5 @@ const (
 	Tidb       Dialect = "tidb"
 	Clickhouse Dialect = "clickhouse"
 	Vertica    Dialect = "vertica"
-	YDB        Dialect = "ydb"
+	Ydb        Dialect = "ydb"
 )
