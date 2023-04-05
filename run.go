@@ -27,9 +27,9 @@ func (p *Provider) runMigrations(
 	if len(migrations) == 0 {
 		return nil, nil
 	}
-	apply := migrations
-	if byOne {
-		apply = append(apply, migrations[0])
+	apply := []*migration{migrations[0]}
+	if !byOne && len(migrations) > 1 {
+		apply = append(apply, migrations[1:]...)
 	}
 	// Lazy parse SQL migrations (if any). We do this before running any migrations so that we can
 	// fail fast if there are any errors and avoid leaving the database in a partially migrated
@@ -57,9 +57,6 @@ func (p *Provider) runMigrations(
 			Migration: m.toMigration(),
 			Duration:  time.Since(start),
 		})
-		if byOne && len(results) == 1 {
-			break
-		}
 	}
 	return results, nil
 }
