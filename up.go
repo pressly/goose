@@ -66,6 +66,10 @@ func (p *Provider) up(ctx context.Context, upByOne bool, version int64) (_ []*Mi
 		return p.runMigrations(ctx, conn, p.migrations, sqlparser.DirectionUp, upByOne)
 	}
 
+	// optimize(mf): Listing all migrations from the database isn't great. This is only required to
+	// support the out-of-order (allow missing) feature. For users who don't use this feature, we
+	// could just query the database for the current version and then apply migrations that are
+	// greater than that version.
 	dbMigrations, err := p.store.ListMigrationsConn(ctx, conn)
 	if err != nil {
 		return nil, err
