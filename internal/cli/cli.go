@@ -166,7 +166,7 @@ ENVIRONMENT VARIABLES
   GOOSE_DIR               Directory with migration files, lower priority than --dir
 
 EXAMPLES
-  goose --dbstring="postgres://user:password@localhost:5432/dbname?sslmode=disable" status
+  goose --dbstring="postgres://dbuser:password1@localhost:5433/testdb?sslmode=disable" status
   goose --dbstring="mysql://user:password@/dbname?parseTime=true" status
 
   GOOSE_DIR=./examples/sql-migrations GOOSE_DBSTRING="sqlite:./test.db" goose status
