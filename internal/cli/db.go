@@ -14,10 +14,15 @@ import (
 // based on build tags.
 var gooseDrivers = map[goose.Dialect]string{
 	goose.DialectPostgres: "pgx",
-	goose.DialectMySQL:    "mysql",
-	goose.DialectSQLite3:  "sqlite",
-	goose.DialectMSSQL:    "mssql",
-	goose.DialectRedshift: "redshift",
+	goose.DialectRedshift: "pgx",
+
+	goose.DialectMySQL: "mysql",
+	goose.DialectTiDB:  "mysql",
+
+	goose.DialectSQLite3:    "sqlite",
+	goose.DialectMSSQL:      "sqlserver",
+	goose.DialectClickHouse: "clickhouse",
+	goose.DialectVertica:    "vertica",
 }
 
 func openConnection(dbstring string) (*sql.DB, goose.Dialect, error) {
