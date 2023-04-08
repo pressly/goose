@@ -123,8 +123,7 @@ func usageFunc(c *ffcli.Command) string {
 }
 
 const (
-	usage = `goose
-
+	usage = `
 A database migration tool that simplifies the process of versioning, applying, and rolling back
 schema changes in a controlled and organized way.
 
@@ -132,13 +131,13 @@ USAGE
   goose [flags] <command>
 
 COMMANDS
-  create          Create a new migration file
-  down            Migrate down previous version
+  create          Create a new .go or .sql migration file
+  down            Migrate database down to the previous version
   down-to         Migrate database down to, but not including, a specific version
   env             Print environment variables
   fix             Apply sequential numbering to existing timestamped migrations
-  redo            Roll back the last migration and re-apply it
-  status          List applied and unapplied migrations
+  redo            Roll back the last appied migration and re-apply it
+  status          List applied and pending migrations
   up-by-one       Migrate database up by one version
   up-to           Migrate database up to, and including, a specific version
   up              Migrate database to the most recent version
@@ -154,8 +153,8 @@ FLAGS
   --dbstring              Database connection string
   --dir                   Directory with migration files (default: "./migrations")
   --exclude               Exclude migrations by filename, comma separated
-  --help                  Show help for command
-  --json                  Output formatted JSON
+  --help                  Display help
+  --json                  Format output as JSON
   --lock-mode             Set a lock mode [none, advisory-session] (default: "none")
   --no-versioning         Do not store version info in the database, just run the migrations
   --table                 Table name to store version info (default: "goose_db_version")
@@ -171,7 +170,7 @@ EXAMPLES
   goose --dbstring="mysql://user:password@/dbname?parseTime=true" status
 
   GOOSE_DIR=./examples/sql-migrations GOOSE_DBSTRING="sqlite:./test.db" goose status
-  GOOSE_DBSTRING="clickhouse://tcp://127.0.0.1:900" goose status
+  GOOSE_DBSTRING="clickhouse://user:password@localhost:9000/clickdb" goose status
 
 LEARN MORE
   Use 'goose <command> --help' for more information about a command.
