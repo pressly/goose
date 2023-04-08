@@ -144,9 +144,9 @@ COMMANDS
   version         Print the current version of the database
 
 SUPPORTED DATABASES
-  postgres       mysql       sqlite3
-  redshift       tidb        mssql
-  clickhouse     vertica
+  postgres        mysql        sqlite3
+  redshift        tidb         mssql
+  clickhouse      vertica      
 
 FLAGS
   --allow-missing         Allow missing (out-of-order) migrations
