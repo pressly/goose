@@ -9,6 +9,27 @@ import (
 	"github.com/peterbourgon/ff/v3/ffcli"
 )
 
+func newRootCmd(w io.Writer) (*ffcli.Command, *rootConfig) {
+	config := &rootConfig{
+		stdout: w,
+	}
+	fs := flag.NewFlagSet("goose", flag.ExitOnError)
+	config.registerFlags(fs)
+
+	root := &ffcli.Command{
+		Name:    "goose [flags] <command> [flags] [args...]",
+		FlagSet: fs,
+		Options: []ff.Option{
+			ff.WithEnvVarPrefix("GOOSE"),
+		},
+		UsageFunc: usageFunc,
+		Exec: func(ctx context.Context, args []string) error {
+			return flag.ErrHelp
+		},
+	}
+	return root, config
+}
+
 type rootConfig struct {
 	dir     string
 	verbose bool
@@ -19,32 +40,11 @@ type rootConfig struct {
 	noVersioning     bool
 	allowMissing     bool
 	lockMode         string
-	grouped          bool
 	excludeFilenames stringSet
 
 	// stdout is the output stream for the command. It is set to os.Stdout by
 	// default, but can be overridden for testing.
 	stdout io.Writer
-}
-
-func newRootCmd(w io.Writer) (*ffcli.Command, *rootConfig) {
-	config := &rootConfig{
-		stdout: w,
-	}
-	fs := flag.NewFlagSet("goose", flag.ExitOnError)
-	config.registerFlags(fs)
-
-	root := &ffcli.Command{
-		Name:    "goose [flags] <subcommand>",
-		FlagSet: fs,
-		Options: []ff.Option{
-			ff.WithEnvVarPrefix("GOOSE"),
-		},
-		Exec: func(ctx context.Context, args []string) error {
-			return flag.ErrHelp
-		},
-	}
-	return root, config
 }
 
 // registerFlags registers the flag fields into the provided flag.FlagSet. This
@@ -62,8 +62,6 @@ func (c *rootConfig) registerFlags(fs *flag.FlagSet) {
 	// Features
 	fs.BoolVar(&c.noVersioning, "no-versioning", false, "do not use versioning")
 	fs.BoolVar(&c.allowMissing, "allow-missing", false, "allow missing (out-of-order) migrations")
-	fs.StringVar(&c.lockMode, "lock-mode", "none", "lock mode (none, advisory-session)")
+	fs.StringVar(&c.lockMode, "lock-mode", "", "lock mode (none, advisory-session)")
 	fs.Var(&c.excludeFilenames, "exclude", "exclude filenames (comma separated)")
-
-	// fs.BoolVar(&c.grouped, "grouped", false, "run migrations in transaction groups, if possible")
 }

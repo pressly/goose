@@ -32,6 +32,7 @@ func execStatusCmd(root *rootConfig) func(ctx context.Context, args []string) er
 		if err != nil {
 			return err
 		}
+		_ = statusesOutput{}
 		results, err := provider.Status(ctx, nil)
 		if err != nil {
 			return err

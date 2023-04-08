@@ -44,21 +44,21 @@ type migration struct {
 // or down statements.
 //
 // Note, for SQL migrations this must be called after the migration has been parsed.
-func (m *migration) isEmpty(direction bool) bool {
-	switch m.migrationType {
-	case MigrationTypeGo:
-		if direction {
-			return m.goMigration.upFnNoTx == nil && m.goMigration.upFn == nil
-		}
-		return m.goMigration.downFnNoTx == nil && m.goMigration.downFn == nil
-	case MigrationTypeSQL:
-		if direction {
-			return len(m.sqlMigration.upStatements) == 0
-		}
-		return len(m.sqlMigration.downStatements) == 0
-	}
-	return false
-}
+// func (m *migration) isEmpty(direction bool) bool {
+// 	switch m.migrationType {
+// 	case MigrationTypeGo:
+// 		if direction {
+// 			return m.goMigration.upFnNoTx == nil && m.goMigration.upFn == nil
+// 		}
+// 		return m.goMigration.downFnNoTx == nil && m.goMigration.downFn == nil
+// 	case MigrationTypeSQL:
+// 		if direction {
+// 			return len(m.sqlMigration.upStatements) == 0
+// 		}
+// 		return len(m.sqlMigration.downStatements) == 0
+// 	}
+// 	return false
+// }
 
 func (m *migration) useTx() bool {
 	if m.migrationType == MigrationTypeSQL {

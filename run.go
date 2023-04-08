@@ -243,15 +243,15 @@ func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, err
 	return conn, conn.Close, nil
 }
 
-func truncateDuration(d time.Duration) time.Duration {
-	for _, v := range []time.Duration{
-		time.Second,
-		time.Millisecond,
-		time.Microsecond,
-	} {
-		if d > v {
-			return d.Round(v / time.Duration(100))
-		}
-	}
-	return d
-}
+// func truncateDuration(d time.Duration) time.Duration {
+// 	for _, v := range []time.Duration{
+// 		time.Second,
+// 		time.Millisecond,
+// 		time.Microsecond,
+// 	} {
+// 		if d > v {
+// 			return d.Round(v / time.Duration(100))
+// 		}
+// 	}
+// 	return d
+// }

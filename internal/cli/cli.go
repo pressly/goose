@@ -2,13 +2,10 @@ package cli
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
 	"github.com/pressly/goose/v4"
@@ -17,6 +14,7 @@ import (
 var commands = map[string]func(*rootConfig) *ffcli.Command{
 	"create":    newCreateCmd,
 	"down":      newDownCmd,
+	"down-to":   newDownToCmd,
 	"env":       newEnvCmd,
 	"fix":       newFixCmd,
 	"redo":      newRedoCmd,
@@ -27,8 +25,8 @@ var commands = map[string]func(*rootConfig) *ffcli.Command{
 	"version":   newVersionCmd,
 }
 
-// Run is the entry point for the goose CLI. It parses the command line
-// arguments and executes the appropriate command.
+// Run is the entry point for the goose CLI. It parses the command line arguments and executes the
+// appropriate command.
 //
 // The supplied args should not include the name of the executable.
 func Run(args []string) error {
@@ -37,15 +35,13 @@ func Run(args []string) error {
 	for _, cmd := range commands {
 		rootCmd.Subcommands = append(rootCmd.Subcommands, cmd(rootConfig))
 	}
-
-	// for _, c := range rootCmd.Subcommands {
-	// 	if c.UsageFunc == nil {
-	// 		c.UsageFunc = func(c *ffcli.Command) string {
-	// 			return "This overrides the default usage function."
-	// 		}
-	// 	}
-	// }
-
+	// Set the usage function for all subcommands, if not already set.
+	for _, c := range rootCmd.Subcommands {
+		if c.UsageFunc == nil {
+			c.UsageFunc = usageFunc
+		}
+	}
+	// Parse the command line flags.
 	if err := rootCmd.Parse(args); err != nil {
 		return fmt.Errorf("parsing error: %w", err)
 	}
@@ -74,66 +70,17 @@ func (ss *stringSet) String() string {
 	return strings.Join(*ss, ", ")
 }
 
-func printMigrationResult(
-	results []*goose.MigrationResult,
-	totalDuration time.Duration,
-	useJson bool,
-) error {
-	if useJson {
-		data := convertMigrationResult(results, totalDuration)
-		return json.NewEncoder(os.Stdout).Encode(data)
-	}
-	// TODO: print a table
-	for _, result := range results {
-		fmt.Println(result)
-	}
-	return nil
-}
-
-type migrationsOutput struct {
-	Migrations    []migrationResultOutput `json:"migrations"`
-	TotalDuration int64                   `json:"total_duration_ms"`
-}
-
-type migrationResultOutput struct {
-	Type      string `json:"migration_type"`
-	Version   int64  `json:"version"`
-	Filename  string `json:"filename"`
-	Duration  int64  `json:"duration_ms"`
-	Direction string `json:"direction"`
-}
-
-func convertMigrationResult(
-	results []*goose.MigrationResult,
-	totalDuration time.Duration,
-) migrationsOutput {
-	output := migrationsOutput{
-		Migrations:    make([]migrationResultOutput, 0, len(results)),
-		TotalDuration: totalDuration.Milliseconds(),
-	}
-	for _, result := range results {
-		output.Migrations = append(output.Migrations, migrationResultOutput{
-			Type:      string(result.Migration.Type),
-			Version:   result.Migration.Version,
-			Filename:  filepath.Base(result.Migration.Source),
-			Duration:  result.Duration.Milliseconds(),
-			Direction: result.Direction,
-		})
-	}
-	return output
-}
-
 // func truncateDuration(d time.Duration) time.Duration {
-// 	for _, v := range []time.Duration{
-// 		time.Second,
-// 		time.Millisecond,
-// 		time.Microsecond,
-// 	} {
-// 		if d > v {
-// 			return d.Round(v / time.Duration(100))
-// 		}
-// 	}
-// 	return d
+//  for _, v := range []time.Duration{
+//      time.Second,
+//      time.Millisecond,
+//      time.Microsecond,
+//  } {
+//      if d > v {
+//          return d.Round(v / time.Duration(100))
+//      }
+//  }
+//  return d
 // }
 
 func newGooseProvider(root *rootConfig) (*goose.Provider, error) {
@@ -170,3 +117,64 @@ func newGooseProvider(root *rootConfig) (*goose.Provider, error) {
 
 	return goose.NewProvider(gooseDialect, db, opt)
 }
+
+func usageFunc(c *ffcli.Command) string {
+	return usage
+}
+
+const (
+	usage = `goose
+
+A database migration tool that simplifies the process of versioning, applying, and rolling back
+schema changes in a controlled and organized way.
+
+USAGE
+  goose [flags] <command>
+
+COMMANDS
+  create          Create a new migration file
+  down            Migrate down previous version
+  down-to         Migrate database down to, but not including, a specific version
+  env             Print environment variables
+  fix             Apply sequential numbering to existing timestamped migrations
+  redo            Roll back the last migration and re-apply it
+  status          List applied and unapplied migrations
+  up-by-one       Migrate database up by one version
+  up-to           Migrate database up to, and including, a specific version
+  up              Migrate database to the most recent version
+  version         Print the current version of the database
+
+SUPPORTED DATABASES
+  postgres       mysql       sqlite3
+  redshift       tidb        mssql
+  clickhouse     vertica
+
+FLAGS
+  --allow-missing         Allow missing (out-of-order) migrations
+  --dbstring              Database connection string
+  --dir                   Directory with migration files (default: "./migrations")
+  --exclude               Exclude migrations by filename, comma separated
+  --help                  Show help for command
+  --json                  Output formatted JSON
+  --lock-mode             Set a lock mode [none, advisory-session] (default: "none")
+  --no-versioning         Do not store version info in the database, just run the migrations
+  --table                 Table name to store version info (default: "goose_db_version")
+  --v                     Turn on verbose mode
+  --version               Display the version of goose currently installed
+
+ENVIRONMENT VARIABLES
+  GOOSE_DBSTRING          Database connection string, lower priority than --dbstring
+  GOOSE_DIR               Directory with migration files, lower priority than --dir
+
+EXAMPLES
+  goose --dbstring="postgres://user:password@localhost:5432/dbname?sslmode=disable" status
+  goose --dbstring="mysql://user:password@/dbname?parseTime=true" status
+
+  GOOSE_DIR=./examples/sql-migrations GOOSE_DBSTRING="sqlite:./test.db" goose status
+  GOOSE_DBSTRING="clickhouse://tcp://127.0.0.1:900" goose status
+
+LEARN MORE
+  Use 'goose <command> --help' for more information about a command.
+  Read the manual at https://pressly.github.io/goose/
+`
+)
