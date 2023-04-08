@@ -19,6 +19,10 @@ const (
 	DirectionDown Direction = "down"
 )
 
+func (d Direction) String() string {
+	return string(d)
+}
+
 func (d Direction) ToBool() bool {
 	return d == DirectionUp
 }

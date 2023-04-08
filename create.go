@@ -101,6 +101,13 @@ func Create(
 		}
 	}
 
+	// Create the directory if it does not exist.
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		if err := os.Mkdir(dir, 0755); err != nil {
+			return "", err
+		}
+	}
+
 	path := filepath.Join(dir, filename)
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		return "", fmt.Errorf("failed to create migration file: %w", err)

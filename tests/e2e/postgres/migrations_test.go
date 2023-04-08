@@ -85,27 +85,6 @@ func TestUpDownAll(t *testing.T) {
 	}
 }
 
-func TestMigrateUpWithReset(t *testing.T) {
-	t.Parallel()
-	ctx := context.Background()
-
-	te := newTestEnv(t, migrationsDir, nil)
-	check.NumberNotZero(t, len(te.provider.ListMigrations()))
-
-	// Apply all up migrations
-	_, err := te.provider.Up(ctx)
-	check.NoError(t, err)
-	// Migrate everything down using Reset, confirm correct number of migrations were migrated down,
-	// and that the version is 0.
-	results, err := te.provider.Reset(ctx)
-	check.NoError(t, err)
-	check.Number(t, len(results), len(te.provider.ListMigrations()))
-
-	currentVersion, err := te.provider.GetDBVersion(ctx)
-	check.NoError(t, err)
-	check.Number(t, currentVersion, 0)
-}
-
 func TestMigrateUpTo(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -145,10 +124,9 @@ func TestMigrateUpByOneWithRedo(t *testing.T) {
 		// Redo the previous Up migration and re-apply it.
 		result, err := te.provider.Redo(ctx)
 		check.NoError(t, err)
-		check.Equal(t, result.DownResult != nil, true)
-		check.Equal(t, result.DownResult.Migration.Version, originalUpResult.Migration.Version)
-		check.Equal(t, result.UpResult != nil, true)
-		check.Equal(t, result.UpResult.Migration.Version, originalUpResult.Migration.Version)
+		check.Number(t, len(result), 2)
+		check.Equal(t, result[0].Migration.Version, originalUpResult.Migration.Version)
+		check.Equal(t, result[1].Migration.Version, originalUpResult.Migration.Version)
 
 		currentVersion, err := te.provider.GetDBVersion(ctx)
 		check.NoError(t, err)

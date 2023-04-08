@@ -104,8 +104,9 @@ func TestAllowMissingUpWithRedo(t *testing.T) {
 		// Redo the previous Up migration and re-apply it.
 		redoResult, err := p.Redo(ctx)
 		check.NoError(t, err)
-		check.Number(t, redoResult.DownResult.Migration.Version, 7)
-		check.Number(t, redoResult.UpResult.Migration.Version, 7)
+		check.Number(t, len(redoResult), 2)
+		check.Number(t, redoResult[0].Migration.Version, 7)
+		check.Number(t, redoResult[1].Migration.Version, 7)
 		currentVersion, err := p.GetDBVersion(ctx)
 		check.NoError(t, err)
 		check.Number(t, currentVersion, 7)
@@ -123,8 +124,9 @@ func TestAllowMissingUpWithRedo(t *testing.T) {
 
 		redoResult, err := p.Redo(ctx)
 		check.NoError(t, err)
-		check.Number(t, redoResult.DownResult.Migration.Version, 6)
-		check.Number(t, redoResult.UpResult.Migration.Version, 6)
+		check.Number(t, len(redoResult), 2)
+		check.Number(t, redoResult[0].Migration.Version, 6)
+		check.Number(t, redoResult[1].Migration.Version, 6)
 		currentVersion, err = p.GetDBVersion(ctx)
 		check.NoError(t, err)
 		check.Number(t, currentVersion, 6)
@@ -212,7 +214,7 @@ func TestAllowMissingUpWithReset(t *testing.T) {
 	{
 		p, err := goose.NewProvider(goose.DialectPostgres, te.db, defaultOptions)
 		check.NoError(t, err)
-		resetResults, err := p.Reset(ctx)
+		resetResults, err := p.DownTo(ctx, 0)
 		check.NoError(t, err)
 		check.Number(t, len(resetResults), 11)
 		expected := []int64{11, 10, 9, 8, 6, 7, 5, 4, 3, 2, 1}

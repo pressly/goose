@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"path/filepath"
 	"time"
 
 	"github.com/pressly/goose/v4/internal/sqlparser"
@@ -15,6 +14,8 @@ import (
 type MigrationResult struct {
 	Migration *Migration
 	Duration  time.Duration
+	Error     string
+	Direction string
 }
 
 func (p *Provider) runMigrations(
@@ -46,16 +47,19 @@ func (p *Provider) runMigrations(
 		start := time.Now()
 
 		if err := p.runIndividually(ctx, conn, direction, m); err != nil {
-			return nil, fmt.Errorf("failed to run %s migration: %s: %w",
-				m.migrationType,
-				filepath.Base(m.source),
-				err,
-			)
+			results = append(results, &MigrationResult{
+				Migration: m.toMigration(),
+				Duration:  time.Since(start),
+				Error:     err.Error(),
+				Direction: direction.String(),
+			})
+			return results, err
 		}
 
 		results = append(results, &MigrationResult{
 			Migration: m.toMigration(),
 			Duration:  time.Since(start),
+			Direction: direction.String(),
 		})
 	}
 	return results, nil
@@ -238,3 +242,16 @@ func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, err
 	}
 	return conn, conn.Close, nil
 }
+
+// func truncateDuration(d time.Duration) time.Duration {
+// 	for _, v := range []time.Duration{
+// 		time.Second,
+// 		time.Millisecond,
+// 		time.Microsecond,
+// 	} {
+// 		if d > v {
+// 			return d.Round(v / time.Duration(100))
+// 		}
+// 	}
+// 	return d
+// }

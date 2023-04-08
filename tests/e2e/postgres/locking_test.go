@@ -72,7 +72,7 @@ func TestLockModeAdvisorySession(t *testing.T) {
 	// Reset the database and run the same test with the advisory lock mode, but apply migrations
 	// one-by-one.
 	{
-		_, err := provider1.Reset(context.Background())
+		_, err := provider1.DownTo(context.Background(), 0)
 		check.NoError(t, err)
 		currentVersion, err := provider1.GetDBVersion(context.Background())
 		check.NoError(t, err)

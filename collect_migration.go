@@ -40,6 +40,26 @@ type migration struct {
 	sqlMigration *sqlMigration
 }
 
+// isEmpty returns true if the migration is empty. A migration is considered empty if it has no up
+// or down statements.
+//
+// Note, for SQL migrations this must be called after the migration has been parsed.
+// func (m *migration) isEmpty(direction bool) bool {
+// 	switch m.migrationType {
+// 	case MigrationTypeGo:
+// 		if direction {
+// 			return m.goMigration.upFnNoTx == nil && m.goMigration.upFn == nil
+// 		}
+// 		return m.goMigration.downFnNoTx == nil && m.goMigration.downFn == nil
+// 	case MigrationTypeSQL:
+// 		if direction {
+// 			return len(m.sqlMigration.upStatements) == 0
+// 		}
+// 		return len(m.sqlMigration.downStatements) == 0
+// 	}
+// 	return false
+// }
+
 func (m *migration) useTx() bool {
 	if m.migrationType == MigrationTypeSQL {
 		return m.sqlMigration.useTx
@@ -80,8 +100,8 @@ func parseSQLMigrations(fsys fs.FS, debug bool, migrations []*migration) error {
 }
 
 func parseSQL(fsys fs.FS, filename string, debug bool) (*sqlMigration, error) {
-	// We parse both up and down statements. This is done to ensure that the SQL migration is
-	// valid in both directions.
+	// We parse both up and down statements. This is done to ensure that the SQL migration is valid
+	// in both directions.
 	d := sqlparser.DirectionAll
 
 	r, err := fsys.Open(filename)
