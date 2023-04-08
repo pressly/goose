@@ -13,12 +13,10 @@ import (
 // See the ./cmd/goose directory for the driver imports, which are optionally conditionally compiled
 // based on build tags.
 var gooseDrivers = map[goose.Dialect]string{
-	goose.DialectPostgres: "pgx",
-	goose.DialectRedshift: "pgx",
-
-	goose.DialectMySQL: "mysql",
-	goose.DialectTiDB:  "mysql",
-
+	goose.DialectPostgres:   "pgx",
+	goose.DialectRedshift:   "pgx",
+	goose.DialectMySQL:      "mysql",
+	goose.DialectTiDB:       "mysql",
 	goose.DialectSQLite3:    "sqlite",
 	goose.DialectMSSQL:      "sqlserver",
 	goose.DialectClickHouse: "clickhouse",
@@ -34,6 +32,8 @@ func openConnection(dbstring string) (*sql.DB, goose.Dialect, error) {
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to resolve dialect: %w", err)
 	}
+	// The driver name is used by the goose CLI to open the database connection. It is specific to
+	// the goose CLI and the driver imports in ./cmd/goose.
 	driverName, ok := gooseDrivers[dialect]
 	if !ok {
 		return nil, "", fmt.Errorf("unsupported resolved database dialect: %s", dialect)
