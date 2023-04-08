@@ -94,7 +94,7 @@ func TestNoVersioning(t *testing.T) {
 		}
 		// Run reset (effectively the same as down-to 0)
 		{
-			resetResult, err := p.Reset(ctx)
+			resetResult, err := p.DownTo(ctx, 0)
 			check.NoError(t, err)
 			check.Number(t, len(resetResult), 2)
 			// Confirm no changes to the versioned schema in the DB

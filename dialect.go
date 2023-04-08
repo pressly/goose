@@ -1,6 +1,10 @@
 package goose
 
-import "github.com/pressly/goose/v4/internal/dialectadapter"
+import (
+	"fmt"
+
+	"github.com/pressly/goose/v4/internal/dialectadapter"
+)
 
 // Dialect is the type of database dialect.
 type Dialect string
@@ -25,4 +29,12 @@ var dialectLookup = map[Dialect]dialectadapter.Dialect{
 	DialectTiDB:       dialectadapter.Tidb,
 	DialectClickHouse: dialectadapter.Clickhouse,
 	DialectVertica:    dialectadapter.Vertica,
+}
+
+func ParseDialect(s string) (Dialect, error) {
+	dialect := Dialect(s)
+	if _, ok := dialectLookup[dialect]; !ok {
+		return "", fmt.Errorf("unknown dialect: %s", s)
+	}
+	return dialect, nil
 }

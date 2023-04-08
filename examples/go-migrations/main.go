@@ -63,7 +63,7 @@ func main() {
 		}
 		printResults(results)
 	case "reset":
-		results, err := provider.Reset(ctx)
+		results, err := provider.DownTo(ctx, 0)
 		if err != nil {
 			log.Fatalf("goose %v: %v", command, err)
 		}
