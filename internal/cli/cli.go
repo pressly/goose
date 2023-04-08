@@ -13,8 +13,8 @@ import (
 
 var commands = map[string]func(*rootConfig) *ffcli.Command{
 	"create":    newCreateCmd,
-	"down":      newDownCmd,
 	"down-to":   newDownToCmd,
+	"down":      newDownCmd,
 	"env":       newEnvCmd,
 	"fix":       newFixCmd,
 	"redo":      newRedoCmd,
@@ -138,9 +138,9 @@ COMMANDS
   fix             Apply sequential numbering to existing timestamped migrations
   redo            Roll back the last appied migration and re-apply it
   status          List applied and pending migrations
+  up              Migrate database to the most recent version
   up-by-one       Migrate database up by one version
   up-to           Migrate database up to, and including, a specific version
-  up              Migrate database to the most recent version
   version         Print the current version of the database
 
 SUPPORTED DATABASES
