@@ -27,12 +27,15 @@ func newCreateCmd(root *rootConfig) *ffcli.Command {
 
 	return &ffcli.Command{
 		Name:       "create",
-		ShortUsage: "goose [flags] create [sql|go] <name> ",
+		ShortUsage: "goose [flags] create [sql|go] <name>",
 		LongHelp:   "",
 		ShortHelp:  "",
 		FlagSet:    fs,
 		Options: []ff.Option{
 			ff.WithEnvVarPrefix("GOOSE"),
+		},
+		UsageFunc: func(c *ffcli.Command) string {
+			return createCmdUsage
 		},
 		Exec: c.Exec,
 	}
@@ -64,3 +67,11 @@ func (c *createCmd) Exec(ctx context.Context, args []string) error {
 	fmt.Printf("Created: %s\n", filename)
 	return nil
 }
+
+const (
+	createCmdUsage = `
+Create a new .sql or .go migration file.
+
+TODO: add more details here.
+`
+)
