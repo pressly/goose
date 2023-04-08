@@ -14,28 +14,28 @@ import (
 	"github.com/pressly/goose/v4"
 )
 
+var commands = map[string]func(*rootConfig) *ffcli.Command{
+	"create":    newCreateCmd,
+	"down":      newDownCmd,
+	"env":       newEnvCmd,
+	"fix":       newFixCmd,
+	"redo":      newRedoCmd,
+	"status":    newStatusCmd,
+	"up-by-one": newUpByOneCmd,
+	"up-to":     newUpToCmd,
+	"up":        newUpCmd,
+	"version":   newVersionCmd,
+}
+
 // Run is the entry point for the goose CLI. It parses the command line
 // arguments and executes the appropriate command.
 //
 // The supplied args should not include the name of the executable.
 func Run(args []string) error {
-	rootCmd, rootConfig := newRootCmd()
-
-	rootCmd.Subcommands = []*ffcli.Command{
-		// Up commands.
-		newUpCmd(rootConfig),
-		newUpToCmd(rootConfig),
-		newUpByOneCmd(rootConfig),
-		// Down commands.
-		newDownToCmd(rootConfig),
-		newDownCmd(rootConfig),
-
-		newRedoCmd(rootConfig),
-		newStatusCmd(rootConfig),
-		newVersionCmd(rootConfig),
-		newFixCmd(rootConfig),
-		newCreateCmd(rootConfig),
-		newEnvCmd(rootConfig),
+	rootCmd, rootConfig := newRootCmd(os.Stdout)
+	// Add subcommands. These will be advertised in the help text.
+	for _, cmd := range commands {
+		rootCmd.Subcommands = append(rootCmd.Subcommands, cmd(rootConfig))
 	}
 
 	// for _, c := range rootCmd.Subcommands {
@@ -135,3 +135,38 @@ func convertMigrationResult(
 // 	}
 // 	return d
 // }
+
+func newGooseProvider(root *rootConfig) (*goose.Provider, error) {
+	db, gooseDialect, err := openConnection(root.dbstring)
+	if err != nil {
+		return nil, err
+	}
+	opt := goose.DefaultOptions().
+		SetVerbose(root.verbose).
+		SetNoVersioning(root.noVersioning).
+		SetAllowMissing(root.allowMissing)
+
+	if len(root.excludeFilenames) > 0 {
+		opt = opt.SetExcludeFilenames(root.excludeFilenames...)
+	}
+	if root.dir != "" {
+		opt = opt.SetDir(root.dir)
+	}
+	if root.table != "" {
+		opt = opt.SetTableName(root.table)
+	}
+	if root.lockMode != "" {
+		var lockMode goose.LockMode
+		switch root.lockMode {
+		case "none":
+			lockMode = goose.LockModeNone
+		case "advisory-session":
+			lockMode = goose.LockModeAdvisorySession
+		default:
+			return nil, fmt.Errorf("invalid lock mode: %s", root.lockMode)
+		}
+		opt = opt.SetLockMode(lockMode)
+	}
+
+	return goose.NewProvider(gooseDialect, db, opt)
+}

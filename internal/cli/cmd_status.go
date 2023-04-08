@@ -9,12 +9,7 @@ import (
 	"github.com/peterbourgon/ff/v3/ffcli"
 )
 
-type statusCmd struct {
-	root *rootConfig
-}
-
 func newStatusCmd(root *rootConfig) *ffcli.Command {
-	c := statusCmd{root: root}
 	fs := flag.NewFlagSet("goose status", flag.ExitOnError)
 	root.registerFlags(fs)
 
@@ -27,23 +22,25 @@ func newStatusCmd(root *rootConfig) *ffcli.Command {
 			ff.WithEnvVarPrefix("GOOSE"),
 		},
 
-		Exec: c.Exec,
+		Exec: execStatusCmd(root),
 	}
 }
 
-func (c *statusCmd) Exec(ctx context.Context, args []string) error {
-	provider, err := newGooseProvider(c.root)
-	if err != nil {
-		return err
+func execStatusCmd(root *rootConfig) func(ctx context.Context, args []string) error {
+	return func(ctx context.Context, args []string) error {
+		provider, err := newGooseProvider(root)
+		if err != nil {
+			return err
+		}
+		results, err := provider.Status(ctx, nil)
+		if err != nil {
+			return err
+		}
+		for _, result := range results {
+			fmt.Println(result)
+		}
+		return nil
 	}
-	results, err := provider.Status(ctx, nil)
-	if err != nil {
-		return err
-	}
-	for _, result := range results {
-		fmt.Println(result)
-	}
-	return nil
 }
 
 type statusesOutput struct {

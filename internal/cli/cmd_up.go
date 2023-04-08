@@ -9,12 +9,7 @@ import (
 	"github.com/peterbourgon/ff/v3/ffcli"
 )
 
-type upCmd struct {
-	root *rootConfig
-}
-
 func newUpCmd(root *rootConfig) *ffcli.Command {
-	c := upCmd{root: root}
 	fs := flag.NewFlagSet("goose up", flag.ExitOnError)
 	root.registerFlags(fs)
 
@@ -23,27 +18,29 @@ func newUpCmd(root *rootConfig) *ffcli.Command {
 		ShortUsage: "goose [flags] up",
 		LongHelp:   "",
 		ShortHelp:  "",
-		Exec:       c.Exec,
 		FlagSet:    fs,
 		Options: []ff.Option{
 			ff.WithEnvVarPrefix("GOOSE"),
 		},
+		Exec: execUpCmd(root),
 	}
 }
 
-func (c *upCmd) Exec(ctx context.Context, args []string) error {
-	provider, err := newGooseProvider(c.root)
-	if err != nil {
-		return err
+func execUpCmd(root *rootConfig) func(context.Context, []string) error {
+	return func(ctx context.Context, args []string) error {
+		provider, err := newGooseProvider(root)
+		if err != nil {
+			return err
+		}
+		now := time.Now()
+		results, err := provider.Up(ctx)
+		if err != nil {
+			return err
+		}
+		return printMigrationResult(
+			results,
+			time.Since(now),
+			root.useJSON,
+		)
 	}
-	now := time.Now()
-	results, err := provider.Up(ctx)
-	if err != nil {
-		return err
-	}
-	return printMigrationResult(
-		results,
-		time.Since(now),
-		c.root.useJSON,
-	)
 }

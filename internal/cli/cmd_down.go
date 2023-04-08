@@ -11,12 +11,7 @@ import (
 	"github.com/pressly/goose/v4"
 )
 
-type downCmd struct {
-	root *rootConfig
-}
-
 func newDownCmd(root *rootConfig) *ffcli.Command {
-	c := downCmd{root: root}
 	fs := flag.NewFlagSet("goose down", flag.ExitOnError)
 	root.registerFlags(fs)
 
@@ -28,27 +23,28 @@ func newDownCmd(root *rootConfig) *ffcli.Command {
 		Options: []ff.Option{
 			ff.WithEnvVarPrefix("GOOSE"),
 		},
-
-		Exec: c.Exec,
+		Exec: execDownCmd(root),
 	}
 }
 
-func (c *downCmd) Exec(ctx context.Context, args []string) error {
-	if len(args) > 0 {
-		return fmt.Errorf("too many arguments")
+func execDownCmd(root *rootConfig) func(context.Context, []string) error {
+	return func(ctx context.Context, args []string) error {
+		if len(args) > 0 {
+			return fmt.Errorf("too many arguments")
+		}
+		provider, err := newGooseProvider(root)
+		if err != nil {
+			return err
+		}
+		now := time.Now()
+		result, err := provider.Down(ctx)
+		if err != nil {
+			return err
+		}
+		return printMigrationResult(
+			[]*goose.MigrationResult{result},
+			time.Since(now),
+			root.useJSON,
+		)
 	}
-	provider, err := newGooseProvider(c.root)
-	if err != nil {
-		return err
-	}
-	now := time.Now()
-	result, err := provider.Down(ctx)
-	if err != nil {
-		return err
-	}
-	return printMigrationResult(
-		[]*goose.MigrationResult{result},
-		time.Since(now),
-		c.root.useJSON,
-	)
 }

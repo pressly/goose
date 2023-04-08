@@ -30,11 +30,11 @@ func newCreateCmd(root *rootConfig) *ffcli.Command {
 		ShortUsage: "goose [flags] create [sql|go] <name> ",
 		LongHelp:   "",
 		ShortHelp:  "",
-		Exec:       c.Exec,
 		FlagSet:    fs,
 		Options: []ff.Option{
 			ff.WithEnvVarPrefix("GOOSE"),
 		},
+		Exec: c.Exec,
 	}
 }
 

@@ -10,12 +10,7 @@ import (
 	"github.com/pressly/goose/v4"
 )
 
-type upByOneCmd struct {
-	root *rootConfig
-}
-
 func newUpByOneCmd(root *rootConfig) *ffcli.Command {
-	c := upByOneCmd{root: root}
 	fs := flag.NewFlagSet("goose up-by-one", flag.ExitOnError)
 	root.registerFlags(fs)
 
@@ -24,27 +19,29 @@ func newUpByOneCmd(root *rootConfig) *ffcli.Command {
 		ShortUsage: "goose [flags] up-by-one",
 		LongHelp:   "",
 		ShortHelp:  "",
-		Exec:       c.Exec,
 		FlagSet:    fs,
 		Options: []ff.Option{
 			ff.WithEnvVarPrefix("GOOSE"),
 		},
+		Exec: execUpByOneCmd(root),
 	}
 }
 
-func (c *upByOneCmd) Exec(ctx context.Context, args []string) error {
-	provider, err := newGooseProvider(c.root)
-	if err != nil {
-		return err
+func execUpByOneCmd(root *rootConfig) func(context.Context, []string) error {
+	return func(ctx context.Context, args []string) error {
+		provider, err := newGooseProvider(root)
+		if err != nil {
+			return err
+		}
+		now := time.Now()
+		result, err := provider.UpByOne(ctx)
+		if err != nil {
+			return err
+		}
+		return printMigrationResult(
+			[]*goose.MigrationResult{result},
+			time.Since(now),
+			root.useJSON,
+		)
 	}
-	now := time.Now()
-	result, err := provider.UpByOne(ctx)
-	if err != nil {
-		return err
-	}
-	return printMigrationResult(
-		[]*goose.MigrationResult{result},
-		time.Since(now),
-		c.root.useJSON,
-	)
 }
