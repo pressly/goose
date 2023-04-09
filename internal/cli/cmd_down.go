@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/peterbourgon/ff/v3"
 	"github.com/peterbourgon/ff/v3/ffcli"
 	"github.com/pressly/goose/v4"
 )
@@ -16,14 +15,9 @@ func newDownCmd(root *rootConfig) *ffcli.Command {
 	root.registerFlags(fs)
 
 	return &ffcli.Command{
-		Name:       "down",
-		ShortUsage: "goose [flags] down",
-		LongHelp:   "",
-		FlagSet:    fs,
-		Options: []ff.Option{
-			ff.WithEnvVarPrefix("GOOSE"),
-		},
-		Exec: execDownCmd(root),
+		Name:    "down",
+		FlagSet: fs,
+		Exec:    execDownCmd(root),
 	}
 }
 

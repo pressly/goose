@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/peterbourgon/ff/v3"
 	"github.com/peterbourgon/ff/v3/ffcli"
 )
 
@@ -16,15 +15,9 @@ func newDownToCmd(root *rootConfig) *ffcli.Command {
 	root.registerFlags(fs)
 
 	return &ffcli.Command{
-		Name:       "down-to",
-		ShortUsage: "goose [flags] down-to <version>",
-		LongHelp:   "",
-		FlagSet:    fs,
-		Options: []ff.Option{
-			ff.WithEnvVarPrefix("GOOSE"),
-		},
-
-		Exec: execDownToCmd(root),
+		Name:    "down-to",
+		FlagSet: fs,
+		Exec:    execDownToCmd(root),
 	}
 }
 

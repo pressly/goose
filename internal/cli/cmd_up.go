@@ -5,7 +5,6 @@ import (
 	"flag"
 	"time"
 
-	"github.com/peterbourgon/ff/v3"
 	"github.com/peterbourgon/ff/v3/ffcli"
 )
 
@@ -14,15 +13,9 @@ func newUpCmd(root *rootConfig) *ffcli.Command {
 	root.registerFlags(fs)
 
 	return &ffcli.Command{
-		Name:       "up",
-		ShortUsage: "goose [flags] up",
-		LongHelp:   "",
-		ShortHelp:  "",
-		FlagSet:    fs,
-		Options: []ff.Option{
-			ff.WithEnvVarPrefix("GOOSE"),
-		},
-		Exec: execUpCmd(root),
+		Name:    "up",
+		FlagSet: fs,
+		Exec:    execUpCmd(root),
 	}
 }
 

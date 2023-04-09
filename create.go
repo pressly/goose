@@ -55,6 +55,14 @@ func Create(
 	if opt.timeFunc != nil {
 		now = opt.timeFunc()
 	}
+
+	// Create the directory if it does not exist.
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return "", err
+		}
+	}
+
 	version := now.Format(timestampFormat)
 	if opt.Sequential {
 		migrations, err := collectMigrations(osFS{}, dir, nil, false)
@@ -100,14 +108,6 @@ func Create(
 			return "", err
 		}
 	}
-
-	// Create the directory if it does not exist.
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		if err := os.Mkdir(dir, 0755); err != nil {
-			return "", err
-		}
-	}
-
 	path := filepath.Join(dir, filename)
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		return "", fmt.Errorf("failed to create migration file: %w", err)

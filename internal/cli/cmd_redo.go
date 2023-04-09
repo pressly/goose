@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/peterbourgon/ff/v3"
 	"github.com/peterbourgon/ff/v3/ffcli"
 )
 
@@ -15,15 +14,9 @@ func newRedoCmd(root *rootConfig) *ffcli.Command {
 	root.registerFlags(fs)
 
 	return &ffcli.Command{
-		Name:       "redo",
-		ShortUsage: "goose [flags] redo",
-		LongHelp:   "",
-		FlagSet:    fs,
-		Options: []ff.Option{
-			ff.WithEnvVarPrefix("GOOSE"),
-		},
-
-		Exec: execRedoCmd(root),
+		Name:    "redo",
+		FlagSet: fs,
+		Exec:    execRedoCmd(root),
 	}
 }
 

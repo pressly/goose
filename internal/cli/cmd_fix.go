@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/peterbourgon/ff/v3"
 	"github.com/peterbourgon/ff/v3/ffcli"
 	"github.com/pressly/goose/v4"
 )
@@ -15,15 +14,9 @@ func newFixCmd(root *rootConfig) *ffcli.Command {
 	root.registerFlags(fs)
 
 	return &ffcli.Command{
-		Name:       "fix",
-		ShortUsage: "goose [flags] fix",
-		LongHelp:   "",
-		ShortHelp:  "",
-		FlagSet:    fs,
-		Options: []ff.Option{
-			ff.WithEnvVarPrefix("GOOSE"),
-		},
-		Exec: execFixCmd(root),
+		Name:    "fix",
+		FlagSet: fs,
+		Exec:    execFixCmd(root),
 	}
 }
 

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/peterbourgon/ff/v3"
 	"github.com/peterbourgon/ff/v3/ffcli"
 	"github.com/pressly/goose/v4"
 )
@@ -26,25 +25,23 @@ func newCreateCmd(root *rootConfig) *ffcli.Command {
 	root.registerFlags(fs)
 
 	return &ffcli.Command{
-		Name:       "create",
-		ShortUsage: "goose [flags] create [sql|go] <name>",
-		LongHelp:   "",
-		ShortHelp:  "",
-		FlagSet:    fs,
-		Options: []ff.Option{
-			ff.WithEnvVarPrefix("GOOSE"),
-		},
-		UsageFunc: func(c *ffcli.Command) string {
-			return createCmdUsage
-		},
-		Exec: c.Exec,
+		Name:      "create",
+		FlagSet:   fs,
+		UsageFunc: func(c *ffcli.Command) string { return createCmdUsage },
+		Exec:      c.Exec,
 	}
 }
 
 func (c *createCmd) Exec(ctx context.Context, args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("create requires 2 arguments: [sql|go] <name>\n\nExample: goose create sql add users table")
+		return fmt.Errorf("goose create requires 2 arguments: {sql | go} <name>\n\nExample: goose create sql add users table")
 	}
+
+	// TODO(mf): It'd be nice if ffcli supported mixing flags and positional arguments on the
+	// same level. See https://github.com/peterbourgon/ff/issues/100
+	//
+	// For now, we should handle this ourselves if it looks like a flag we know about. The
+	// same applies to the other commands.
 
 	var migrationType goose.MigrationType
 	switch strings.ToLower(args[0]) {
@@ -53,25 +50,41 @@ func (c *createCmd) Exec(ctx context.Context, args []string) error {
 	case "sql":
 		migrationType = goose.MigrationTypeSQL
 	default:
-		return fmt.Errorf("invalid migration type: first argument must be one of [sql|go]\n\nExample: goose create sql add users table")
+		return fmt.Errorf(`invalid migration type: first argument must be one of "sql" or "go"\n\nExample: goose create sql add users table`)
 	}
 
 	name := strings.Join(args[1:], " ")
-	filename, err := goose.Create(c.root.dir, migrationType, name, &goose.CreateOptions{
+	options := &goose.CreateOptions{
 		Sequential: c.sequential,
 		NoTx:       c.noTx,
-	})
+	}
+	filename, err := goose.Create(c.root.dir, migrationType, name, options)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Created: %s\n", filename)
+	fmt.Fprintf(c.root.stdout, "Created: %s\n", filename)
 	return nil
 }
 
 const (
 	createCmdUsage = `
-Create a new .sql or .go migration file.
+Create a new .sql or .go migration file with boilerplate.
 
-TODO: add more details here.
+The name argument is used to generate the filename. The name is converted to snake_case and 
+prepended with a timestamp (20230409090029_), or a sequential number (00009_) if -s is used.
+
+If the directory does not exist, it will be created.
+
+USAGE
+  goose create [flags] {sql | go} <name>
+
+FLAGS
+  -dir        Path to migrations directory (default: "./migrations")
+  -s          Use sequential versions
+  -no-tx      Mark the file as not requiring a transaction
+
+EXAMPLES
+  $ goose -dir ./schema/migrations create sql add users table
+  $ GOOSE_DIR=./data/schema/migrations goose create -s -no-tx go backfill_emails
 `
 )

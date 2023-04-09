@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/peterbourgon/ff/v3"
 	"github.com/peterbourgon/ff/v3/ffcli"
 )
 
@@ -14,15 +13,9 @@ func newEnvCmd(root *rootConfig) *ffcli.Command {
 	root.registerFlags(fs)
 
 	return &ffcli.Command{
-		Name:       "env",
-		ShortUsage: "goose env",
-		LongHelp:   "",
-		ShortHelp:  "",
-		FlagSet:    fs,
-		Options: []ff.Option{
-			ff.WithEnvVarPrefix("GOOSE"),
-		},
-		Exec: execEnvCmd(root),
+		Name:    "env",
+		FlagSet: fs,
+		Exec:    execEnvCmd(root),
 	}
 }
 
