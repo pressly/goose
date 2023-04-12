@@ -3,10 +3,16 @@ package cli
 import (
 	"context"
 	"flag"
+	"fmt"
 	"io"
+	"runtime/debug"
 
 	"github.com/peterbourgon/ff/v3"
 	"github.com/peterbourgon/ff/v3/ffcli"
+)
+
+var (
+	VERSION = ""
 )
 
 func newRootCmd(w io.Writer) (*ffcli.Command, *rootConfig) {
@@ -26,16 +32,31 @@ func newRootCmd(w io.Writer) (*ffcli.Command, *rootConfig) {
 			return rootUsage
 		},
 		Exec: func(ctx context.Context, args []string) error {
+			if config.version {
+				fmt.Fprintf(w, "goose version: %s\n", getVersion())
+				return nil
+			}
 			return flag.ErrHelp
 		},
 	}
 	return root, config
 }
 
+func getVersion() string {
+	if buildInfo, ok := debug.ReadBuildInfo(); ok && buildInfo != nil && VERSION == "" {
+		VERSION = buildInfo.Main.Version
+	}
+	if VERSION == "" {
+		VERSION = "(devel)"
+	}
+	return VERSION
+}
+
 type rootConfig struct {
 	dir     string
 	verbose bool
 	useJSON bool
+	version bool
 
 	dbstring         string
 	table            string
@@ -65,6 +86,7 @@ func (c *rootConfig) registerFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&c.allowMissing, "allow-missing", false, "allow missing (out-of-order) migrations")
 	fs.StringVar(&c.lockMode, "lock-mode", "", "lock mode (none, advisory-session)")
 	fs.Var(&c.excludeFilenames, "exclude", "exclude filenames (comma separated)")
+	fs.BoolVar(&c.version, "version", false, "")
 }
 
 const (
@@ -94,29 +116,24 @@ SUPPORTED DATABASES
   redshift        tidb         mssql
   clickhouse      vertica      
 
-FLAGS
-  --allow-missing         Allow missing (out-of-order) migrations
-  --dbstring              Database connection string
-  --dir                   Directory with migration files (default: "./migrations")
-  --exclude               Exclude migrations by filename, comma separated
+GLOBAL FLAGS
   --help                  Display help
   --json                  Format output as JSON
-  --lock-mode             Set a lock mode [none, advisory-session] (default: "none")
-  --no-versioning         Do not store version info in the database, just run the migrations
-  --table                 Table name to store version info (default: "goose_db_version")
+  --no-color              Disable color output
   --v                     Turn on verbose mode
   --version               Display the version of goose currently installed
 
 ENVIRONMENT VARIABLES
   GOOSE_DBSTRING          Database connection string, lower priority than --dbstring
   GOOSE_DIR               Directory with migration files, lower priority than --dir
+  NO_COLOR                Disable color output
 
 EXAMPLES
-  goose --dbstring="postgres://dbuser:password1@localhost:5433/testdb?sslmode=disable" status
-  goose --dbstring="mysql://user:password@/dbname?parseTime=true" status
+  $ goose --dbstring="postgres://dbuser:password1@localhost:5432/testdb?sslmode=disable" status
+  $ goose --dbstring="mysql://user:password@/dbname?parseTime=true" status
 
-  GOOSE_DIR=./examples/sql-migrations GOOSE_DBSTRING="sqlite:./test.db" goose status
-  GOOSE_DBSTRING="clickhouse://user:password@localhost:9000/clickdb" goose status
+  $ GOOSE_DIR=./examples/sql-migrations GOOSE_DBSTRING="sqlite:./test.db" goose status
+  $ GOOSE_DBSTRING="clickhouse://user:password@localhost:9000/clickdb" goose status
 
 LEARN MORE
   Use 'goose <command> --help' for more information about a command.

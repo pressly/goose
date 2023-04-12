@@ -14,9 +14,10 @@ func newRedoCmd(root *rootConfig) *ffcli.Command {
 	root.registerFlags(fs)
 
 	return &ffcli.Command{
-		Name:    "redo",
-		FlagSet: fs,
-		Exec:    execRedoCmd(root),
+		Name:      "redo",
+		FlagSet:   fs,
+		UsageFunc: func(c *ffcli.Command) string { return redoCmdUsage },
+		Exec:      execRedoCmd(root),
 	}
 }
 
@@ -41,3 +42,25 @@ func execRedoCmd(root *rootConfig) func(context.Context, []string) error {
 		)
 	}
 }
+
+const (
+	redoCmdUsage = `
+Rerun the most recently applied migration.
+
+USAGE
+  goose redo [flags]
+
+FLAGS
+  --dbstring           Database connection string
+  --dir                Directory with migration files (default: "./migrations")
+  --exclude            Exclude migrations by filename, comma separated
+  --json               Format output as JSON
+  --lock-mode          Set a lock mode [none, advisory-session] (default: "none")
+  --no-versioning      Do not store version info in the database, just run the migrations
+  --table              Table name to store version info (default: "goose_db_version")
+  --v                  Turn on verbose mode
+
+EXAMPLES
+  $ goose redo --dbstring="sqlite:./test.db"
+`
+)

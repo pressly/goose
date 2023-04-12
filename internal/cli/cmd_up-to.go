@@ -15,9 +15,10 @@ func newUpToCmd(root *rootConfig) *ffcli.Command {
 	root.registerFlags(fs)
 
 	return &ffcli.Command{
-		Name:    "up-to",
-		FlagSet: fs,
-		Exec:    execUpToCmd(root),
+		Name:      "up-to",
+		FlagSet:   fs,
+		UsageFunc: func(c *ffcli.Command) string { return upToCmdUsage },
+		Exec:      execUpToCmd(root),
 	}
 }
 
@@ -46,3 +47,28 @@ func execUpToCmd(root *rootConfig) func(ctx context.Context, args []string) erro
 		)
 	}
 }
+
+const (
+	upToCmdUsage = `
+Apply available migrations up to, and including, the specified version.
+
+USAGE
+  goose up-to [flags] <version>
+
+FLAGS
+  --allow-missing         Allow missing (out-of-order) migrations
+  --dbstring              Database connection string
+  --dir                   Directory with migration files (default: "./migrations")
+  --exclude               Exclude migrations by filename, comma separated
+  --help                  Display help
+  --json                  Format output as JSON
+  --lock-mode             Set a lock mode [none, advisory-session] (default: "none")
+  --no-versioning         Do not store version info in the database, just run the migrations
+  --table                 Table name to store version info (default: "goose_db_version")
+  --v                     Turn on verbose mode
+
+EXAMPLES
+  $ goose up-to --dbstring="sqlite:./test.db" 42
+  $ GOOSE_DIR=./examples/sql-migrations GOOSE_DBSTRING="sqlite:./test.db" goose up-to 3
+`
+)

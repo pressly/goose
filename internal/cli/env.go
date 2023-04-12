@@ -6,8 +6,11 @@ import (
 )
 
 var (
+	GOOSE_DBSTRING = envOr("GOOSE_DBSTRING", "")
+	GOOSE_DIR      = envOr("GOOSE_DIR", DefaultDir)
+
 	// https://no-color.org/
-	GOOSE_NOCOLOR = envOr("NO_COLOR", "false")
+	NOCOLOR = envOr("NO_COLOR", "false")
 )
 
 var (
@@ -23,7 +26,9 @@ type EnvVar struct {
 func List() []EnvVar {
 	all := os.Environ()
 	envs := []EnvVar{
-		{Value: GOOSE_NOCOLOR, Name: "NO_COLOR"},
+		{Value: GOOSE_DBSTRING, Name: "GOOSE_DBSTRING"},
+		{Value: GOOSE_DIR, Name: "GOOSE_DIR"},
+		{Value: NOCOLOR, Name: "NO_COLOR"},
 	}
 	for _, e := range all {
 		if strings.HasPrefix(e, "GOOSE_") {

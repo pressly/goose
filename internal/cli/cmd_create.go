@@ -79,12 +79,13 @@ USAGE
   goose create [flags] {sql | go} <name>
 
 FLAGS
-  -dir        Path to migrations directory (default: "./migrations")
-  -s          Use sequential versions
-  -no-tx      Mark the file as not requiring a transaction
+  --dir        Path to migrations directory (default: "./migrations")
+  --s          Use sequential versions
+  --no-tx      Mark the file as not requiring a transaction
+  --v          Turn on verbose mode
 
 EXAMPLES
-  $ goose -dir ./schema/migrations create sql add users table
-  $ GOOSE_DIR=./data/schema/migrations goose create -s -no-tx go backfill_emails
+  $ goose --dir=./schema/migrations create sql add users table
+  $ GOOSE_DIR=./data/schema/migrations goose create --s --no-tx go backfill_emails
 `
 )
