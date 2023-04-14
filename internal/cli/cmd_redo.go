@@ -11,22 +11,32 @@ import (
 
 func newRedoCmd(root *rootConfig) *ffcli.Command {
 	fs := flag.NewFlagSet("goose redo", flag.ExitOnError)
-	root.registerFlags(fs)
+	registerFlags(fs, root)
+	pf := &providerFlags{}
+	registerProviderFlags(fs, pf)
 
+	usageOpt := &usageOpt{
+		examples: []string{
+			`$ goose redo --dbstring="sqlite:./test.db" -dir=./examples/sql-migrations`,
+		},
+	}
 	return &ffcli.Command{
-		Name:      "redo",
-		FlagSet:   fs,
-		UsageFunc: func(c *ffcli.Command) string { return redoCmdUsage },
-		Exec:      execRedoCmd(root),
+		Name:       "redo",
+		ShortUsage: "goose redo [flags]",
+		ShortHelp:  "Roll back the last appied migration and re-apply it",
+		LongHelp:   redoCmdLongHelp,
+		FlagSet:    fs,
+		UsageFunc:  newUsageFunc(usageOpt),
+		Exec:       execRedoCmd(root, pf),
 	}
 }
 
-func execRedoCmd(root *rootConfig) func(context.Context, []string) error {
+func execRedoCmd(root *rootConfig, pf *providerFlags) func(context.Context, []string) error {
 	return func(ctx context.Context, args []string) error {
 		if len(args) > 0 {
 			return fmt.Errorf("too many arguments")
 		}
-		provider, err := newGooseProvider(root)
+		provider, err := newGooseProvider(root, pf)
 		if err != nil {
 			return err
 		}
@@ -43,24 +53,8 @@ func execRedoCmd(root *rootConfig) func(context.Context, []string) error {
 	}
 }
 
-const (
-	redoCmdUsage = `
+const redoCmdLongHelp = `
 Rerun the most recently applied migration.
 
-USAGE
-  goose redo [flags]
-
-FLAGS
-  --dbstring           Database connection string
-  --dir                Directory with migration files (default: "./migrations")
-  --exclude            Exclude migrations by filename, comma separated
-  --json               Format output as JSON
-  --lock-mode          Set a lock mode [none, advisory-session] (default: "none")
-  --no-versioning      Do not store version info in the database, just run the migrations
-  --table              Table name to store version info (default: "goose_db_version")
-  --v                  Turn on verbose mode
-
-EXAMPLES
-  $ goose redo --dbstring="sqlite:./test.db"
+This is effectively "goose down" followed by "goose up-by-one".
 `
-)

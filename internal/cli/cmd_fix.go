@@ -11,19 +11,34 @@ import (
 
 func newFixCmd(root *rootConfig) *ffcli.Command {
 	fs := flag.NewFlagSet("goose fix", flag.ExitOnError)
-	root.registerFlags(fs)
+	registerFlags(fs, root)
+	var dir string
+	fs.StringVar(&dir, "dir", "", "directory with migration files")
 
+	usageOpt := &usageOpt{
+		examples: []string{
+			`$ goose fix --dir=./schema/migrations`,
+			`$ GOOSE_DIR=./schema/migrations goose fix`,
+		},
+	}
 	return &ffcli.Command{
-		Name:      "fix",
-		FlagSet:   fs,
-		UsageFunc: func(c *ffcli.Command) string { return fixCmdUsage },
-		Exec:      execFixCmd(root),
+		Name:       "fix",
+		ShortUsage: "goose fix [flags]",
+		ShortHelp:  "Apply sequential numbering to existing timestamped migrations",
+		LongHelp:   fixCmdLongHelp,
+		FlagSet:    fs,
+		UsageFunc:  newUsageFunc(usageOpt),
+		Exec:       execFixCmd(root, dir),
 	}
 }
 
-func execFixCmd(root *rootConfig) func(ctx context.Context, args []string) error {
+func execFixCmd(root *rootConfig, dir string) func(ctx context.Context, args []string) error {
 	return func(ctx context.Context, args []string) error {
-		fixResults, err := goose.Fix(root.dir)
+		dir = coalesce(dir, GOOSE_DIR)
+		if dir == "" {
+			return fmt.Errorf("goose fix requires a migrations directory to be specified with --dir or GOOSE_DIR")
+		}
+		fixResults, err := goose.Fix(dir)
 		if err != nil {
 			return err
 		}
@@ -38,8 +53,7 @@ func execFixCmd(root *rootConfig) func(ctx context.Context, args []string) error
 	}
 }
 
-const (
-	fixCmdUsage = `
+const fixCmdLongHelp = `
 Rename all migration files to a sequential version number. The next migration version number is 
 determined by the highest version number on disk.
 
@@ -55,17 +69,4 @@ version. When you're ready to deploy migrations in a production environment, we 
 helpful fix command to convert migrations into sequential order, while preserving the timestamp 
 ordering. We recommend running goose fix in the CI pipeline, and only when the migrations are ready 
 for production.
-
-USAGE:
-  goose fix [flags]
-
-FLAGS:
-  --dir       Directory with migration files (default: "./migrations")
-  --json      Output results as JSON
-  --v         Turn on verbose mode
-
-Examples:
-  $ goose fix --dir=./schema/migrations
-  $ GOOSE_DIR=./schema/migrations goose fix
 `
-)

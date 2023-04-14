@@ -10,19 +10,30 @@ import (
 
 func newStatusCmd(root *rootConfig) *ffcli.Command {
 	fs := flag.NewFlagSet("goose status", flag.ExitOnError)
-	root.registerFlags(fs)
+	registerFlags(fs, root)
+	pf := &providerFlags{}
+	registerProviderFlags(fs, pf)
 
+	usageOpt := &usageOpt{
+		examples: []string{
+			`$ goose status --dir=./schema/migrations --dbstring="sqlite:./test.db"`,
+			`$ GOOSE_DIR=./schema/migrations GOOSE_DBSTRING="sqlite:./test.db" goose status`,
+		},
+	}
 	return &ffcli.Command{
-		Name:      "status",
-		FlagSet:   fs,
-		UsageFunc: func(c *ffcli.Command) string { return statusCmdUsage },
-		Exec:      execStatusCmd(root),
+		Name:       "status",
+		ShortUsage: "goose status [flags]",
+		ShortHelp:  "List applied and pending migrations",
+		LongHelp:   statusCmdLongHelp,
+		FlagSet:    fs,
+		UsageFunc:  newUsageFunc(usageOpt),
+		Exec:       execStatusCmd(root, pf),
 	}
 }
 
-func execStatusCmd(root *rootConfig) func(ctx context.Context, args []string) error {
+func execStatusCmd(root *rootConfig, pf *providerFlags) func(ctx context.Context, args []string) error {
 	return func(ctx context.Context, args []string) error {
-		provider, err := newGooseProvider(root)
+		provider, err := newGooseProvider(root, pf)
 		if err != nil {
 			return err
 		}
@@ -50,7 +61,7 @@ type statusOutput struct {
 	Filename  string `json:"filename"`
 }
 
-const statusCmdUsage = `
+const statusCmdLongHelp = `
 List the status of all migrations, comparing the current state of the database with the migrations 
 on disk. 
 
@@ -59,22 +70,4 @@ If a migration is on disk but is not applied to the database, it will be listed 
 Note, if --allow-missing is set, this command will report migrations as "out-of-order". This
 surfaces migration versions that are lower than the current database version, but are not applied
 to the database.
-
-
-USAGE
-  goose status [flags]
-
-FLAGS
-  --allow-missing      Allow missing (out-of-order) migrations
-  --dbstring           Database connection string
-  --dir                Directory with migration files (default: "./migrations")
-  --exclude            Exclude migrations by filename, comma separated
-  --json               Format output as JSON
-  --lock-mode          Set a lock mode [none, advisory-session] (default: "none")
-  --table              Table name to store version info (default: "goose_db_version")
-  --v                  Turn on verbose mode
-
-EXAMPLES
-  $ goose status --dir=./schema/migrations --dbstring="sqlite:./test.db"
-  $ GOOSE_DIR=./schema/migrations GOOSE_DBSTRING="sqlite:./test.db" goose status
 `

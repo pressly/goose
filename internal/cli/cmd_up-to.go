@@ -12,17 +12,28 @@ import (
 
 func newUpToCmd(root *rootConfig) *ffcli.Command {
 	fs := flag.NewFlagSet("goose up-to", flag.ExitOnError)
-	root.registerFlags(fs)
+	registerFlags(fs, root)
+	pf := &providerFlags{}
+	registerProviderFlags(fs, pf)
 
+	usageOpt := &usageOpt{
+		examples: []string{
+			`$ goose up-to --dbstring="sqlite:./test.db" 42`,
+			`$ GOOSE_DIR=./examples/sql-migrations GOOSE_DBSTRING="sqlite:./test.db" goose up-to 3`,
+		},
+	}
 	return &ffcli.Command{
-		Name:      "up-to",
-		FlagSet:   fs,
-		UsageFunc: func(c *ffcli.Command) string { return upToCmdUsage },
-		Exec:      execUpToCmd(root),
+		Name:       "up-to",
+		ShortUsage: "goose up-to [flags] <version>",
+		ShortHelp:  "Migrate database up to, and including, a specific version",
+		LongHelp:   upToLongHelp,
+		FlagSet:    fs,
+		UsageFunc:  newUsageFunc(usageOpt),
+		Exec:       execUpToCmd(root, pf),
 	}
 }
 
-func execUpToCmd(root *rootConfig) func(ctx context.Context, args []string) error {
+func execUpToCmd(root *rootConfig, pf *providerFlags) func(ctx context.Context, args []string) error {
 	return func(ctx context.Context, args []string) error {
 		if len(args) != 1 {
 			return fmt.Errorf("missing required argument: version")
@@ -31,7 +42,7 @@ func execUpToCmd(root *rootConfig) func(ctx context.Context, args []string) erro
 		if err != nil {
 			return fmt.Errorf("invalid version: %s, must be an integer", args[0])
 		}
-		provider, err := newGooseProvider(root)
+		provider, err := newGooseProvider(root, pf)
 		if err != nil {
 			return err
 		}
@@ -48,27 +59,6 @@ func execUpToCmd(root *rootConfig) func(ctx context.Context, args []string) erro
 	}
 }
 
-const (
-	upToCmdUsage = `
+const upToLongHelp = `
 Apply available migrations up to, and including, the specified version.
-
-USAGE
-  goose up-to [flags] <version>
-
-FLAGS
-  --allow-missing         Allow missing (out-of-order) migrations
-  --dbstring              Database connection string
-  --dir                   Directory with migration files (default: "./migrations")
-  --exclude               Exclude migrations by filename, comma separated
-  --help                  Display help
-  --json                  Format output as JSON
-  --lock-mode             Set a lock mode [none, advisory-session] (default: "none")
-  --no-versioning         Do not store version info in the database, just run the migrations
-  --table                 Table name to store version info (default: "goose_db_version")
-  --v                     Turn on verbose mode
-
-EXAMPLES
-  $ goose up-to --dbstring="sqlite:./test.db" 42
-  $ GOOSE_DIR=./examples/sql-migrations GOOSE_DBSTRING="sqlite:./test.db" goose up-to 3
 `
-)

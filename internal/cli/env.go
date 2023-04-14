@@ -2,19 +2,33 @@ package cli
 
 import (
 	"os"
-	"strings"
+)
+
+const (
+	DefaultTableName = "goose_db_version"
+)
+
+const (
+	EnvGooseDBString string = "GOOSE_DBSTRING"
+	EnvGooseDir      string = "GOOSE_DIR"
+	EnvGooseTable    string = "GOOSE_TABLE"
+	EnvNoColor       string = "NO_COLOR"
 )
 
 var (
-	GOOSE_DBSTRING = envOr("GOOSE_DBSTRING", "")
-	GOOSE_DIR      = envOr("GOOSE_DIR", DefaultDir)
+	GOOSE_DBSTRING = envOr(EnvGooseDBString, "")
+	GOOSE_TABLE    = envOr(EnvGooseTable, DefaultTableName)
+	GOOSE_DIR      = envOr(EnvGooseDir, "")
 
 	// https://no-color.org/
-	NOCOLOR = envOr("NO_COLOR", "false")
-)
+	NOCOLOR = envOr(EnvNoColor, "false")
 
-var (
-	DefaultDir = "./migrations"
+	envLookup = map[string]string{
+		EnvGooseDBString: "Database connection string, lower priority than --dbstring",
+		EnvGooseDir:      "Directory with migration files, lower priority than --dir",
+		EnvGooseTable:    `Database table name, lower priority than --table (default "goose_db_version")`,
+		EnvNoColor:       "Disable color output, lower priority than --no-color",
+	}
 )
 
 // An EnvVar is an environment variable Name=Value.
@@ -24,21 +38,12 @@ type EnvVar struct {
 }
 
 func List() []EnvVar {
-	all := os.Environ()
-	envs := []EnvVar{
-		{Value: GOOSE_DBSTRING, Name: "GOOSE_DBSTRING"},
-		{Value: GOOSE_DIR, Name: "GOOSE_DIR"},
-		{Value: NOCOLOR, Name: "NO_COLOR"},
+	return []EnvVar{
+		{Value: GOOSE_DBSTRING, Name: EnvGooseDBString},
+		{Value: GOOSE_DIR, Name: EnvGooseDir},
+		{Value: GOOSE_TABLE, Name: EnvGooseTable},
+		{Value: NOCOLOR, Name: EnvNoColor},
 	}
-	for _, e := range all {
-		if strings.HasPrefix(e, "GOOSE_") {
-			name, value, ok := strings.Cut(e, "=")
-			if ok {
-				envs = append(envs, EnvVar{Name: name, Value: value})
-			}
-		}
-	}
-	return envs
 }
 
 // envOr returns os.Getenv(key) if set, or else default.

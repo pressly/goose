@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/peterbourgon/ff/v3"
 	"github.com/peterbourgon/ff/v3/ffcli"
 	"github.com/pressly/goose/v4"
 )
@@ -34,11 +33,7 @@ func Run(args []string) error {
 	rootCmd, rootConfig := newRootCmd(os.Stdout)
 	// Add subcommands. These will be advertised in the help text.
 	for _, cmd := range commands {
-		subcommand := cmd(rootConfig)
-		subcommand.Options = []ff.Option{
-			ff.WithEnvVarPrefix("GOOSE"),
-		}
-		rootCmd.Subcommands = append(rootCmd.Subcommands, subcommand)
+		rootCmd.Subcommands = append(rootCmd.Subcommands, cmd(rootConfig))
 	}
 	// Set the usage function for all subcommands, if not already set.
 	// for _, c := range rootCmd.Subcommands {
@@ -88,37 +83,56 @@ func (ss *stringSet) String() string {
 //  return d
 // }
 
-func newGooseProvider(root *rootConfig) (*goose.Provider, error) {
-	db, gooseDialect, err := openConnection(root.dbstring)
+func parseLockMode(s string) (goose.LockMode, error) {
+	switch s {
+	case "none":
+		return goose.LockModeNone, nil
+	case "advisory-session":
+		return goose.LockModeAdvisorySession, nil
+	default:
+		return 0, fmt.Errorf("invalid lock mode: %s", s)
+	}
+}
+
+func coalesce[T comparable](values ...T) (zero T) {
+	for _, v := range values {
+		if v != zero {
+			return v
+		}
+	}
+	return zero
+}
+
+func newGooseProvider(root *rootConfig, pf *providerFlags) (*goose.Provider, error) {
+	dir := coalesce(pf.dir, GOOSE_DIR)
+	if dir == "" {
+		return nil, fmt.Errorf("--dir or GOOSE_DIR must be set")
+	}
+	dbstring := coalesce(pf.dbstring, GOOSE_DBSTRING)
+	if dbstring == "" {
+		return nil, fmt.Errorf("--dbstring or GOOSE_DBSTRING must be set")
+	}
+
+	db, gooseDialect, err := openConnection(dbstring)
 	if err != nil {
 		return nil, err
 	}
-	opt := goose.DefaultOptions().
-		SetVerbose(root.verbose).
-		SetNoVersioning(root.noVersioning).
-		SetAllowMissing(root.allowMissing)
+	tableName := coalesce(pf.table, GOOSE_TABLE)
 
-	if len(root.excludeFilenames) > 0 {
-		opt = opt.SetExcludeFilenames(root.excludeFilenames...)
-	}
-	if root.dir != "" {
-		opt = opt.SetDir(root.dir)
-	}
-	if root.table != "" {
-		opt = opt.SetTableName(root.table)
-	}
-	if root.lockMode != "" {
-		var lockMode goose.LockMode
-		switch root.lockMode {
-		case "none":
-			lockMode = goose.LockModeNone
-		case "advisory-session":
-			lockMode = goose.LockModeAdvisorySession
-		default:
-			return nil, fmt.Errorf("invalid lock mode: %s", root.lockMode)
+	opt := goose.DefaultOptions().
+		SetDir(dir).
+		SetTableName(tableName).
+		SetVerbose(root.verbose).
+		SetAllowMissing(pf.allowMissing).
+		SetNoVersioning(pf.noVersioning).
+		SetExcludeFilenames(pf.excludeFilenames...)
+
+	if pf.lockMode != "" {
+		lockMode, err := parseLockMode(pf.lockMode)
+		if err != nil {
+			return nil, err
 		}
 		opt = opt.SetLockMode(lockMode)
 	}
-
 	return goose.NewProvider(gooseDialect, db, opt)
 }

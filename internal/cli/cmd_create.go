@@ -13,22 +13,32 @@ import (
 type createCmd struct {
 	root *rootConfig
 
+	dir        string
 	sequential bool
 	noTx       bool
 }
 
 func newCreateCmd(root *rootConfig) *ffcli.Command {
-	c := createCmd{root: root}
+	c := &createCmd{root: root}
 	fs := flag.NewFlagSet("goose create", flag.ExitOnError)
-	fs.BoolVar(&c.sequential, "s", false, "use sequential versions")
-	fs.BoolVar(&c.noTx, "no-tx", false, "do not wrap migration in a transaction")
-	root.registerFlags(fs)
+	fs.BoolVar(&c.sequential, "s", false, "")
+	fs.BoolVar(&c.noTx, "no-tx", false, "")
+	fs.StringVar(&c.dir, "dir", "", "")
 
+	usageOpt := &usageOpt{
+		examples: []string{
+			"$ goose create --dir=./schema/migrations sql add users table",
+			"$ GOOSE_DIR=./data/schema/migrations goose create --s --no-tx go backfill_emails",
+		},
+	}
 	return &ffcli.Command{
-		Name:      "create",
-		FlagSet:   fs,
-		UsageFunc: func(c *ffcli.Command) string { return createCmdUsage },
-		Exec:      c.Exec,
+		Name:       "create",
+		ShortUsage: "goose create [flags] {sql | go} <name>",
+		ShortHelp:  "Create a new .sql or .go migration file with boilerplate",
+		LongHelp:   createCmdLongHelp,
+		FlagSet:    fs,
+		UsageFunc:  newUsageFunc(usageOpt),
+		Exec:       c.Exec,
 	}
 }
 
@@ -53,12 +63,17 @@ func (c *createCmd) Exec(ctx context.Context, args []string) error {
 		return fmt.Errorf(`invalid migration type: first argument must be one of "sql" or "go"\n\nExample: goose create sql add users table`)
 	}
 
+	dir := coalesce(c.dir, GOOSE_DIR)
+	if dir == "" {
+		return fmt.Errorf("goose create requires a migrations directory to be specified with --dir or GOOSE_DIR")
+	}
+
 	name := strings.Join(args[1:], " ")
 	options := &goose.CreateOptions{
 		Sequential: c.sequential,
 		NoTx:       c.noTx,
 	}
-	filename, err := goose.Create(c.root.dir, migrationType, name, options)
+	filename, err := goose.Create(dir, migrationType, name, options)
 	if err != nil {
 		return err
 	}
@@ -66,26 +81,11 @@ func (c *createCmd) Exec(ctx context.Context, args []string) error {
 	return nil
 }
 
-const (
-	createCmdUsage = `
+const createCmdLongHelp = `
 Create a new .sql or .go migration file with boilerplate.
 
 The name argument is used to generate the filename. The name is converted to snake_case and 
 prepended with a timestamp (20230409090029_), or a sequential number (00009_) if -s is used.
 
 If the directory does not exist, it will be created.
-
-USAGE
-  goose create [flags] {sql | go} <name>
-
-FLAGS
-  --dir        Path to migrations directory (default: "./migrations")
-  --s          Use sequential versions
-  --no-tx      Mark the file as not requiring a transaction
-  --v          Turn on verbose mode
-
-EXAMPLES
-  $ goose --dir=./schema/migrations create sql add users table
-  $ GOOSE_DIR=./data/schema/migrations goose create --s --no-tx go backfill_emails
 `
-)
