@@ -3,12 +3,16 @@
 # Ref: https://github.com/denoland/deno_install
 # TODO(everyone): Keep this script simple and easily auditable.
 
-# TODO(mf): this should work on Linux and macOS. Not intended for Windows. 
+# TODO(mf): this should work on Linux and macOS. Not intended for Windows.
 
 set -e
 
-os=$(uname -s)
+os=$(uname -s | tr '[:upper:]' '[:lower:]')
 arch=$(uname -m)
+
+if [ "$arch" = "aarch64" ]; then
+	arch="arm64"
+fi
 
 if [ $# -eq 0 ]; then
 	goose_uri="https://github.com/pressly/goose/releases/latest/download/goose_${os}_${arch}"
