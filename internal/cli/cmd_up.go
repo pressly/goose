@@ -30,6 +30,7 @@ func registerProviderFlags(fs *flag.FlagSet, p *providerFlags) {
 
 func newUpCmd(root *rootConfig) *ffcli.Command {
 	fs := flag.NewFlagSet("goose up", flag.ExitOnError)
+	root.registerFlags(fs)
 	pf := new(providerFlags)
 	registerProviderFlags(fs, pf)
 

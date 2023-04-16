@@ -29,6 +29,17 @@ type usageOpt struct {
 func newUsageFunc(opt *usageOpt) func(c *ffcli.Command) string {
 	return func(c *ffcli.Command) string {
 		style := lipgloss.NewStyle().Foreground(lipgloss.Color(redColor))
+		noColorPtr := c.FlagSet.Lookup("no-color")
+		render := func(s string) string {
+			if noColorPtr == nil {
+				return s
+			}
+			ok, err := strconv.ParseBool(noColorPtr.Value.String())
+			if err == nil && ok {
+				return s
+			}
+			return style.Render(s)
+		}
 
 		if opt == nil {
 			opt = &usageOpt{}
@@ -38,12 +49,12 @@ func newUsageFunc(opt *usageOpt) func(c *ffcli.Command) string {
 		b.WriteString("\n")
 		b.WriteString(strings.TrimSpace(c.LongHelp))
 		b.WriteString("\n\n")
-		b.WriteString(style.Render("USAGE"))
+		b.WriteString(render("USAGE"))
 		b.WriteString("\n")
 		b.WriteString("  " + c.ShortUsage)
 		b.WriteString("\n\n")
 		if countFlags(c.FlagSet) > 0 {
-			b.WriteString(style.Render("FLAGS"))
+			b.WriteString(render("FLAGS"))
 			b.WriteString("\n")
 			tw := tabwriter.NewWriter(&b, 0, 2, 6, ' ', 0)
 			c.FlagSet.VisitAll(func(f *flag.Flag) {
@@ -69,7 +80,7 @@ func newUsageFunc(opt *usageOpt) func(c *ffcli.Command) string {
 
 		if len(opt.envs) > 0 {
 			b.WriteString("\n")
-			b.WriteString(style.Render("ENVIRONMENT VARIABLES"))
+			b.WriteString(render("ENVIRONMENT VARIABLES"))
 			b.WriteString("\n")
 			tw := tabwriter.NewWriter(&b, 0, 2, 6, ' ', 0)
 			for _, e := range opt.envs {
@@ -82,7 +93,7 @@ func newUsageFunc(opt *usageOpt) func(c *ffcli.Command) string {
 		}
 		if len(opt.examples) > 0 {
 			b.WriteString("\n")
-			b.WriteString(style.Render("EXAMPLES"))
+			b.WriteString(render("EXAMPLES"))
 			b.WriteString("\n")
 			for _, e := range opt.examples {
 				b.WriteString("  " + e)

@@ -11,7 +11,7 @@ import (
 
 func newUpByOneCmd(root *rootConfig) *ffcli.Command {
 	fs := flag.NewFlagSet("goose up-by-one", flag.ExitOnError)
-	registerFlags(fs, root)
+	root.registerFlags(fs)
 	pf := &providerFlags{}
 	registerProviderFlags(fs, pf)
 

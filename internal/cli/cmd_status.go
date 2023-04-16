@@ -10,7 +10,7 @@ import (
 
 func newStatusCmd(root *rootConfig) *ffcli.Command {
 	fs := flag.NewFlagSet("goose status", flag.ExitOnError)
-	registerFlags(fs, root)
+	root.registerFlags(fs)
 	pf := &providerFlags{}
 	registerProviderFlags(fs, pf)
 

@@ -11,7 +11,7 @@ import (
 
 func newFixCmd(root *rootConfig) *ffcli.Command {
 	fs := flag.NewFlagSet("goose fix", flag.ExitOnError)
-	registerFlags(fs, root)
+	root.registerFlags(fs)
 	var dir string
 	fs.StringVar(&dir, "dir", "", "directory with migration files")
 

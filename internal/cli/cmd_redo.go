@@ -11,7 +11,7 @@ import (
 
 func newRedoCmd(root *rootConfig) *ffcli.Command {
 	fs := flag.NewFlagSet("goose redo", flag.ExitOnError)
-	registerFlags(fs, root)
+	root.registerFlags(fs)
 	pf := &providerFlags{}
 	registerProviderFlags(fs, pf)
 

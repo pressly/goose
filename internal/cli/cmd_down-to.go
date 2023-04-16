@@ -12,7 +12,7 @@ import (
 
 func newDownToCmd(root *rootConfig) *ffcli.Command {
 	fs := flag.NewFlagSet("goose down-to", flag.ExitOnError)
-	registerFlags(fs, root)
+	root.registerFlags(fs)
 	pf := &providerFlags{}
 	registerProviderFlags(fs, pf)
 
