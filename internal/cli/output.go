@@ -21,6 +21,7 @@ type migrationResult struct {
 	Filename  string `json:"filename"`
 	Duration  int64  `json:"duration_ms"`
 	Direction string `json:"direction"`
+	Empty     bool   `json:"empty"`
 }
 
 func convertMigrationResult(
@@ -38,6 +39,7 @@ func convertMigrationResult(
 			Filename:  filepath.Base(result.Migration.Source),
 			Duration:  result.Duration.Milliseconds(),
 			Direction: result.Direction,
+			Empty:     result.Empty,
 		})
 	}
 	return output
@@ -48,13 +50,33 @@ func printMigrationResult(
 	totalDuration time.Duration,
 	useJson bool,
 ) error {
+	if len(results) == 0 {
+		fmt.Println("no migrations to run")
+		return nil
+	}
 	if useJson {
 		data := convertMigrationResult(results, totalDuration)
 		return json.NewEncoder(os.Stdout).Encode(data)
 	}
-	// TODO: print a table
-	for _, result := range results {
-		fmt.Println(result)
+	for _, r := range results {
+		if !r.Empty {
+			fmt.Printf("OK   %s (%s)\n", filepath.Base(r.Migration.Source), truncateDuration(r.Duration))
+		} else {
+			fmt.Printf("EMPTY %s (%s)\n", filepath.Base(r.Migration.Source), truncateDuration(r.Duration))
+		}
 	}
 	return nil
+}
+
+func truncateDuration(d time.Duration) time.Duration {
+	for _, v := range []time.Duration{
+		time.Second,
+		time.Millisecond,
+		time.Microsecond,
+	} {
+		if d > v {
+			return d.Round(v / time.Duration(100))
+		}
+	}
+	return d
 }

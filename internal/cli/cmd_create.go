@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
@@ -60,7 +61,7 @@ func (c *createCmd) Exec(ctx context.Context, args []string) error {
 	case "sql":
 		migrationType = goose.MigrationTypeSQL
 	default:
-		return fmt.Errorf(`invalid migration type: first argument must be one of "sql" or "go"\n\nExample: goose create sql add users table`)
+		return fmt.Errorf("invalid migration type: first argument must be one of sql or go\n\nExample: goose create sql add users table")
 	}
 
 	dir := coalesce(c.dir, GOOSE_DIR)
@@ -77,7 +78,7 @@ func (c *createCmd) Exec(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(c.root.stdout, "Created: %s\n", filename)
+	fmt.Fprintf(os.Stdout, "Created: %s\n", filename)
 	return nil
 }
 

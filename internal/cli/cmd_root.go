@@ -4,7 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
+	"os"
 	"runtime/debug"
 	"sort"
 	"strconv"
@@ -19,10 +19,8 @@ var (
 	VERSION = ""
 )
 
-func newRootCmd(w io.Writer) (*ffcli.Command, *rootConfig) {
-	config := &rootConfig{
-		stdout: w,
-	}
+func newRootCmd() (*ffcli.Command, *rootConfig) {
+	config := &rootConfig{}
 	fs := flag.NewFlagSet("goose", flag.ExitOnError)
 	config.registerFlags(fs)
 	fs.BoolVar(&config.version, "version", false, "")
@@ -55,7 +53,7 @@ func newRootCmd(w io.Writer) (*ffcli.Command, *rootConfig) {
 		},
 		Exec: func(ctx context.Context, args []string) error {
 			if config.version {
-				fmt.Fprintf(w, "goose version: %s\n", getVersion())
+				fmt.Fprintf(os.Stdout, "goose version: %s\n", getVersion())
 				return nil
 			}
 			if config.help {
@@ -86,10 +84,6 @@ type rootConfig struct {
 	// version is a flag that prints the version of goose and exits.
 	version bool
 	help    bool
-
-	// stdout is the output stream for the command. It is set to os.Stdout by default, but can be
-	// overridden for testing.
-	stdout io.Writer
 }
 
 // registerFlags registers the flag fields into the provided flag.FlagSet. This helper function

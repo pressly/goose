@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
@@ -30,7 +29,7 @@ var commands = map[string]func(*rootConfig) *ffcli.Command{
 //
 // The supplied args should not include the name of the executable.
 func Run(args []string) error {
-	rootCmd, rootConfig := newRootCmd(os.Stdout)
+	rootCmd, rootConfig := newRootCmd()
 	// Add subcommands. These will be advertised in the help text.
 	for _, cmd := range commands {
 		rootCmd.Subcommands = append(rootCmd.Subcommands, cmd(rootConfig))

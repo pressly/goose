@@ -31,12 +31,11 @@ func newUsageFunc(opt *usageOpt) func(c *ffcli.Command) string {
 		style := lipgloss.NewStyle().Foreground(lipgloss.Color(redColor))
 		noColorPtr := c.FlagSet.Lookup("no-color")
 		render := func(s string) string {
-			if noColorPtr == nil {
-				return s
-			}
-			ok, err := strconv.ParseBool(noColorPtr.Value.String())
-			if err == nil && ok {
-				return s
+			if noColorPtr != nil {
+				ok, err := strconv.ParseBool(noColorPtr.Value.String())
+				if err == nil && ok {
+					return s
+				}
 			}
 			return style.Render(s)
 		}

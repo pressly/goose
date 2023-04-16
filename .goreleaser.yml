@@ -48,4 +48,3 @@ changelog:
     exclude:
       - "^docs:"
       - "^test:"
-# TODO(mf): add docker support?

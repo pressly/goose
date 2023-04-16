@@ -10,6 +10,10 @@ dist:
 	GOOS=windows GOARCH=amd64 go build -o ./bin/goose-windows64.exe  ./cmd/goose
 	GOOS=windows GOARCH=386   go build -o ./bin/goose-windows386.exe ./cmd/goose
 
+.PHONY: build
+build:
+	go build -o $$GOBIN/goose ./cmd/goose
+
 .PHONY: clean
 clean:
 	@find . -type f -name '*.FAIL' -delete
