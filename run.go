@@ -16,6 +16,7 @@ type MigrationResult struct {
 	Duration  time.Duration
 	Error     string
 	Direction string
+	Empty     bool
 }
 
 func (p *Provider) runMigrations(
@@ -52,6 +53,7 @@ func (p *Provider) runMigrations(
 				Duration:  time.Since(start),
 				Error:     err.Error(),
 				Direction: direction.String(),
+				Empty:     m.isEmpty(direction.ToBool()),
 			})
 			return results, err
 		}
@@ -60,6 +62,7 @@ func (p *Provider) runMigrations(
 			Migration: m.toMigration(),
 			Duration:  time.Since(start),
 			Direction: direction.String(),
+			Empty:     m.isEmpty(direction.ToBool()),
 		})
 	}
 	return results, nil
