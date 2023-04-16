@@ -5,9 +5,9 @@ go 1.19
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.8.2
 	github.com/charmbracelet/lipgloss v0.7.1
-	github.com/denisenkom/go-mssqldb v0.12.3
 	github.com/go-sql-driver/mysql v1.7.0
 	github.com/jackc/pgx/v5 v5.3.1
+	github.com/microsoft/go-mssqldb v0.21.0
 	github.com/ory/dockertest/v3 v3.9.1
 	github.com/peterbourgon/ff/v3 v3.3.0
 	github.com/sethvargo/go-retry v0.2.4
