@@ -48,10 +48,10 @@ docker-cleanup:
 
 docker-start-postgres:
 	docker run --rm -d \
-		-e POSTGRES_USER=${POSTGRES_DB_USER} \
-		-e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} \
-		-e POSTGRES_DB=${POSTGRES_DBNAME} \
-		-p ${POSTGRES_PORT}:5432 \
+		-e POSTGRES_USER=dbuser \
+		-e POSTGRES_PASSWORD=password1 \
+		-e POSTGRES_DB=goosedb \
+		-p 5433:5432 \
 		-l goose_test \
 		postgres:14-alpine -c log_statement=all
 
