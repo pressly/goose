@@ -66,7 +66,7 @@ func (c *createCmd) Exec(ctx context.Context, args []string) error {
 
 	dir := coalesce(c.dir, GOOSE_DIR)
 	if dir == "" {
-		return fmt.Errorf("goose create requires a migrations directory to be specified with --dir or GOOSE_DIR")
+		return fmt.Errorf("goose create requires a migrations directory: %w", errNoDir)
 	}
 
 	name := strings.Join(args[1:], " ")

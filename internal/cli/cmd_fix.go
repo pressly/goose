@@ -36,7 +36,7 @@ func execFixCmd(root *rootConfig, dir string) func(ctx context.Context, args []s
 	return func(ctx context.Context, args []string) error {
 		dir = coalesce(dir, GOOSE_DIR)
 		if dir == "" {
-			return fmt.Errorf("goose fix requires a migrations directory to be specified with --dir or GOOSE_DIR")
+			return fmt.Errorf("goose fix requires a migrations directory: %w", errNoDir)
 		}
 		fixResults, err := goose.Fix(dir)
 		if err != nil {

@@ -16,6 +16,7 @@ var commands = map[string]func(*rootConfig) *ffcli.Command{
 	"down":      newDownCmd,
 	"env":       newEnvCmd,
 	"fix":       newFixCmd,
+	"init":      newInitCmd,
 	"redo":      newRedoCmd,
 	"status":    newStatusCmd,
 	"up-by-one": newUpByOneCmd,
@@ -23,6 +24,10 @@ var commands = map[string]func(*rootConfig) *ffcli.Command{
 	"up":        newUpCmd,
 	"version":   newVersionCmd,
 }
+
+var (
+	errNoDir = errors.New("--dir or GOOSE_DIR must be set")
+)
 
 // Run is the entry point for the goose CLI. It parses the command line arguments and executes the
 // appropriate command.
@@ -105,7 +110,7 @@ func coalesce[T comparable](values ...T) (zero T) {
 func newGooseProvider(root *rootConfig, pf *providerFlags) (*goose.Provider, error) {
 	dir := coalesce(pf.dir, GOOSE_DIR)
 	if dir == "" {
-		return nil, fmt.Errorf("--dir or GOOSE_DIR must be set")
+		return nil, errNoDir
 	}
 	dbstring := coalesce(pf.dbstring, GOOSE_DBSTRING)
 	if dbstring == "" {

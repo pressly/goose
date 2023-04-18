@@ -58,20 +58,26 @@ func newUsageFunc(opt *usageOpt) func(c *ffcli.Command) string {
 			tw := tabwriter.NewWriter(&b, 0, 2, 6, ' ', 0)
 			c.FlagSet.VisitAll(func(f *flag.Flag) {
 				short := flagLookup[f.Name].short
-				if flagLookup[f.Name].defaultOption != "" {
+				defaultValue := coalesce(flagLookup[f.Name].defaultOption, f.DefValue)
+				if defaultValue != "" {
 					if len(flagLookup[f.Name].availableOptions) > 0 {
 						options := strings.Join(flagLookup[f.Name].availableOptions, ",")
 						short += fmt.Sprintf(". Must be one of [%s]", options)
 					}
+					// TODO(mf): if a bool is set to true in the BoolVar call, we need to
+					// handle the default value differently. I.e., expose the true value
+					// as the default.
+					//
+					// 🦄 This is a bit gross, but it works for now.
 					if isBoolFlag(f) {
-						b, _ := strconv.ParseBool(flagLookup[f.Name].defaultOption)
+						b, _ := strconv.ParseBool(defaultValue)
 						short += fmt.Sprintf(" (default: %t)", b)
 					} else {
 						short += fmt.Sprintf(" (default: %q)", flagLookup[f.Name].defaultOption)
 					}
 				}
 				// TODO(mf): handle overflow scenario where short is too long and spills over to the
-				// next column
+				// next line. Ideally we wrap the text.
 				fmt.Fprintf(tw, "  --%s\t%s\n", f.Name, short)
 			})
 			tw.Flush()
