@@ -144,7 +144,7 @@ func (p *Provider) runGoBeginTx(
 			fn = m.goMigration.upFn
 		}
 		if fn != nil {
-			return fn(tx)
+			return fn(ctx, tx)
 		}
 		return nil
 	})
@@ -201,7 +201,7 @@ func (p *Provider) runGoNoTx(
 		fn = m.goMigration.upFnNoTx
 	}
 	if fn != nil {
-		if err := fn(p.db); err != nil {
+		if err := fn(ctx, p.db); err != nil {
 			return err
 		}
 	}

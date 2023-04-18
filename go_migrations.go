@@ -1,16 +1,17 @@
 package goose
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"runtime"
 )
 
 // GoMigration is a Go migration func that is run within a transaction.
-type GoMigration func(tx *sql.Tx) error
+type GoMigration func(ctx context.Context, tx *sql.Tx) error
 
 // GoMigrationNoTx is a Go migration func that is run outside a transaction.
-type GoMigrationNoTx func(db *sql.DB) error
+type GoMigrationNoTx func(ctx context.Context, db *sql.DB) error
 
 // AddMigration adds a Go migration.
 //
