@@ -90,10 +90,10 @@ func Create(
 			var param string
 			if opt.NoTx {
 				goFunc = "AddMigrationNoTx"
-				param = "db *sql.DB"
+				param = "ctx context.Context, db *sql.DB"
 			} else {
 				goFunc = "AddMigration"
-				param = "tx *sql.Tx"
+				param = "ctx context.Context, tx *sql.Tx"
 			}
 			dat = fmt.Sprintf(goMigrationStr, goFunc, param, param)
 		case MigrationTypeSQL:

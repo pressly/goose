@@ -11,12 +11,12 @@ func init() {
 	goose.AddMigration(up00003, down00003)
 }
 
-func up00003(tx *sql.Tx) error {
+func up00003(ctx context.Context, tx *sql.Tx) error {
 	// This code is executed when the migration is applied.
 	return nil
 }
 
-func down00003(tx *sql.Tx) error {
+func down00003(ctx context.Context, tx *sql.Tx) error {
 	// This code is executed when the migration is rolled back.
 	return nil
 }

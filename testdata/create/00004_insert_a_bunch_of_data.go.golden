@@ -11,12 +11,12 @@ func init() {
 	goose.AddMigrationNoTx(up00004, down00004)
 }
 
-func up00004(db *sql.DB) error {
+func up00004(ctx context.Context, db *sql.DB) error {
 	// This code is executed when the migration is applied.
 	return nil
 }
 
-func down00004(db *sql.DB) error {
+func down00004(ctx context.Context, db *sql.DB) error {
 	// This code is executed when the migration is rolled back.
 	return nil
 }
