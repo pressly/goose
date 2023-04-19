@@ -46,7 +46,7 @@ func newRootCmd() (*ffcli.Command, *rootConfig) {
 	root := &ffcli.Command{
 		Name:       "goose",
 		ShortUsage: "goose <command> [flags] [args...]",
-		ShortHelp:  "goose is a database migration tool.",
+		ShortHelp:  "goose is a database migration tool",
 		FlagSet:    fs,
 		UsageFunc: func(c *ffcli.Command) string {
 			return newRootUsage(c, rootUsageOpt, config.noColor)
