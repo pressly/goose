@@ -453,3 +453,69 @@ func isCIEnvironment() bool {
 	ok, _ := strconv.ParseBool(os.Getenv("CI"))
 	return ok
 }
+
+func TestErrorHandling(t *testing.T) {
+	t.Parallel()
+
+	type testData struct {
+		name     string
+		sql      string
+		errCheck func(error) bool
+	}
+
+	tests := []testData{
+		{
+			name: "MissingSemicolon",
+			sql:  syntaxMissingSemicolons,
+			errCheck: func(err error) bool {
+				return strings.Contains(err.Error(), "missing semicolon")
+			},
+		},
+		{
+			name: "InvalidStatementBegin",
+			sql:  syntaxInvalidStmtBegin,
+			errCheck: func(err error) bool {
+				expectedErr := newGooseError(ErrInvalidStatementBeginFormat, 0)
+				return err.Error() == expectedErr.Error()
+			},
+		},
+		{
+			name: "DuplicateGooseUp",
+			sql:  syntaxDuplicateGooseUp,
+			errCheck: func(err error) bool {
+				expectedErr := newGooseError(ErrDuplicateGooseUpFormat, gooseUp)
+				return err.Error() == expectedErr.Error()
+			},
+		},
+		{
+			name: "InvalidStatementEnd",
+			sql:  syntaxInvalidStmtEnd,
+			errCheck: func(err error) bool {
+				expectedErr := newGooseError(ErrInvalidStatementEndFormat)
+				return err.Error() == expectedErr.Error()
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, _, err := ParseSQLMigration(strings.NewReader(test.sql), DirectionUp, false)
+			if err == nil || !test.errCheck(err) {
+				t.Errorf("%s: expected error, but got: %v", test.name, err)
+			}
+		})
+	}
+}
+
+var syntaxMissingSemicolons = `-- +goose Up
+INVALID SQL STATEMENT
+-- +goose Down`
+
+var syntaxInvalidStmtBegin = `-- +goose StatementBegin`
+
+var syntaxDuplicateGooseUp = `-- +goose Up
+-- +goose Up
+-- +goose Down`
+
+var syntaxInvalidStmtEnd = `-- +goose StatementEnd
+-- +goose StatementBegin`
