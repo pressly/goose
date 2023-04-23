@@ -54,14 +54,16 @@ func TestBinaryVersion(t *testing.T) {
 func TestGooseInit(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	out := runGoose(t, "init", "--dir", filepath.Join(dir, "migrations"))
+	dirFlag := "--dir=" + filepath.Join(dir, "migrations")
+	out := runGoose(t, "init", dirFlag)
 	check.Contains(t, out, "00001_initial.sql")
 }
 
 func TestGooseCreate(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	out := runGoose(t, "create", "-s", "--dir", filepath.Join(dir, "migrations"), "sql", "add users table")
+	dirFlag := "--dir=" + filepath.Join(dir, "migrations")
+	out := runGoose(t, "create", "-s", dirFlag, "sql", "add users table")
 	check.Contains(t, out, "00001_add_users_table.sql")
 }
 
