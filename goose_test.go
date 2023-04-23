@@ -1,6 +1,8 @@
 package goose_test
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"math/rand"
@@ -11,7 +13,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/pressly/goose/v4"
 	"github.com/pressly/goose/v4/internal/check"
+	_ "modernc.org/sqlite"
 )
 
 const (
@@ -108,6 +112,64 @@ func TestDefaultBinary(t *testing.T) {
 	}
 }
 
+func TestEmbedBinary(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	/*
+		To avoid accidental changes to the embedded migrations, we copy them to a temp dir.
+
+		In a real application, you would use the migrations embedded in your binary.
+		For example:
+
+		//go:embed examples/sql-migrations/*.sql
+		var migrations embed.FS
+
+		opt := goose.DefaultOptions().
+			SetDir("examples/sql-migrations").
+			SetFilesystem(migrations)
+		provider, err := goose.NewProvider(dialect, db, opt)
+	*/
+
+	dir := t.TempDir()
+	migrationsDir := filepath.Join("embed", "migrations")
+	err := copyDirectory(t, "examples/sql-migrations", filepath.Join(dir, migrationsDir))
+	check.NoError(t, err)
+	// Create a filesystem from the temp dir
+	filesystem := os.DirFS(dir)
+	// Open a sqlite3 database in the temp dir
+	db, err := sql.Open("sqlite", filepath.Join(dir, "test.db"))
+	check.NoError(t, err)
+	t.Cleanup(func() {
+		check.NoError(t, db.Close())
+	})
+	// Create a goose provider
+	opt := goose.DefaultOptions().
+		SetDir(migrationsDir).
+		SetFilesystem(filesystem)
+	provider, err := goose.NewProvider(goose.DialectSQLite3, db, opt)
+	check.NoError(t, err)
+	check.Number(t, len(provider.ListMigrations()), 3)
+
+	version, err := provider.GetDBVersion(ctx)
+	check.NoError(t, err)
+	check.Number(t, version, 0)
+
+	_, err = provider.Up(ctx)
+	check.NoError(t, err)
+
+	version, err = provider.GetDBVersion(ctx)
+	check.NoError(t, err)
+	check.Number(t, version, 3)
+
+	_, err = provider.DownTo(ctx, 0)
+	check.NoError(t, err)
+
+	version, err = provider.GetDBVersion(ctx)
+	check.NoError(t, err)
+	check.Number(t, version, 0)
+}
+
 func runGoose(t *testing.T, params ...string) string {
 	t.Helper()
 	dir, err := os.Getwd()
@@ -144,4 +206,30 @@ func countSQLFiles(t *testing.T, dir string) int {
 	files, err := filepath.Glob(filepath.Join(dir, "*.sql"))
 	check.NoError(t, err)
 	return len(files)
+}
+
+func copyDirectory(t *testing.T, src, dest string) error {
+	t.Helper()
+	entries, err := os.ReadDir(src)
+	check.NoError(t, err)
+	err = os.MkdirAll(dest, 0755)
+	check.NoError(t, err)
+	for _, file := range entries {
+		if file.IsDir() {
+			return fmt.Errorf("failed to copy directory. Expecting files only: %s", src)
+		}
+		copyFile(
+			t,
+			filepath.Join(src, file.Name()),
+			filepath.Join(dest, file.Name()),
+		)
+	}
+	return nil
+}
+
+func copyFile(t *testing.T, src, dest string) error {
+	t.Helper()
+	data, err := os.ReadFile(src)
+	check.NoError(t, err)
+	return os.WriteFile(dest, []byte(data), 0644)
 }
