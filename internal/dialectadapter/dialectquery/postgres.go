@@ -41,13 +41,20 @@ func (p *Postgres) ListMigrations() string {
 
 // AdvisoryLockSession returns the query to lock the database using an exclusive session level
 // advisory lock.
-func (p *Postgres) AdvisoryLockSession() string {
-	return `SELECT pg_advisory_lock($1)`
+func (p *Postgres) AdvisoryLockSession(id int64) string {
+	q := `SELECT pg_advisory_lock(%d)`
+	return fmt.Sprintf(q, id)
+}
+
+func (p *Postgres) TryAdvisoryLockSession(id int64) string {
+	q := `SELECT pg_try_advisory_lock(%d)`
+	return fmt.Sprintf(q, id)
 }
 
 // AdvisoryUnlockSession returns the query to release an exclusive session level advisory lock.
-func (p *Postgres) AdvisoryUnlockSession() string {
-	return `SELECT pg_advisory_unlock($1)`
+func (p *Postgres) AdvisoryUnlockSession(id int64) string {
+	q := `SELECT pg_advisory_unlock(%d)`
+	return fmt.Sprintf(q, id)
 }
 
 // AdvisoryLockTransaction returns the query to lock the database using an exclusive transaction
@@ -55,6 +62,7 @@ func (p *Postgres) AdvisoryUnlockSession() string {
 //
 // The lock is automatically released at the end of the current transaction and cannot be released
 // explicitly.
-func (p *Postgres) AdvisoryLockTransaction() string {
-	return `SELECT pg_advisory_xact_lock($1)`
+func (p *Postgres) AdvisoryLockTransaction(id int64) string {
+	q := `SELECT pg_advisory_xact_lock(%d)`
+	return fmt.Sprintf(q, id)
 }

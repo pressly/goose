@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/pressly/goose/v4/internal/sqlparser"
@@ -55,7 +56,7 @@ func (p *Provider) runMigrations(
 				Direction: direction.String(),
 				Empty:     m.isEmpty(direction.ToBool()),
 			})
-			return results, err
+			return results, fmt.Errorf("migration %s failed: %w", filepath.Base(m.source), err)
 		}
 
 		results = append(results, &MigrationResult{
@@ -245,16 +246,3 @@ func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, err
 	}
 	return conn, conn.Close, nil
 }
-
-// func truncateDuration(d time.Duration) time.Duration {
-// 	for _, v := range []time.Duration{
-// 		time.Second,
-// 		time.Millisecond,
-// 		time.Microsecond,
-// 	} {
-// 		if d > v {
-// 			return d.Round(v / time.Duration(100))
-// 		}
-// 	}
-// 	return d
-// }

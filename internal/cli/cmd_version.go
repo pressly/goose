@@ -52,7 +52,7 @@ func execVersionCmd(root *rootConfig, pf *providerFlags) func(context.Context, [
 			}
 			return json.NewEncoder(os.Stdout).Encode(data)
 		}
-		fmt.Println("goose: version ", version)
+		fmt.Println("goose: version", version)
 		return nil
 	}
 }

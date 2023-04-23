@@ -10,12 +10,17 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
+	_ "modernc.org/sqlite"
+
 	"github.com/pressly/goose/v4"
 	"github.com/pressly/goose/v4/internal/check"
-	_ "modernc.org/sqlite"
+	"github.com/pressly/goose/v4/internal/testdb"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -33,8 +38,8 @@ func TestMain(m *testing.M) {
 	args := []string{
 		"build",
 		"-ldflags=-s -w",
-		// disable all drivers except sqlite3
-		"-tags=no_postgres no_clickhouse no_mssql no_mysql no_vertica",
+		// disable all drivers except sqlite3 and postgres
+		"-tags=no_clickhouse no_mssql no_mysql no_vertica",
 		"-o", binName,
 		"./cmd/goose",
 	}
@@ -51,7 +56,8 @@ func TestMain(m *testing.M) {
 
 func TestBinaryVersion(t *testing.T) {
 	t.Parallel()
-	out := runGoose(t, "--version")
+	out, err := runGoose("--version")
+	check.NoError(t, err)
 	check.Contains(t, out, "goose version: (devel)")
 }
 
@@ -59,7 +65,8 @@ func TestGooseInit(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	dirFlag := "--dir=" + filepath.Join(dir, "migrations")
-	out := runGoose(t, "init", dirFlag)
+	out, err := runGoose("init", dirFlag)
+	check.NoError(t, err)
 	check.Contains(t, out, "00001_initial.sql")
 }
 
@@ -67,7 +74,8 @@ func TestGooseCreate(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	dirFlag := "--dir=" + filepath.Join(dir, "migrations")
-	out := runGoose(t, "create", "-s", dirFlag, "sql", "add users table")
+	out, err := runGoose("create", "-s", dirFlag, "sql", "add users table")
+	check.NoError(t, err)
 	check.Contains(t, out, "00001_add_users_table.sql")
 }
 
@@ -88,17 +96,18 @@ func TestDefaultBinary(t *testing.T) {
 	}{
 		// TODO(mf): check output for empty output test cases
 		{"up", "", ""},
-		{"version", "", "goose: version  3"},
+		{"version", "", "goose: version 3"},
 		{"up", "", "no migrations to run"},
 		{"down-to", "0", ""},
-		{"version", "", "goose: version  0"},
+		{"version", "", "goose: version 0"},
 		{"down-to", "0", "no migrations to run"},
 		{"status", "", ""},
 	}
 	for _, tc := range tt {
 		params := []string{tc.command, dirFlag, dbStringFlag}
 		params = append(params, strings.Split(tc.args, " ")...)
-		got := runGoose(t, params...)
+		got, err := runGoose(params...)
+		check.NoError(t, err)
 		if tc.output == "" {
 			continue
 		}
@@ -110,6 +119,58 @@ func TestDefaultBinary(t *testing.T) {
 			t.FailNow()
 		}
 	}
+}
+
+func TestBinaryLockMode(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip long running test")
+	}
+	const (
+		maxWorkers = 5
+	)
+	_, cleanup, err := testdb.NewPostgres(testdb.WithBindPort(5455))
+	check.NoError(t, err)
+	t.Cleanup(cleanup)
+
+	migrationsDir := "testdata/binary-lock-mode"
+	total := countSQLFiles(t, migrationsDir)
+	check.Number(t, total, 3)
+
+	dirFlag := "--dir=" + migrationsDir
+	dbStringFlag := "--dbstring=" + "postgres://postgres:password1@localhost:5455/testdb?sslmode=disable"
+
+	// Due to the way the migrations are written, they will fail if run concurrently.
+	// Try setting this to an empty string to see the failures.
+	lockModeFlag := "--lock-mode=" + "advisory-session"
+
+	var g errgroup.Group
+
+	for i := 0; i < maxWorkers; i++ {
+		g.Go(func() error {
+			_, err := runGoose("up", dirFlag, dbStringFlag, lockModeFlag)
+			return err
+		})
+	}
+	err = g.Wait()
+	check.NoError(t, err)
+
+	out, err := runGoose("version", dirFlag, dbStringFlag, lockModeFlag)
+	check.NoError(t, err)
+	check.Contains(t, out, "goose: version "+strconv.Itoa(total))
+
+	for i := 0; i < maxWorkers; i++ {
+		g.Go(func() error {
+			_, err := runGoose("down-to", dirFlag, dbStringFlag, lockModeFlag, "0")
+			return err
+		})
+	}
+	err = g.Wait()
+	check.NoError(t, err)
+
+	out, err = runGoose("version", dirFlag, dbStringFlag, lockModeFlag)
+	check.NoError(t, err)
+	check.Contains(t, out, "goose: version 0")
 }
 
 func TestEmbedBinary(t *testing.T) {
@@ -170,18 +231,18 @@ func TestEmbedBinary(t *testing.T) {
 	check.Number(t, version, 0)
 }
 
-func runGoose(t *testing.T, params ...string) string {
-	t.Helper()
+func runGoose(params ...string) (string, error) {
 	dir, err := os.Getwd()
-	check.NoError(t, err)
+	if err != nil {
+		return "", err
+	}
 	cmdPath := filepath.Join(dir, binName)
 	cmd := exec.Command(cmdPath, params...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Log(string(out))
+		return "", fmt.Errorf("%v\n%v", err, string(out))
 	}
-	check.NoError(t, err)
-	return string(out)
+	return string(out), nil
 }
 
 func newDBString(t *testing.T) string {

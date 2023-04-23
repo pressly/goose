@@ -82,12 +82,21 @@ func NewStore(d Dialect, table string) (Store, error) {
 	default:
 		return nil, fmt.Errorf("unknown querier dialect: %v", d)
 	}
-	r := retry.NewFibonacci(1 * time.Second)
-	r = retry.WithCappedDuration(5*time.Second, r)
-	r = retry.WithMaxDuration(30*time.Second, r)
+	// Retry for 60 minutes, every 2 seconds, to lock the database.
+	// TODO(mf): allow users to make the duration infinite for VERY long migrations.
+	retryLock := retry.WithMaxDuration(
+		60*time.Minute,
+		retry.NewConstant(2*time.Second),
+	)
+	// Retry for 1 minute, every 2 seconds, to unlock the database.
+	retryUnlock := retry.WithMaxDuration(
+		1*time.Minute,
+		retry.NewConstant(2*time.Second),
+	)
 	return &store{
-		querier: querier,
-		retry:   r,
+		querier:     querier,
+		retryLock:   retryLock,
+		retryUnlock: retryUnlock,
 	}, nil
 }
 
@@ -102,8 +111,9 @@ type ListMigrationsResult struct {
 }
 
 type store struct {
-	querier dialectquery.Querier
-	retry   retry.Backoff
+	querier     dialectquery.Querier
+	retryLock   retry.Backoff
+	retryUnlock retry.Backoff
 }
 
 var _ Store = (*store)(nil)
