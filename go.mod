@@ -12,11 +12,11 @@ require (
 	github.com/peterbourgon/ff/v3 v3.3.0
 	github.com/sethvargo/go-retry v0.2.4
 	github.com/vertica/vertica-sql-go v1.3.2
-	github.com/xo/dburl v0.13.1
+	github.com/xo/dburl v0.14.2
 	github.com/ziutek/mymysql v1.5.4
 	go.uber.org/multierr v1.11.0
 	golang.org/x/sync v0.1.0
-	modernc.org/sqlite v1.21.1
+	modernc.org/sqlite v1.22.0
 )
 
 require (
@@ -85,7 +85,7 @@ require (
 	lukechampine.com/uint128 v1.3.0 // indirect
 	modernc.org/cc/v3 v3.40.0 // indirect
 	modernc.org/ccgo/v3 v3.16.13 // indirect
-	modernc.org/libc v1.22.3 // indirect
+	modernc.org/libc v1.22.4 // indirect
 	modernc.org/mathutil v1.5.0 // indirect
 	modernc.org/memory v1.5.0 // indirect
 	modernc.org/opt v0.1.3 // indirect
