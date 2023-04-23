@@ -42,6 +42,9 @@ func NewProvider(dbDialect Dialect, db *sql.DB, opt Options) (*Provider, error) 
 	if err != nil {
 		return nil, err
 	}
+	if opt.LockMode != LockModeNone && !store.CanLock() {
+		return nil, fmt.Errorf("locking is not supported for %s", dbDialect)
+	}
 	migrations, err := collectMigrations(
 		opt.Filesystem,
 		opt.Dir,

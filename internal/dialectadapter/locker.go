@@ -27,8 +27,8 @@ var (
 // The only database that currently supports locking is Postgres. Other databases will return
 // ErrLockNotImplemented.
 type Locker interface {
-	// IsSupported returns true if the database supports locking.
-	IsSupported() bool
+	// CanLock returns true if the database supports locking.
+	CanLock() bool
 
 	// LockSession and UnlockSession are used to lock the database for the duration of a session.
 	//
@@ -38,10 +38,10 @@ type Locker interface {
 	UnlockSession(ctx context.Context, conn *sql.Conn) error
 
 	// LockTransaction is used to lock the database for the duration of a transaction.
-	LockTransaction(ctx context.Context, tx *sql.Tx) error
+	// LockTransaction(ctx context.Context, tx *sql.Tx) error
 }
 
-func (s *store) IsSupported() bool {
+func (s *store) CanLock() bool {
 	switch s.querier.(type) {
 	case *dialectquery.Postgres:
 		return true
@@ -56,23 +56,20 @@ func (s *store) LockSession(ctx context.Context, conn *sql.Conn) error {
 	switch t := s.querier.(type) {
 	case *dialectquery.Postgres:
 		fn = func(ctx context.Context) error {
-			// TODO(mf): revisit this. And if we continue doing this, jot down why we're not
-			// using pg_advisory_lock in favor of pg_try_advisory_lock.
 			row := conn.QueryRowContext(ctx, t.TryAdvisoryLockSession(defaultLockID))
 			var locked bool
 			if err := row.Scan(&locked); err != nil {
 				return err
 			}
 			if locked {
-				// An advisory lock was acquired successfully.
+				// A session-level advisory lock was acquired.
 				return nil
 			}
-			// An advisory lock could not be acquired. This is likely because another process has
-			// already acquired the lock. We will continue retrying until the lock is acquired or
-			// the maximum number of retries is reached.
+			// A session-level advisory lock could not be acquired. This is likely because another
+			// process has already acquired the lock. We will continue retrying until the lock is
+			// acquired or the maximum number of retries is reached.
 			return retry.RetryableError(errors.New("failed to acquire lock"))
 		}
-
 	default:
 		return ErrLockNotImplemented
 	}
@@ -88,20 +85,19 @@ func (s *store) UnlockSession(ctx context.Context, conn *sql.Conn) error {
 			var unlocked bool
 			row := conn.QueryRowContext(ctx, t.AdvisoryUnlockSession(defaultLockID))
 			if err := row.Scan(&unlocked); err != nil {
-				return retry.RetryableError(err)
+				return err
 			}
 			if !unlocked {
-
 				/*
 					TODO(mf): provide the user with some documentation on how they can unlock the
-					session manually. Although this is probably an issue for 99.9% of users since
-					pg_advisory_unlock_all() will release all session level advisory locks held by
-					the current session. (This function is implicitly invoked at session end, even
-					if the client disconnects ungracefully.)
+					session manually.
 
-					TODO(mf): - we may not want to bother checking the return value and just assume
-					that the lock was released. This would simplify the code and remove the need for
-					the unlocked bool.
+					This is probably not an issue for 99.99% of users since pg_advisory_unlock_all()
+					will release all session level advisory locks held by the current session. This
+					postgres function is implicitly invoked at session end, even if the client
+					disconnects ungracefully.
+
+					Here is output from a session that has a lock held:
 
 					SELECT pid,granted,((classid::bigint<<32)|objid::bigint)AS goose_lock_id FROM
 					pg_locks WHERE locktype='advisory';
@@ -111,12 +107,15 @@ func (s *store) UnlockSession(ctx context.Context, conn *sql.Conn) error {
 					|-----|---------|---------------------|
 					| 191 | t       | 5887940537704921958 |
 
-					A more forceful way to unlock the session is to terminate the process:
+					A forceful way to unlock the session is to terminate the backend with SIGTERM:
 
-					SELECT pg_terminate_backend(120);
+					SELECT pg_terminate_backend(191);
+
+					Subsequent commands on the same connection will fail with:
+
+					Query 1 ERROR: FATAL: terminating connection due to administrator command
 				*/
-
-				return errors.New("failed to unlock session")
+				retry.RetryableError(errors.New("failed to unlock session"))
 			}
 			return nil
 		}
@@ -126,15 +125,15 @@ func (s *store) UnlockSession(ctx context.Context, conn *sql.Conn) error {
 	return retry.Do(ctx, s.retryUnlock, fn)
 }
 
-func (s *store) LockTransaction(ctx context.Context, tx *sql.Tx) error {
-	switch t := s.querier.(type) {
-	case *dialectquery.Postgres:
-		return retry.Do(ctx, s.retryLock, func(ctx context.Context) error {
-			if _, err := tx.ExecContext(ctx, t.AdvisoryLockTransaction(defaultLockID)); err != nil {
-				return retry.RetryableError(err)
-			}
-			return nil
-		})
-	}
-	return ErrLockNotImplemented
-}
+// func (s *store) LockTransaction(ctx context.Context, tx *sql.Tx) error {
+//  switch t := s.querier.(type) {
+//  case *dialectquery.Postgres:
+//      return retry.Do(ctx, s.retryLock, func(ctx context.Context) error {
+//          if _, err := tx.ExecContext(ctx, t.AdvisoryLockTransaction(defaultLockID)); err != nil {
+//              return retry.RetryableError(err)
+//          }
+//          return nil
+//      })
+//  }
+//  return ErrLockNotImplemented
+// }

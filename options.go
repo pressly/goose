@@ -164,6 +164,9 @@ func (l LockMode) String() string {
 // locking mode to use when applying migrations. Locking is used to prevent multiple instances of
 // goose from applying migrations concurrently.
 //
+// IMPORTANT: Locking is currently only supported for postgres. If you'd like to see support for
+// other databases, please file an issue.
+//
 // Default: LockModeNone
 func (o Options) SetLockMode(m LockMode) Options {
 	o.LockMode = m
