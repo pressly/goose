@@ -12,7 +12,9 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "modernc.org/sqlite"
@@ -129,7 +131,8 @@ func TestBinaryLockMode(t *testing.T) {
 	const (
 		maxWorkers = 5
 	)
-	_, cleanup, err := testdb.NewPostgres(testdb.WithBindPort(5455))
+	port := randomPort()
+	_, cleanup, err := testdb.NewPostgres(testdb.WithBindPort(port))
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
 
@@ -138,10 +141,10 @@ func TestBinaryLockMode(t *testing.T) {
 	check.Number(t, total, 3)
 
 	dirFlag := "--dir=" + migrationsDir
-	dbStringFlag := "--dbstring=" + "postgres://postgres:password1@localhost:5455/testdb?sslmode=disable"
+	dbStringFlag := "--dbstring=" + fmt.Sprintf("postgres://postgres:password1@localhost:%d/testdb?sslmode=disable", port)
 
-	// Due to the way the migrations are written, they will fail if run concurrently.
-	// Try setting this to an empty string to see the failures.
+	// Due to the way the migrations are written, they will fail if run concurrently. Try setting
+	// this to an empty string to see the failures.
 	lockModeFlag := "--lock-mode=" + "advisory-session"
 
 	var g errgroup.Group
@@ -173,6 +176,56 @@ func TestBinaryLockMode(t *testing.T) {
 	check.Contains(t, out, "goose: version 0")
 }
 
+func TestParallelStatus(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip long running test")
+	}
+	const (
+		maxWorkers = 5
+	)
+	port := randomPort()
+	_, cleanup, err := testdb.NewPostgres(testdb.WithBindPort(port))
+	check.NoError(t, err)
+	t.Cleanup(cleanup)
+
+	migrationsDir := "testdata/binary-lock-mode"
+	total := countSQLFiles(t, migrationsDir)
+	check.Number(t, total, 3)
+
+	dirFlag := "--dir=" + migrationsDir
+	dbStringFlag := "--dbstring=" + fmt.Sprintf("postgres://postgres:password1@localhost:%d/testdb?sslmode=disable", port)
+
+	// In this test, we don't apply any migrations, but we do run status in parallel. Without
+	// successfully acquiring a lock, the status command will fail to create the goose migrations
+	// table.
+	//
+	// duplicate key value violates unique constraint "pg_class_relname_nsp_index" (SQLSTATE 23505)
+	//
+	// The "pg_class_relname_nsp_index" constraint specifically pertains to the "pg_class" system
+	// catalog table, which stores information about tables in a PostgreSQL database.
+	lockModeFlag := "--lock-mode=" + "advisory-session"
+
+	var g errgroup.Group
+
+	var output []string
+	var mu sync.Mutex
+	for i := 0; i < maxWorkers; i++ {
+		g.Go(func() error {
+			out, err := runGoose("version", dirFlag, dbStringFlag, lockModeFlag)
+			mu.Lock()
+			defer mu.Unlock()
+			output = append(output, out)
+			return err
+		})
+	}
+	err = g.Wait()
+	check.NoError(t, err)
+	for _, out := range output {
+		check.Contains(t, out, "goose: version 0")
+	}
+}
+
 func TestEmbedBinary(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -180,16 +233,12 @@ func TestEmbedBinary(t *testing.T) {
 	/*
 		To avoid accidental changes to the embedded migrations, we copy them to a temp dir.
 
-		In a real application, you would use the migrations embedded in your binary.
-		For example:
+		In a real application, you would use the migrations embedded in your binary. For example:
 
-		//go:embed examples/sql-migrations/*.sql
-		var migrations embed.FS
+		//go:embed examples/sql-migrations/*.sql var migrations embed.FS
 
-		opt := goose.DefaultOptions().
-			SetDir("examples/sql-migrations").
-			SetFilesystem(migrations)
-		provider, err := goose.NewProvider(dialect, db, opt)
+		opt := goose.DefaultOptions(). SetDir("examples/sql-migrations"). SetFilesystem(migrations)
+		    provider, err := goose.NewProvider(dialect, db, opt)
 	*/
 
 	dir := t.TempDir()
@@ -293,4 +342,11 @@ func copyFile(t *testing.T, src, dest string) error {
 	data, err := os.ReadFile(src)
 	check.NoError(t, err)
 	return os.WriteFile(dest, []byte(data), 0644)
+}
+
+func randomPort() int {
+	rand.Seed(time.Now().UnixNano())
+	min, max := 32768, 61000
+	// Generate a random number within the range [min, max]
+	return rand.Intn(max-min+1) + min
 }
