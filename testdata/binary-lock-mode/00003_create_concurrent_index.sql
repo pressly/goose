@@ -1,3 +1,5 @@
+-- +goose NO TRANSACTION
+
 -- +goose Up
 CREATE UNIQUE INDEX CONCURRENTLY users_user_name_key ON users (user_name);
 
