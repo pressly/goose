@@ -95,7 +95,7 @@ func TestLockModeAdvisorySession(t *testing.T) {
 				}
 				check.NoError(t, err)
 				mu.Lock()
-				applied = append(applied, result.Migration.Version)
+				applied = append(applied, result.Version)
 				mu.Unlock()
 			}
 		})
@@ -110,7 +110,7 @@ func TestLockModeAdvisorySession(t *testing.T) {
 				}
 				check.NoError(t, err)
 				mu.Lock()
-				applied = append(applied, result.Migration.Version)
+				applied = append(applied, result.Version)
 				mu.Unlock()
 			}
 		})
@@ -194,7 +194,7 @@ func TestLockModeAdvisorySession(t *testing.T) {
 				}
 				check.NoError(t, err)
 				mu.Lock()
-				applied = append(applied, result.Migration.Version)
+				applied = append(applied, result.Version)
 				mu.Unlock()
 			}
 		})
@@ -209,7 +209,7 @@ func TestLockModeAdvisorySession(t *testing.T) {
 				}
 				check.NoError(t, err)
 				mu.Lock()
-				applied = append(applied, result.Migration.Version)
+				applied = append(applied, result.Version)
 				mu.Unlock()
 			}
 		})

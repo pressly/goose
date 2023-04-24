@@ -45,14 +45,7 @@ func execDownCmd(root *rootConfig, pf *providerFlags) func(context.Context, []st
 		}
 		now := time.Now()
 		result, err := provider.Down(ctx)
-		if err != nil {
-			return err
-		}
-		return printMigrationResult(
-			[]*goose.MigrationResult{result},
-			time.Since(now),
-			root.useJSON,
-		)
+		return printResult([]*goose.MigrationResult{result}, err, time.Since(now), root.useJSON)
 	}
 }
 

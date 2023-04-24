@@ -125,8 +125,8 @@ func TestMigrateUpByOneWithRedo(t *testing.T) {
 		result, err := te.provider.Redo(ctx)
 		check.NoError(t, err)
 		check.Number(t, len(result), 2)
-		check.Equal(t, result[0].Migration.Version, originalUpResult.Migration.Version)
-		check.Equal(t, result[1].Migration.Version, originalUpResult.Migration.Version)
+		check.Equal(t, result[0].Version, originalUpResult.Version)
+		check.Equal(t, result[1].Version, originalUpResult.Version)
 
 		currentVersion, err := te.provider.GetDBVersion(ctx)
 		check.NoError(t, err)
@@ -159,7 +159,7 @@ func TestMigrateUpByOne(t *testing.T) {
 			break
 		}
 		check.NoError(t, err)
-		check.Number(t, result.Migration.Version, counter)
+		check.Number(t, result.Version, counter)
 	}
 	// Once everything is tested the version should match the highest testdata version
 	currentVersion, err := te.provider.GetDBVersion(ctx)

@@ -59,14 +59,7 @@ func execUpCmd(root *rootConfig, providerFlags *providerFlags) func(context.Cont
 		}
 		now := time.Now()
 		results, err := provider.Up(ctx)
-		if err != nil {
-			return err
-		}
-		return printMigrationResult(
-			results,
-			time.Since(now),
-			root.useJSON,
-		)
+		return printResult(results, err, time.Since(now), root.useJSON)
 	}
 }
 

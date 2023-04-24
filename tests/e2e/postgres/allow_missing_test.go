@@ -30,7 +30,7 @@ func TestNotAllowMissing(t *testing.T) {
 	// Developer A - migration 7 (mistakenly applied)
 	result, err := te.provider.ApplyVersion(context.Background(), 7, true)
 	check.NoError(t, err)
-	check.Number(t, result.Migration.Version, 7)
+	check.Number(t, result.Version, 7)
 	current, err := te.provider.GetDBVersion(ctx)
 	check.NoError(t, err)
 	check.Number(t, current, 7)
@@ -105,8 +105,8 @@ func TestAllowMissingUpWithRedo(t *testing.T) {
 		redoResult, err := p.Redo(ctx)
 		check.NoError(t, err)
 		check.Number(t, len(redoResult), 2)
-		check.Number(t, redoResult[0].Migration.Version, 7)
-		check.Number(t, redoResult[1].Migration.Version, 7)
+		check.Number(t, redoResult[0].Version, 7)
+		check.Number(t, redoResult[1].Version, 7)
 		currentVersion, err := p.GetDBVersion(ctx)
 		check.NoError(t, err)
 		check.Number(t, currentVersion, 7)
@@ -125,8 +125,8 @@ func TestAllowMissingUpWithRedo(t *testing.T) {
 		redoResult, err := p.Redo(ctx)
 		check.NoError(t, err)
 		check.Number(t, len(redoResult), 2)
-		check.Number(t, redoResult[0].Migration.Version, 6)
-		check.Number(t, redoResult[1].Migration.Version, 6)
+		check.Number(t, redoResult[0].Version, 6)
+		check.Number(t, redoResult[1].Version, 6)
 		currentVersion, err = p.GetDBVersion(ctx)
 		check.NoError(t, err)
 		check.Number(t, currentVersion, 6)
@@ -196,7 +196,7 @@ func TestAllowMissingUpWithReset(t *testing.T) {
 		check.Number(t, len(upResult), 5)
 		expected := []int64{6, 8, 9, 10, 11}
 		for i := range upResult {
-			check.Number(t, upResult[i].Migration.Version, expected[i])
+			check.Number(t, upResult[i].Version, expected[i])
 		}
 		all := p.ListMigrations()
 
@@ -219,7 +219,7 @@ func TestAllowMissingUpWithReset(t *testing.T) {
 		check.Number(t, len(resetResults), 11)
 		expected := []int64{11, 10, 9, 8, 6, 7, 5, 4, 3, 2, 1}
 		for i := range resetResults {
-			check.Number(t, resetResults[i].Migration.Version, expected[i])
+			check.Number(t, resetResults[i].Version, expected[i])
 		}
 		currentVersion, err := p.GetDBVersion(ctx)
 		check.NoError(t, err)
@@ -267,11 +267,11 @@ func TestMigrateAllowMissingDown(t *testing.T) {
 		// 6
 		upResult, err := p.UpByOne(ctx)
 		check.NoError(t, err)
-		check.Number(t, upResult.Migration.Version, 6)
+		check.Number(t, upResult.Version, 6)
 		// 8
 		upResult, err = p.UpByOne(ctx)
 		check.NoError(t, err)
-		check.Number(t, upResult.Migration.Version, 8)
+		check.Number(t, upResult.Version, 8)
 
 		count, err := getGooseVersionCount(te.db, defaultOptions.TableName)
 		check.NoError(t, err)
@@ -299,7 +299,7 @@ func TestMigrateAllowMissingDown(t *testing.T) {
 			check.HasError(t, goose.ErrNoCurrentVersion)
 		} else {
 			check.NoError(t, err)
-			check.Number(t, downResult.Migration.Version, v)
+			check.Number(t, downResult.Version, v)
 		}
 	}
 }

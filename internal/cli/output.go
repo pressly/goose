@@ -5,67 +5,80 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/pressly/goose/v4"
+	"go.uber.org/multierr"
 )
 
-type migrationResultsOutput struct {
-	Migrations    []migrationResult `json:"migrations"`
-	TotalDuration int64             `json:"total_duration_ms"`
+type resultsOutput struct {
+	MigrationResults []result `json:"migrations"`
+	TotalDuration    int64    `json:"total_duration_ms"`
+	HasError         bool     `json:"has_error"`
 }
 
-type migrationResult struct {
+type result struct {
 	Type      string `json:"migration_type"`
 	Version   int64  `json:"version"`
 	Filename  string `json:"filename"`
 	Duration  int64  `json:"duration_ms"`
 	Direction string `json:"direction"`
 	Empty     bool   `json:"empty"`
+	Error     string `json:"error,omitempty"`
 }
 
-func convertMigrationResult(
-	results []*goose.MigrationResult,
+func printResult(
+	migrationResults []*goose.MigrationResult,
+	err error,
 	totalDuration time.Duration,
-) migrationResultsOutput {
-	output := migrationResultsOutput{
-		Migrations:    make([]migrationResult, 0, len(results)),
-		TotalDuration: totalDuration.Milliseconds(),
-	}
-	for _, result := range results {
-		output.Migrations = append(output.Migrations, migrationResult{
-			Type:      string(result.Migration.Type),
-			Version:   result.Migration.Version,
-			Filename:  filepath.Base(result.Migration.Source),
-			Duration:  result.Duration.Milliseconds(),
-			Direction: result.Direction,
-			Empty:     result.Empty,
-		})
-	}
-	return output
-}
-
-func printMigrationResult(
-	results []*goose.MigrationResult,
-	totalDuration time.Duration,
-	useJson bool,
+	useJSON bool,
 ) error {
-	if len(results) == 0 {
-		fmt.Println("no migrations to run")
-		return nil
+	output := resultsOutput{
+		MigrationResults: convertResult(migrationResults),
+		TotalDuration:    totalDuration.Milliseconds(),
+		HasError:         err != nil,
 	}
-	if useJson {
-		data := convertMigrationResult(results, totalDuration)
-		return json.NewEncoder(os.Stdout).Encode(data)
+	if useJSON {
+		encodeErr := json.NewEncoder(os.Stdout).Encode(output)
+		return multierr.Append(err, encodeErr)
 	}
-	for _, r := range results {
+	if len(migrationResults) == 0 {
+		fmt.Fprintln(os.Stdout, "no migrations to run")
+		return err
+	}
+	for _, r := range migrationResults {
 		if !r.Empty {
-			fmt.Printf("OK   %s (%s)\n", filepath.Base(r.Migration.Source), truncateDuration(r.Duration))
+			fmt.Fprintf(os.Stdout, "OK   %s (%s)\n", filepath.Base(r.Source), truncateDuration(r.Duration))
 		} else {
-			fmt.Printf("EMPTY %s (%s)\n", filepath.Base(r.Migration.Source), truncateDuration(r.Duration))
+			fmt.Fprintf(os.Stdout, "EMPTY %s (%s)\n", filepath.Base(r.Source), truncateDuration(r.Duration))
 		}
 	}
-	return nil
+	if err == nil {
+		fmt.Fprintf(os.Stdout, "\nsuccessfully applied %d migrations in %v", len(migrationResults), truncateDuration(totalDuration))
+	} else {
+		fmt.Fprintf(os.Stderr, "\npartial migration error: %v", err)
+	}
+	return err
+}
+
+func convertResult(results []*goose.MigrationResult) []result {
+	output := make([]result, 0, len(results))
+	for _, r := range results {
+		result := result{
+			Type:      strings.ToLower(r.Type.String()),
+			Version:   r.Version,
+			Filename:  filepath.Base(r.Source),
+			Duration:  r.Duration.Milliseconds(),
+			Direction: r.Direction,
+			Empty:     r.Empty,
+		}
+		if r.Error != nil {
+			result.Error = r.Error.Error()
+		}
+		output = append(output, result)
+	}
+	return output
 }
 
 func truncateDuration(d time.Duration) time.Duration {

@@ -3,23 +3,55 @@ package goose
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
-	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/pressly/goose/v4/internal/sqlparser"
 	"go.uber.org/multierr"
 )
 
-// MigrationResult is the result of a successful migration operation.
+var (
+	// ErrPartialMigration is returned when a migration fails, but some migrations already got
+	// applied.
+	ErrPartialMigration = errors.New("partial migration")
+)
+
+// MigrationResult is the result of a migration operation.
+//
+// Note, the caller is responsible for checking the Error field for any errors that occurred while
+// running the migration. If the Error field is not nil, the migration failed.
 type MigrationResult struct {
-	Migration *Migration
-	Duration  time.Duration
-	Error     error
+	// Type is the type of migration (SQL or Go).
+	Type MigrationType
+	// Source is the full path to the migration file.
+	Source string
+	// Version is the parsed version from the migration file name.
+	Version int64
+	// Duration is the time it took to run the migration.
+	Duration time.Duration
+	// Direction is the direction the migration was applied (up or down).
 	Direction string
-	Empty     bool
+	// Empty is true if the file was valid, but no statements to apply in the given direction. These are
+	// still tracked as applied migrations, but typically have no effect on the database.
+	//
+	// For SQL migrations, this means the file contained no statements. For Go migrations, this means the
+	// file contained nil up or down functions.
+	Empty bool
+
+	// Error is any error that occurred while running the migration.
+	Error error
 }
 
+// runMigrations runs the given migrations in the given direction.
+//
+// If the migrations slice is empty, this function returns nil with no error.
+//
+// This function returns ErrPartialMigration error whenever a migration fails, but some migrations
+// already got applied. The caller can use this error to determine if the database is in a partially
+// migrated state. The results slice will contain the results of all migrations INCLUDING the failed
+// migration with the Error field set.
 func (p *Provider) runMigrations(
 	ctx context.Context,
 	conn *sql.Conn,
@@ -47,8 +79,10 @@ func (p *Provider) runMigrations(
 	results := make([]*MigrationResult, 0, len(apply))
 	for _, m := range apply {
 		result := &MigrationResult{
-			Migration: m.toMigration(),
-			Direction: directionToString(direction),
+			Type:      m.migrationType,
+			Source:    m.source,
+			Version:   m.version,
+			Direction: strings.ToLower(direction.String()),
 			Empty:     m.isEmpty(direction),
 		}
 
@@ -56,25 +90,13 @@ func (p *Provider) runMigrations(
 		if err := p.runIndividually(ctx, conn, direction, m); err != nil {
 			result.Error = err
 			result.Duration = time.Since(start)
-			results = append(results, result)
-			return results, fmt.Errorf("migration %s failed: %w", filepath.Base(m.source), err)
+			return append(results, result), fmt.Errorf("%w error: %v", ErrPartialMigration, err)
 		}
 
 		result.Duration = time.Since(start)
 		results = append(results, result)
 	}
 	return results, nil
-}
-
-func directionToString(direction sqlparser.Direction) string {
-	switch direction {
-	case sqlparser.DirectionUp:
-		return "up"
-	case sqlparser.DirectionDown:
-		return "down"
-	default:
-		return "unknown"
-	}
 }
 
 // runIndividually runs an individual migration, opening a new transaction if the migration is safe

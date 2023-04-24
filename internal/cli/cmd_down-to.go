@@ -48,14 +48,7 @@ func execDownToCmd(root *rootConfig, pf *providerFlags) func(ctx context.Context
 		}
 		now := time.Now()
 		results, err := provider.DownTo(ctx, version)
-		if err != nil {
-			return err
-		}
-		return printMigrationResult(
-			results,
-			time.Since(now),
-			root.useJSON,
-		)
+		return printResult(results, err, time.Since(now), root.useJSON)
 	}
 }
 

@@ -85,10 +85,10 @@ func (m *migration) getSQLStatements(direction sqlparser.Direction) ([]string, e
 	return m.sqlMigration.upStatements, nil
 }
 
-// parseSQLMigrations parses all SQL migrations, if they have not been parsed already, in the given
-// list of migrations in both the up and down directions.
+// parseSQLMigrations parses all SQL migrations in BOTH direction. If a migration has already been
+// parsed, it will not be parsed again.
 //
-// Note, this function will mutate the given migrations list.
+// Note, this function will mutate the migrations.
 func parseSQLMigrations(fsys fs.FS, debug bool, migrations []*migration) error {
 	for _, m := range migrations {
 		if m.migrationType == MigrationTypeSQL && !m.sqlParsed {

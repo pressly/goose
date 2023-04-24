@@ -43,11 +43,7 @@ func execUpByOneCmd(root *rootConfig, pf *providerFlags) func(context.Context, [
 		if err != nil {
 			return err
 		}
-		return printMigrationResult(
-			[]*goose.MigrationResult{result},
-			time.Since(now),
-			root.useJSON,
-		)
+		return printResult([]*goose.MigrationResult{result}, err, time.Since(now), root.useJSON)
 	}
 }
 

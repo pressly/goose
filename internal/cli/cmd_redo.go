@@ -42,14 +42,7 @@ func execRedoCmd(root *rootConfig, pf *providerFlags) func(context.Context, []st
 		}
 		now := time.Now()
 		results, err := provider.Redo(ctx)
-		if err != nil {
-			return err
-		}
-		return printMigrationResult(
-			results,
-			time.Since(now),
-			root.useJSON,
-		)
+		return printResult(results, err, time.Since(now), root.useJSON)
 	}
 }
 

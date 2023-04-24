@@ -75,7 +75,7 @@ func main() {
 
 func printResults(results []*goose.MigrationResult) {
 	for _, res := range results {
-		log.Printf("OK   %s (%s)", filepath.Base(res.Migration.Source), truncateDuration(res.Duration))
+		log.Printf("OK   %s (%s)", filepath.Base(res.Source), truncateDuration(res.Duration))
 	}
 }
 
