@@ -17,12 +17,9 @@ func TestSplitMigrationsIntoGroups(t *testing.T) {
 		},
 		{
 			migrations: []*migration{
-				newSQL(11, true),
-				newGo(12, true),
-				newSQL(13, true),
+				newSQL(11, true), newGo(12, true), newSQL(13, true),
 				newSQL(14, false),
-				newGo(15, true),
-				newSQL(16, true),
+				newGo(15, true), newSQL(16, true),
 			},
 			expected: [][]int64{
 				{11, 12, 13},
@@ -32,8 +29,7 @@ func TestSplitMigrationsIntoGroups(t *testing.T) {
 		},
 		{
 			migrations: []*migration{
-				newGo(3, true),
-				newSQL(4, true),
+				newGo(3, true), newSQL(4, true),
 			},
 			expected: [][]int64{
 				{3, 4},
@@ -75,8 +71,7 @@ func TestSplitMigrationsIntoGroups(t *testing.T) {
 		},
 		{
 			migrations: []*migration{
-				newSQL(3, true),
-				newSQL(4, true),
+				newSQL(3, true), newSQL(4, true),
 				newSQL(5, false),
 				newGo(6, false),
 			},
@@ -88,8 +83,7 @@ func TestSplitMigrationsIntoGroups(t *testing.T) {
 		},
 		{
 			migrations: []*migration{
-				newSQL(3, true),
-				newSQL(4, true),
+				newSQL(3, true), newSQL(4, true),
 				newSQL(5, false),
 				newGo(6, false),
 				newSQL(7, true),
