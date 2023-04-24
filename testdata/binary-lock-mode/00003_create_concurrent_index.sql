@@ -1,9 +1,7 @@
 -- +goose Up
--- +goose StatementBegin
-CREATE INDEX CONCURRENTLY concurrent_users_user_id_key ON users (user_id);
--- +goose StatementEnd
+CREATE UNIQUE INDEX CONCURRENTLY users_user_name_key ON users (user_name);
 
 -- +goose Down
 -- +goose StatementBegin
-DROP INDEX CONCURRENTLY concurrent_users_user_id_key;
+DROP INDEX users_user_name_key;
 -- +goose StatementEnd

@@ -116,9 +116,8 @@ func parseSQL(fsys fs.FS, filename string, debug bool, d sqlparser.Direction) (*
 		return nil, err
 	}
 	m := new(sqlMigration)
-	var txUp, txDown bool
 	if d == sqlparser.DirectionAll || d == sqlparser.DirectionUp {
-		m.upStatements, txUp, err = sqlparser.ParseSQLMigration(
+		m.upStatements, m.useTx, err = sqlparser.ParseSQLMigration(
 			bytes.NewReader(by),
 			sqlparser.DirectionUp,
 			debug,
@@ -128,7 +127,7 @@ func parseSQL(fsys fs.FS, filename string, debug bool, d sqlparser.Direction) (*
 		}
 	}
 	if d == sqlparser.DirectionAll || d == sqlparser.DirectionDown {
-		m.downStatements, txDown, err = sqlparser.ParseSQLMigration(
+		m.downStatements, m.useTx, err = sqlparser.ParseSQLMigration(
 			bytes.NewReader(by),
 			sqlparser.DirectionDown,
 			debug,
@@ -136,10 +135,6 @@ func parseSQL(fsys fs.FS, filename string, debug bool, d sqlparser.Direction) (*
 		if err != nil {
 			return nil, err
 		}
-	}
-	// This is a sanity check to ensure that the parser is behaving as expected.
-	if d == sqlparser.DirectionAll && txUp != txDown {
-		return nil, fmt.Errorf("up and down statements must have the same transaction mode")
 	}
 	return m, nil
 }

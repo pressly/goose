@@ -93,7 +93,9 @@ func (c *rootConfig) registerFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&c.verbose, "v", false, "")
 	fs.BoolVar(&c.useJSON, "json", false, "")
 	fs.BoolVar(&c.noColor, "no-color", false, "")
-	fs.BoolVar(&c.help, "help", false, "")
+	// TODO(mf): not sure why this is not working, when this is uncommented, then
+	// subcommands like `goose up --help` will not print the help message.
+	// fs.BoolVar(&c.help, "help", false, "")
 }
 
 type rootUsageOpt struct {
