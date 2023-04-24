@@ -226,18 +226,22 @@ func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, err
 	if err != nil {
 		return nil, nil, err
 	}
+	var cleanup func() error
 	switch p.opt.LockMode {
 	case LockModeAdvisorySession:
 		if err := p.store.LockSession(ctx, conn); err != nil {
 			return nil, nil, err
 		}
-		cleanup := func() error {
+		cleanup = func() error {
 			return multierr.Append(p.store.UnlockSession(ctx, conn), conn.Close())
 		}
-		return conn, cleanup, nil
 	case LockModeNone:
-		return conn, conn.Close, nil
+		cleanup = conn.Close
 	default:
 		return nil, nil, fmt.Errorf("invalid lock mode: %d", p.opt.LockMode)
 	}
+	if err := p.ensureVersionTable(ctx, conn); err != nil {
+		return nil, nil, multierr.Append(err, cleanup())
+	}
+	return conn, cleanup, nil
 }

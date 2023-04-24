@@ -15,10 +15,6 @@ func (p *Provider) GetDBVersion(ctx context.Context) (_ int64, retErr error) {
 	defer func() {
 		retErr = multierr.Append(retErr, cleanup())
 	}()
-	// Ensure version table exists.
-	if err := p.ensureVersionTable(ctx, conn); err != nil {
-		return 0, err
-	}
 
 	res, err := p.store.ListMigrationsConn(ctx, conn)
 	if err != nil {

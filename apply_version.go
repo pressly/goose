@@ -33,10 +33,6 @@ func (p *Provider) ApplyVersion(ctx context.Context, version int64, direction bo
 	defer func() {
 		retErr = multierr.Append(retErr, cleanup())
 	}()
-	// Ensure version table exists.
-	if err := p.ensureVersionTable(ctx, conn); err != nil {
-		return nil, err
-	}
 
 	result, err := p.store.GetMigration(ctx, conn, version)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {

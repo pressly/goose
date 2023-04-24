@@ -39,10 +39,6 @@ func (p *Provider) Status(ctx context.Context, opts *StatusOptions) (_ []*Migrat
 	defer func() {
 		retErr = multierr.Append(retErr, cleanup())
 	}()
-	// Ensure version table exists.
-	if err := p.ensureVersionTable(ctx, conn); err != nil {
-		return nil, err
-	}
 
 	// TODO(mf): add support for limit and order. Also would be nice to refactor the list query to
 	// support limiting the set.

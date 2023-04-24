@@ -53,10 +53,6 @@ func (p *Provider) up(ctx context.Context, upByOne bool, version int64) (_ []*Mi
 	defer func() {
 		retErr = multierr.Append(retErr, cleanup())
 	}()
-	// Ensure version table exists.
-	if err := p.ensureVersionTable(ctx, conn); err != nil {
-		return nil, err
-	}
 
 	if len(p.migrations) == 0 {
 		return nil, nil
