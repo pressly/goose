@@ -115,7 +115,7 @@ func (s *store) UnlockSession(ctx context.Context, conn *sql.Conn) error {
 
 					Query 1 ERROR: FATAL: terminating connection due to administrator command
 				*/
-				retry.RetryableError(errors.New("failed to unlock session"))
+				return retry.RetryableError(errors.New("failed to unlock session"))
 			}
 			return nil
 		}

@@ -337,11 +337,12 @@ func copyDirectory(t *testing.T, src, dest string) error {
 	return nil
 }
 
-func copyFile(t *testing.T, src, dest string) error {
+func copyFile(t *testing.T, src, dest string) {
 	t.Helper()
 	data, err := os.ReadFile(src)
 	check.NoError(t, err)
-	return os.WriteFile(dest, []byte(data), 0644)
+	err = os.WriteFile(dest, []byte(data), 0644)
+	check.NoError(t, err)
 }
 
 func randomPort() int {
