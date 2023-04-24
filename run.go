@@ -15,7 +15,7 @@ import (
 type MigrationResult struct {
 	Migration *Migration
 	Duration  time.Duration
-	Error     string
+	Error     error
 	Direction string
 	Empty     bool
 }
@@ -34,39 +34,47 @@ func (p *Provider) runMigrations(
 	if !byOne && len(migrations) > 1 {
 		apply = append(apply, migrations[1:]...)
 	}
-	// Lazy parse SQL migrations (if any). We do this before running any migrations so that we can
-	// fail fast if there are any errors and avoid leaving the database in a partially migrated
-	// state.
+	// Lazy parse SQL migrations (if any) in both directions. We do this before running any
+	// migrations so that we can fail fast if there are any errors and avoid leaving the database in
+	// a partially migrated state.
 	if err := parseSQLMigrations(p.opt.Filesystem, p.opt.Debug, apply); err != nil {
 		return nil, err
 	}
 
-	// Run migrations individually, opening a new transaction for each migration if the migration
-	// is safe to run in a transaction.
+	// Run migrations individually, opening a new transaction for each migration if the migration is
+	// safe to run in a transaction.
 
 	results := make([]*MigrationResult, 0, len(apply))
 	for _, m := range apply {
-		start := time.Now()
+		result := &MigrationResult{
+			Migration: m.toMigration(),
+			Direction: directionToString(direction),
+			Empty:     m.isEmpty(direction),
+		}
 
+		start := time.Now()
 		if err := p.runIndividually(ctx, conn, direction, m); err != nil {
-			results = append(results, &MigrationResult{
-				Migration: m.toMigration(),
-				Duration:  time.Since(start),
-				Error:     err.Error(),
-				Direction: direction.String(),
-				Empty:     m.isEmpty(direction.ToBool()),
-			})
+			result.Error = err
+			result.Duration = time.Since(start)
+			results = append(results, result)
 			return results, fmt.Errorf("migration %s failed: %w", filepath.Base(m.source), err)
 		}
 
-		results = append(results, &MigrationResult{
-			Migration: m.toMigration(),
-			Duration:  time.Since(start),
-			Direction: direction.String(),
-			Empty:     m.isEmpty(direction.ToBool()),
-		})
+		result.Duration = time.Since(start)
+		results = append(results, result)
 	}
 	return results, nil
+}
+
+func directionToString(direction sqlparser.Direction) string {
+	switch direction {
+	case sqlparser.DirectionUp:
+		return "up"
+	case sqlparser.DirectionDown:
+		return "down"
+	default:
+		return "unknown"
+	}
 }
 
 // runIndividually runs an individual migration, opening a new transaction if the migration is safe
@@ -95,15 +103,16 @@ func (p *Provider) runIndividually(
 			//
 			// A potential solution is to expose a third Go register function *sql.Conn. Or continue
 			// to use *sql.DB, but to use a separate connection pool for Go migrations and document
-			// that the user should set max open connections greater than 1.
+			// that the user should NOT SET max open connections to 1.
 			//
-			// In the Provider constructor we can also throw an error  when a user set max open
+			// In the Provider constructor we can also throw an error when a user set max open
 			// connections to 1 and has Go migrations that are registered to run outside of a
 			// transaction.
 			return p.runGoNoTx(ctx, direction, m)
 		}
+	default:
+		return fmt.Errorf("unknown migration type: %s", m.migrationType)
 	}
-	return fmt.Errorf("unknown migration type: %s", m.migrationType)
 }
 
 func (p *Provider) beginTx(
@@ -212,7 +221,7 @@ func (p *Provider) runGoNoTx(
 	return p.store.InsertOrDeleteNoTx(ctx, p.db, direction.ToBool(), m.version)
 }
 
-func (p *Provider) initializeWithLock(ctx context.Context) (*sql.Conn, func() error, error) {
+func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, error) {
 	conn, err := p.db.Conn(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -227,22 +236,8 @@ func (p *Provider) initializeWithLock(ctx context.Context) (*sql.Conn, func() er
 		}
 		return conn, cleanup, nil
 	case LockModeNone:
-		cleanup := func() error {
-			return conn.Close()
-		}
-		return conn, cleanup, nil
+		return conn, conn.Close, nil
 	default:
 		return nil, nil, fmt.Errorf("invalid lock mode: %d", p.opt.LockMode)
 	}
-}
-
-func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, error) {
-	if p.store.CanLock() {
-		return p.initializeWithLock(ctx)
-	}
-	conn, err := p.db.Conn(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-	return conn, conn.Close, nil
 }

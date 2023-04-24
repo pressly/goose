@@ -44,15 +44,15 @@ type migration struct {
 // or down statements.
 //
 // Note, for SQL migrations this must be called after the migration has been parsed.
-func (m *migration) isEmpty(direction bool) bool {
+func (m *migration) isEmpty(direction sqlparser.Direction) bool {
 	switch m.migrationType {
 	case MigrationTypeGo:
-		if direction {
+		if direction == sqlparser.DirectionUp {
 			return m.goMigration.upFnNoTx == nil && m.goMigration.upFn == nil
 		}
 		return m.goMigration.downFnNoTx == nil && m.goMigration.downFn == nil
 	case MigrationTypeSQL:
-		if direction {
+		if direction == sqlparser.DirectionUp {
 			return len(m.sqlMigration.upStatements) == 0
 		}
 		return len(m.sqlMigration.downStatements) == 0
@@ -85,10 +85,14 @@ func (m *migration) getSQLStatements(direction sqlparser.Direction) ([]string, e
 	return m.sqlMigration.upStatements, nil
 }
 
+// parseSQLMigrations parses all SQL migrations, if they have not been parsed already, in the given
+// list of migrations in both the up and down directions.
+//
+// Note, this function will mutate the given migrations list.
 func parseSQLMigrations(fsys fs.FS, debug bool, migrations []*migration) error {
 	for _, m := range migrations {
 		if m.migrationType == MigrationTypeSQL && !m.sqlParsed {
-			parsedSQLMigration, err := parseSQL(fsys, m.source, debug)
+			parsedSQLMigration, err := parseSQL(fsys, m.source, debug, sqlparser.DirectionAll)
 			if err != nil {
 				return err
 			}
@@ -99,11 +103,7 @@ func parseSQLMigrations(fsys fs.FS, debug bool, migrations []*migration) error {
 	return nil
 }
 
-func parseSQL(fsys fs.FS, filename string, debug bool) (*sqlMigration, error) {
-	// We parse both up and down statements. This is done to ensure that the SQL migration is valid
-	// in both directions.
-	d := sqlparser.DirectionAll
-
+func parseSQL(fsys fs.FS, filename string, debug bool, d sqlparser.Direction) (*sqlMigration, error) {
 	r, err := fsys.Open(filename)
 	if err != nil {
 		return nil, err
