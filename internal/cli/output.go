@@ -48,6 +48,10 @@ func printResult(
 		return multierr.Append(err, encodeErr)
 	}
 	if len(migrationResults) == 0 {
+		if err != nil {
+			fmt.Fprintln(os.Stdout, "no migrations to run")
+			return err
+		}
 		fmt.Fprintln(os.Stdout, "no migrations to run")
 		return err
 	}
