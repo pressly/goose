@@ -16,6 +16,7 @@ type resultsOutput struct {
 	MigrationResults []result `json:"migrations"`
 	TotalDuration    int64    `json:"total_duration_ms"`
 	HasError         bool     `json:"has_error"`
+	Error            string   `json:"error,omitempty"`
 }
 
 type result struct {
@@ -34,12 +35,15 @@ func printResult(
 	totalDuration time.Duration,
 	useJSON bool,
 ) error {
-	output := resultsOutput{
-		MigrationResults: convertResult(migrationResults),
-		TotalDuration:    totalDuration.Milliseconds(),
-		HasError:         err != nil,
-	}
 	if useJSON {
+		output := resultsOutput{
+			MigrationResults: convertResult(migrationResults),
+			TotalDuration:    totalDuration.Milliseconds(),
+		}
+		if err != nil {
+			output.HasError = true
+			output.Error = err.Error()
+		}
 		encodeErr := json.NewEncoder(os.Stdout).Encode(output)
 		return multierr.Append(err, encodeErr)
 	}
