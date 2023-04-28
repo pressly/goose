@@ -26,3 +26,9 @@ type Querier interface {
 	// The query should return the version_id and is_applied columns.
 	ListMigrations() string
 }
+
+// QuerierOptions is an interface to provide specific options to a dialect.
+// For ex: providing replication support to underlying migration table.
+type QuerierOptions interface {
+	AttachOptions(map[string]string) error
+}

@@ -2,8 +2,23 @@ package dialectquery
 
 import "fmt"
 
+const (
+	paramOnCluster    = "ON_CLUSTER"
+	paramZooPath      = "ZOO_PATH"
+	paramClusterMacro = "CLUSTER_MACRO"
+	paramReplicaMacro = "REPLICA_MACRO"
+)
+
+type clusterParameters struct {
+	OnCluster    bool
+	ZooPath      string
+	ClusterMacro string
+	ReplicaMacro string
+}
+
 type Clickhouse struct {
-	Table string
+	Table  string
+	Params clusterParameters
 }
 
 var _ Querier = (*Clickhouse)(nil)
@@ -17,6 +32,19 @@ func (c *Clickhouse) CreateTable() string {
 	  )
 	  ENGINE = MergeTree()
 		ORDER BY (date)`
+
+	qCluster := `CREATE TABLE IF NOT EXISTS %s ON CLUSTER '%s' (
+		version_id Int64,
+		is_applied UInt8,
+		date Date default now(),
+		tstamp DateTime('UTC') default now()
+	)
+    ENGINE = ReplicatedMergeTree('%s', '%s')
+	ORDER BY (date)`
+
+	if c.Params.OnCluster {
+		return fmt.Sprintf(qCluster, c.Table, c.Params.ClusterMacro, c.Params.ZooPath, c.Params.ReplicaMacro)
+	}
 	return fmt.Sprintf(q, c.Table)
 }
 
@@ -38,4 +66,28 @@ func (c *Clickhouse) GetMigrationByVersion() string {
 func (c *Clickhouse) ListMigrations() string {
 	q := `SELECT version_id, is_applied FROM %s ORDER BY version_id DESC`
 	return fmt.Sprintf(q, c.Table)
+}
+
+func (c *Clickhouse) AttachOptions(options map[string]string) error {
+	if val, ok := options[paramOnCluster]; ok {
+		if val == "true" {
+			clusterMacro, ok := options[paramClusterMacro]
+			if !ok {
+				clusterMacro = "{cluster}"
+			}
+			zooPath, ok := options[paramZooPath]
+			if !ok {
+				zooPath = fmt.Sprintf("/clickhouse/tables/%s/{table}", clusterMacro)
+			}
+			replicaMacro, ok := options[paramReplicaMacro]
+			if !ok {
+				replicaMacro = "{replica}"
+			}
+			c.Params.ZooPath = zooPath
+			c.Params.ClusterMacro = clusterMacro
+			c.Params.ReplicaMacro = replicaMacro
+			c.Params.OnCluster = true
+		}
+	}
+	return nil
 }

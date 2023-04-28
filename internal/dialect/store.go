@@ -46,6 +46,10 @@ type Store interface {
 	ListMigrations(ctx context.Context, db *sql.DB) ([]*ListMigrationsResult, error)
 }
 
+type StoreOptions interface {
+	AttachOptions(map[string]string) error
+}
+
 // NewStore returns a new Store for the given dialect.
 //
 // The table name is used to store the goose migrations.
@@ -161,4 +165,11 @@ func (s *store) ListMigrations(ctx context.Context, db *sql.DB) ([]*ListMigratio
 		return nil, err
 	}
 	return migrations, nil
+}
+
+func (s *store) AttachOptions(options map[string]string) error {
+	if querierWithOptions, ok := s.querier.(dialectquery.QuerierOptions); ok {
+		return querierWithOptions.AttachOptions(options)
+	}
+	return nil
 }

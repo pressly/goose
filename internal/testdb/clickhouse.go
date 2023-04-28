@@ -1,16 +1,20 @@
 package testdb
 
 import (
+	"context"
 	"crypto/tls"
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
 )
 
 const (
@@ -22,6 +26,12 @@ const (
 	CLICKHOUSE_USER                      = "clickuser"
 	CLICKHOUSE_PASSWORD                  = "password1"
 	CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT = "1"
+)
+
+var (
+	// DB_HOST is the hostname where ClickHouse is running
+	// localhost for local runs and docker for CI runs
+	DB_HOST string
 )
 
 func newClickHouse(opts ...OptionsFunc) (*sql.DB, func(), error) {
@@ -74,8 +84,12 @@ func newClickHouse(opts ...OptionsFunc) (*sql.DB, func(), error) {
 			log.Printf("failed to purge resource: %v", err)
 		}
 	}
+	host := os.Getenv("DB_HOST")
+	if host == "" {
+		host = "localhost"
+	}
 	// Fetch port assigned to container
-	address := fmt.Sprintf("%s:%s", "localhost", container.GetPort("9000/tcp"))
+	address := fmt.Sprintf("%s:%s", host, container.GetPort("9000/tcp"))
 
 	var db *sql.DB
 	// Exponential backoff-retry, because the application in the container
@@ -111,4 +125,45 @@ func clickHouseOpenDB(address string, tlsConfig *tls.Config, debug bool) *sql.DB
 	db.SetMaxOpenConns(10)
 	db.SetConnMaxLifetime(time.Hour)
 	return db
+}
+
+const (
+	ClickHousePort     = "9000/tcp"
+	ClickhouseHTTPPort = "8123/tcp"
+	clickHouseImage    = "clickhouse/clickhouse-server:23.2.6.34-alpine"
+)
+
+func CreateClickHouseContainer(ctx context.Context, configPath string) (testcontainers.Container, error) {
+	var mounts testcontainers.ContainerMounts
+	if configPath != "" {
+		mounts = testcontainers.Mounts(testcontainers.BindMount(configPath, "/etc/clickhouse-server/config.d/testconf.xml"))
+	}
+	chReq := testcontainers.ContainerRequest{
+		Image:        clickHouseImage,
+		ExposedPorts: []string{ClickHousePort, ClickhouseHTTPPort},
+		WaitingFor:   wait.ForHTTP("/").WithPort(ClickhouseHTTPPort),
+		Mounts:       mounts,
+	}
+	return testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: chReq,
+		Started:          true,
+	})
+}
+
+func OpenClickhouse(endpoint string, debug bool) (*sql.DB, error) {
+	opts, err := clickhouse.ParseDSN(endpoint)
+	if err != nil {
+		return nil, nil
+	}
+
+	opts.Debug = debug
+
+	opts.Settings = clickhouse.Settings{
+		"max_execution_time": 60,
+	}
+	opts.DialTimeout = 5 * time.Second
+	opts.Compression = &clickhouse.Compression{
+		Method: clickhouse.CompressionLZ4,
+	}
+	return clickhouse.OpenDB(opts), nil
 }

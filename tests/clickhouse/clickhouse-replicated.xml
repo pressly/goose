@@ -1,0 +1,47 @@
+<!-- Minimal configuration to enable cluster mode in a single clickhouse process -->
+<clickhouse>
+    <macros>
+        <installation>cluster</installation>
+        <all-sharded-shard>0</all-sharded-shard>
+        <cluster>cluster</cluster>
+        <shard>0</shard>
+        <replica>cluster-0-0</replica>
+    </macros>
+
+    <remote_servers>
+        <cluster>
+            <shard>
+                <internal_replication>true</internal_replication>
+                <replica>
+                    <host>localhost</host>
+                    <port>9000</port>
+                </replica>
+            </shard>
+        </cluster>
+    </remote_servers>
+
+    <keeper_server>
+        <tcp_port>2181</tcp_port>
+        <server_id>0</server_id>
+        <log_storage_path>/var/log/clickhouse-server/coordination/log</log_storage_path>
+        <snapshot_storage_path>/var/lib/clickhouse/coordination/snapshots</snapshot_storage_path>
+        <raft_configuration>
+            <server>
+                <id>0</id>
+                <hostname>localhost</hostname>
+                <port>9444</port>
+            </server>
+        </raft_configuration>
+    </keeper_server>
+
+    <zookeeper>
+        <!-- Clickhouse Keeper -->
+        <node>
+            <host>localhost</host>
+            <port>2181</port>
+        </node>
+    </zookeeper>
+    <distributed_ddl>
+        <path>/clickhouse/cluster/task_queue/ddl</path>
+    </distributed_ddl>
+</clickhouse>

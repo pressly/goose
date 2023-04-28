@@ -39,3 +39,10 @@ func SetDialect(s string) error {
 	store, err = dialect.NewStore(d, TableName())
 	return err
 }
+
+func AttachOptions(options map[string]string) error {
+	if storeWithOptions, ok := store.(dialect.StoreOptions); ok {
+		return storeWithOptions.AttachOptions(options)
+	}
+	return nil
+}

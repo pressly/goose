@@ -1,8 +1,11 @@
 package clickhouse_test
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"testing"
 	"time"
@@ -10,6 +13,7 @@ import (
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/internal/check"
 	"github.com/pressly/goose/v3/internal/testdb"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
@@ -124,6 +128,74 @@ func TestClickHouseFirstThree(t *testing.T) {
 		}
 		check.Number(t, result.sourceID, want[i].sourceID)
 	}
+}
+
+func TestClickHouseOnCluster(t *testing.T) {
+	err := goose.AttachOptions(map[string]string{
+		"ON_CLUSTER": "true",
+	})
+	require.NoError(t, err)
+	ctx := context.Background()
+
+	workingDir, err := os.Getwd()
+	require.NoError(t, err)
+
+	// Minimal additional configuration (config.d) to enable cluster mode
+	replconf := path.Join(workingDir, "clickhouse-replicated.xml")
+	chContainer, err := testdb.CreateClickHouseContainer(ctx, replconf)
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		if err := chContainer.Terminate(ctx); err != nil {
+			t.Fatalf("failed to terminate container: %s", err)
+		}
+		// Reset the DB to default state - for some reason clearing up just the options doesn't work
+		if err := goose.SetDialect("clickhouse"); err != nil {
+			t.Fatalf("failed to set dialect: %s", err)
+		}
+		err := goose.AttachOptions(map[string]string{
+			"ON_CLUSTER": "",
+		})
+		if err != nil {
+			t.Fatalf("failed to clean up dialet: %s", err)
+		}
+	})
+
+	port, err := chContainer.MappedPort(ctx, "9000/tcp")
+	require.NoError(t, err)
+	host, err := chContainer.Host(ctx)
+	require.NoError(t, err)
+	endpoint := fmt.Sprintf("clickhouse://%s:%s", host, port.Port())
+	t.Log(endpoint)
+
+	db, err := testdb.OpenClickhouse(endpoint, true)
+	require.NoError(t, err)
+
+	_, err = goose.GetDBVersion(db)
+	require.NoError(t, err)
+
+	migrationDir := filepath.Join("testdata", "migrations")
+	// Collect migrations so we don't have to hard-code the currentVersion
+	// in an assertion later in the test.
+	migrations, err := goose.CollectMigrations(migrationDir, 0, goose.MaxVersion)
+	check.NoError(t, err)
+
+	currentVersion, err := goose.GetDBVersion(db)
+	check.NoError(t, err)
+	check.Number(t, currentVersion, 0)
+
+	err = goose.Up(db, migrationDir)
+	check.NoError(t, err)
+	currentVersion, err = goose.GetDBVersion(db)
+	check.NoError(t, err)
+	check.Number(t, currentVersion, len(migrations))
+
+	err = goose.DownTo(db, migrationDir, 0)
+	check.NoError(t, err)
+
+	currentVersion, err = goose.GetDBVersion(db)
+	check.NoError(t, err)
+	check.Number(t, currentVersion, 0)
 }
 
 func TestRemoteImportMigration(t *testing.T) {
