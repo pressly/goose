@@ -4,9 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/ydb-platform/ydb-go-sdk/v3"
-	"github.com/ydb-platform/ydb-go-sdk/v3/balancers"
-	"github.com/ydb-platform/ydb-go-sdk/v3/trace"
 	"log"
 	"os"
 	"path"
@@ -15,11 +12,14 @@ import (
 
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
+	"github.com/ydb-platform/ydb-go-sdk/v3"
+	"github.com/ydb-platform/ydb-go-sdk/v3/balancers"
+	"github.com/ydb-platform/ydb-go-sdk/v3/trace"
 )
 
 const (
 	YDB_IMAGE    = "cr.yandex/yc/yandex-docker-local-ydb"
-	YDB_VERSION  = "stable-23-1"
+	YDB_VERSION  = "22.5-slim"
 	YDB_PORT     = "2136"
 	YDB_TLS_PORT = "2135"
 	YDB_MON_PORT = "8765"
@@ -51,7 +51,7 @@ func newYdb(opts ...OptionsFunc) (*sql.DB, func(), error) {
 		Hostname:     "localhost",
 	}
 	if option.debug {
-		runOptions.Env = append(runOptions.Env, "YDB_DEFAULT_LOG_LEVEL=INFO")
+		runOptions.Env = append(runOptions.Env, "YDB_DEFAULT_LOG_LEVEL=NOTICE")
 	} else {
 		runOptions.Env = append(runOptions.Env, "YDB_DEFAULT_LOG_LEVEL=ERROR")
 	}
@@ -66,12 +66,14 @@ func newYdb(opts ...OptionsFunc) (*sql.DB, func(), error) {
 			// Set AutoRemove to true so that stopped container goes away by itself.
 			config.AutoRemove = true
 			config.RestartPolicy = docker.RestartPolicy{Name: "no"}
+			config.Init = true
 		},
 	)
 	if err != nil {
 		return nil, nil, err
 	}
 	cleanup := func() {
+
 		if option.debug {
 			// User must manually delete the Docker container.
 			return
@@ -113,6 +115,7 @@ func newYdb(opts ...OptionsFunc) (*sql.DB, func(), error) {
 		}()
 		connector, err := ydb.Connector(nativeDriver,
 			ydb.WithDefaultQueryMode(ydb.ScriptingQueryMode),
+			ydb.WithFakeTx(ydb.ScriptingQueryMode),
 			ydb.WithTablePathPrefix(path.Join("/", YDB_DATABASE, "pressly", "goose", option.folder)),
 			ydb.WithAutoDeclare(),
 			ydb.WithNumericArgs(),

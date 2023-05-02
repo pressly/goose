@@ -1,16 +1,16 @@
--- +goose NO TRANSACTION
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE owners (
-    owner_id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    owner_name varchar(255) NOT NULL,
-    owner_type ENUM('user', 'organization') NOT NULL
+    owner_id Uint64,
+    owner_name Utf8,
+    owner_type Utf8,
+    PRIMARY KEY (owner_id)
 );
 CREATE TABLE repos (
-    repo_id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    repo_owner_id BIGINT NOT NULL,
-    repo_full_name VARCHAR(255) NOT NULL,
-    FOREIGN KEY (repo_owner_id) REFERENCES owners (owner_id) ON DELETE CASCADE
+    repo_id Uint64,
+    repo_owner_id Uint64,
+    repo_full_name Utf8,
+    PRIMARY KEY (repo_id)
 );
 -- +goose StatementEnd
 
