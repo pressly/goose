@@ -22,7 +22,7 @@ func SetDialect(s string) error {
 		d = dialect.Mysql
 	case "sqlite3", "sqlite":
 		d = dialect.Sqlite3
-	case "mssql", "azuresql":
+	case "mssql", "azuresql", "sqlserver":
 		d = dialect.Sqlserver
 	case "redshift":
 		d = dialect.Redshift
