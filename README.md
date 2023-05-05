@@ -13,21 +13,22 @@ Goose supports [embedding SQL migrations](#embedded-sql-migrations), which means
 ### Goals of this fork
 
 `github.com/pressly/goose` is a fork of `bitbucket.org/liamstask/goose` with the following changes:
+
 - No config files
 - [Default goose binary](./cmd/goose/main.go) can migrate SQL files only
 - Go migrations:
-    - We don't `go build` Go migrations functions on-the-fly
-      from within the goose binary
-    - Instead, we let you
-      [create your own custom goose binary](examples/go-migrations),
-      register your Go migration functions explicitly and run complex
-      migrations with your own `*sql.DB` connection
-    - Go migration functions let you run your code within
-      an SQL transaction, if you use the `*sql.Tx` argument
+  - We don't `go build` Go migrations functions on-the-fly
+    from within the goose binary
+  - Instead, we let you
+    [create your own custom goose binary](examples/go-migrations),
+    register your Go migration functions explicitly and run complex
+    migrations with your own `*sql.DB` connection
+  - Go migration functions let you run your code within
+    an SQL transaction, if you use the `*sql.Tx` argument
 - The goose pkg is decoupled from the binary:
-    - goose pkg doesn't register any SQL drivers anymore,
-      thus no driver `panic()` conflict within your codebase!
-    - goose pkg doesn't have any vendor dependencies anymore
+  - goose pkg doesn't register any SQL drivers anymore,
+    thus no driver `panic()` conflict within your codebase!
+  - goose pkg doesn't have any vendor dependencies anymore
 - We use timestamped migrations by default but recommend a hybrid approach of using timestamps in the development process and sequential versions in production.
 - Supports missing (out-of-order) migrations with the `-allow-missing` flag, or if using as a library supply the functional option `goose.WithAllowMissing()` to Up, UpTo or UpByOne.
 - Supports applying ad-hoc migrations without tracking them in the schema table. Useful for seeding a database after migrations have been applied. Use `-no-versioning` flag or the functional option `goose.WithNoVersioning()`.
@@ -112,6 +113,7 @@ Commands:
     version              Print the current version of the database
     create NAME [sql|go] Creates new migration file with the current timestamp
     fix                  Apply sequential ordering to migrations
+    validate             Check migration files without running them
 ```
 
 ## create
@@ -255,6 +257,7 @@ language plpgsql;
 ```
 
 ## Embedded sql migrations
+
 Go 1.16 introduced new feature: [compile-time embedding](https://pkg.go.dev/embed/) files into binary and
 corresponding [filesystem abstraction](https://pkg.go.dev/io/fs/).
 
@@ -350,6 +353,7 @@ DOCKER_BUILDKIT=1  docker build -f Dockerfile.local --output bin .
 ```
 
 # Hybrid Versioning
+
 Please, read the [versioning problem](https://github.com/pressly/goose/issues/63#issuecomment-428681694) first.
 
 By default, if you attempt to apply missing (out-of-order) migrations `goose` will raise an error. However, If you want to apply these missing migrations pass goose the `-allow-missing` flag, or if using as a library supply the functional option `goose.WithAllowMissing()` to Up, UpTo or UpByOne.
