@@ -45,13 +45,13 @@ func runSQLMigration(
 
 		if !noVersioning {
 			if direction {
-				if err := store.InsertVersion(ctx, TableName(), tx, v); err != nil {
+				if err := store.InsertVersion(ctx, tx, TableName(), v); err != nil {
 					verboseInfo("Rollback transaction")
 					_ = tx.Rollback()
 					return fmt.Errorf("failed to insert new goose version: %w", err)
 				}
 			} else {
-				if err := store.DeleteVersion(ctx, TableName(), tx, v); err != nil {
+				if err := store.DeleteVersion(ctx, tx, TableName(), v); err != nil {
 					verboseInfo("Rollback transaction")
 					_ = tx.Rollback()
 					return fmt.Errorf("failed to delete goose version: %w", err)
@@ -76,11 +76,11 @@ func runSQLMigration(
 	}
 	if !noVersioning {
 		if direction {
-			if err := store.InsertVersionNoTx(ctx, TableName(), db, v); err != nil {
+			if err := store.InsertVersionNoTx(ctx, db, TableName(), v); err != nil {
 				return fmt.Errorf("failed to insert new goose version: %w", err)
 			}
 		} else {
-			if err := store.DeleteVersionNoTx(ctx, TableName(), db, v); err != nil {
+			if err := store.DeleteVersionNoTx(ctx, db, TableName(), v); err != nil {
 				return fmt.Errorf("failed to delete goose version: %w", err)
 			}
 		}
