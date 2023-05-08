@@ -46,8 +46,6 @@ type Store interface {
 }
 
 // NewStore returns a new Store for the given dialect.
-//
-// The table name is used to store the goose migrations.
 func NewStore(d Dialect) (Store, error) {
 	var querier dialectquery.Querier
 	switch d {
