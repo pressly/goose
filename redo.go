@@ -34,10 +34,10 @@ func Redo(db *sql.DB, dir string, opts ...OptionsFunc) error {
 	}
 	current.noVersioning = option.noVersioning
 
-	if err := current.Down(db); err != nil {
+	if err := current.Down(db, option.toMigrationOptionsFunc()); err != nil {
 		return err
 	}
-	if err := current.Up(db); err != nil {
+	if err := current.Up(db, option.toMigrationOptionsFunc()); err != nil {
 		return err
 	}
 	return nil

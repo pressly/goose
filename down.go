@@ -21,7 +21,7 @@ func Down(db *sql.DB, dir string, opts ...OptionsFunc) error {
 		}
 		currentVersion := migrations[len(migrations)-1].Version
 		// Migrate only the latest migration down.
-		return downToNoVersioning(db, migrations, currentVersion-1)
+		return downToNoVersioning(db, migrations, currentVersion-1, option.isDryRun)
 	}
 	currentVersion, err := GetDBVersion(db)
 	if err != nil {
@@ -31,7 +31,7 @@ func Down(db *sql.DB, dir string, opts ...OptionsFunc) error {
 	if err != nil {
 		return fmt.Errorf("no migration %v", currentVersion)
 	}
-	return current.Down(db)
+	return current.Down(db, option.toMigrationOptionsFunc())
 }
 
 // DownTo rolls back migrations to a specific version.
@@ -45,7 +45,7 @@ func DownTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 		return err
 	}
 	if option.noVersioning {
-		return downToNoVersioning(db, migrations, version)
+		return downToNoVersioning(db, migrations, version, option.isDryRun)
 	}
 
 	for {
@@ -69,7 +69,7 @@ func DownTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 			return nil
 		}
 
-		if err = current.Down(db); err != nil {
+		if err = current.Down(db, option.toMigrationOptionsFunc()); err != nil {
 			return err
 		}
 	}
@@ -77,7 +77,7 @@ func DownTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 
 // downToNoVersioning applies down migrations down to, but not including, the
 // target version.
-func downToNoVersioning(db *sql.DB, migrations Migrations, version int64) error {
+func downToNoVersioning(db *sql.DB, migrations Migrations, version int64, isDryRun bool) error {
 	var finalVersion int64
 	for i := len(migrations) - 1; i >= 0; i-- {
 		if version >= migrations[i].Version {
@@ -85,7 +85,10 @@ func downToNoVersioning(db *sql.DB, migrations Migrations, version int64) error 
 			break
 		}
 		migrations[i].noVersioning = true
-		if err := migrations[i].Down(db); err != nil {
+		migrationOptFunc := func(opt *migrationOptions) {
+			opt.isDryRun = isDryRun
+		}
+		if err := migrations[i].Down(db, migrationOptFunc); err != nil {
 			return err
 		}
 	}

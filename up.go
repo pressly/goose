@@ -13,6 +13,16 @@ type options struct {
 	allowMissing bool
 	applyUpByOne bool
 	noVersioning bool
+	isDryRun     bool
+}
+
+// toMigrationOptionsFunc returns the migrations options function for the given
+// options.
+func (o options) toMigrationOptionsFunc() MigrationOptionsFunc {
+	migrationOptFunc := func(migrationOpt *migrationOptions) {
+		migrationOpt.isDryRun = o.isDryRun
+	}
+	return migrationOptFunc
 }
 
 type OptionsFunc func(o *options)
@@ -27,6 +37,10 @@ func WithNoVersioning() OptionsFunc {
 
 func WithNoColor(b bool) OptionsFunc {
 	return func(o *options) { noColor = b }
+}
+
+func WithDryRun() OptionsFunc {
+	return func(o *options) { o.isDryRun = true }
 }
 
 func withApplyUpByOne() OptionsFunc {
@@ -54,7 +68,7 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 			// migration over and over.
 			version = foundMigrations[0].Version
 		}
-		return upToNoVersioning(db, foundMigrations, version)
+		return upToNoVersioning(db, foundMigrations, version, option.isDryRun)
 	}
 
 	if _, err := EnsureDBVersion(db); err != nil {
@@ -90,13 +104,11 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 		)
 	}
 
-	var current int64
+	current, err := GetDBVersion(db)
+	if err != nil {
+		return err
+	}
 	for {
-		var err error
-		current, err = GetDBVersion(db)
-		if err != nil {
-			return err
-		}
 		next, err := foundMigrations.Next(current)
 		if err != nil {
 			if errors.Is(err, ErrNoNextVersion) {
@@ -104,12 +116,13 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 			}
 			return fmt.Errorf("failed to find next migration: %v", err)
 		}
-		if err := next.Up(db); err != nil {
+		if err := next.Up(db, option.toMigrationOptionsFunc()); err != nil {
 			return err
 		}
 		if option.applyUpByOne {
 			return nil
 		}
+		current = next.Version
 	}
 	// At this point there are no more migrations to apply. But we need to maintain
 	// the following behaviour:
@@ -124,14 +137,17 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 
 // upToNoVersioning applies up migrations up to, and including, the
 // target version.
-func upToNoVersioning(db *sql.DB, migrations Migrations, version int64) error {
+func upToNoVersioning(db *sql.DB, migrations Migrations, version int64, isDryRun bool) error {
 	var finalVersion int64
 	for _, current := range migrations {
 		if current.Version > version {
 			break
 		}
 		current.noVersioning = true
-		if err := current.Up(db); err != nil {
+		migrationOptFunc := func(opt *migrationOptions) {
+			opt.isDryRun = isDryRun
+		}
+		if err := current.Up(db, migrationOptFunc); err != nil {
 			return err
 		}
 		finalVersion = current.Version
@@ -154,27 +170,14 @@ func upWithMissing(
 
 	// Apply all missing migrations first.
 	for _, missing := range missingMigrations {
-		if err := missing.Up(db); err != nil {
+		if err := missing.Up(db, option.toMigrationOptionsFunc()); err != nil {
 			return err
 		}
 		// Apply one migration and return early.
 		if option.applyUpByOne {
 			return nil
 		}
-		// TODO(mf): do we need this check? It's a bit redundant, but we may
-		// want to keep it as a safe-guard. Maybe we should instead have
-		// the underlying query (if possible) return the current version as
-		// part of the same transaction.
-		current, err := GetDBVersion(db)
-		if err != nil {
-			return err
-		}
-		if current == missing.Version {
-			lookupApplied[missing.Version] = true
-			continue
-		}
-		return fmt.Errorf("error: missing migration:%d does not match current db version:%d",
-			current, missing.Version)
+		lookupApplied[missing.Version] = true
 	}
 
 	// We can no longer rely on the database version_id to be sequential because
@@ -189,7 +192,7 @@ func upWithMissing(
 		if lookupApplied[found.Version] {
 			continue
 		}
-		if err := found.Up(db); err != nil {
+		if err := found.Up(db, option.toMigrationOptionsFunc()); err != nil {
 			return err
 		}
 		if option.applyUpByOne {
