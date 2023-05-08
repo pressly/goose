@@ -225,7 +225,7 @@ func UpByOne(db *sql.DB, dir string, opts ...OptionsFunc) error {
 // listAllDBVersions returns a list of all migrations, ordered ascending.
 // TODO(mf): fairly cheap, but a nice-to-have is pagination support.
 func listAllDBVersions(ctx context.Context, db *sql.DB) (Migrations, error) {
-	dbMigrations, err := store.ListMigrations(ctx, db)
+	dbMigrations, err := store.ListMigrations(ctx, db, TableName())
 	if err != nil {
 		return nil, err
 	}
