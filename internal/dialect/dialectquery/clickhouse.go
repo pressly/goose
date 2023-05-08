@@ -64,8 +64,8 @@ func (c *Clickhouse) GetMigrationByVersion(tableName string) string {
 }
 
 func (c *Clickhouse) ListMigrations(tableName string) string {
-	q := `SELECT version_id, is_applied FROM %s ORDER BY version_id DESC`
-	return fmt.Sprintf(q, tableName)
+	q := `SELECT version_id, is_applied FROM %s ORDER BY tstamp DESC`
+	return fmt.Sprintf(q, c.Table)
 }
 
 func (c *Clickhouse) AttachOptions(options map[string]string) error {
