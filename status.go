@@ -46,7 +46,7 @@ func Status(db *sql.DB, dir string, opts ...OptionsFunc) error {
 }
 
 func printMigrationStatus(ctx context.Context, db *sql.DB, version int64, script string) error {
-	m, err := store.GetMigration(ctx, db, version)
+	m, err := store.GetMigration(ctx, TableName(), db, version)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("failed to query the latest migration: %w", err)
 	}
