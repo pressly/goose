@@ -35,6 +35,10 @@ func withApplyUpByOne() OptionsFunc {
 // UpTo migrates up to a specific version.
 func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 	ctx := context.Background()
+	return UpToContext(ctx, db, dir, version, opts...)
+}
+
+func UpToContext(ctx context.Context, db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 	option := &options{}
 	for _, f := range opts {
 		f(option)
@@ -53,10 +57,10 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 			// migration over and over.
 			version = foundMigrations[0].Version
 		}
-		return upToNoVersioning(db, foundMigrations, version)
+		return upToNoVersioning(ctx, db, foundMigrations, version)
 	}
 
-	if _, err := EnsureDBVersion(db); err != nil {
+	if _, err := EnsureDBVersionContext(ctx, db); err != nil {
 		return err
 	}
 	dbMigrations, err := listAllDBVersions(ctx, db)
@@ -103,7 +107,7 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 
 	var current int64
 	for _, m := range migrationsToApply {
-		if err := m.Up(db); err != nil {
+		if err := m.UpContext(ctx, db); err != nil {
 			return err
 		}
 		if option.applyUpByOne {
@@ -112,7 +116,7 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 		current = m.Version
 	}
 	if len(migrationsToApply) == 0 {
-		current, err = GetDBVersion(db)
+		current, err = GetDBVersionContext(ctx, db)
 		if err != nil {
 			return err
 		}
@@ -130,14 +134,14 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 
 // upToNoVersioning applies up migrations up to, and including, the
 // target version.
-func upToNoVersioning(db *sql.DB, migrations Migrations, version int64) error {
+func upToNoVersioning(ctx context.Context, db *sql.DB, migrations Migrations, version int64) error {
 	var finalVersion int64
 	for _, current := range migrations {
 		if current.Version > version {
 			break
 		}
 		current.noVersioning = true
-		if err := current.Up(db); err != nil {
+		if err := current.UpContext(ctx, db); err != nil {
 			return err
 		}
 		finalVersion = current.Version
@@ -148,13 +152,25 @@ func upToNoVersioning(db *sql.DB, migrations Migrations, version int64) error {
 
 // Up applies all available migrations.
 func Up(db *sql.DB, dir string, opts ...OptionsFunc) error {
-	return UpTo(db, dir, maxVersion, opts...)
+	ctx := context.Background()
+	return UpContext(ctx, db, dir, opts...)
+}
+
+// UpContext applies all available migrations.
+func UpContext(ctx context.Context, db *sql.DB, dir string, opts ...OptionsFunc) error {
+	return UpToContext(ctx, db, dir, maxVersion, opts...)
 }
 
 // UpByOne migrates up by a single version.
 func UpByOne(db *sql.DB, dir string, opts ...OptionsFunc) error {
+	ctx := context.Background()
+	return UpByOneContext(ctx, db, dir, opts...)
+}
+
+// UpByOneContext migrates up by a single version.
+func UpByOneContext(ctx context.Context, db *sql.DB, dir string, opts ...OptionsFunc) error {
 	opts = append(opts, withApplyUpByOne())
-	return UpTo(db, dir, maxVersion, opts...)
+	return UpToContext(ctx, db, dir, maxVersion, opts...)
 }
 
 // listAllDBVersions returns a list of all migrations, ordered ascending.

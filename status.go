@@ -12,6 +12,11 @@ import (
 // Status prints the status of all migrations.
 func Status(db *sql.DB, dir string, opts ...OptionsFunc) error {
 	ctx := context.Background()
+	return StatusContext(ctx, db, dir, opts...)
+}
+
+// StatusContext prints the status of all migrations.
+func StatusContext(ctx context.Context, db *sql.DB, dir string, opts ...OptionsFunc) error {
 	option := &options{}
 	for _, f := range opts {
 		f(option)
@@ -30,7 +35,7 @@ func Status(db *sql.DB, dir string, opts ...OptionsFunc) error {
 	}
 
 	// must ensure that the version table exists if we're running on a pristine DB
-	if _, err := EnsureDBVersion(db); err != nil {
+	if _, err := EnsureDBVersionContext(ctx, db); err != nil {
 		return fmt.Errorf("failed to ensure DB version: %w", err)
 	}
 

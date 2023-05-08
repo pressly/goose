@@ -10,6 +10,11 @@ import (
 // Reset rolls back all migrations
 func Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
 	ctx := context.Background()
+	return ResetContext(ctx, db, dir, opts...)
+}
+
+// ResetContext rolls back all migrations
+func ResetContext(ctx context.Context, db *sql.DB, dir string, opts ...OptionsFunc) error {
 	option := &options{}
 	for _, f := range opts {
 		f(option)
@@ -19,7 +24,7 @@ func Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
 		return fmt.Errorf("failed to collect migrations: %w", err)
 	}
 	if option.noVersioning {
-		return DownTo(db, dir, minVersion, opts...)
+		return DownToContext(ctx, db, dir, minVersion, opts...)
 	}
 
 	statuses, err := dbMigrationsStatus(ctx, db)
@@ -32,7 +37,7 @@ func Reset(db *sql.DB, dir string, opts ...OptionsFunc) error {
 		if !statuses[migration.Version] {
 			continue
 		}
-		if err = migration.Down(db); err != nil {
+		if err = migration.DownContext(ctx, db); err != nil {
 			return fmt.Errorf("failed to db-down: %w", err)
 		}
 	}

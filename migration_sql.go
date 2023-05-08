@@ -29,7 +29,7 @@ func runSQLMigration(
 
 		verboseInfo("Begin transaction")
 
-		tx, err := db.Begin()
+		tx, err := db.BeginTx(ctx, nil)
 		if err != nil {
 			return fmt.Errorf("failed to begin transaction: %w", err)
 		}
