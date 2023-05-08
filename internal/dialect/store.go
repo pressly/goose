@@ -90,37 +90,37 @@ type store struct {
 var _ Store = (*store)(nil)
 
 func (s *store) CreateVersionTable(ctx context.Context, tableName string, tx *sql.Tx) error {
-	q := s.querier.CreateTable()
+	q := s.querier.CreateTable(tableName)
 	_, err := tx.ExecContext(ctx, q)
 	return err
 }
 
 func (s *store) InsertVersion(ctx context.Context, tableName string, tx *sql.Tx, version int64) error {
-	q := s.querier.InsertVersion()
+	q := s.querier.InsertVersion(tableName)
 	_, err := tx.ExecContext(ctx, q, version, true)
 	return err
 }
 
 func (s *store) InsertVersionNoTx(ctx context.Context, tableName string, db *sql.DB, version int64) error {
-	q := s.querier.InsertVersion()
+	q := s.querier.InsertVersion(tableName)
 	_, err := db.ExecContext(ctx, q, version, true)
 	return err
 }
 
 func (s *store) DeleteVersion(ctx context.Context, tableName string, tx *sql.Tx, version int64) error {
-	q := s.querier.DeleteVersion()
+	q := s.querier.DeleteVersion(tableName)
 	_, err := tx.ExecContext(ctx, q, version)
 	return err
 }
 
 func (s *store) DeleteVersionNoTx(ctx context.Context, tableName string, db *sql.DB, version int64) error {
-	q := s.querier.DeleteVersion()
+	q := s.querier.DeleteVersion(tableName)
 	_, err := db.ExecContext(ctx, q, version)
 	return err
 }
 
 func (s *store) GetMigration(ctx context.Context, tableName string, db *sql.DB, version int64) (*GetMigrationResult, error) {
-	q := s.querier.GetMigrationByVersion()
+	q := s.querier.GetMigrationByVersion(tableName)
 	var timestamp time.Time
 	var isApplied bool
 	err := db.QueryRowContext(ctx, q, version).Scan(&timestamp, &isApplied)
@@ -134,7 +134,7 @@ func (s *store) GetMigration(ctx context.Context, tableName string, db *sql.DB, 
 }
 
 func (s *store) ListMigrations(ctx context.Context, tableName string, db *sql.DB) ([]*ListMigrationsResult, error) {
-	q := s.querier.ListMigrations()
+	q := s.querier.ListMigrations(tableName)
 	rows, err := db.QueryContext(ctx, q)
 	if err != nil {
 		return nil, err
