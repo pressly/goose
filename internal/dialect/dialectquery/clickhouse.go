@@ -4,16 +4,12 @@ import "fmt"
 
 const (
 	paramOnCluster    = "ON_CLUSTER"
-	paramZooPath      = "ZOO_PATH"
 	paramClusterMacro = "CLUSTER_MACRO"
-	paramReplicaMacro = "REPLICA_MACRO"
 )
 
 type clusterParameters struct {
 	OnCluster    bool
-	ZooPath      string
 	ClusterMacro string
-	ReplicaMacro string
 }
 
 type Clickhouse struct {
@@ -28,24 +24,24 @@ func (c *Clickhouse) CreateTable(tableName string) string {
 		version_id Int64,
 		is_applied UInt8,
 		date Date default now(),
-		tstamp DateTime default now()
+		tstamp DateTime64(9, 'UTC') default now64(9, 'UTC')
 	  )
-	  ENGINE = MergeTree()
-		ORDER BY (date)`
+	  ENGINE = KeeperMap('/goose_version')
+	  PRIMARY KEY version_id`
 
 	qCluster := `CREATE TABLE IF NOT EXISTS %s ON CLUSTER '%s' (
 		version_id Int64,
 		is_applied UInt8,
 		date Date default now(),
-		tstamp DateTime('UTC') default now()
+		tstamp DateTime64(9, 'UTC') default now64(9, 'UTC')
 	)
-    ENGINE = ReplicatedMergeTree('%s', '%s')
-	ORDER BY (date)`
+    ENGINE = KeeperMap('/goose_version_repl')
+	PRIMARY KEY version_id`
 
 	if c.Params.OnCluster {
-		return fmt.Sprintf(qCluster, c.Table, c.Params.ClusterMacro, c.Params.ZooPath, c.Params.ReplicaMacro)
+		return fmt.Sprintf(qCluster, tableName, c.Params.ClusterMacro)
 	}
-	return fmt.Sprintf(q, c.Table)
+	return fmt.Sprintf(q, tableName)
 }
 
 func (c *Clickhouse) InsertVersion(tableName string) string {
@@ -65,7 +61,7 @@ func (c *Clickhouse) GetMigrationByVersion(tableName string) string {
 
 func (c *Clickhouse) ListMigrations(tableName string) string {
 	q := `SELECT version_id, is_applied FROM %s ORDER BY tstamp DESC`
-	return fmt.Sprintf(q, c.Table)
+	return fmt.Sprintf(q, tableName)
 }
 
 func (c *Clickhouse) AttachOptions(options map[string]string) error {
@@ -75,17 +71,7 @@ func (c *Clickhouse) AttachOptions(options map[string]string) error {
 			if !ok {
 				clusterMacro = "{cluster}"
 			}
-			zooPath, ok := options[paramZooPath]
-			if !ok {
-				zooPath = fmt.Sprintf("/clickhouse/tables/%s/{table}", clusterMacro)
-			}
-			replicaMacro, ok := options[paramReplicaMacro]
-			if !ok {
-				replicaMacro = "{replica}"
-			}
-			c.Params.ZooPath = zooPath
 			c.Params.ClusterMacro = clusterMacro
-			c.Params.ReplicaMacro = replicaMacro
 			c.Params.OnCluster = true
 		}
 	}

@@ -8,6 +8,7 @@
         <replica>cluster-0-0</replica>
     </macros>
 
+    <keeper_map_path_prefix>/keeper_map_tables</keeper_map_path_prefix>
     <remote_servers>
         <cluster>
             <shard>

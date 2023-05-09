@@ -17,46 +17,40 @@ func TestClickhouseCreateTable(t *testing.T) {
 	tests := []testData{
 		{
 			clickhouse: &Clickhouse{
-				Table: "schema_migrations",
 				Params: clusterParameters{
 					OnCluster:    true,
-					ZooPath:      "/clickhouse/tables/{cluster}/{table}",
 					ClusterMacro: "{cluster}",
-					ReplicaMacro: "{replica}",
 				},
 			},
 			result: `CREATE TABLE IF NOT EXISTS schema_migrations ON CLUSTER '{cluster}' (
 		version_id Int64,
 		is_applied UInt8,
 		date Date default now(),
-		tstamp DateTime('UTC') default now()
+		tstamp DateTime64(9, 'UTC') default now64(9, 'UTC')
 	)
-    ENGINE = ReplicatedMergeTree('/clickhouse/tables/{cluster}/{table}', '{replica}')
-	ORDER BY (date)`,
+    ENGINE = KeeperMap('/goose_version_repl')
+	PRIMARY KEY version_id`,
 		},
 		{
 			clickhouse: &Clickhouse{
-				Table: "schema_migrations_v1",
 				Params: clusterParameters{
 					OnCluster:    true,
-					ZooPath:      "/clickhouse/tables/dev-cluster/{table}",
 					ClusterMacro: "dev-cluster",
-					ReplicaMacro: "{replica}",
 				},
 			},
-			result: `CREATE TABLE IF NOT EXISTS schema_migrations_v1 ON CLUSTER 'dev-cluster' (
+			result: `CREATE TABLE IF NOT EXISTS schema_migrations ON CLUSTER 'dev-cluster' (
 		version_id Int64,
 		is_applied UInt8,
 		date Date default now(),
-		tstamp DateTime('UTC') default now()
+		tstamp DateTime64(9, 'UTC') default now64(9, 'UTC')
 	)
-    ENGINE = ReplicatedMergeTree('/clickhouse/tables/dev-cluster/{table}', '{replica}')
-	ORDER BY (date)`,
+    ENGINE = KeeperMap('/goose_version_repl')
+	PRIMARY KEY version_id`,
 		},
 	}
 
 	for _, test := range tests {
-		out := test.clickhouse.CreateTable()
+		out := test.clickhouse.CreateTable("schema_migrations")
 		if diff := cmp.Diff(test.result, out); diff != "" {
 			t.Errorf("clickhouse.CreateTable() mismatch (-want +got):\n%s", diff)
 		}
@@ -82,39 +76,19 @@ func TestClickhouseAttachOptions(t *testing.T) {
 			err:   nil,
 			expected: clusterParameters{
 				OnCluster:    true,
-				ZooPath:      "/clickhouse/tables/{cluster}/{table}",
 				ClusterMacro: "{cluster}",
-				ReplicaMacro: "{replica}",
-			},
-		},
-		{
-			options: map[string]string{
-				"ON_CLUSTER": "true",
-				"ZOO_PATH":   "/clickhouse/hard_coded_path",
-			},
-			input: &Clickhouse{},
-			err:   nil,
-			expected: clusterParameters{
-				OnCluster:    true,
-				ZooPath:      "/clickhouse/hard_coded_path",
-				ClusterMacro: "{cluster}",
-				ReplicaMacro: "{replica}",
 			},
 		},
 		{
 			options: map[string]string{
 				"ON_CLUSTER":    "true",
-				"ZOO_PATH":      "/clickhouse/hard_coded_path",
 				"CLUSTER_MACRO": "dev-cluster",
-				"REPLICA_MACRO": "replica-01",
 			},
 			input: &Clickhouse{},
 			err:   nil,
 			expected: clusterParameters{
 				OnCluster:    true,
-				ZooPath:      "/clickhouse/hard_coded_path",
 				ClusterMacro: "dev-cluster",
-				ReplicaMacro: "replica-01",
 			},
 		},
 		{
