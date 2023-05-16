@@ -13,7 +13,6 @@ type clusterParameters struct {
 }
 
 type Clickhouse struct {
-	Table  string
 	Params clusterParameters
 }
 
