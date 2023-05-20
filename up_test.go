@@ -10,7 +10,7 @@ func TestFindMissingMigrations(t *testing.T) {
 		{Version: 3},
 		{Version: 4},
 		{Version: 5},
-		{Version: 7},
+		{Version: 7}, // <-- database max version_id
 	}
 	new := Migrations{
 		{Version: 1},
@@ -22,7 +22,7 @@ func TestFindMissingMigrations(t *testing.T) {
 		{Version: 7}, // <-- database max version_id
 		{Version: 8}, // new migration
 	}
-	got := findMissingMigrations(known, new)
+	got := findMissingMigrations(known, new, 7)
 	if len(got) != 2 {
 		t.Fatalf("invalid migration count: got:%d want:%d", len(got), 2)
 	}

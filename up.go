@@ -70,7 +70,7 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 		lookupAppliedInDB[m.Version] = true
 	}
 
-	missingMigrations := findMissingMigrations(dbMigrations, foundMigrations)
+	missingMigrations := findMissingMigrations(dbMigrations, foundMigrations, dbMaxVersion)
 
 	// feature(mf): It is very possible someone may want to apply ONLY new migrations
 	// and skip missing migrations altogether. At the moment this is not supported,
@@ -181,15 +181,14 @@ func listAllDBVersions(ctx context.Context, db *sql.DB) (Migrations, error) {
 // findMissingMigrations migrations returns all missing migrations.
 // A migrations is considered missing if it has a version less than the
 // current known max version.
-func findMissingMigrations(knownMigrations, newMigrations Migrations) Migrations {
-	max := knownMigrations[len(knownMigrations)-1].Version
+func findMissingMigrations(knownMigrations, newMigrations Migrations, dbMaxVersion int64) Migrations {
 	existing := make(map[int64]bool)
 	for _, known := range knownMigrations {
 		existing[known.Version] = true
 	}
 	var missing Migrations
 	for _, new := range newMigrations {
-		if !existing[new.Version] && new.Version < max {
+		if !existing[new.Version] && new.Version < dbMaxVersion {
 			missing = append(missing, new)
 		}
 	}
