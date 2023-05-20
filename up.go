@@ -63,7 +63,7 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 	if err != nil {
 		return err
 	}
-	currentVersion := dbMigrations[len(dbMigrations)-1].Version
+	dbMaxVersion := dbMigrations[len(dbMigrations)-1].Version
 	// lookupAppliedInDB is a map of all applied migrations in the database.
 	lookupAppliedInDB := make(map[int64]bool)
 	for _, m := range dbMigrations {
@@ -96,7 +96,7 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 		if lookupAppliedInDB[m.Version] {
 			continue
 		}
-		if m.Version > currentVersion && m.Version <= version {
+		if m.Version > dbMaxVersion && m.Version <= version {
 			migrationsToApply = append(migrationsToApply, m)
 		}
 	}
