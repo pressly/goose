@@ -84,8 +84,14 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 		return fmt.Errorf("error: found %d missing migrations:\n\t%s",
 			len(missingMigrations), strings.Join(collected, "\n\t"))
 	}
-	migrationsToApply := missingMigrations
-
+	var migrationsToApply Migrations
+	if option.allowMissing {
+		migrationsToApply = missingMigrations
+	}
+	// filter all migrations with a version greater than the supplied version (min) and less than or
+	// equal to the requested version (max). Note, we do not need to filter out missing migrations
+	// because we are only appending "new" migrations that have a higher version than the current
+	// database max version, which inevitably means they are not "missing".
 	for _, m := range foundMigrations {
 		if lookupAppliedInDB[m.Version] {
 			continue
@@ -104,6 +110,12 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 			return nil
 		}
 		current = m.Version
+	}
+	if len(migrationsToApply) == 0 && option.applyUpByOne {
+		current, err = GetDBVersion(db)
+		if err != nil {
+			return err
+		}
 	}
 	// At this point there are no more migrations to apply. But we need to maintain
 	// the following behaviour:
