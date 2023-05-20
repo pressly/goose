@@ -14,7 +14,6 @@ import (
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/internal/check"
 	"github.com/pressly/goose/v3/internal/testdb"
-	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
@@ -28,12 +27,12 @@ func openClickHouse(t *testing.T) *sql.DB {
 	t.Helper()
 
 	workingDir, err := os.Getwd()
-	require.NoError(t, err)
+	check.NoError(t, err)
 	ctx := context.Background()
 	// Minimal additional configuration (config.d) to enable cluster mode
 	replconf := path.Join(workingDir, "clickhouse-replicated.xml")
 	chContainer, err := testdb.CreateClickHouseContainer(ctx, replconf)
-	require.NoError(t, err)
+	check.NoError(t, err)
 
 	t.Cleanup(func() {
 		if err := chContainer.Terminate(ctx); err != nil {
@@ -46,14 +45,14 @@ func openClickHouse(t *testing.T) *sql.DB {
 	})
 
 	port, err := chContainer.MappedPort(ctx, "9000/tcp")
-	require.NoError(t, err)
+	check.NoError(t, err)
 	host, err := chContainer.Host(ctx)
-	require.NoError(t, err)
+	check.NoError(t, err)
 	endpoint := fmt.Sprintf("clickhouse://%s:%s", host, port.Port())
 	t.Log(endpoint)
 
 	db, err := testdb.OpenClickhouse(endpoint, true)
-	require.NoError(t, err)
+	check.NoError(t, err)
 
 	return db
 }
@@ -165,12 +164,12 @@ func TestClickHouseOnCluster(t *testing.T) {
 	err := goose.AttachOptions(map[string]string{
 		"ON_CLUSTER": "true",
 	})
-	require.NoError(t, err)
+	check.NoError(t, err)
 
 	db := openClickHouse(t)
 
 	_, err = goose.GetDBVersion(db)
-	require.NoError(t, err)
+	check.NoError(t, err)
 
 	migrationDir := filepath.Join("testdata", "migrations")
 	// Collect migrations so we don't have to hard-code the currentVersion
