@@ -315,6 +315,28 @@ func TestMigrateAllowMissingDown(t *testing.T) {
 	}
 }
 
+func TestUpWithAndWithoutAllowMissing(t *testing.T) {
+	// Test for https://github.com/pressly/goose/issues/521
+
+	// Apply 1,2,4,3 then run up without allow missing. If the next requested migration is
+	// 4 then it should not raise an error because it has already been applied.
+	// If goose attempts to apply 4 again then it will raise an error (SQLSTATE 42701) because it
+	// has already been applied. Specifically it will raise a  error.
+	db := setupTestDB(t, 2)
+
+	migrations, err := goose.CollectMigrations(migrationsDir, 0, 4)
+	check.NoError(t, err)
+	err = migrations[3].Up(db) // version 4
+	check.NoError(t, err)
+	err = migrations[2].Up(db) // version 3
+	check.NoError(t, err)
+
+	err = goose.UpTo(db, migrationsDir, 4)
+	check.NoError(t, err)
+	err = goose.UpTo(db, migrationsDir, 4, goose.WithAllowMissing())
+	check.NoError(t, err)
+}
+
 // setupTestDB is helper to setup a DB and apply migrations
 // up to the specified version.
 func setupTestDB(t *testing.T, version int64) *sql.DB {
