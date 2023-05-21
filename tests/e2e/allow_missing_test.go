@@ -315,6 +315,42 @@ func TestMigrateAllowMissingDown(t *testing.T) {
 	}
 }
 
+func TestWithWithoutAllowMissing(t *testing.T) {
+	// Test for https://github.com/pressly/goose/issues/521
+
+	// Apply 1,2,4,3 then run up without allow missing. If the next requested migration is
+	// 4 then it should not raise an error because it has already been applied.
+	// If goose attempts to apply 4 again then it will raise an error (SQLSTATE 42701) because it
+	// has already been applied. Specifically it will raise a  error.
+	db := setupTestDB(t, 2)
+
+	migrations, err := goose.CollectMigrations(migrationsDir, 0, 4)
+	check.NoError(t, err)
+	err = migrations[3].Up(db) // version 4
+	check.NoError(t, err)
+	err = migrations[2].Up(db) // version 3
+	check.NoError(t, err)
+
+	err = goose.UpTo(db, migrationsDir, 4)
+	check.NoError(t, err)
+	err = goose.UpTo(db, migrationsDir, 4, goose.WithAllowMissing())
+	check.NoError(t, err)
+
+	// Rollback migration 3 because it is the last applied migration.
+	// But, we want to change this behaviour to apply rollback migration 4.
+	// See these issues for more details:
+	// https://github.com/pressly/goose/issues/523
+	// https://github.com/pressly/goose/issues/402
+	//
+	// Adding this test to ensure the behaviour is updated and captured in a test.
+	err = goose.Down(db, migrationsDir)
+	check.NoError(t, err)
+
+	version, err := goose.GetDBVersion(db)
+	check.NoError(t, err)
+	check.Number(t, version, 4)
+}
+
 // setupTestDB is helper to setup a DB and apply migrations
 // up to the specified version.
 func setupTestDB(t *testing.T, version int64) *sql.DB {
