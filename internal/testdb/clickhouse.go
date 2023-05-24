@@ -1,26 +1,24 @@
 package testdb
 
 import (
-	"context"
 	"crypto/tls"
 	"database/sql"
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"strconv"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/wait"
 )
 
 const (
 	// https://hub.docker.com/r/clickhouse/clickhouse-server/
 	CLICKHOUSE_IMAGE   = "clickhouse/clickhouse-server"
-	CLICKHOUSE_VERSION = "22.9-alpine"
+	CLICKHOUSE_VERSION = "23.2.6.34-alpine"
 
 	CLICKHOUSE_DB                        = "clickdb"
 	CLICKHOUSE_USER                      = "clickuser"
@@ -34,7 +32,7 @@ var (
 	DB_HOST string
 )
 
-func newClickHouse(opts ...OptionsFunc) (*sql.DB, func(), error) {
+func newClickHouse(confDir string, opts ...OptionsFunc) (*sql.DB, func(), error) {
 	option := &options{}
 	for _, f := range opts {
 		f(option)
@@ -44,6 +42,8 @@ func newClickHouse(opts ...OptionsFunc) (*sql.DB, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	// Minimal additional configuration (config.d) to enable cluster mode
+	replconf := path.Join(confDir, "clickhouse-replicated.xml")
 	runOptions := &dockertest.RunOptions{
 		Repository: CLICKHOUSE_IMAGE,
 		Tag:        CLICKHOUSE_VERSION,
@@ -55,6 +55,7 @@ func newClickHouse(opts ...OptionsFunc) (*sql.DB, func(), error) {
 		},
 		Labels:       map[string]string{"goose_test": "1"},
 		PortBindings: make(map[docker.Port][]docker.PortBinding),
+		Mounts:       []string{fmt.Sprintf("%s:/etc/clickhouse-server/config.d/testconf.xml", replconf)},
 	}
 	// Port 8123 is used for HTTP, but we're using the TCP protocol endpoint (port 9000).
 	// Ref: https://clickhouse.com/docs/en/interfaces/http/
@@ -125,45 +126,4 @@ func clickHouseOpenDB(address string, tlsConfig *tls.Config, debug bool) *sql.DB
 	db.SetMaxOpenConns(10)
 	db.SetConnMaxLifetime(time.Hour)
 	return db
-}
-
-const (
-	ClickHousePort     = "9000/tcp"
-	ClickhouseHTTPPort = "8123/tcp"
-	clickHouseImage    = "clickhouse/clickhouse-server:23.2.6.34-alpine"
-)
-
-func CreateClickHouseContainer(ctx context.Context, configPath string) (testcontainers.Container, error) {
-	var mounts testcontainers.ContainerMounts
-	if configPath != "" {
-		mounts = testcontainers.Mounts(testcontainers.BindMount(configPath, "/etc/clickhouse-server/config.d/testconf.xml"))
-	}
-	chReq := testcontainers.ContainerRequest{
-		Image:        clickHouseImage,
-		ExposedPorts: []string{ClickHousePort, ClickhouseHTTPPort},
-		WaitingFor:   wait.ForHTTP("/").WithPort(ClickhouseHTTPPort),
-		Mounts:       mounts,
-	}
-	return testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: chReq,
-		Started:          true,
-	})
-}
-
-func OpenClickhouse(endpoint string, debug bool) (*sql.DB, error) {
-	opts, err := clickhouse.ParseDSN(endpoint)
-	if err != nil {
-		return nil, nil
-	}
-
-	opts.Debug = debug
-
-	opts.Settings = clickhouse.Settings{
-		"max_execution_time": 60,
-	}
-	opts.DialTimeout = 5 * time.Second
-	opts.Compression = &clickhouse.Compression{
-		Method: clickhouse.CompressionLZ4,
-	}
-	return clickhouse.OpenDB(opts), nil
 }

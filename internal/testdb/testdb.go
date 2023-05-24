@@ -3,8 +3,8 @@ package testdb
 import "database/sql"
 
 // NewClickHouse starts a ClickHouse docker container. Returns db connection and a docker cleanup function.
-func NewClickHouse(options ...OptionsFunc) (db *sql.DB, cleanup func(), err error) {
-	return newClickHouse(options...)
+func NewClickHouse(confDir string, options ...OptionsFunc) (db *sql.DB, cleanup func(), err error) {
+	return newClickHouse(confDir, options...)
 }
 
 // NewPostgres starts a PostgreSQL docker container. Returns db connection and a docker cleanup function.

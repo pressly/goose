@@ -1,12 +1,8 @@
 package clickhouse_test
 
 import (
-	"context"
-	"database/sql"
-	"fmt"
 	"log"
 	"os"
-	"path"
 	"path/filepath"
 	"testing"
 	"time"
@@ -23,46 +19,15 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func openClickHouse(t *testing.T) *sql.DB {
-	t.Helper()
-
-	workingDir, err := os.Getwd()
-	check.NoError(t, err)
-	ctx := context.Background()
-	// Minimal additional configuration (config.d) to enable cluster mode
-	replconf := path.Join(workingDir, "clickhouse-replicated.xml")
-	chContainer, err := testdb.CreateClickHouseContainer(ctx, replconf)
-	check.NoError(t, err)
-
-	t.Cleanup(func() {
-		if err := chContainer.Terminate(ctx); err != nil {
-			t.Fatalf("failed to terminate container: %s", err)
-		}
-		// Reset the DB to default state - for some reason clearing up just the options doesn't work
-		if err := goose.SetDialect("clickhouse"); err != nil {
-			t.Fatalf("failed to set dialect: %s", err)
-		}
-	})
-
-	port, err := chContainer.MappedPort(ctx, "9000/tcp")
-	check.NoError(t, err)
-	host, err := chContainer.Host(ctx)
-	check.NoError(t, err)
-	endpoint := fmt.Sprintf("clickhouse://%s:%s", host, port.Port())
-	t.Log(endpoint)
-
-	db, err := testdb.OpenClickhouse(endpoint, true)
-	check.NoError(t, err)
-
-	return db
-}
-
 func TestClickUpDownAll(t *testing.T) {
 	t.Parallel()
 
 	migrationDir := filepath.Join("testdata", "migrations")
-
-	db := openClickHouse(t)
+	workingDir, err := os.Getwd()
+	check.NoError(t, err)
+	db, cleanup, err := testdb.NewClickHouse(workingDir)
+	check.NoError(t, err)
+	t.Cleanup(cleanup)
 	/*
 		This test applies all up migrations, asserts we have all the entries in
 		the versions table, applies all down migration and asserts we have zero
@@ -109,9 +74,13 @@ func TestClickHouseFirstThree(t *testing.T) {
 	t.Parallel()
 
 	migrationDir := filepath.Join("testdata", "migrations")
-	db := openClickHouse(t)
+	workingDir, err := os.Getwd()
+	check.NoError(t, err)
+	db, cleanup, err := testdb.NewClickHouse(workingDir)
+	check.NoError(t, err)
+	t.Cleanup(cleanup)
 
-	err := goose.Up(db, migrationDir)
+	err = goose.Up(db, migrationDir)
 	check.NoError(t, err)
 
 	currentVersion, err := goose.GetDBVersion(db)
@@ -166,7 +135,11 @@ func TestClickHouseOnCluster(t *testing.T) {
 	})
 	check.NoError(t, err)
 
-	db := openClickHouse(t)
+	workingDir, err := os.Getwd()
+	check.NoError(t, err)
+	db, cleanup, err := testdb.NewClickHouse(workingDir)
+	check.NoError(t, err)
+	t.Cleanup(cleanup)
 
 	_, err = goose.GetDBVersion(db)
 	check.NoError(t, err)
@@ -210,9 +183,13 @@ func TestRemoteImportMigration(t *testing.T) {
 	// and craft a long INSERT statement.
 
 	migrationDir := filepath.Join("testdata", "migrations-remote")
-	db := openClickHouse(t)
+	workingDir, err := os.Getwd()
+	check.NoError(t, err)
+	db, cleanup, err := testdb.NewClickHouse(workingDir)
+	check.NoError(t, err)
+	t.Cleanup(cleanup)
 
-	err := goose.Up(db, migrationDir)
+	err = goose.Up(db, migrationDir)
 	check.NoError(t, err)
 	_, err = goose.GetDBVersion(db)
 	check.NoError(t, err)
