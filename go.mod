@@ -6,7 +6,7 @@ require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.9.1
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/jackc/pgx/v5 v5.3.1
-	github.com/microsoft/go-mssqldb v0.21.0
+	github.com/microsoft/go-mssqldb v1.0.0
 	github.com/ory/dockertest/v3 v3.10.0
 	github.com/vertica/vertica-sql-go v1.3.2
 	github.com/ziutek/mymysql v1.5.4
