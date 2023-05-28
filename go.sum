@@ -7,8 +7,8 @@ github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161/go.mod h1:xomTg6
 github.com/AzureAD/microsoft-authentication-library-for-go v0.8.1/go.mod h1:4qFor3D/HDsvBME35Xy9rwW9DecL+M2sNw1ybjPtwA0=
 github.com/ClickHouse/ch-go v0.55.0 h1:jw4Tpx887YXrkyL5DfgUome/po8MLz92nz2heOQ6RjQ=
 github.com/ClickHouse/ch-go v0.55.0/go.mod h1:kQT2f+yp2p+sagQA/7kS6G3ukym+GQ5KAu1kuFAFDiU=
-github.com/ClickHouse/clickhouse-go/v2 v2.9.1 h1:IeE2bwVvAba7Yw5ZKu98bKI4NpDmykEy6jUaQdJJCk8=
-github.com/ClickHouse/clickhouse-go/v2 v2.9.1/go.mod h1:teXfZNM90iQ99Jnuht+dxQXCuhDZ8nvvMoTJOFrcmcg=
+github.com/ClickHouse/clickhouse-go/v2 v2.10.0 h1:0w/A50D5MfsRUYBaV6rLKwZ4LXWKLZKJ1u31QXjTIO4=
+github.com/ClickHouse/clickhouse-go/v2 v2.10.0/go.mod h1:teXfZNM90iQ99Jnuht+dxQXCuhDZ8nvvMoTJOFrcmcg=
 github.com/Microsoft/go-winio v0.6.1 h1:9/kr64B9VUZrLm5YYwbGtUJnMgqWVOdUAXu6Migciow=
 github.com/Microsoft/go-winio v0.6.1/go.mod h1:LRdKpFKfdobln8UmuiYcKPot9D2v6svN5+sAH+4kjUM=
 github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 h1:TngWCqHvy9oXAN6lEVMRuU21PR1EtLVZJmdB18Gu3Rw=
