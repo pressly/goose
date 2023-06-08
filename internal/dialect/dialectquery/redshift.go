@@ -6,7 +6,7 @@ type Redshift struct{}
 
 var _ Querier = (*Redshift)(nil)
 
-func (r *Redshift) CreateTable(tableName string) string {
+func (r *Redshift) CreateTable(tableName string, tableEngine string) string {
 	q := `CREATE TABLE %s (
 		id integer NOT NULL identity(1, 1),
 		version_id bigint NOT NULL,

@@ -21,7 +21,7 @@ import (
 type Store interface {
 	// CreateVersionTable creates the version table within a transaction.
 	// This table is used to store goose migrations.
-	CreateVersionTable(ctx context.Context, tx *sql.Tx, tableName string) error
+	CreateVersionTable(ctx context.Context, tx *sql.Tx, tableName string, tableEngine string) error
 
 	// InsertVersion inserts a version id into the version table within a transaction.
 	InsertVersion(ctx context.Context, tx *sql.Tx, tableName string, version int64) error
@@ -87,8 +87,8 @@ type store struct {
 
 var _ Store = (*store)(nil)
 
-func (s *store) CreateVersionTable(ctx context.Context, tx *sql.Tx, tableName string) error {
-	q := s.querier.CreateTable(tableName)
+func (s *store) CreateVersionTable(ctx context.Context, tx *sql.Tx, tableName string, tableEngine string) error {
+	q := s.querier.CreateTable(tableName, tableEngine)
 	_, err := tx.ExecContext(ctx, q)
 	return err
 }

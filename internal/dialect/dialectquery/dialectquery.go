@@ -4,7 +4,7 @@ package dialectquery
 // specific query.
 type Querier interface {
 	// CreateTable returns the SQL query string to create the db version table.
-	CreateTable(tableName string) string
+	CreateTable(tableName string, tableEngine string) string
 
 	// InsertVersion returns the SQL query string to insert a new version into
 	// the db version table.

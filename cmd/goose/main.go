@@ -25,6 +25,7 @@ var (
 	flags        = flag.NewFlagSet("goose", flag.ExitOnError)
 	dir          = flags.String("dir", cfg.DefaultMigrationDir, "directory with migration files")
 	table        = flags.String("table", "goose_db_version", "migrations table name")
+	engine       = flags.String("engine", "", "migrations table engine (only support on clickhouse)")
 	verbose      = flags.Bool("v", false, "enable verbose mode")
 	help         = flags.Bool("h", false, "print help")
 	version      = flags.Bool("version", false, "print version")
@@ -61,6 +62,7 @@ func main() {
 		goose.SetSequential(true)
 	}
 	goose.SetTableName(*table)
+	goose.SetTableEngine(*engine)
 
 	args := flags.Args()
 

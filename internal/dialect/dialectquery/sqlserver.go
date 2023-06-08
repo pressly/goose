@@ -6,7 +6,7 @@ type Sqlserver struct{}
 
 var _ Querier = (*Sqlserver)(nil)
 
-func (s *Sqlserver) CreateTable(tableName string) string {
+func (s *Sqlserver) CreateTable(tableName string, tableEngine string) string {
 	q := `CREATE TABLE %s (
 		id INT NOT NULL IDENTITY(1,1) PRIMARY KEY,
 		version_id BIGINT NOT NULL,

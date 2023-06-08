@@ -54,6 +54,14 @@ See the docs for more [installation instructions](https://pressly.github.io/goos
 ```
 Usage: goose [OPTIONS] DRIVER DBSTRING COMMAND
 
+or
+
+Set environment key
+GOOSE_DRIVER=DRIVER
+GOOSE_DBSTRING=DBSTRING
+
+Usage: goose [OPTIONS] COMMAND
+
 Drivers:
     postgres
     mysql
@@ -71,7 +79,7 @@ Examples:
     goose sqlite3 ./foo.db create fetch_user_data go
     goose sqlite3 ./foo.db up
 
-    goose postgres "user=postgres password=postgres dbname=postgres sslmode=disable" status
+    goose postgres "user=postgres dbname=postgres sslmode=disable" status
     goose mysql "user:password@/dbname?parseTime=true" status
     goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
     goose tidb "user:password@/dbname?parseTime=true" status
@@ -79,27 +87,37 @@ Examples:
     goose clickhouse "tcp://127.0.0.1:9000" status
     goose vertica "vertica://user:password@localhost:5433/dbname?connection_load_balance=1" status
 
+    GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose status
+    GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose create init sql
+    GOOSE_DRIVER=postgres GOOSE_DBSTRING="user=postgres dbname=postgres sslmode=disable" goose status
+    GOOSE_DRIVER=mysql GOOSE_DBSTRING="user:password@/dbname" goose status
+    GOOSE_DRIVER=redshift GOOSE_DBSTRING="postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" goose status
+
 Options:
 
   -allow-missing
-    	applies missing (out-of-order) migrations
+        applies missing (out-of-order) migrations
   -certfile string
-    	file path to root CA's certificates in pem format (only supported on mysql)
+        file path to root CA's certificates in pem format (only support on mysql)
   -dir string
-    	directory with migration files (default ".")
-  -h	print help
+        directory with migration files (default ".")
+  -engine string
+        migrations table engine (only support on clickhouse)
+  -h    print help
+  -no-color
+        disable color output (NO_COLOR env variable supported)
   -no-versioning
-    	apply migration commands with no versioning, in file order, from directory pointed to
-  -s	use sequential numbering for new migrations
+        apply migration commands with no versioning, in file order, from directory pointed to
+  -s    use sequential numbering for new migrations
   -ssl-cert string
-    	file path to SSL certificates in pem format (only supported on mysql)
+        file path to SSL certificates in pem format (only support on mysql)
   -ssl-key string
-    	file path to SSL key in pem format (only supported on mysql)
+        file path to SSL key in pem format (only support on mysql)
   -table string
-    	migrations table name (default "goose_db_version")
-  -v	enable verbose mode
+        migrations table name (default "goose_db_version")
+  -v    enable verbose mode
   -version
-    	print version
+        print version
 
 Commands:
     up                   Migrate the DB to the most recent version available

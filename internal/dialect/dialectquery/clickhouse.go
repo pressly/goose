@@ -6,16 +6,20 @@ type Clickhouse struct{}
 
 var _ Querier = (*Clickhouse)(nil)
 
-func (c *Clickhouse) CreateTable(tableName string) string {
+func (c *Clickhouse) CreateTable(tableName string, tableEngine string) string {
+	if tableEngine == "" {
+		tableEngine = "MergeTree()"
+	}
+
 	q := `CREATE TABLE IF NOT EXISTS %s (
 		version_id Int64,
 		is_applied UInt8,
 		date Date default now(),
 		tstamp DateTime default now()
 	  )
-	  ENGINE = MergeTree()
+	  ENGINE = %s
 		ORDER BY (date)`
-	return fmt.Sprintf(q, tableName)
+	return fmt.Sprintf(q, tableName, tableEngine)
 }
 
 func (c *Clickhouse) InsertVersion(tableName string) string {

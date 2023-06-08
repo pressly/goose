@@ -43,3 +43,16 @@ func TableName() string {
 func SetTableName(n string) {
 	tableName = n
 }
+
+// If empty, the default engine will be used (depends of the dialect)
+var tableEngine = ""
+
+// TableEngine returns goose db version table engine
+func TableEngine() string {
+	return tableEngine
+}
+
+// SetTableEngine set goose db version table engine
+func SetTableEngine(n string) {
+	tableEngine = n
+}

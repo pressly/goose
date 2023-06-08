@@ -6,7 +6,7 @@ type Mysql struct{}
 
 var _ Querier = (*Mysql)(nil)
 
-func (m *Mysql) CreateTable(tableName string) string {
+func (m *Mysql) CreateTable(tableName string, tableEngine string) string {
 	q := `CREATE TABLE %s (
 		id serial NOT NULL,
 		version_id bigint NOT NULL,
