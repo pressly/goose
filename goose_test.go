@@ -94,7 +94,6 @@ func TestIssue532(t *testing.T) {
 
 	tempDir := t.TempDir()
 	dirFlag := "--dir=" + migrationsDir
-	params := []string{dirFlag, "sqlite3", filepath.Join(tempDir, "sql.db")}
 
 	tt := []struct {
 		command   string
@@ -103,9 +102,10 @@ func TestIssue532(t *testing.T) {
 	}{
 		{"up", true, ""},
 		{"up", false, "goose: no migrations to run. current version: 3"},
+		{"version", false, "goose: version 3"},
 	}
 	for _, tc := range tt {
-		params = append(params, tc.command)
+		params := []string{dirFlag, "sqlite3", filepath.Join(tempDir, "sql.db"), tc.command}
 		got, err := runGoose(params...)
 		check.NoError(t, err)
 		if tc.skipCheck {
