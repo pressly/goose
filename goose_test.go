@@ -96,19 +96,18 @@ func TestIssue532(t *testing.T) {
 	dirFlag := "--dir=" + migrationsDir
 
 	tt := []struct {
-		command   string
-		skipCheck bool
-		output    string
+		command string
+		output  string
 	}{
-		{"up", true, ""},
-		{"up", false, "goose: no migrations to run. current version: 3"},
-		{"version", false, "goose: version 3"},
+		{"up", ""},
+		{"up", "goose: no migrations to run. current version: 3"},
+		{"version", "goose: version 3"},
 	}
 	for _, tc := range tt {
 		params := []string{dirFlag, "sqlite3", filepath.Join(tempDir, "sql.db"), tc.command}
 		got, err := runGoose(params...)
 		check.NoError(t, err)
-		if tc.skipCheck {
+		if tc.output == "" {
 			continue
 		}
 		if !strings.Contains(strings.TrimSpace(got), tc.output) {
