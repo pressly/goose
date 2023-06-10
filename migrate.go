@@ -128,63 +128,17 @@ func (ms Migrations) String() string {
 // GoMigration is a Go migration func that is run within a transaction.
 type GoMigration func(tx *sql.Tx) error
 
-// GoMigrationContext is a Go migration func that is run within a transaction and receives a context.
-type GoMigrationContext func(ctx context.Context, tx *sql.Tx) error
-
 // GoMigrationNoTx is a Go migration func that is run outside a transaction.
 type GoMigrationNoTx func(db *sql.DB) error
-
-// GoMigrationNoTxContext is a Go migration func that is run outside a transaction and receives a context.
-type GoMigrationNoTxContext func(ctx context.Context, db *sql.DB) error
-
-// withoutContext wraps a GoMigration to make it a GoMigrationContext.
-func (gm GoMigrationContext) withoutContext() GoMigration {
-	return func(tx *sql.Tx) error {
-		return gm(context.Background(), tx)
-	}
-}
-
-// withContext wraps a GoMigration to make it a GoMigrationContext.
-func (gm GoMigrationNoTxContext) withoutContext() GoMigrationNoTx {
-	return func(db *sql.DB) error {
-		return gm(context.Background(), db)
-	}
-}
-
-// withContext wraps a GoMigration to make it a GoMigrationContext.
-func (gm GoMigration) withContext() GoMigrationContext {
-	return func(_ context.Context, tx *sql.Tx) error {
-		return gm(tx)
-	}
-}
-
-// withContext wraps a GoMigrationNoTx to make it a GoMigrationNoTxContext.
-func (gm GoMigrationNoTx) withContext() GoMigrationNoTxContext {
-	return func(_ context.Context, db *sql.DB) error {
-		return gm(db)
-	}
-}
 
 // AddMigration adds Go migrations.
 func AddMigration(up, down GoMigration) {
 	_, filename, _, _ := runtime.Caller(1)
-	// intentionally don't call to AddMigrationContext so each of these functions can calculate the filename correctly
-	AddNamedMigrationContext(filename, up.withContext(), down.withContext())
-}
-
-// AddMigration adds Go migrations.
-func AddMigrationContext(up, down GoMigrationContext) {
-	_, filename, _, _ := runtime.Caller(1)
-	AddNamedMigrationContext(filename, up, down)
+	AddNamedMigration(filename, up, down)
 }
 
 // AddNamedMigration adds named Go migrations.
 func AddNamedMigration(filename string, up, down GoMigration) {
-	AddNamedMigrationContext(filename, up.withContext(), down.withContext())
-}
-
-// AddNamedMigrationContext adds named Go migrations.
-func AddNamedMigrationContext(filename string, up, down GoMigrationContext) {
 	if err := register(filename, true, up, down, nil, nil); err != nil {
 		panic(err)
 	}
@@ -192,22 +146,12 @@ func AddNamedMigrationContext(filename string, up, down GoMigrationContext) {
 
 // AddMigrationNoTx adds Go migrations that will be run outside transaction.
 func AddMigrationNoTx(up, down GoMigrationNoTx) {
-	AddMigrationNoTxContext(up.withContext(), down.withContext())
-}
-
-// AddMigrationNoTxContext adds Go migrations that will be run outside transaction.
-func AddMigrationNoTxContext(up, down GoMigrationNoTxContext) {
-	_, filename, _, _ := runtime.Caller(2)
-	AddNamedMigrationNoTxContext(filename, up, down)
+	_, filename, _, _ := runtime.Caller(1)
+	AddNamedMigrationNoTx(filename, up, down)
 }
 
 // AddNamedMigrationNoTx adds named Go migrations that will be run outside transaction.
 func AddNamedMigrationNoTx(filename string, up, down GoMigrationNoTx) {
-	AddNamedMigrationNoTxContext(filename, up.withContext(), down.withContext())
-}
-
-// AddNamedMigrationNoTxContext adds named Go migrations that will be run outside transaction.
-func AddNamedMigrationNoTxContext(filename string, up, down GoMigrationNoTxContext) {
 	if err := register(filename, false, nil, nil, up, down); err != nil {
 		panic(err)
 	}
@@ -216,8 +160,8 @@ func AddNamedMigrationNoTxContext(filename string, up, down GoMigrationNoTxConte
 func register(
 	filename string,
 	useTx bool,
-	up, down GoMigrationContext,
-	upNoTx, downNoTx GoMigrationNoTxContext,
+	up, down GoMigration,
+	upNoTx, downNoTx GoMigrationNoTx,
 ) error {
 	// Sanity check caller did not mix tx and non-tx based functions.
 	if (up != nil || down != nil) && (upNoTx != nil || downNoTx != nil) {
@@ -233,23 +177,16 @@ func register(
 	}
 	// Add to global as a registered migration.
 	registeredGoMigrations[v] = &Migration{
-		Version:           v,
-		Next:              -1,
-		Previous:          -1,
-		Registered:        true,
-		Source:            filename,
-		UseTx:             useTx,
-		UpFnContext:       up,
-		DownFnContext:     down,
-		UpFnNoTxContext:   upNoTx,
-		DownFnNoTxContext: downNoTx,
-		// These are deprecated and will be removed in the future.
-		// For backwards compatibility we still save the non-context versions in the struct in case someone is using them.
-		// Goose does not use these internally anymore and instead uses the context versions.
-		UpFn:       up.withoutContext(),
-		DownFn:     down.withoutContext(),
-		UpFnNoTx:   upNoTx.withoutContext(),
-		DownFnNoTx: downNoTx.withoutContext(),
+		Version:    v,
+		Next:       -1,
+		Previous:   -1,
+		Registered: true,
+		Source:     filename,
+		UseTx:      useTx,
+		UpFn:       up,
+		DownFn:     down,
+		UpFnNoTx:   upNoTx,
+		DownFnNoTx: downNoTx,
 	}
 	return nil
 }

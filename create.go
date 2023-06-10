@@ -99,21 +99,20 @@ SELECT 'down SQL query';
 var goSQLMigrationTemplate = template.Must(template.New("goose.go-migration").Parse(`package migrations
 
 import (
-	"context"
 	"database/sql"
 	"github.com/pressly/goose/v3"
 )
 
 func init() {
-	goose.AddMigrationContext(up{{.CamelName}}, down{{.CamelName}})
+	goose.AddMigration(up{{.CamelName}}, down{{.CamelName}})
 }
 
-func up{{.CamelName}}(ctx context.Context, tx *sql.Tx) error {
+func up{{.CamelName}}(tx *sql.Tx) error {
 	// This code is executed when the migration is applied.
 	return nil
 }
 
-func down{{.CamelName}}(ctx context.Context, tx *sql.Tx) error {
+func down{{.CamelName}}(tx *sql.Tx) error {
 	// This code is executed when the migration is rolled back.
 	return nil
 }

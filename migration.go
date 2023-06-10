@@ -22,23 +22,15 @@ type MigrationRecord struct {
 
 // Migration struct.
 type Migration struct {
-	Version    int64
-	Next       int64  // next version, or -1 if none
-	Previous   int64  // previous version, -1 if none
-	Source     string // path to .sql script or go file
-	Registered bool
-	UseTx      bool
-
-	// These are deprecated and will be removed in the future.
-	// For backwards compatibility we still save the non-context versions in the struct in case someone is using them.
-	// Goose does not use these internally anymore and instead uses the context versions.
+	Version              int64
+	Next                 int64  // next version, or -1 if none
+	Previous             int64  // previous version, -1 if none
+	Source               string // path to .sql script or go file
+	Registered           bool
+	UseTx                bool
 	UpFn, DownFn         GoMigration
 	UpFnNoTx, DownFnNoTx GoMigrationNoTx
-
-	// New functions with context
-	UpFnContext, DownFnContext         GoMigrationContext
-	UpFnNoTxContext, DownFnNoTxContext GoMigrationNoTxContext
-	noVersioning                       bool
+	noVersioning         bool
 }
 
 func (m *Migration) String() string {
@@ -107,9 +99,9 @@ func (m *Migration) run(ctx context.Context, db *sql.DB, direction bool) error {
 		var empty bool
 		if m.UseTx {
 			// Run go-based migration inside a tx.
-			fn := m.DownFnContext
+			fn := m.DownFn
 			if direction {
-				fn = m.UpFnContext
+				fn = m.UpFn
 			}
 			empty = (fn == nil)
 			if err := runGoMigration(
@@ -124,9 +116,9 @@ func (m *Migration) run(ctx context.Context, db *sql.DB, direction bool) error {
 			}
 		} else {
 			// Run go-based migration outside a tx.
-			fn := m.DownFnNoTxContext
+			fn := m.DownFnNoTx
 			if direction {
-				fn = m.UpFnNoTxContext
+				fn = m.UpFnNoTx
 			}
 			empty = (fn == nil)
 			if err := runGoMigrationNoTx(
@@ -153,14 +145,14 @@ func (m *Migration) run(ctx context.Context, db *sql.DB, direction bool) error {
 func runGoMigrationNoTx(
 	ctx context.Context,
 	db *sql.DB,
-	fn GoMigrationNoTxContext,
+	fn GoMigrationNoTx,
 	version int64,
 	direction bool,
 	recordVersion bool,
 ) error {
 	if fn != nil {
 		// Run go migration function.
-		if err := fn(ctx, db); err != nil {
+		if err := fn(db); err != nil {
 			return fmt.Errorf("failed to run go migration: %w", err)
 		}
 	}
@@ -173,7 +165,7 @@ func runGoMigrationNoTx(
 func runGoMigration(
 	ctx context.Context,
 	db *sql.DB,
-	fn GoMigrationContext,
+	fn GoMigration,
 	version int64,
 	direction bool,
 	recordVersion bool,
@@ -187,7 +179,7 @@ func runGoMigration(
 	}
 	if fn != nil {
 		// Run go migration function.
-		if err := fn(ctx, tx); err != nil {
+		if err := fn(tx); err != nil {
 			_ = tx.Rollback()
 			return fmt.Errorf("failed to run go migration: %w", err)
 		}
