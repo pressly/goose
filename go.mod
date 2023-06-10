@@ -10,7 +10,7 @@ require (
 	github.com/ory/dockertest/v3 v3.10.0
 	github.com/vertica/vertica-sql-go v1.3.2
 	github.com/ziutek/mymysql v1.5.4
-	modernc.org/sqlite v1.22.1
+	modernc.org/sqlite v1.23.0
 )
 
 require (
