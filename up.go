@@ -111,7 +111,7 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 		}
 		current = m.Version
 	}
-	if len(migrationsToApply) == 0 && option.applyUpByOne {
+	if len(migrationsToApply) == 0 {
 		current, err = GetDBVersion(db)
 		if err != nil {
 			return err

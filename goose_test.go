@@ -8,12 +8,45 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/pressly/goose/v3/internal/check"
 	_ "modernc.org/sqlite"
 )
+
+const (
+	binName = "goose-test"
+)
+
+func TestMain(m *testing.M) {
+	if runtime.GOOS == "windows" {
+		log.Fatal("this test is not supported on Windows")
+	}
+	dir, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	args := []string{
+		"build",
+		"-ldflags=-s -w",
+		// disable all drivers except sqlite3
+		"-tags=no_clickhouse no_mssql no_mysql no_vertica no_postgres",
+		"-o", binName,
+		"./cmd/goose",
+	}
+	build := exec.Command("go", args...)
+	out, err := build.CombinedOutput()
+	if err != nil {
+		log.Fatalf("failed to build %s binary: %v: %s", binName, err, string(out))
+	}
+	result := m.Run()
+	defer func() { os.Exit(result) }()
+	if err := os.Remove(filepath.Join(dir, binName)); err != nil {
+		log.Printf("failed to remove binary: %v", err)
+	}
+}
 
 func TestDefaultBinary(t *testing.T) {
 	t.Parallel()
@@ -48,6 +81,42 @@ func TestDefaultBinary(t *testing.T) {
 		out, err := cmd.CombinedOutput()
 		if err != nil {
 			t.Fatalf("%s:\n%v\n\n%s", err, cmd, out)
+		}
+	}
+}
+
+func TestIssue532(t *testing.T) {
+	t.Parallel()
+
+	migrationsDir := filepath.Join("examples", "sql-migrations")
+	count := countSQLFiles(t, migrationsDir)
+	check.Number(t, count, 3)
+
+	tempDir := t.TempDir()
+	dirFlag := "--dir=" + migrationsDir
+	params := []string{dirFlag, "sqlite3", filepath.Join(tempDir, "sql.db")}
+
+	tt := []struct {
+		command   string
+		skipCheck bool
+		output    string
+	}{
+		{"up", true, ""},
+		{"up", false, "goose: no migrations to run. current version: 3"},
+	}
+	for _, tc := range tt {
+		params = append(params, tc.command)
+		got, err := runGoose(params...)
+		check.NoError(t, err)
+		if tc.skipCheck {
+			continue
+		}
+		if !strings.Contains(strings.TrimSpace(got), tc.output) {
+			t.Logf("output mismatch for command: %q", tc.command)
+			t.Logf("got\n%s", strings.TrimSpace(got))
+			t.Log("====")
+			t.Logf("want\n%s", tc.output)
+			t.FailNow()
 		}
 	}
 }
@@ -225,4 +294,25 @@ func TestEmbeddedMigrations(t *testing.T) {
 			t.Errorf("Failed to locate fixed migration: %s", err)
 		}
 	})
+}
+
+func runGoose(params ...string) (string, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	cmdPath := filepath.Join(dir, binName)
+	cmd := exec.Command(cmdPath, params...)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("%v\n%v", err, string(out))
+	}
+	return string(out), nil
+}
+
+func countSQLFiles(t *testing.T, dir string) int {
+	t.Helper()
+	files, err := filepath.Glob(filepath.Join(dir, "*.sql"))
+	check.NoError(t, err)
+	return len(files)
 }
