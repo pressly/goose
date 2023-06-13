@@ -1,4 +1,6 @@
 GO_TEST_FLAGS ?= -race -count=1 -v -timeout=10m
+GOOS ?= $(shell go env GOOS)
+GOARCH ?= $(shell go env GOARCH)
 
 .PHONY: dist
 dist:
@@ -9,6 +11,11 @@ dist:
 	GOOS=linux   GOARCH=386   go build -o ./bin/goose-linux386       ./cmd/goose
 	GOOS=windows GOARCH=amd64 go build -o ./bin/goose-windows64.exe  ./cmd/goose
 	GOOS=windows GOARCH=386   go build -o ./bin/goose-windows386.exe ./cmd/goose
+
+build:
+	@mkdir -p ./bin
+	@rm -f ./bin/*
+	go build -o ./bin/goose-$(GOOS)-$(GOARCH) ./cmd/goose
 
 .PHONY: clean
 clean:

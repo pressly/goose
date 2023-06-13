@@ -94,6 +94,7 @@ const (
 	resetColor = "\033[00m"
 )
 
+// TODO: verbose is not thread safe and will report a race error if you use it via parallel tests
 func verboseInfo(s string, args ...interface{}) {
 	if verbose {
 		if noColor {

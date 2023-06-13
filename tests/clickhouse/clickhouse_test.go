@@ -23,10 +23,11 @@ func TestClickUpDownAll(t *testing.T) {
 	t.Parallel()
 
 	migrationDir := filepath.Join("testdata", "migrations")
-	db, cleanup, err := testdb.NewClickHouse()
+	workingDir, err := os.Getwd()
+	check.NoError(t, err)
+	db, cleanup, err := testdb.NewClickHouse(workingDir)
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
-
 	/*
 		This test applies all up migrations, asserts we have all the entries in
 		the versions table, applies all down migration and asserts we have zero
@@ -73,7 +74,9 @@ func TestClickHouseFirstThree(t *testing.T) {
 	t.Parallel()
 
 	migrationDir := filepath.Join("testdata", "migrations")
-	db, cleanup, err := testdb.NewClickHouse()
+	workingDir, err := os.Getwd()
+	check.NoError(t, err)
+	db, cleanup, err := testdb.NewClickHouse(workingDir)
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
 
@@ -126,6 +129,45 @@ func TestClickHouseFirstThree(t *testing.T) {
 	}
 }
 
+func TestClickHouseOnCluster(t *testing.T) {
+	err := goose.AttachOptions(map[string]string{
+		"ON_CLUSTER": "true",
+	})
+	check.NoError(t, err)
+
+	workingDir, err := os.Getwd()
+	check.NoError(t, err)
+	db, cleanup, err := testdb.NewClickHouse(workingDir)
+	check.NoError(t, err)
+	t.Cleanup(cleanup)
+
+	_, err = goose.GetDBVersion(db)
+	check.NoError(t, err)
+
+	migrationDir := filepath.Join("testdata", "migrations")
+	// Collect migrations so we don't have to hard-code the currentVersion
+	// in an assertion later in the test.
+	migrations, err := goose.CollectMigrations(migrationDir, 0, goose.MaxVersion)
+	check.NoError(t, err)
+
+	currentVersion, err := goose.GetDBVersion(db)
+	check.NoError(t, err)
+	check.Number(t, currentVersion, 0)
+
+	err = goose.Up(db, migrationDir)
+	check.NoError(t, err)
+	currentVersion, err = goose.GetDBVersion(db)
+	check.NoError(t, err)
+	check.Number(t, currentVersion, len(migrations))
+
+	err = goose.DownTo(db, migrationDir, 0)
+	check.NoError(t, err)
+
+	currentVersion, err = goose.GetDBVersion(db)
+	check.NoError(t, err)
+	check.Number(t, currentVersion, 0)
+}
+
 func TestRemoteImportMigration(t *testing.T) {
 	t.Parallel()
 	// TODO(mf): use TestMain and create a proper "long" or "remote" flag.
@@ -141,7 +183,9 @@ func TestRemoteImportMigration(t *testing.T) {
 	// and craft a long INSERT statement.
 
 	migrationDir := filepath.Join("testdata", "migrations-remote")
-	db, cleanup, err := testdb.NewClickHouse()
+	workingDir, err := os.Getwd()
+	check.NoError(t, err)
+	db, cleanup, err := testdb.NewClickHouse(workingDir)
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
 

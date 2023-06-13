@@ -45,6 +45,10 @@ type Store interface {
 	ListMigrations(ctx context.Context, db *sql.DB, tableName string) ([]*ListMigrationsResult, error)
 }
 
+type StoreOptions interface {
+	AttachOptions(map[string]string) error
+}
+
 // NewStore returns a new Store for the given dialect.
 func NewStore(d Dialect) (Store, error) {
 	var querier dialectquery.Querier
@@ -155,4 +159,11 @@ func (s *store) ListMigrations(ctx context.Context, db *sql.DB, tableName string
 		return nil, err
 	}
 	return migrations, nil
+}
+
+func (s *store) AttachOptions(options map[string]string) error {
+	if querierWithOptions, ok := s.querier.(dialectquery.QuerierOptions); ok {
+		return querierWithOptions.AttachOptions(options)
+	}
+	return nil
 }

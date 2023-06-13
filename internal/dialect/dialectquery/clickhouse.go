@@ -2,7 +2,19 @@ package dialectquery
 
 import "fmt"
 
-type Clickhouse struct{}
+const (
+	paramOnCluster    = "ON_CLUSTER"
+	paramClusterMacro = "CLUSTER_MACRO"
+)
+
+type clusterParameters struct {
+	OnCluster    bool
+	ClusterMacro string
+}
+
+type Clickhouse struct {
+	Params clusterParameters
+}
 
 var _ Querier = (*Clickhouse)(nil)
 
@@ -11,10 +23,23 @@ func (c *Clickhouse) CreateTable(tableName string) string {
 		version_id Int64,
 		is_applied UInt8,
 		date Date default now(),
-		tstamp DateTime default now()
+		tstamp DateTime64(9, 'UTC') default now64(9, 'UTC')
 	  )
-	  ENGINE = MergeTree()
-		ORDER BY (date)`
+	  ENGINE = KeeperMap('/goose_version')
+	  PRIMARY KEY version_id`
+
+	qCluster := `CREATE TABLE IF NOT EXISTS %s ON CLUSTER '%s' (
+		version_id Int64,
+		is_applied UInt8,
+		date Date default now(),
+		tstamp DateTime64(9, 'UTC') default now64(9, 'UTC')
+	)
+    ENGINE = KeeperMap('/goose_version_repl')
+	PRIMARY KEY version_id`
+
+	if c.Params.OnCluster {
+		return fmt.Sprintf(qCluster, tableName, c.Params.ClusterMacro)
+	}
 	return fmt.Sprintf(q, tableName)
 }
 
@@ -34,6 +59,20 @@ func (c *Clickhouse) GetMigrationByVersion(tableName string) string {
 }
 
 func (c *Clickhouse) ListMigrations(tableName string) string {
-	q := `SELECT version_id, is_applied FROM %s ORDER BY version_id DESC`
+	q := `SELECT version_id, is_applied FROM %s ORDER BY tstamp DESC`
 	return fmt.Sprintf(q, tableName)
+}
+
+func (c *Clickhouse) AttachOptions(options map[string]string) error {
+	if val, ok := options[paramOnCluster]; ok {
+		if val == "true" {
+			clusterMacro, ok := options[paramClusterMacro]
+			if !ok {
+				clusterMacro = "{cluster}"
+			}
+			c.Params.ClusterMacro = clusterMacro
+			c.Params.OnCluster = true
+		}
+	}
+	return nil
 }

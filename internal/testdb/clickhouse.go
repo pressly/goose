@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
+	"path"
 	"strconv"
 	"time"
 
@@ -16,7 +18,7 @@ import (
 const (
 	// https://hub.docker.com/r/clickhouse/clickhouse-server/
 	CLICKHOUSE_IMAGE   = "clickhouse/clickhouse-server"
-	CLICKHOUSE_VERSION = "22.9-alpine"
+	CLICKHOUSE_VERSION = "23.2.6.34-alpine"
 
 	CLICKHOUSE_DB                        = "clickdb"
 	CLICKHOUSE_USER                      = "clickuser"
@@ -24,7 +26,13 @@ const (
 	CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT = "1"
 )
 
-func newClickHouse(opts ...OptionsFunc) (*sql.DB, func(), error) {
+var (
+	// DB_HOST is the hostname where ClickHouse is running
+	// localhost for local runs and docker for CI runs
+	DB_HOST string
+)
+
+func newClickHouse(confDir string, opts ...OptionsFunc) (*sql.DB, func(), error) {
 	option := &options{}
 	for _, f := range opts {
 		f(option)
@@ -34,6 +42,8 @@ func newClickHouse(opts ...OptionsFunc) (*sql.DB, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	// Minimal additional configuration (config.d) to enable cluster mode
+	replconf := path.Join(confDir, "clickhouse-replicated.xml")
 	runOptions := &dockertest.RunOptions{
 		Repository: CLICKHOUSE_IMAGE,
 		Tag:        CLICKHOUSE_VERSION,
@@ -45,6 +55,7 @@ func newClickHouse(opts ...OptionsFunc) (*sql.DB, func(), error) {
 		},
 		Labels:       map[string]string{"goose_test": "1"},
 		PortBindings: make(map[docker.Port][]docker.PortBinding),
+		Mounts:       []string{fmt.Sprintf("%s:/etc/clickhouse-server/config.d/testconf.xml", replconf)},
 	}
 	// Port 8123 is used for HTTP, but we're using the TCP protocol endpoint (port 9000).
 	// Ref: https://clickhouse.com/docs/en/interfaces/http/
@@ -74,8 +85,12 @@ func newClickHouse(opts ...OptionsFunc) (*sql.DB, func(), error) {
 			log.Printf("failed to purge resource: %v", err)
 		}
 	}
+	host := os.Getenv("DB_HOST")
+	if host == "" {
+		host = "localhost"
+	}
 	// Fetch port assigned to container
-	address := fmt.Sprintf("%s:%s", "localhost", container.GetPort("9000/tcp"))
+	address := fmt.Sprintf("%s:%s", host, container.GetPort("9000/tcp"))
 
 	var db *sql.DB
 	// Exponential backoff-retry, because the application in the container

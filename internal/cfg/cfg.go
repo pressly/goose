@@ -1,6 +1,8 @@
 package cfg
 
-import "os"
+import (
+	"os"
+)
 
 var (
 	GOOSEDRIVER       = envOr("GOOSE_DRIVER", "")

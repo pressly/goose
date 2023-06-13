@@ -1,10 +1,11 @@
 module github.com/pressly/goose/v3
 
-go 1.18
+go 1.20
 
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.10.0
 	github.com/go-sql-driver/mysql v1.7.1
+	github.com/google/go-cmp v0.5.9
 	github.com/jackc/pgx/v5 v5.3.1
 	github.com/microsoft/go-mssqldb v1.0.0
 	github.com/ory/dockertest/v3 v3.10.0
