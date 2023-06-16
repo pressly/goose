@@ -296,6 +296,12 @@ func versionFilter(v, current, target int64) bool {
 // Create and initialize the DB version table if it doesn't exist.
 func EnsureDBVersion(db *sql.DB) (int64, error) {
 	ctx := context.Background()
+	return EnsureDBVersionContext(ctx, db)
+}
+
+// EnsureDBVersionContext retrieves the current version for this DB.
+// Create and initialize the DB version table if it doesn't exist.
+func EnsureDBVersionContext(ctx context.Context, db *sql.DB) (int64, error) {
 	dbMigrations, err := store.ListMigrations(ctx, db, TableName())
 	if err != nil {
 		return 0, createVersionTable(ctx, db)
@@ -332,7 +338,7 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 // createVersionTable creates the db version table and inserts the
 // initial 0 value into it.
 func createVersionTable(ctx context.Context, db *sql.DB) error {
-	txn, err := db.Begin()
+	txn, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -349,7 +355,13 @@ func createVersionTable(ctx context.Context, db *sql.DB) error {
 
 // GetDBVersion is an alias for EnsureDBVersion, but returns -1 in error.
 func GetDBVersion(db *sql.DB) (int64, error) {
-	version, err := EnsureDBVersion(db)
+	ctx := context.Background()
+	return GetDBVersionContext(ctx, db)
+}
+
+// GetDBVersionContext is an alias for EnsureDBVersion, but returns -1 in error.
+func GetDBVersionContext(ctx context.Context, db *sql.DB) (int64, error) {
+	version, err := EnsureDBVersionContext(ctx, db)
 	if err != nil {
 		return -1, err
 	}

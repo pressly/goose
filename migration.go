@@ -40,6 +40,11 @@ func (m *Migration) String() string {
 // Up runs an up migration.
 func (m *Migration) Up(db *sql.DB) error {
 	ctx := context.Background()
+	return m.UpContext(ctx, db)
+}
+
+// UpContext runs an up migration.
+func (m *Migration) UpContext(ctx context.Context, db *sql.DB) error {
 	if err := m.run(ctx, db, true); err != nil {
 		return err
 	}
@@ -49,6 +54,11 @@ func (m *Migration) Up(db *sql.DB) error {
 // Down runs a down migration.
 func (m *Migration) Down(db *sql.DB) error {
 	ctx := context.Background()
+	return m.DownContext(ctx, db)
+}
+
+// DownContext runs a down migration.
+func (m *Migration) DownContext(ctx context.Context, db *sql.DB) error {
 	if err := m.run(ctx, db, false); err != nil {
 		return err
 	}
@@ -163,7 +173,7 @@ func runGoMigration(
 	if fn == nil && !recordVersion {
 		return nil
 	}
-	tx, err := db.Begin()
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
