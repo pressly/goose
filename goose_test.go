@@ -245,7 +245,7 @@ func TestEmbeddedMigrations(t *testing.T) {
 	t.Cleanup(func() { SetBaseFS(nil) })
 
 	t.Run("Migration cycle", func(t *testing.T) {
-		if err := Up(db, ""); err != nil {
+		if err := Up(db, "."); err != nil {
 			t.Errorf("Failed to run 'up' migrations: %s", err)
 		}
 
@@ -258,7 +258,7 @@ func TestEmbeddedMigrations(t *testing.T) {
 			t.Errorf("Expected version 3 after 'up', got %d", ver)
 		}
 
-		if err := Reset(db, ""); err != nil {
+		if err := Reset(db, "."); err != nil {
 			t.Errorf("Failed to run 'down' migrations: %s", err)
 		}
 

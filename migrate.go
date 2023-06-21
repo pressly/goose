@@ -15,6 +15,8 @@ import (
 )
 
 var (
+	// ErrNoMigrationsFound when no migrations have been found.
+	ErrNoMigrationsFound = errors.New("no migrations found")
 	// ErrNoCurrentVersion when a current migration version is not found.
 	ErrNoCurrentVersion = errors.New("no current version found")
 	// ErrNoNextVersion when the next migration version is not found.
@@ -192,8 +194,12 @@ func register(
 }
 
 func collectMigrationsFS(fsys fs.FS, dirpath string, current, target int64) (Migrations, error) {
-	if _, err := fs.Stat(fsys, dirpath); errors.Is(err, fs.ErrNotExist) {
-		return nil, fmt.Errorf("%s directory does not exist", dirpath)
+	if _, err := fs.Stat(fsys, dirpath); err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, fmt.Errorf("%s directory does not exist", dirpath)
+		}
+
+		return nil, err
 	}
 
 	var migrations Migrations
@@ -249,6 +255,10 @@ func collectMigrationsFS(fsys fs.FS, dirpath string, current, target int64) (Mig
 			migration := &Migration{Version: v, Next: -1, Previous: -1, Source: file, Registered: false}
 			migrations = append(migrations, migration)
 		}
+	}
+
+	if len(migrations) == 0 {
+		return nil, ErrNoMigrationsFound
 	}
 
 	migrations = sortAndConnectMigrations(migrations)
