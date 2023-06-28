@@ -69,6 +69,7 @@ Examples:
     goose sqlite3 ./foo.db create init sql
     goose sqlite3 ./foo.db create add_some_column sql
     goose sqlite3 ./foo.db create fetch_user_data go
+    goose sqlite3 ./foo.db create add_user_no_tx go --no-tx
     goose sqlite3 ./foo.db up
 
     goose postgres "user=postgres password=postgres dbname=postgres sslmode=disable" status
@@ -338,6 +339,46 @@ func Down(tx *sql.Tx) error {
 		return err
 	}
 	return nil
+}
+```
+
+A [sample Go migration 00003_add_user_no_tx.go file](./examples/go-migrations/00003_add_user_no_tx.go) looks like:
+
+```go
+package migrations
+
+import (
+	"database/sql"
+	"errors"
+
+	"github.com/pressly/goose/v3"
+)
+
+func init() {
+	goose.AddMigrationNoTx(Up, Down)
+}
+
+func Up(db *sql.DB) error {
+	var id int
+    err := db.QueryRow("SELECT id FROM users WHERE username = $1", "jamesbond").Scan(&id)
+    if err != nil && !errors.Is(err, sql.ErrNoRows) {
+        return err
+    }
+    if id == 0 {
+        query := "INSERT INTO users (username, name, surname) VALUES ($1, $2, $3)"
+        if _, err := db.Exec(query, "jamesbond", "James", "Bond"); err != nil {
+            return err
+        }
+    }
+    return nil
+}
+
+func Down(db *sql.DB) error {
+    query := "DELETE FROM users WHERE username = $1"
+    if _, err := db.Exec(query, "jamesbond"); err != nil {
+        return err
+    }
+    return nil
 }
 ```
 
