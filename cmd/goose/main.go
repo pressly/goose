@@ -37,7 +37,7 @@ var (
 	noColor      = flags.Bool("no-color", false, "disable color output (NO_COLOR env variable supported)")
 )
 var (
-	gooseVersion = "v3.12.0-dev"
+	gooseVersion = "v3.12.0"
 )
 
 func main() {
