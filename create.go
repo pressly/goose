@@ -2,6 +2,7 @@ package goose
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -25,11 +26,12 @@ func SetSequential(s bool) {
 
 // Create writes a new blank migration file.
 func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, migrationType string) error {
-	var version string
+	version := time.Now().Format(timestampFormat)
+
 	if sequential {
 		// always use DirFS here because it's modifying operation
 		migrations, err := collectMigrationsFS(osFS{}, dir, minVersion, maxVersion)
-		if err != nil {
+		if err != nil && !errors.Is(err, ErrNoMigrationFiles) {
 			return err
 		}
 
@@ -43,8 +45,6 @@ func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, m
 		} else {
 			version = fmt.Sprintf(seqVersionTemplate, int64(1))
 		}
-	} else {
-		version = time.Now().Format(timestampFormat)
 	}
 
 	filename := fmt.Sprintf("%v_%v.%v", version, snakeCase(name), migrationType)

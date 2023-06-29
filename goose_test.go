@@ -158,6 +158,19 @@ func TestIssue293(t *testing.T) {
 	}
 }
 
+func TestIssue336(t *testing.T) {
+	t.Parallel()
+	// error when no migrations are found
+	// https://github.com/pressly/goose/issues/336
+
+	tempDir := t.TempDir()
+	params := []string{"--dir=" + tempDir, "sqlite3", filepath.Join(tempDir, "sql.db"), "up"}
+
+	_, err := runGoose(params...)
+	check.HasError(t, err)
+	check.Contains(t, err.Error(), "no migration files found")
+}
+
 func TestLiteBinary(t *testing.T) {
 	t.Parallel()
 
@@ -245,7 +258,7 @@ func TestEmbeddedMigrations(t *testing.T) {
 	t.Cleanup(func() { SetBaseFS(nil) })
 
 	t.Run("Migration cycle", func(t *testing.T) {
-		if err := Up(db, ""); err != nil {
+		if err := Up(db, "."); err != nil {
 			t.Errorf("Failed to run 'up' migrations: %s", err)
 		}
 
@@ -258,7 +271,7 @@ func TestEmbeddedMigrations(t *testing.T) {
 			t.Errorf("Expected version 3 after 'up', got %d", ver)
 		}
 
-		if err := Reset(db, ""); err != nil {
+		if err := Reset(db, "."); err != nil {
 			t.Errorf("Failed to run 'down' migrations: %s", err)
 		}
 
