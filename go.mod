@@ -79,3 +79,9 @@ require (
 	modernc.org/strutil v1.1.3 // indirect
 	modernc.org/token v1.1.0 // indirect
 )
+
+retract (
+	v3.12.2 // Invalid module reference
+	v3.12.1 // Invalid module reference
+	v3.12.0 // Invalid module reference
+)
