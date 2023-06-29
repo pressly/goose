@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	// ErrNoMigrationsFound when no migrations have been found.
-	ErrNoMigrationsFound = errors.New("no migrations found")
+	// ErrNoMigrationFiles when no migration files have been found.
+	ErrNoMigrationFiles = errors.New("no migration files found")
 	// ErrNoCurrentVersion when a current migration version is not found.
 	ErrNoCurrentVersion = errors.New("no current version found")
 	// ErrNoNextVersion when the next migration version is not found.
@@ -258,7 +258,7 @@ func collectMigrationsFS(fsys fs.FS, dirpath string, current, target int64) (Mig
 	}
 
 	if len(migrations) == 0 {
-		return nil, ErrNoMigrationsFound
+		return nil, ErrNoMigrationFiles
 	}
 
 	migrations = sortAndConnectMigrations(migrations)

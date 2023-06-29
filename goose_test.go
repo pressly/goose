@@ -168,7 +168,7 @@ func TestIssue336(t *testing.T) {
 
 	_, err := runGoose(params...)
 	check.HasError(t, err)
-	check.Contains(t, err.Error(), "no migrations found")
+	check.Contains(t, err.Error(), "no migration files found")
 }
 
 func TestLiteBinary(t *testing.T) {
