@@ -6,7 +6,7 @@ type Sqlite3 struct{}
 
 var _ Querier = (*Sqlite3)(nil)
 
-func (s *Sqlite3) CreateTable(tableName string) string {
+func (s *Sqlite3) CreateTable(tableName string, tableEngine string) string {
 	q := `CREATE TABLE %s (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		version_id INTEGER NOT NULL,

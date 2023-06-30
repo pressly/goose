@@ -6,7 +6,7 @@ type Postgres struct{}
 
 var _ Querier = (*Postgres)(nil)
 
-func (p *Postgres) CreateTable(tableName string) string {
+func (p *Postgres) CreateTable(tableName string, tableEngine string) string {
 	q := `CREATE TABLE %s (
 		id serial NOT NULL,
 		version_id bigint NOT NULL,

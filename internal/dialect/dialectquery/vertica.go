@@ -6,7 +6,7 @@ type Vertica struct{}
 
 var _ Querier = (*Vertica)(nil)
 
-func (v *Vertica) CreateTable(tableName string) string {
+func (v *Vertica) CreateTable(tableName string, tableEngine string) string {
 	q := `CREATE TABLE %s (
 		id identity(1,1) NOT NULL,
 		version_id bigint NOT NULL,

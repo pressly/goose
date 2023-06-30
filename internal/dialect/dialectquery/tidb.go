@@ -6,7 +6,7 @@ type Tidb struct{}
 
 var _ Querier = (*Tidb)(nil)
 
-func (t *Tidb) CreateTable(tableName string) string {
+func (t *Tidb) CreateTable(tableName string, tableEngine string) string {
 	q := `CREATE TABLE %s (
 		id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT UNIQUE,
 		version_id bigint NOT NULL,

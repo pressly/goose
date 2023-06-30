@@ -387,7 +387,7 @@ func createVersionTable(ctx context.Context, db *sql.DB) error {
 	if err != nil {
 		return err
 	}
-	if err := store.CreateVersionTable(ctx, txn, TableName()); err != nil {
+	if err := store.CreateVersionTable(ctx, txn, TableName(), TableEngine()); err != nil {
 		_ = txn.Rollback()
 		return err
 	}
