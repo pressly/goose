@@ -27,10 +27,7 @@ release:
   disable: false
 
 archives:
-  - replacements:
-      386: i386
-      amd64: x86_64
-    name_template: "{{ tolower .Binary }}_{{ tolower .Os }}_{{ tolower .Arch }}"
+  - name_template: '{{ .ProjectName }}_{{ .Os }}_{{ if eq .Arch "amd64" }}x86_64{{ else if eq .Arch "386" }}i386{{ else }}{{ .Arch }}{{ end }}'
     format: binary
 
 checksum:
