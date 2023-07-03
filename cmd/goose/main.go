@@ -39,8 +39,8 @@ var (
 	// These variables are populated via GoReleaser ldflags.
 	// See https://goreleaser.com/cookbooks/using-main.version/
 	version = "(devel)"
-	commit  = "none"
-	date    = "unknown"
+	// commit  = "none"
+	// date    = "unknown"
 )
 
 func main() {
