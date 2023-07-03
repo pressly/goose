@@ -37,7 +37,7 @@ var (
 	noColor      = flags.Bool("no-color", false, "disable color output (NO_COLOR env variable supported)")
 )
 var (
-	gooseVersion = ""
+	gooseVersion = "v3.14.0-dev"
 )
 
 func main() {
@@ -48,10 +48,11 @@ func main() {
 	}
 
 	if *version {
-		if buildInfo, ok := debug.ReadBuildInfo(); ok && buildInfo != nil && gooseVersion == "" {
+		buildInfo, ok := debug.ReadBuildInfo()
+		if ok && buildInfo != nil && buildInfo.Main.Version != "(devel)" {
 			gooseVersion = buildInfo.Main.Version
 		}
-		fmt.Printf("goose version:%s\n", gooseVersion)
+		fmt.Printf("goose version: %s\n", gooseVersion)
 		return
 	}
 	if *verbose {
