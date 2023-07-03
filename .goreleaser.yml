@@ -1,4 +1,5 @@
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# yml-language-server: $schema=https://goreleaser.com/static/schema.json
 #
 # See https://goreleaser.com/customization/ for more information.
 before:
