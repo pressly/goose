@@ -10,6 +10,8 @@ before:
 builds:
   - env:
       - CGO_ENABLED=0
+    binary: goose
+    main: ./cmd/goose
     goos:
       - linux
       - windows
