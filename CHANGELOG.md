@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-- No changes yet.
+- Add pre-built binaries with GoReleaser.
 
 ## [v3.13.0] - 2023-06-29
 

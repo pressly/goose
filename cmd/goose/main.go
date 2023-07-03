@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
@@ -27,7 +26,7 @@ var (
 	table        = flags.String("table", "goose_db_version", "migrations table name")
 	verbose      = flags.Bool("v", false, "enable verbose mode")
 	help         = flags.Bool("h", false, "print help")
-	version      = flags.Bool("version", false, "print version")
+	versionFlag  = flags.Bool("version", false, "print version")
 	certfile     = flags.String("certfile", "", "file path to root CA's certificates in pem format (only support on mysql)")
 	sequential   = flags.Bool("s", false, "use sequential numbering for new migrations")
 	allowMissing = flags.Bool("allow-missing", false, "applies missing (out-of-order) migrations")
@@ -37,7 +36,11 @@ var (
 	noColor      = flags.Bool("no-color", false, "disable color output (NO_COLOR env variable supported)")
 )
 var (
-	gooseVersion = "v3.14.0-dev"
+	// These variables are populated via GoReleaser ldflags.
+	// See https://goreleaser.com/cookbooks/using-main.version/
+	version = "(devel)"
+	// commit  = "none"
+	// date    = "unknown"
 )
 
 func main() {
@@ -47,12 +50,8 @@ func main() {
 		return
 	}
 
-	if *version {
-		buildInfo, ok := debug.ReadBuildInfo()
-		if ok && buildInfo != nil && buildInfo.Main.Version != "(devel)" {
-			gooseVersion = buildInfo.Main.Version
-		}
-		fmt.Printf("goose version: %s\n", gooseVersion)
+	if *versionFlag {
+		fmt.Printf("goose version: %s\n", version)
 		return
 	}
 	if *verbose {
