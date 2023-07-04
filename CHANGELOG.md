@@ -2,7 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project
+adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
@@ -15,9 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [v3.13.0] - 2023-06-29
 
 - Add a changelog to the project, based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
-
-- Update go.mod and retract all `v3.12.X` tags. They were accidentally pushed and contain a reference
-  to the wrong Go module.
+- Update go.mod and retract all `v3.12.X` tags. They were accidentally pushed and contain a
+  reference to the wrong Go module.
 - Fix `up` and `up -allowing-missing` behavior.
 - Fix empty version in log output.
 - Add new `context.Context`-aware functions and methods, for both sql and go migrations.

@@ -36,6 +36,10 @@ while IFS= read -r LINE; do
   fi
   # Capture the lines between the specified version and the next version
   if [[ "${CAPTURE}" -eq 1 ]]; then
+    # Ignore empty lines
+    if [[ -z "${LINE}" ]]; then
+      continue
+    fi
     items+="$(echo "${LINE}" | xargs)"
     # Add a newline between each item
     if [[ -n "$items" ]]; then
