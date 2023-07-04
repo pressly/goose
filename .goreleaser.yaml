@@ -5,7 +5,6 @@ project_name: goose
 
 before:
   hooks:
-    # You may remove this if you don't use go modules.
     - go mod tidy
 builds:
   - env:
@@ -20,14 +19,16 @@ builds:
       - amd64
       - arm64
     ldflags:
-      - -s -w
+      # The v prefix is stripped by goreleaser, so we need to add it back.
+      # https://goreleaser.com/customization/templates/#fnref:version-prefix
+      - "-s -w -X main.version=v{{ .Version }}"
 
 archives:
   - format: binary
     name_template: >-
       {{ .ProjectName }}_{{- tolower .Os }}_{{- if eq .Arch "amd64" }}x86_64{{- else }}{{ .Arch }}{{ end }}
 checksum:
-  name_template: 'checksums.txt'
+  name_template: "checksums.txt"
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
 changelog:
