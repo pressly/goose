@@ -35,12 +35,9 @@ var (
 	noVersioning = flags.Bool("no-versioning", false, "apply migration commands with no versioning, in file order, from directory pointed to")
 	noColor      = flags.Bool("no-color", false, "disable color output (NO_COLOR env variable supported)")
 )
+
 var (
-	// These variables are populated via GoReleaser ldflags.
-	// See https://goreleaser.com/cookbooks/using-main.version/
 	version = "(devel)"
-	// commit  = "none"
-	// date    = "unknown"
 )
 
 func main() {
