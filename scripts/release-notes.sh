@@ -11,7 +11,7 @@ fi
 version="$1"
 changelog_file="${2:-CHANGELOG.md}"
 
-# Check if the CHANGELOG.md file exists
+# Check if the changelog file exists
 if [ ! -f "$changelog_file" ]; then
   echo "Error: $changelog_file does not exist"
   exit 1
@@ -19,6 +19,7 @@ fi
 
 CAPTURE=0
 items=""
+# Read the changelog file line by line
 while IFS= read -r LINE; do
   # Stop capturing when we reach the next version sections
   if [[ "${LINE}" == "##"* ]] && [[ "${CAPTURE}" -eq 1 ]]; then
