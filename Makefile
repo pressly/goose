@@ -1,5 +1,12 @@
 GO_TEST_FLAGS ?= -race -count=1 -v -timeout=10m
 
+# These are the default values for the test database. They can be overridden
+DB_USER ?= dbuser
+DB_PASSWORD ?= password1
+DB_NAME ?= testdb
+DB_POSTGRES_PORT ?= 5433
+DB_MYSQL_PORT ?= 3307
+
 .PHONY: dist
 dist:
 	@mkdir -p ./bin
@@ -42,21 +49,21 @@ test-e2e-vertica:
 docker-cleanup:
 	docker stop -t=0 $$(docker ps --filter="label=goose_test" -aq)
 
-docker-start-postgres:
+docker-postgres:
 	docker run --rm -d \
-		-e POSTGRES_USER=dbuser \
-		-e POSTGRES_PASSWORD=password1 \
-		-e POSTGRES_DB=testdb \
-		-p 5433:5432 \
+		-e POSTGRES_USER=$(DB_USER) \
+		-e POSTGRES_PASSWORD=$(DB_PASSWORD) \
+		-e POSTGRES_DB=$(DB_NAME) \
+		-p $(DB_POSTGRES_PORT):5432 \
 		-l goose_test \
 		postgres:14-alpine -c log_statement=all
 
-docker-start-mysql:
+docker-mysql:
 	docker run --rm -d \
 		-e MYSQL_ROOT_PASSWORD=rootpassword1 \
-		-e MYSQL_DATABASE=testdb \
-		-e MYSQL_USER=dbuser \
-		-e MYSQL_PASSWORD=password1 \
-		-p 3307:3306 \
+		-e MYSQL_DATABASE=$(DB_NAME) \
+		-e MYSQL_USER=$(DB_USER) \
+		-e MYSQL_PASSWORD=$(DB_PASSWORD) \
+		-p $(DB_MYSQL_PORT):3306 \
 		-l goose_test \
 		mysql:8.0.31
