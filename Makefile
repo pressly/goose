@@ -67,3 +67,13 @@ docker-mysql:
 		-p $(DB_MYSQL_PORT):3306 \
 		-l goose_test \
 		mysql:8.0.31
+
+docker-clickhouse:
+	docker run --rm -d \
+		-e CLICKHOUSE_DB=$(DB_NAME) \
+		-e CLICKHOUSE_USER=$(DB_USER) \
+		-e CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1 \
+		-e CLICKHOUSE_PASSWORD=$(DB_PASSWORD) \
+		-p 9000:9000/tcp \
+		-l goose_test \
+		clickhouse/clickhouse-server:23-alpine
