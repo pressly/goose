@@ -25,7 +25,6 @@ type Options struct {
 	Filesystem fs.FS
 
 	// Commonly modified options.
-	Logger   Logger
 	Verbose  bool
 	LockMode LockMode
 
@@ -48,7 +47,6 @@ func DefaultOptions() Options {
 		TableName:  defaultTableName,
 		Dir:        defaultDir,
 		Filesystem: osFS{},
-		Logger:     &stdLogger{},
 	}
 }
 
@@ -76,14 +74,6 @@ func (o Options) SetTableName(s string) Options {
 // Default: read from disk.
 func (o Options) SetFilesystem(f fs.FS) Options {
 	o.Filesystem = f
-	return o
-}
-
-// SetLogger returns a new Options value with Logger set to the given value.
-//
-// Default: log to stderr if verbose is true.
-func (o Options) SetLogger(l Logger) Options {
-	o.Logger = l
 	return o
 }
 
