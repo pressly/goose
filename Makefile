@@ -6,6 +6,7 @@ DB_PASSWORD ?= password1
 DB_NAME ?= testdb
 DB_POSTGRES_PORT ?= 5433
 DB_MYSQL_PORT ?= 3307
+DB_CLICKHOUSE_PORT ?= 9001
 
 .PHONY: dist
 dist:
@@ -74,6 +75,6 @@ docker-clickhouse:
 		-e CLICKHOUSE_USER=$(DB_USER) \
 		-e CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1 \
 		-e CLICKHOUSE_PASSWORD=$(DB_PASSWORD) \
-		-p 9000:9000/tcp \
+		-p $(DB_CLICKHOUSE_PORT):9000/tcp \
 		-l goose_test \
 		clickhouse/clickhouse-server:23-alpine
