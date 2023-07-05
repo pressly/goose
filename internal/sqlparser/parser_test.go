@@ -379,6 +379,7 @@ func TestValidUp(t *testing.T) {
 		{Name: "test05", StatementsCount: 2},
 		{Name: "test06", StatementsCount: 5},
 		{Name: "test07", StatementsCount: 1},
+		{Name: "test08", StatementsCount: 6},
 	}
 	for _, tc := range tests {
 		path := filepath.Join("testdata", "valid-up", tc.Name)
@@ -422,7 +423,7 @@ func compareStatements(t *testing.T, dir string, statements []string) {
 		by, err := os.ReadFile(goldenFilePath)
 		check.NoError(t, err)
 
-		got, want := strings.TrimSpace(statements[index]), strings.TrimSpace(string(by))
+		got, want := statements[index], string(by)
 
 		if got != want {
 			if isCIEnvironment() {
@@ -433,7 +434,7 @@ func compareStatements(t *testing.T, dir string, statements []string) {
 					filepath.Join("internal", "sqlparser", goldenFilePath+".FAIL"),
 					filepath.Join("internal", "sqlparser", goldenFilePath),
 				)
-				err := os.WriteFile(goldenFilePath+".FAIL", []byte(got+"\n"), 0644)
+				err := os.WriteFile(goldenFilePath+".FAIL", []byte(got), 0644)
 				check.NoError(t, err)
 			}
 		}

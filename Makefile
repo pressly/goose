@@ -1,5 +1,13 @@
 GO_TEST_FLAGS ?= -race -count=1 -v -timeout=10m
 
+# These are the default values for the test database. They can be overridden
+DB_USER ?= dbuser
+DB_PASSWORD ?= password1
+DB_NAME ?= testdb
+DB_POSTGRES_PORT ?= 5433
+DB_MYSQL_PORT ?= 3307
+DB_CLICKHOUSE_PORT ?= 9001
+
 .PHONY: dist
 dist:
 	@mkdir -p ./bin
@@ -42,11 +50,31 @@ test-e2e-vertica:
 docker-cleanup:
 	docker stop -t=0 $$(docker ps --filter="label=goose_test" -aq)
 
-docker-start-postgres:
+docker-postgres:
 	docker run --rm -d \
-		-e POSTGRES_USER=${POSTGRES_DB_USER} \
-		-e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} \
-		-e POSTGRES_DB=${POSTGRES_DBNAME} \
-		-p ${POSTGRES_PORT}:5432 \
+		-e POSTGRES_USER=$(DB_USER) \
+		-e POSTGRES_PASSWORD=$(DB_PASSWORD) \
+		-e POSTGRES_DB=$(DB_NAME) \
+		-p $(DB_POSTGRES_PORT):5432 \
 		-l goose_test \
 		postgres:14-alpine -c log_statement=all
+
+docker-mysql:
+	docker run --rm -d \
+		-e MYSQL_ROOT_PASSWORD=rootpassword1 \
+		-e MYSQL_DATABASE=$(DB_NAME) \
+		-e MYSQL_USER=$(DB_USER) \
+		-e MYSQL_PASSWORD=$(DB_PASSWORD) \
+		-p $(DB_MYSQL_PORT):3306 \
+		-l goose_test \
+		mysql:8.0.31
+
+docker-clickhouse:
+	docker run --rm -d \
+		-e CLICKHOUSE_DB=$(DB_NAME) \
+		-e CLICKHOUSE_USER=$(DB_USER) \
+		-e CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1 \
+		-e CLICKHOUSE_PASSWORD=$(DB_PASSWORD) \
+		-p $(DB_CLICKHOUSE_PORT):9000/tcp \
+		-l goose_test \
+		clickhouse/clickhouse-server:23-alpine
