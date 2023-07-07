@@ -11,9 +11,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Fix pre-built binary versioning and make small improvements to GoReleaser config.
 - Fix an edge case in the `sqlparser` where the last up statement may be ignored if it's
-  unterminated and followed by a `-- +goose Down` annotation.
+  unterminated with a semicolon and followed by a `-- +goose Down` annotation.
 - Trim `Logger` interface to `Printf` and `Fatalf` methods only. Projects that have previously
-  implemented the `Logger`` interface should not be affected, and can remove unused methods.
+  implemented the `Logger` interface should not be affected, and can remove unused methods.
 
 ## [v3.13.1] - 2023-07-03
 
