@@ -7,7 +7,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [v3.13.2] - 2023-07-07
+## [v3.13.4] - 2023-07-07
 
 - Fix pre-built binary versioning and make small improvements to GoReleaser config.
 - Fix an edge case in the `sqlparser` where the last up statement may be ignored if it's
@@ -29,7 +29,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add new `context.Context`-aware functions and methods, for both sql and go migrations.
 - Return error when no migration files found or dir is not a directory.
 
-[Unreleased]: https://github.com/pressly/goose/compare/v3.13.2...HEAD
-[v3.13.2]: https://github.com/pressly/goose/compare/v3.13.1...v3.13.2
+[Unreleased]: https://github.com/pressly/goose/compare/v3.13.4...HEAD
+[v3.13.4]: https://github.com/pressly/goose/compare/v3.13.1...v3.13.4
 [v3.13.1]: https://github.com/pressly/goose/compare/v3.13.0...v3.13.1
 [v3.13.0]: https://github.com/pressly/goose/releases/tag/v3.13.0
