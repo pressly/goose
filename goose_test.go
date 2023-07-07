@@ -22,7 +22,7 @@ const (
 
 func TestMain(m *testing.M) {
 	if runtime.GOOS == "windows" {
-		log.Fatalf("this test is not supported on Windows\n")
+		log.Fatalf("this test is not supported on Windows")
 	}
 	dir, err := os.Getwd()
 	if err != nil {
