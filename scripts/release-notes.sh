@@ -40,7 +40,7 @@ while IFS= read -r LINE; do
     if [[ -z "${LINE}" ]]; then
       continue
     fi
-    items+="$(echo "${LINE}" | xargs)"
+    items+="$(echo "${LINE}" | xargs -0)"
     # Add a newline between each item
     if [[ -n "$items" ]]; then
       items+=$'\n'
