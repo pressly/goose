@@ -26,8 +26,8 @@ func StatusContext(ctx context.Context, db *sql.DB, dir string, opts ...OptionsF
 		return fmt.Errorf("failed to collect migrations: %w", err)
 	}
 	if option.noVersioning {
-		log.Println("    Applied At                  Migration")
-		log.Println("    =======================================")
+		log.Printf("    Applied At                  Migration\n")
+		log.Printf("    =======================================\n")
 		for _, current := range migrations {
 			log.Printf("    %-24s -- %v\n", "no versioning", filepath.Base(current.Source))
 		}
@@ -39,8 +39,8 @@ func StatusContext(ctx context.Context, db *sql.DB, dir string, opts ...OptionsF
 		return fmt.Errorf("failed to ensure DB version: %w", err)
 	}
 
-	log.Println("    Applied At                  Migration")
-	log.Println("    =======================================")
+	log.Printf("    Applied At                  Migration\n")
+	log.Printf("    =======================================\n")
 	for _, migration := range migrations {
 		if err := printMigrationStatus(ctx, db, migration.Version, filepath.Base(migration.Source)); err != nil {
 			return fmt.Errorf("failed to print status: %w", err)
