@@ -86,6 +86,22 @@ func TestSplitStatements(t *testing.T) {
 	}
 }
 
+func TestInvalidUp(t *testing.T) {
+	t.Parallel()
+
+	testdataDir := filepath.Join("testdata", "invalid", "up")
+	entries, err := os.ReadDir(testdataDir)
+	check.NoError(t, err)
+	check.NumberNotZero(t, len(entries))
+
+	for _, entry := range entries {
+		by, err := os.ReadFile(filepath.Join(testdataDir, entry.Name()))
+		check.NoError(t, err)
+		_, _, err = ParseSQLMigration(strings.NewReader(string(by)), DirectionUp, false)
+		check.HasError(t, err)
+	}
+}
+
 func TestUseTransactions(t *testing.T) {
 	t.Parallel()
 

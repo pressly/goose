@@ -127,6 +127,12 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 			case "+goose Down":
 				switch stateMachine.get() {
 				case gooseUp, gooseStatementEndUp:
+					// If we hit a down annotation, but the buffer is not empty, we have an unfinished SQL query from a
+					// previous up annotation. This is an error, because we expect the SQL query to be terminated by a semicolon
+					// and the buffer to have been reset.
+					if bufferRemaining := strings.TrimSpace(buf.String()); len(bufferRemaining) > 0 {
+						return nil, false, missingSemicolonError(stateMachine.state, direction, bufferRemaining)
+					}
 					stateMachine.set(gooseDown)
 				default:
 					return nil, false, fmt.Errorf("must start with '-- +goose Up' annotation, stateMachine=%d, see https://github.com/pressly/goose#sql-migrations", stateMachine.state)
@@ -238,10 +244,18 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 	}
 
 	if bufferRemaining := strings.TrimSpace(buf.String()); len(bufferRemaining) > 0 {
-		return nil, false, fmt.Errorf("failed to parse migration: state %d, direction: %v: unexpected unfinished SQL query: %q: missing semicolon?", stateMachine.state, direction, bufferRemaining)
+		return nil, false, missingSemicolonError(stateMachine.state, direction, bufferRemaining)
 	}
 
 	return stmts, useTx, nil
+}
+
+func missingSemicolonError(state parserState, direction Direction, s string) error {
+	return fmt.Errorf("failed to parse migration: state %d, direction: %v: unexpected unfinished SQL query: %q: missing semicolon?",
+		state,
+		direction,
+		s,
+	)
 }
 
 // cleanupStatement attempts to find the last semicolon and trims

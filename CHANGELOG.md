@@ -7,7 +7,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-- Fix pre-built binary versioning and make small improvements to the build process.
+- Fix pre-built binary versioning and make small improvements to GoReleaser config.
+- Fix an edge case in the `sqlparser` where the last up statement may be ignored if it's
+  unterminated and followed by a `-- +goose Down` annotation.
 
 ## [v3.13.1] - 2023-07-03
 
