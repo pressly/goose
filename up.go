@@ -115,20 +115,27 @@ func UpToContext(ctx context.Context, db *sql.DB, dir string, version int64, opt
 		}
 		current = m.Version
 	}
+
 	if len(migrationsToApply) == 0 {
 		current, err = GetDBVersionContext(ctx, db)
 		if err != nil {
 			return err
 		}
+
+		log.Printf("goose: no migrations to run. current version: %d\n", current)
+	} else {
+		log.Printf("goose: successfully migrated database to version: %d\n", current)
 	}
+
 	// At this point there are no more migrations to apply. But we need to maintain
 	// the following behaviour:
 	// UpByOne returns an error to signifying there are no more migrations.
 	// Up and UpTo return nil
-	log.Printf("goose: no migrations to run. current version: %d\n", current)
+
 	if option.applyUpByOne {
 		return ErrNoNextVersion
 	}
+
 	return nil
 }
 
