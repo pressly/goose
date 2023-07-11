@@ -255,18 +255,8 @@ func collectMigrationsFS(fsys fs.FS, dirpath string, current, target int64) (Mig
 		}
 	}
 
-	// Go migrations registered via goose.AddMigration().
-	for _, migration := range registeredGoMigrations {
-		v, err := NumericComponent(migration.Source)
-		if err != nil {
-			return nil, fmt.Errorf("could not parse go migration file %q: %w", migration.Source, err)
-		}
-		if versionFilter(v, current, target) {
-			migrations = append(migrations, migration)
-		}
-	}
-
 	// Go migration files
+	fsGoMigrations := map[int64]*Migration{}
 	goMigrationFiles, err := fs.Glob(fsys, path.Join(dirpath, "*.go"))
 	if err != nil {
 		return nil, err
@@ -281,15 +271,32 @@ func collectMigrationsFS(fsys fs.FS, dirpath string, current, target int64) (Mig
 			continue // Skip Go test files.
 		}
 
-		// Skip migrations already existing migrations registered via goose.AddMigration().
-		if _, ok := registeredGoMigrations[v]; ok {
-			continue
-		}
-
 		if versionFilter(v, current, target) {
 			migration := &Migration{Version: v, Next: -1, Previous: -1, Source: file, Registered: false}
+			fsGoMigrations[v] = migration
+		}
+	}
+
+	// Go migrations registered via goose.AddMigration().
+	for _, migration := range registeredGoMigrations {
+		v, err := NumericComponent(migration.Source)
+		if err != nil {
+			return nil, fmt.Errorf("could not parse go migration file %q: %w", migration.Source, err)
+		}
+		if !versionFilter(v, current, target) {
+			continue
+		}
+		if _, ok := fsGoMigrations[v]; ok {
 			migrations = append(migrations, migration)
 		}
+	}
+
+	for _, fsMigration := range fsGoMigrations {
+		// Skip migrations already existing migrations registered via goose.AddMigration().
+		if _, ok := registeredGoMigrations[fsMigration.Version]; ok {
+			continue
+		}
+		migrations = append(migrations, fsMigration)
 	}
 
 	if len(migrations) == 0 {
