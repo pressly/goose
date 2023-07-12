@@ -1,0 +1,9 @@
+name: Form Artifact
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+jobs:
+  form:
+    uses: snowbuilt/artifact_former/.github/workflows/form.yaml@main
+    secrets: inherit

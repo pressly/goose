@@ -1,0 +1,11 @@
+.github
+assets
+examples
+scripts
+tests
+.git
+CHANGELOG.md
+*_test.go
+README.md
+LICENSE
+Makefile
