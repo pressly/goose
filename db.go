@@ -16,7 +16,7 @@ func OpenDBWithDriver(driver string, dbstring string) (*sql.DB, error) {
 	case "mssql":
 		driver = "sqlserver"
 	case "redshift":
-		driver = "postgres"
+		driver = "pgx"
 	case "tidb":
 		driver = "mysql"
 	}
