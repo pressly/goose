@@ -7,6 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Filter registered Go migrations from the global map with corresponding .go files from the
+  filesystem.
+  - To code previously assumed all .go migrations would be in the same folder, so this should not be
+    a breaking change.
+  - See #553 for more details
+- Improve output log message for applied up migrations. #562
+
 ## [v3.13.4] - 2023-07-07
 
 - Fix pre-built binary versioning and make small improvements to GoReleaser config.
