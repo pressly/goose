@@ -27,7 +27,6 @@ jobs:
         run: ./scripts/release-notes.sh ${{github.ref_name}} > ./release_notes.txt
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v4
-        if: '!cancelled()'
         with:
           # either 'goreleaser' (default) or 'goreleaser-pro':
           distribution: goreleaser
