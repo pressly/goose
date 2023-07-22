@@ -152,6 +152,18 @@ func AddMigrationContext(up, down GoMigrationContext) {
 	AddNamedMigrationContext(filename, up, down)
 }
 
+// AddMigrationNoTx adds Go migrations that will be run outside transaction.
+func AddMigrationNoTx(up, down GoMigrationNoTx) {
+	_, filename, _, _ := runtime.Caller(1)
+	AddNamedMigrationNoTxContext(filename, withContext(up), withContext(down))
+}
+
+// AddMigrationNoTxContext adds Go migrations that will be run outside transaction.
+func AddMigrationNoTxContext(up, down GoMigrationNoTxContext) {
+	_, filename, _, _ := runtime.Caller(1)
+	AddNamedMigrationNoTxContext(filename, up, down)
+}
+
 // AddNamedMigration adds named Go migrations.
 func AddNamedMigration(filename string, up, down GoMigration) {
 	AddNamedMigrationContext(filename, withContext(up), withContext(down))
@@ -162,17 +174,6 @@ func AddNamedMigrationContext(filename string, up, down GoMigrationContext) {
 	if err := register(filename, true, up, down, nil, nil); err != nil {
 		panic(err)
 	}
-}
-
-// AddMigrationNoTx adds Go migrations that will be run outside transaction.
-func AddMigrationNoTx(up, down GoMigrationNoTx) {
-	AddMigrationNoTxContext(withContext(up), withContext(down))
-}
-
-// AddMigrationNoTxContext adds Go migrations that will be run outside transaction.
-func AddMigrationNoTxContext(up, down GoMigrationNoTxContext) {
-	_, filename, _, _ := runtime.Caller(2)
-	AddNamedMigrationNoTxContext(filename, up, down)
 }
 
 // AddNamedMigrationNoTx adds named Go migrations that will be run outside transaction.
