@@ -3,7 +3,7 @@ module github.com/pressly/goose/v3
 go 1.18
 
 require (
-	github.com/ClickHouse/clickhouse-go/v2 v2.10.1
+	github.com/ClickHouse/clickhouse-go/v2 v2.11.0
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/jackc/pgx/v5 v5.4.1
 	github.com/microsoft/go-mssqldb v1.3.0
