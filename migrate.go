@@ -140,9 +140,10 @@ type GoMigrationNoTx func(db *sql.DB) error
 type GoMigrationNoTxContext func(ctx context.Context, db *sql.DB) error
 
 // AddMigration adds Go migrations.
+//
+// Deprecated: Use AddMigrationContext.
 func AddMigration(up, down GoMigration) {
 	_, filename, _, _ := runtime.Caller(1)
-	// intentionally don't call to AddMigrationContext so each of these functions can calculate the filename correctly
 	AddNamedMigrationContext(filename, withContext(up), withContext(down))
 }
 
@@ -152,19 +153,9 @@ func AddMigrationContext(up, down GoMigrationContext) {
 	AddNamedMigrationContext(filename, up, down)
 }
 
-// AddMigrationNoTx adds Go migrations that will be run outside transaction.
-func AddMigrationNoTx(up, down GoMigrationNoTx) {
-	_, filename, _, _ := runtime.Caller(1)
-	AddNamedMigrationNoTxContext(filename, withContext(up), withContext(down))
-}
-
-// AddMigrationNoTxContext adds Go migrations that will be run outside transaction.
-func AddMigrationNoTxContext(up, down GoMigrationNoTxContext) {
-	_, filename, _, _ := runtime.Caller(1)
-	AddNamedMigrationNoTxContext(filename, up, down)
-}
-
 // AddNamedMigration adds named Go migrations.
+//
+// Deprecated: Use AddNamedMigrationContext.
 func AddNamedMigration(filename string, up, down GoMigration) {
 	AddNamedMigrationContext(filename, withContext(up), withContext(down))
 }
@@ -176,7 +167,23 @@ func AddNamedMigrationContext(filename string, up, down GoMigrationContext) {
 	}
 }
 
+// AddMigrationNoTx adds Go migrations that will be run outside transaction.
+//
+// Deprecated: Use AddNamedMigrationNoTxContext.
+func AddMigrationNoTx(up, down GoMigrationNoTx) {
+	_, filename, _, _ := runtime.Caller(1)
+	AddNamedMigrationNoTxContext(filename, withContext(up), withContext(down))
+}
+
+// AddMigrationNoTxContext adds Go migrations that will be run outside transaction.
+func AddMigrationNoTxContext(up, down GoMigrationNoTxContext) {
+	_, filename, _, _ := runtime.Caller(1)
+	AddNamedMigrationNoTxContext(filename, up, down)
+}
+
 // AddNamedMigrationNoTx adds named Go migrations that will be run outside transaction.
+//
+// Deprecated: Use AddNamedMigrationNoTxContext.
 func AddNamedMigrationNoTx(filename string, up, down GoMigrationNoTx) {
 	AddNamedMigrationNoTxContext(filename, withContext(up), withContext(down))
 }
