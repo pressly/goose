@@ -13,6 +13,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     a breaking change.
   - See #553 for more details
 - Improve output log message for applied up migrations. #562
+- Fix an issue where `AddMigrationNoTxContext` was registering the wrong source because it skipped
+  too many frames. #572
 
 ## [v3.13.4] - 2023-07-07
 
