@@ -1,4 +1,4 @@
-package dialectadapter
+package goose
 
 import (
 	"context"

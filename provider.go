@@ -62,9 +62,9 @@ func NewProvider(dbDialect Dialect, db *sql.DB, opt Options) (*Provider, error) 
 		if opt.CustomLocker == nil {
 			switch internalDialect {
 			case dialectadapter.Postgres:
-				locker = dialectadapter.NewPostgresLocker(dialectadapter.PostgresLockerOptions{})
+				locker = NewPostgresLocker(PostgresLockerOptions{})
 			default:
-				return nil, dialectadapter.ErrLockNotImplemented
+				return nil, ErrLockNotImplemented
 			}
 		} else {
 			locker = opt.CustomLocker
