@@ -219,13 +219,13 @@ func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, err
 	)
 	switch p.opt.LockMode {
 	case LockModeAdvisorySession:
-		if err := p.store.LockSession(ctx, conn); err != nil {
+		if err := p.locker.LockSession(ctx, conn); err != nil {
 			p.mu.Unlock()
 			return nil, nil, err
 		}
 		cleanup = func() error {
 			defer p.mu.Unlock()
-			return errors.Join(p.store.UnlockSession(ctx, conn), conn.Close())
+			return errors.Join(p.locker.UnlockSession(ctx, conn), conn.Close())
 		}
 	case LockModeNone:
 		cleanup = func() error {

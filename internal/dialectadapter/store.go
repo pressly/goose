@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/pressly/goose/v4/internal/dialectadapter/dialectquery"
-	"github.com/sethvargo/go-retry"
 )
 
 // Store is the interface that wraps the basic methods for a database dialect.
@@ -40,10 +39,6 @@ type Store interface {
 	//
 	// If there are no migrations, an empty slice is returned with no error.
 	ListMigrationsConn(ctx context.Context, conn *sql.Conn) ([]*ListMigrationsResult, error)
-
-	// Locker defines the methods for locking the database. Some databases
-	// do not support locking, in which case ErrLockNotImplemented is returned.
-	Locker
 }
 
 // NewStore returns a new Store for the given dialect.
@@ -74,22 +69,10 @@ func NewStore(d Dialect, table string) (Store, error) {
 	default:
 		return nil, fmt.Errorf("unknown querier dialect: %v", d)
 	}
-	// Retry for 60 minutes, every 2 seconds, to lock the database.
-	// TODO(mf): allow users to make the duration infinite for VERY long migrations.
-	retryLock := retry.WithMaxDuration(
-		60*time.Minute,
-		retry.NewConstant(2*time.Second),
-	)
-	// Retry for 1 minute, every 2 seconds, to unlock the database.
-	retryUnlock := retry.WithMaxDuration(
-		1*time.Minute,
-		retry.NewConstant(2*time.Second),
-	)
+
 	return &store{
-		tableName:   table,
-		querier:     querier,
-		retryLock:   retryLock,
-		retryUnlock: retryUnlock,
+		tableName: table,
+		querier:   querier,
 	}, nil
 }
 
@@ -104,10 +87,8 @@ type ListMigrationsResult struct {
 }
 
 type store struct {
-	tableName   string
-	querier     dialectquery.Querier
-	retryLock   retry.Backoff
-	retryUnlock retry.Backoff
+	tableName string
+	querier   dialectquery.Querier
 }
 
 var _ Store = (*store)(nil)

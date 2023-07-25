@@ -1,6 +1,8 @@
 package goose
 
-import "io/fs"
+import (
+	"io/fs"
+)
 
 // Note: when adding a new option make sure to also add SetX method on Options. This enables us to
 // have a clean Options struct with dedicated documentation for each option.
@@ -25,8 +27,12 @@ type Options struct {
 	Filesystem fs.FS
 
 	// Commonly modified options.
-	Verbose  bool
+	Verbose bool
+
 	LockMode LockMode
+
+	// CustomLocker overrides the default locker.
+	CustomLocker Locker
 
 	// Features.
 	AllowMissing bool

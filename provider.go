@@ -26,8 +26,10 @@ const (
 type Provider struct {
 	mu sync.Mutex
 
-	db         *sql.DB
-	store      dialectadapter.Store
+	db     *sql.DB
+	store  dialectadapter.Store
+	locker Locker
+
 	opt        Options
 	migrations []*migration.Migration
 }
@@ -53,9 +55,22 @@ func NewProvider(dbDialect Dialect, db *sql.DB, opt Options) (*Provider, error) 
 	if err != nil {
 		return nil, err
 	}
-	if opt.LockMode != LockModeNone && !store.CanLock() {
-		return nil, fmt.Errorf("locking is not supported for %s", dbDialect)
+
+	var locker Locker
+
+	if opt.LockMode != LockModeNone {
+		if opt.CustomLocker == nil {
+			switch internalDialect {
+			case dialectadapter.Postgres:
+				locker = dialectadapter.NewPostgresLocker(dialectadapter.PostgresLockerOptions{})
+			default:
+				return nil, dialectadapter.ErrLockNotImplemented
+			}
+		} else {
+			locker = opt.CustomLocker
+		}
 	}
+
 	sources, err := collect(opt.Filesystem, opt.Dir, true, opt.ExcludeFilenames)
 	if err != nil {
 		return nil, err
@@ -68,6 +83,7 @@ func NewProvider(dbDialect Dialect, db *sql.DB, opt Options) (*Provider, error) 
 	return &Provider{
 		db:         db,
 		store:      store,
+		locker:     locker,
 		opt:        opt,
 		migrations: migrations,
 	}, nil

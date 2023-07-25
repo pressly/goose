@@ -36,31 +36,3 @@ func (p *Postgres) ListMigrations(tableName string) string {
 	q := `SELECT version_id, is_applied from %s ORDER BY id DESC`
 	return fmt.Sprintf(q, tableName)
 }
-
-// AdvisoryLockSession returns the query to lock the database using an exclusive session level
-// advisory lock.
-func (p *Postgres) AdvisoryLockSession(id int64) string {
-	q := `SELECT pg_advisory_lock(%d)`
-	return fmt.Sprintf(q, id)
-}
-
-func (p *Postgres) TryAdvisoryLockSession(id int64) string {
-	q := `SELECT pg_try_advisory_lock(%d)`
-	return fmt.Sprintf(q, id)
-}
-
-// AdvisoryUnlockSession returns the query to release an exclusive session level advisory lock.
-func (p *Postgres) AdvisoryUnlockSession(id int64) string {
-	q := `SELECT pg_advisory_unlock(%d)`
-	return fmt.Sprintf(q, id)
-}
-
-// AdvisoryLockTransaction returns the query to lock the database using an exclusive transaction
-// level advisory lock.
-//
-// The lock is automatically released at the end of the current transaction and cannot be released
-// explicitly.
-func (p *Postgres) AdvisoryLockTransaction(id int64) string {
-	q := `SELECT pg_advisory_xact_lock(%d)`
-	return fmt.Sprintf(q, id)
-}
