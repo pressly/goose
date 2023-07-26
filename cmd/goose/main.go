@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"errors"
 	"flag"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
@@ -48,7 +50,11 @@ func main() {
 	}
 
 	if *versionFlag {
-		fmt.Printf("goose version: %s\n", version)
+		buildInfo, ok := debug.ReadBuildInfo()
+		if ok && buildInfo != nil && buildInfo.Main.Version != "" {
+			version = buildInfo.Main.Version
+		}
+		fmt.Printf("goose version: %s\n", strings.TrimSpace(version))
 		return
 	}
 	if *verbose {
