@@ -7,14 +7,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [v3.14.0] - 2023-07-26
+
 - Filter registered Go migrations from the global map with corresponding .go files from the
   filesystem.
-  - To code previously assumed all .go migrations would be in the same folder, so this should not be
-    a breaking change.
+  - The code previously assumed all .go migrations would be in the same folder, so this should not
+    be a breaking change.
   - See #553 for more details
 - Improve output log message for applied up migrations. #562
 - Fix an issue where `AddMigrationNoTxContext` was registering the wrong source because it skipped
   too many frames. #572
+- Improve binary version output when using go install.
 
 ## [v3.13.4] - 2023-07-07
 
@@ -38,7 +41,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add new `context.Context`-aware functions and methods, for both sql and go migrations.
 - Return error when no migration files found or dir is not a directory.
 
-[Unreleased]: https://github.com/pressly/goose/compare/v3.13.4...HEAD
+[Unreleased]: https://github.com/pressly/goose/compare/v3.14.0...HEAD
+[v3.14.0]: https://github.com/pressly/goose/compare/v3.13.4...v3.14.0
 [v3.13.4]: https://github.com/pressly/goose/compare/v3.13.1...v3.13.4
 [v3.13.1]: https://github.com/pressly/goose/compare/v3.13.0...v3.13.1
 [v3.13.0]: https://github.com/pressly/goose/releases/tag/v3.13.0
