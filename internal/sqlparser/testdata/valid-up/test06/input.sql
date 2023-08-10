@@ -43,8 +43,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 3 this comment will NOT be preserved
-  -- 4 this comment will NOT be preserved
+-- 3 this comment WILL BE preserved
+  -- 4 this comment WILL BE preserved
 
 
 -- +goose StatementEnd
