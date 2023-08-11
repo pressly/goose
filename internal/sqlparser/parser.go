@@ -258,14 +258,9 @@ func missingSemicolonError(state parserState, direction Direction, s string) err
 	)
 }
 
-// cleanupStatement attempts to find the last semicolon and trims
-// the remaining chars from the input string. This is useful for cleaning
-// up a statement containing trailing comments or empty lines.
+// cleanupStatement trims whitespace from the given statement.
 func cleanupStatement(input string) string {
-	if n := strings.LastIndex(input, ";"); n > 0 {
-		return input[:n+1]
-	}
-	return input
+	return strings.TrimSpace(input)
 }
 
 // Checks the line to see if the line has a statement-ending semicolon
