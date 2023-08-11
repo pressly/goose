@@ -1,14 +1,14 @@
 module github.com/pressly/goose/v3
 
-go 1.18
+go 1.19
 
 require (
-	github.com/ClickHouse/clickhouse-go/v2 v2.12.1
+	github.com/ClickHouse/clickhouse-go/v2 v2.13.0
 	github.com/go-sql-driver/mysql v1.7.1
-	github.com/jackc/pgx/v5 v5.4.1
+	github.com/jackc/pgx/v5 v5.4.3
 	github.com/microsoft/go-mssqldb v1.5.0
 	github.com/ory/dockertest/v3 v3.10.0
-	github.com/vertica/vertica-sql-go v1.3.2
+	github.com/vertica/vertica-sql-go v1.3.3
 	github.com/ziutek/mymysql v1.5.4
 	modernc.org/sqlite v1.25.0
 )
@@ -48,7 +48,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc4 // indirect
 	github.com/opencontainers/runc v1.1.7 // indirect
-	github.com/paulmach/orb v0.9.2 // indirect
+	github.com/paulmach/orb v0.10.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.18 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/procfs v0.11.0 // indirect
