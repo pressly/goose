@@ -7,6 +7,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [v3.15.0] - 2023-08-12
+
+- Fix `sqlparser` to avoid skipping the last statement when it's not terminated with a semicolon
+  within a StatementBegin/End block. (#580)
+- Add `go1.21` to the CI matrix.
+- Bump minimum version of module in go.mod to `go1.19`.
+- Fix version output when installing pre-built binaries (#585).
+
 ## [v3.14.0] - 2023-07-26
 
 - Filter registered Go migrations from the global map with corresponding .go files from the
@@ -41,7 +49,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add new `context.Context`-aware functions and methods, for both sql and go migrations.
 - Return error when no migration files found or dir is not a directory.
 
-[Unreleased]: https://github.com/pressly/goose/compare/v3.14.0...HEAD
+[Unreleased]: https://github.com/pressly/goose/compare/v3.15.0...HEAD
+[v3.15.0]: https://github.com/pressly/goose/compare/v3.14.0...v3.15.0
 [v3.14.0]: https://github.com/pressly/goose/compare/v3.13.4...v3.14.0
 [v3.13.4]: https://github.com/pressly/goose/compare/v3.13.1...v3.13.4
 [v3.13.1]: https://github.com/pressly/goose/compare/v3.13.0...v3.13.1
