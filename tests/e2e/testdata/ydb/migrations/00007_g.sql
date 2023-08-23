@@ -1,12 +1,12 @@
--- +goose NO TRANSACTION
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE issues (
-    issue_id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    issue_created_by bigint NOT NULL REFERENCES owners(owner_id) ON DELETE CASCADE,
-    issue_repo_id bigint NOT NULL REFERENCES repos(repo_id) ON DELETE CASCADE,
-    issue_created_at timestamp NOT NULL,
-    issue_description text NOT NULL
+    issue_id Uint64,
+    issue_created_by Uint64,
+    issue_repo_id Uint64,
+    issue_created_at Timestamp,
+    issue_description Utf8,
+    PRIMARY KEY (issue_id)
 );
 -- +goose StatementEnd
 

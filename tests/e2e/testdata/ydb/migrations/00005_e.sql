@@ -1,4 +1,3 @@
--- +goose NO TRANSACTION
 -- +goose Up
 -- +goose StatementBegin
 -- NOTE: intentionally left blank to verify migration logic.

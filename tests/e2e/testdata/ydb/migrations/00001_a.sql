@@ -16,6 +16,6 @@ CREATE TABLE repos (
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE IF EXISTS repos;
-DROP TABLE IF EXISTS owners;
+DROP TABLE repos;
+DROP TABLE owners;
 -- +goose StatementEnd
