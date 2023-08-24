@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path"
 	"strconv"
 	"time"
 
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
+	"github.com/ory/dockertest/v3/docker/types"
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/balancers"
 )
@@ -94,13 +94,16 @@ func newYdb(opts ...OptionsFunc) (*sql.DB, func(), error) {
 	if err := pool.Retry(func() (err error) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
+		if err := waitInit(ctx, pool, container.Container.ID); err != nil {
+			return err
+		}
 
 		opts := []ydb.Option{
 			ydb.WithBalancer(balancers.SingleConn()),
 		}
 
 		//if option.debug {
-		//	opts = append(opts, ydb.WithLogger(trace.DetailsAll))
+		//	opts = append(opts, ydb.WithLogger(nil, trace.DetailsAll))
 		//}
 
 		nativeDriver, err := ydb.Open(ctx, dsn, opts...)
@@ -109,13 +112,12 @@ func newYdb(opts ...OptionsFunc) (*sql.DB, func(), error) {
 		}
 		defer func() {
 			if err != nil {
-				nativeDriver.Close(context.Background())
+				_ = nativeDriver.Close(context.Background())
 			}
 		}()
 		connector, err := ydb.Connector(nativeDriver,
 			ydb.WithDefaultQueryMode(ydb.ScriptingQueryMode),
 			ydb.WithFakeTx(ydb.ScriptingQueryMode),
-			ydb.WithTablePathPrefix(path.Join("/", YDB_DATABASE, "pressly", "goose", option.folder)),
 			ydb.WithAutoDeclare(),
 			ydb.WithNumericArgs(),
 		)
@@ -124,7 +126,7 @@ func newYdb(opts ...OptionsFunc) (*sql.DB, func(), error) {
 		}
 		defer func() {
 			if err != nil {
-				connector.Close()
+				_ = connector.Close()
 			}
 		}()
 
@@ -138,4 +140,55 @@ func newYdb(opts ...OptionsFunc) (*sql.DB, func(), error) {
 		return nil, cleanup, fmt.Errorf("could not connect to docker database: %w", err)
 	}
 	return db, cleanup, nil
+}
+
+func waitInit(ctx context.Context, pool *dockertest.Pool, id string) error {
+	var (
+		initDoneCh = make(chan struct{})
+		initErr    error
+	)
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				attemptCtx, attemptCancel := context.WithTimeout(context.Background(), time.Second)
+				status, err := getHealthStatus(attemptCtx, pool, id)
+				attemptCancel()
+
+				if err != nil {
+					initDoneCh <- struct{}{}
+					initErr = err
+					return
+				}
+
+				if status == types.Healthy {
+					initDoneCh <- struct{}{}
+					return
+				}
+			}
+
+		}
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-initDoneCh:
+			return initErr
+		}
+	}
+}
+
+func getHealthStatus(ctx context.Context, pool *dockertest.Pool, id string) (string, error) {
+	currentContainer, err := pool.Client.InspectContainerWithContext(id, ctx)
+	if err != nil {
+		return "", err
+	}
+
+	return currentContainer.State.Health.Status, nil
+
 }
