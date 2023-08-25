@@ -14,7 +14,7 @@ func (c *Ydb) CreateTable() string {
 			hash Uint64,
 			version_id Uint64,
 			is_applied Bool,
-			tstamp Datetime,
+			tstamp Timestamp,
 	
 			PRIMARY KEY(hash, version_id)
 		);`,
@@ -33,7 +33,7 @@ func (c *Ydb) InsertVersion() string {
 			Digest::IntHash64(CAST($1 AS Uint64)), 
 			CAST($1 AS Uint64), 
 			$2, 
-			CurrentUtcDatetime()
+			CurrentUtcTimestamp()
 		);`,
 		c.Table,
 	)
