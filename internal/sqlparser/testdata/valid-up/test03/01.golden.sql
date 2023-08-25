@@ -29,4 +29,5 @@ BEGIN
     
     EXECUTE a_output; 
 END; 
-' LANGUAGE 'plpgsql';
+' LANGUAGE 'plpgsql'; -- This comment WILL BE preserved.
+-- And so will this one.

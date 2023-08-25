@@ -2,13 +2,11 @@ package dialectquery
 
 import "fmt"
 
-type Ydb struct {
-	Table string
-}
+type Ydb struct{}
 
 var _ Querier = (*Ydb)(nil)
 
-func (c *Ydb) CreateTable() string {
+func (c *Ydb) CreateTable(tableName string) string {
 	return fmt.Sprintf(`
 		CREATE TABLE %s (
 			hash Uint64,
@@ -18,11 +16,11 @@ func (c *Ydb) CreateTable() string {
 	
 			PRIMARY KEY(hash, version_id)
 		);`,
-		c.Table,
+		tableName,
 	)
 }
 
-func (c *Ydb) InsertVersion() string {
+func (c *Ydb) InsertVersion(tableName string) string {
 	return fmt.Sprintf(`
 		UPSERT INTO %s (
 			hash, 
@@ -35,22 +33,22 @@ func (c *Ydb) InsertVersion() string {
 			$2, 
 			CurrentUtcTimestamp()
 		);`,
-		c.Table,
+		tableName,
 	)
 }
 
-func (c *Ydb) DeleteVersion() string {
+func (c *Ydb) DeleteVersion(tableName string) string {
 	return fmt.Sprintf(`
 		DELETE FROM %s 
 		WHERE 
 	    	hash = Digest::IntHash64(CAST($1 AS Uint64)) 
 		AND 
 		    version_id = $1;`,
-		c.Table,
+		tableName,
 	)
 }
 
-func (c *Ydb) GetMigrationByVersion() string {
+func (c *Ydb) GetMigrationByVersion(tableName string) string {
 	return fmt.Sprintf(`
 		SELECT tstamp, is_applied 
 		FROM %s 
@@ -59,15 +57,15 @@ func (c *Ydb) GetMigrationByVersion() string {
 		AND 
 		    version_id = $1 
 		ORDER BY tstamp DESC LIMIT 1`,
-		c.Table,
+		tableName,
 	)
 }
 
-func (c *Ydb) ListMigrations() string {
+func (c *Ydb) ListMigrations(tableName string) string {
 	return fmt.Sprintf(`
 		SELECT version_id, is_applied 
 		FROM %s 
 		ORDER BY version_id DESC`,
-		c.Table,
+		tableName,
 	)
 }

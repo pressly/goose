@@ -12,16 +12,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
-          go-version: "1.20.x"
-          check-latest: true
-          cache: true
+          go-version: "stable"
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
           # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
           version: latest
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          args: --timeout=2m --verbose
 
           # Optional: working directory, useful for monorepos
           # working-directory: somedir
@@ -37,7 +37,7 @@ jobs:
           # skip-cache: true
 
           # Optional: if set to true then the action don't cache or restore ~/go/pkg.
-          skip-pkg-cache: true
+          # skip-pkg-cache: true
 
           # Optional: if set to true then the action don't cache or restore ~/.cache/go-build.
           # skip-build-cache: true

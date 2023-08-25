@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"errors"
 	"flag"
 	"fmt"
@@ -27,7 +28,7 @@ var (
 	table        = flags.String("table", "goose_db_version", "migrations table name")
 	verbose      = flags.Bool("v", false, "enable verbose mode")
 	help         = flags.Bool("h", false, "print help")
-	version      = flags.Bool("version", false, "print version")
+	versionFlag  = flags.Bool("version", false, "print version")
 	certfile     = flags.String("certfile", "", "file path to root CA's certificates in pem format (only support on mysql)")
 	sequential   = flags.Bool("s", false, "use sequential numbering for new migrations")
 	allowMissing = flags.Bool("allow-missing", false, "applies missing (out-of-order) migrations")
@@ -36,9 +37,8 @@ var (
 	noVersioning = flags.Bool("no-versioning", false, "apply migration commands with no versioning, in file order, from directory pointed to")
 	noColor      = flags.Bool("no-color", false, "disable color output (NO_COLOR env variable supported)")
 )
-var (
-	gooseVersion = ""
-)
+
+var version string
 
 func main() {
 	flags.Usage = usage
@@ -47,11 +47,12 @@ func main() {
 		return
 	}
 
-	if *version {
-		if buildInfo, ok := debug.ReadBuildInfo(); ok && buildInfo != nil && gooseVersion == "" {
-			gooseVersion = buildInfo.Main.Version
+	if *versionFlag {
+		buildInfo, ok := debug.ReadBuildInfo()
+		if version == "" && ok && buildInfo != nil && buildInfo.Main.Version != "" {
+			version = buildInfo.Main.Version
 		}
-		fmt.Printf("goose version:%s\n", gooseVersion)
+		fmt.Printf("goose version: %s\n", strings.TrimSpace(version))
 		return
 	}
 	if *verbose {
@@ -219,7 +220,7 @@ Examples:
     goose mssql "sqlserver://user:password@dbname:1433?database=master" status
     goose clickhouse "tcp://127.0.0.1:9000" status
     goose vertica "vertica://user:password@localhost:5433/dbname?connection_load_balance=1" status
-    goose ydb "grpcs://localhost:2135/local" status
+    goose ydb "grpcs://localhost:2135/local?query_mode=scripting&go_fake_tx=scripting&go_query_bind=declare,numeric" status
 
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose status
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose create init sql
@@ -243,6 +244,7 @@ Commands:
     version              Print the current version of the database
     create NAME [sql|go] Creates new migration file with the current timestamp
     fix                  Apply sequential ordering to migrations
+    validate             Check migration files without running them
 `
 )
 

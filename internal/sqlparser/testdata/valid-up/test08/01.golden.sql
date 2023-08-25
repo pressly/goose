@@ -1,0 +1,5 @@
+CREATE TABLE `table_a` (
+    `column_1` DATETIME DEFAULT NOW(),
+    `column_2` DATETIME DEFAULT NOW(),
+    `column_3` DATETIME DEFAULT NOW()
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;

@@ -31,8 +31,8 @@ BEGIN
     
     EXECUTE a_output; 
 END; 
-' LANGUAGE 'plpgsql'; -- This comment will NOT be preserved.
--- And neither will this one.
+' LANGUAGE 'plpgsql'; -- This comment WILL BE preserved.
+-- And so will this one.
 -- +goose StatementEnd
 
 -- +goose Down

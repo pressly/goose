@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	store, _ = dialect.NewStore(dialect.Postgres, TableName())
+	store, _ = dialect.NewStore(dialect.Postgres)
 }
 
 var store dialect.Store
@@ -22,7 +22,7 @@ func SetDialect(s string) error {
 		d = dialect.Mysql
 	case "sqlite3", "sqlite":
 		d = dialect.Sqlite3
-	case "mssql":
+	case "mssql", "azuresql", "sqlserver":
 		d = dialect.Sqlserver
 	case "redshift":
 		d = dialect.Redshift
@@ -38,6 +38,6 @@ func SetDialect(s string) error {
 		return fmt.Errorf("%q: unknown dialect", s)
 	}
 	var err error
-	store, err = dialect.NewStore(d, TableName())
+	store, err = dialect.NewStore(d)
 	return err
 }

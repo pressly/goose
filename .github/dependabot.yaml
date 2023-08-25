@@ -13,9 +13,12 @@ updates:
     schedule:
       interval: "weekly"
       day: "saturday"
+    groups:
+      gomod:
+        patterns:
+          - "*"
     assignees:
       - "mfridman"
     ignore:
-      # For deps, ignore all patch updates
       - dependency-name: "*"
         update-types: ["version-update:semver-patch"]

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 
@@ -8,17 +9,17 @@ import (
 )
 
 func init() {
-	goose.AddMigrationNoTx(Up00003, Down00003)
+	goose.AddMigrationNoTxContext(Up00003, Down00003)
 }
 
-func Up00003(db *sql.DB) error {
+func Up00003(ctx context.Context, db *sql.DB) error {
 	id, err := getUserID(db, "jamesbond")
 	if err != nil {
 		return err
 	}
 	if id == 0 {
 		query := "INSERT INTO users (username, name, surname) VALUES ($1, $2, $3)"
-		if _, err := db.Exec(query, "jamesbond", "James", "Bond"); err != nil {
+		if _, err := db.ExecContext(ctx, query, "jamesbond", "James", "Bond"); err != nil {
 			return err
 		}
 	}
@@ -34,9 +35,9 @@ func getUserID(db *sql.DB, username string) (int, error) {
 	return id, nil
 }
 
-func Down00003(db *sql.DB) error {
+func Down00003(ctx context.Context, db *sql.DB) error {
 	query := "DELETE FROM users WHERE username = $1"
-	if _, err := db.Exec(query, "jamesbond"); err != nil {
+	if _, err := db.ExecContext(ctx, query, "jamesbond"); err != nil {
 		return err
 	}
 	return nil

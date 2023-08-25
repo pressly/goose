@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 
 	"github.com/pressly/goose/v3/internal/sqlparser"
 )
@@ -15,7 +14,7 @@ type sqlMigration struct {
 }
 
 func parseSQLFile(r io.Reader, debug bool) (*sqlMigration, error) {
-	by, err := ioutil.ReadAll(r)
+	by, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}

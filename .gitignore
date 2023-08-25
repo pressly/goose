@@ -10,3 +10,6 @@
 # Local testing
 .envrc
 *.FAIL
+
+dist/
+release_notes.txt
