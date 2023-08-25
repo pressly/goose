@@ -78,7 +78,7 @@ Examples:
     goose mssql "sqlserver://user:password@dbname:1433?database=master" status
     goose clickhouse "tcp://127.0.0.1:9000" status
     goose vertica "vertica://user:password@localhost:5433/dbname?connection_load_balance=1" status
-    goose ydb "grpcs://localhost:2135/local" status
+    goose ydb "grpcs://localhost:2135/local?query_mode=scripting&go_fake_tx=scripting&go_query_bind=declare,numeric" status
 
 Options:
 
