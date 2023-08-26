@@ -304,15 +304,12 @@ func sortAndConnectMigrations(migrations Migrations) Migrations {
 }
 
 func versionFilter(v, current, target int64) bool {
-
 	if target > current {
 		return v > current && v <= target
 	}
-
 	if target < current {
 		return v <= current && v > target
 	}
-
 	return false
 }
 

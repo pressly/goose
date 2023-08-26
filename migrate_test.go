@@ -173,6 +173,8 @@ func TestCollectMigrations(t *testing.T) {
 		check.Number(t, all[0].Version, 1)
 		check.Bool(t, all[0].Registered, true)
 		check.Number(t, all[1].Version, 998)
+		// This migrations is marked unregistered and will lazily raise an error if/when this
+		// migration is run
 		check.Bool(t, all[1].Registered, false)
 		check.Number(t, all[2].Version, 999)
 		check.Bool(t, all[2].Registered, true)
@@ -200,6 +202,34 @@ func TestCollectMigrations(t *testing.T) {
 	})
 }
 
+func TestVersionFilter(t *testing.T) {
+	tests := []struct {
+		v       int64
+		current int64
+		target  int64
+		want    bool
+	}{
+		{2, 1, 3, true},  // v is within the range
+		{4, 1, 3, false}, // v is outside the range
+		{2, 3, 1, true},  // v is within the reversed range
+		{4, 3, 1, false}, // v is outside the reversed range
+		{3, 1, 3, true},  // v is equal to target
+		{1, 1, 3, false}, // v is equal to current, not within the range
+		{1, 3, 1, false}, // v is equal to current, not within the reversed range
+		// Always return false if current equal target
+		{1, 2, 2, false},
+		{2, 2, 2, false},
+		{3, 2, 2, false},
+	}
+	for _, tc := range tests {
+		t.Run("", func(t *testing.T) {
+			got := versionFilter(tc.v, tc.current, tc.target)
+			if got != tc.want {
+				t.Errorf("versionFilter(%d, %d, %d) = %v, want %v", tc.v, tc.current, tc.target, got, tc.want)
+			}
+		})
+	}
+}
 func createEmptyFile(t *testing.T, dir, name string) {
 	path := filepath.Join(dir, name)
 	f, err := os.Create(path)
