@@ -1,6 +1,7 @@
 package goose
 
 import (
+	"io/fs"
 	"math"
 	"os"
 	"path/filepath"
@@ -75,6 +76,7 @@ func TestCollectMigrations(t *testing.T) {
 	t.Run("filesystem_registered_with_single_dirpath", func(t *testing.T) {
 		t.Cleanup(func() { clearMap(registeredGoMigrations) })
 		file1, file2 := "09081_a.go", "09082_b.go"
+		file3, file4 := "19081_a.go", "19082_b.go"
 		AddNamedMigrationContext(file1, nil, nil)
 		AddNamedMigrationContext(file2, nil, nil)
 		check.Number(t, len(registeredGoMigrations), 2)
@@ -84,12 +86,19 @@ func TestCollectMigrations(t *testing.T) {
 		check.NoError(t, err)
 		createEmptyFile(t, dir, file1)
 		createEmptyFile(t, dir, file2)
+		createEmptyFile(t, dir, file3)
+		createEmptyFile(t, dir, file4)
 		fsys := os.DirFS(tmp)
+		files, err := fs.ReadDir(fsys, "migrations/dir1")
+		check.NoError(t, err)
+		check.Number(t, len(files), 4)
 		all, err := collectMigrationsFS(fsys, "migrations/dir1", 0, math.MaxInt64, registeredGoMigrations)
 		check.NoError(t, err)
-		check.Number(t, len(all), 2)
+		check.Number(t, len(all), 4)
 		check.Number(t, all[0].Version, 9081)
 		check.Number(t, all[1].Version, 9082)
+		check.Number(t, all[2].Version, 19081)
+		check.Number(t, all[3].Version, 19082)
 	})
 	t.Run("filesystem_registered_with_multiple_dirpath", func(t *testing.T) {
 		t.Cleanup(func() { clearMap(registeredGoMigrations) })
@@ -167,6 +176,27 @@ func TestCollectMigrations(t *testing.T) {
 		check.Bool(t, all[1].Registered, false)
 		check.Number(t, all[2].Version, 999)
 		check.Bool(t, all[2].Registered, true)
+	})
+	t.Run("with_skipped_go_files", func(t *testing.T) {
+		t.Cleanup(func() { clearMap(registeredGoMigrations) })
+		file1, file2, file3, file4 := "00001_a.go", "00002_b.sql", "00999_c_test.go", "embed.go"
+		AddNamedMigrationContext(file1, nil, nil)
+		check.Number(t, len(registeredGoMigrations), 1)
+		tmp := t.TempDir()
+		dir1 := filepath.Join(tmp, "migrations", "dir1")
+		err := os.MkdirAll(dir1, 0755)
+		check.NoError(t, err)
+		createEmptyFile(t, dir1, file1)
+		createEmptyFile(t, dir1, file2)
+		createEmptyFile(t, dir1, file3)
+		createEmptyFile(t, dir1, file4)
+		all, err := collectMigrationsFS(os.DirFS(tmp), "migrations/dir1", 0, math.MaxInt64, registeredGoMigrations)
+		check.NoError(t, err)
+		check.Number(t, len(all), 2)
+		check.Number(t, all[0].Version, 1)
+		check.Bool(t, all[0].Registered, true)
+		check.Number(t, all[1].Version, 2)
+		check.Bool(t, all[1].Registered, false)
 	})
 }
 
