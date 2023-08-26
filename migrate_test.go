@@ -203,6 +203,8 @@ func TestCollectMigrations(t *testing.T) {
 }
 
 func TestVersionFilter(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		v       int64
 		current int64
