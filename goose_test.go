@@ -8,226 +8,159 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
-	"strings"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/pressly/goose/v3/internal/check"
 	_ "modernc.org/sqlite"
 )
 
 const (
-	binName = "goose-test"
+	// gooseTestBinaryVersion is employed with a linker variable to define the version of the binary
+	// constructed specifically for testing purposes. It is used to test the --version flag.
+	gooseTestBinaryVersion = "v0.0.0"
 )
 
-func TestMain(m *testing.M) {
-	if runtime.GOOS == "windows" {
-		log.Fatalf("this test is not supported on Windows")
-	}
-	dir, err := os.Getwd()
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-	args := []string{
-		"build",
-		"-ldflags=-s -w",
-		// disable all drivers except sqlite3
-		"-tags=no_clickhouse no_mssql no_mysql no_vertica no_postgres",
-		"-o", binName,
-		"./cmd/goose",
-	}
-	build := exec.Command("go", args...)
-	out, err := build.CombinedOutput()
-	if err != nil {
-		log.Fatalf("failed to build %s binary: %v: %s", binName, err, string(out))
-	}
-	result := m.Run()
-	defer func() { os.Exit(result) }()
-	if err := os.Remove(filepath.Join(dir, binName)); err != nil {
-		log.Printf("failed to remove binary: %v", err)
-	}
+func TestFullBinary(t *testing.T) {
+	t.Parallel()
+	cli := buildGooseCLI(t)
+	out, err := cli.run("--version")
+	check.NoError(t, err)
+	check.Equal(t, out, "goose version: "+gooseTestBinaryVersion+"\n")
 }
 
-func TestDefaultBinary(t *testing.T) {
+func TestBinary(t *testing.T) {
 	t.Parallel()
+	cli := buildGooseCLI(t)
 
-	commands := []string{
-		"go build -o ./bin/goose ./cmd/goose",
-		"./bin/goose -dir=examples/sql-migrations sqlite3 sql.db up",
-		"./bin/goose -dir=examples/sql-migrations sqlite3 sql.db version",
-		"./bin/goose -dir=examples/sql-migrations sqlite3 sql.db down",
-		"./bin/goose -dir=examples/sql-migrations sqlite3 sql.db status",
-		"./bin/goose --version",
-	}
-	t.Cleanup(func() {
-		if err := os.Remove("./bin/goose"); err != nil {
-			t.Logf("failed to remove %s resources: %v", t.Name(), err)
-		}
-		if err := os.Remove("./sql.db"); err != nil {
-			t.Logf("failed to remove %s resources: %v", t.Name(), err)
-		}
-	})
-
-	for _, cmd := range commands {
-		args := strings.Split(cmd, " ")
-		command := args[0]
-		var params []string
-		if len(args) > 1 {
-			params = args[1:]
-		}
-
-		cmd := exec.Command(command, params...)
-		cmd.Env = os.Environ()
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			t.Fatalf("%s:\n%v\n\n%s", err, cmd, out)
-		}
-	}
-}
-
-func TestIssue532(t *testing.T) {
-	t.Parallel()
-
-	migrationsDir := filepath.Join("examples", "sql-migrations")
-	count := countSQLFiles(t, migrationsDir)
-	check.Number(t, count, 3)
-
-	tempDir := t.TempDir()
-	dirFlag := "--dir=" + migrationsDir
-
-	tt := []struct {
-		command string
-		output  string
-	}{
-		{"up", ""},
-		{"up", "goose: no migrations to run. current version: 3"},
-		{"version", "goose: version 3"},
-	}
-	for _, tc := range tt {
-		params := []string{dirFlag, "sqlite3", filepath.Join(tempDir, "sql.db"), tc.command}
-		got, err := runGoose(params...)
+	t.Run("binary_version", func(t *testing.T) {
+		t.Parallel()
+		out, err := cli.run("--version")
 		check.NoError(t, err)
-		if tc.output == "" {
-			continue
-		}
-		if !strings.Contains(strings.TrimSpace(got), tc.output) {
-			t.Logf("output mismatch for command: %q", tc.command)
-			t.Logf("got\n%s", strings.TrimSpace(got))
-			t.Log("====")
-			t.Logf("want\n%s", tc.output)
-			t.FailNow()
-		}
-	}
-}
+		check.Equal(t, out, "goose version: "+gooseTestBinaryVersion+"\n")
+	})
+	t.Run("default_binary", func(t *testing.T) {
+		t.Parallel()
+		dir := t.TempDir()
+		total := countSQLFiles(t, "testdata/migrations")
 
-func TestIssue293(t *testing.T) {
-	t.Parallel()
-	// https://github.com/pressly/goose/issues/293
-	commands := []string{
-		"go build -o ./bin/goose293 ./cmd/goose",
-		"./bin/goose293 -dir=examples/sql-migrations sqlite3 issue_293.db up",
-		"./bin/goose293 -dir=examples/sql-migrations sqlite3 issue_293.db version",
-		"./bin/goose293 -dir=examples/sql-migrations sqlite3 issue_293.db down",
-		"./bin/goose293 -dir=examples/sql-migrations sqlite3 issue_293.db down",
-		"./bin/goose293 -dir=examples/sql-migrations sqlite3 issue_293.db version",
-		"./bin/goose293 -dir=examples/sql-migrations sqlite3 issue_293.db up",
-		"./bin/goose293 -dir=examples/sql-migrations sqlite3 issue_293.db status",
-	}
-	t.Cleanup(func() {
-		if err := os.Remove("./bin/goose293"); err != nil {
-			t.Logf("failed to remove %s resources: %v", t.Name(), err)
+		commands := []struct {
+			cmd string
+			out string
+		}{
+			{"up", "goose: successfully migrated database to version: " + strconv.Itoa(total)},
+			{"version", "goose: version " + strconv.Itoa(total)},
+			{"down", "OK"},
+			{"version", "goose: version " + strconv.Itoa(total-1)},
+			{"status", ""},
+			{"reset", "OK"},
+			{"version", "goose: version 0"},
 		}
-		if err := os.Remove("./issue_293.db"); err != nil {
-			t.Logf("failed to remove %s resources: %v", t.Name(), err)
+		for _, c := range commands {
+			out, err := cli.run("-dir=testdata/migrations", "sqlite3", filepath.Join(dir, "sql.db"), c.cmd)
+			check.NoError(t, err)
+			check.Contains(t, out, c.out)
 		}
 	})
-	for _, cmd := range commands {
-		args := strings.Split(cmd, " ")
-		command := args[0]
-		var params []string
-		if len(args) > 1 {
-			params = args[1:]
+	t.Run("gh_issue_532", func(t *testing.T) {
+		// https://github.com/pressly/goose/issues/532
+		t.Parallel()
+		dir := t.TempDir()
+		total := countSQLFiles(t, "testdata/migrations")
+		_, err := cli.run("-dir=testdata/migrations", "sqlite3", filepath.Join(dir, "sql.db"), "up")
+		check.NoError(t, err)
+		out, err := cli.run("-dir=testdata/migrations", "sqlite3", filepath.Join(dir, "sql.db"), "up")
+		check.NoError(t, err)
+		check.Contains(t, out, "goose: no migrations to run. current version: "+strconv.Itoa(total))
+		out, err = cli.run("-dir=testdata/migrations", "sqlite3", filepath.Join(dir, "sql.db"), "version")
+		check.NoError(t, err)
+		check.Contains(t, out, "goose: version "+strconv.Itoa(total))
+	})
+	t.Run("gh_issue_293", func(t *testing.T) {
+		// https://github.com/pressly/goose/issues/293
+		t.Parallel()
+		dir := t.TempDir()
+		total := countSQLFiles(t, "testdata/migrations")
+		commands := []struct {
+			cmd string
+			out string
+		}{
+			{"up", "goose: successfully migrated database to version: " + strconv.Itoa(total)},
+			{"version", "goose: version " + strconv.Itoa(total)},
+			{"down", "OK"},
+			{"down", "OK"},
+			{"version", "goose: version " + strconv.Itoa(total-2)},
+			{"up", "goose: successfully migrated database to version: " + strconv.Itoa(total)},
+			{"status", ""},
 		}
-
-		cmd := exec.Command(command, params...)
-		cmd.Env = os.Environ()
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			t.Fatalf("%s:\n%v\n\n%s", err, cmd, out)
-		}
-	}
-}
-
-func TestIssue336(t *testing.T) {
-	t.Parallel()
-	// error when no migrations are found
-	// https://github.com/pressly/goose/issues/336
-
-	tempDir := t.TempDir()
-	params := []string{"--dir=" + tempDir, "sqlite3", filepath.Join(tempDir, "sql.db"), "up"}
-
-	_, err := runGoose(params...)
-	check.HasError(t, err)
-	check.Contains(t, err.Error(), "no migration files found")
-}
-
-func TestLiteBinary(t *testing.T) {
-	t.Parallel()
-
-	dir := t.TempDir()
-	t.Cleanup(func() {
-		if err := os.Remove("./bin/lite-goose"); err != nil {
-			t.Logf("failed to remove %s resources: %v", t.Name(), err)
+		for _, c := range commands {
+			out, err := cli.run("-dir=testdata/migrations", "sqlite3", filepath.Join(dir, "sql.db"), c.cmd)
+			check.NoError(t, err)
+			check.Contains(t, out, c.out)
 		}
 	})
-
-	// this has to be done outside of the loop
-	// since go only supports space separated tags list.
-	cmd := exec.Command("go", "build", "-tags='no_postgres no_mysql no_sqlite3'", "-o", "./bin/lite-goose", "./cmd/goose")
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("%s:\n%v\n\n%s", err, cmd, out)
-	}
-
-	commands := []string{
-		fmt.Sprintf("./bin/lite-goose -dir=%s create user_indices sql", dir),
-		fmt.Sprintf("./bin/lite-goose -dir=%s fix", dir),
-	}
-
-	for _, cmd := range commands {
-		args := strings.Split(cmd, " ")
-		cmd := exec.Command(args[0], args[1:]...)
-		cmd.Env = os.Environ()
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			t.Fatalf("%s:\n%v\n\n%s", err, cmd, out)
+	t.Run("gh_issue_336", func(t *testing.T) {
+		// https://github.com/pressly/goose/issues/336
+		t.Parallel()
+		dir := t.TempDir()
+		_, err := cli.run("-dir="+dir, "sqlite3", filepath.Join(dir, "sql.db"), "up")
+		check.HasError(t, err)
+		check.Contains(t, err.Error(), "goose run: no migration files found")
+	})
+	t.Run("create_and_fix", func(t *testing.T) {
+		t.Parallel()
+		dir := t.TempDir()
+		createEmptyFile(t, dir, "00001_alpha.sql")
+		createEmptyFile(t, dir, "00003_bravo.sql")
+		createEmptyFile(t, dir, "20230826163141_charlie.sql")
+		createEmptyFile(t, dir, "20230826163151_delta.go")
+		total, err := os.ReadDir(dir)
+		check.NoError(t, err)
+		check.Number(t, len(total), 4)
+		migrationFiles := []struct {
+			name     string
+			fileType string
+		}{
+			{"echo", "sql"},
+			{"foxtrot", "go"},
+			{"golf", ""},
 		}
-	}
-}
-
-func TestCustomBinary(t *testing.T) {
-	t.Parallel()
-
-	commands := []string{
-		"go build -o ./bin/custom-goose ./examples/go-migrations",
-		"./bin/custom-goose -dir=examples/go-migrations sqlite3 go.db up",
-		"./bin/custom-goose -dir=examples/go-migrations sqlite3 go.db version",
-		"./bin/custom-goose -dir=examples/go-migrations sqlite3 go.db down",
-		"./bin/custom-goose -dir=examples/go-migrations sqlite3 go.db status",
-	}
-	t.Cleanup(func() {
-		if err := os.Remove("./go.db"); err != nil {
-			t.Logf("failed to remove %s resources: %v", t.Name(), err)
+		for i, f := range migrationFiles {
+			args := []string{"-dir=" + dir, "create", f.name}
+			if f.fileType != "" {
+				args = append(args, f.fileType)
+			}
+			out, err := cli.run(args...)
+			check.NoError(t, err)
+			check.Contains(t, out, "Created new file")
+			// ensure different timestamps, granularity is 1 second
+			if i < len(migrationFiles)-1 {
+				time.Sleep(1100 * time.Millisecond)
+			}
+		}
+		total, err = os.ReadDir(dir)
+		check.NoError(t, err)
+		check.Number(t, len(total), 7)
+		out, err := cli.run("-dir="+dir, "fix")
+		check.NoError(t, err)
+		check.Contains(t, out, "RENAMED")
+		files, err := os.ReadDir(dir)
+		check.NoError(t, err)
+		check.Number(t, len(files), 7)
+		expected := []string{
+			"00001_alpha.sql",
+			"00003_bravo.sql",
+			"00004_charlie.sql",
+			"00005_delta.go",
+			"00006_echo.sql",
+			"00007_foxtrot.go",
+			"00008_golf.go",
+		}
+		for i, f := range files {
+			check.Equal(t, f.Name(), expected[i])
 		}
 	})
-
-	for _, cmd := range commands {
-		args := strings.Split(cmd, " ")
-		out, err := exec.Command(args[0], args[1:]...).CombinedOutput()
-		if err != nil {
-			t.Fatalf("%s:\n%v\n\n%s", err, cmd, out)
-		}
-	}
 }
 
 //go:embed examples/sql-migrations/*.sql
@@ -308,18 +241,60 @@ func TestEmbeddedMigrations(t *testing.T) {
 	})
 }
 
-func runGoose(params ...string) (string, error) {
-	dir, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-	cmdPath := filepath.Join(dir, binName)
-	cmd := exec.Command(cmdPath, params...)
+type gooseBinary struct {
+	binaryPath string
+}
+
+func (g gooseBinary) run(params ...string) (string, error) {
+	cmd := exec.Command(g.binaryPath, params...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("%v\n%v", err, string(out))
+		return "", fmt.Errorf("failed to run goose command: %v\nout: %v", err, string(out))
 	}
 	return string(out), nil
+}
+
+func buildGooseCLI(t *testing.T) gooseBinary {
+	binName := "goose-test"
+	dir := t.TempDir()
+	output := filepath.Join(dir, binName)
+	args := []string{
+		"build",
+		"-ldflags=-s -w -X main.version=" + gooseTestBinaryVersion,
+		"-o", output,
+		"./cmd/goose",
+	}
+	build := exec.Command("go", args...)
+	out, err := build.CombinedOutput()
+	if err != nil {
+		t.Fatalf("failed to build %s binary: %v: %s", binName, err, string(out))
+	}
+	return gooseBinary{
+		binaryPath: output,
+	}
+}
+
+// buildLiteGooseCLI builds goose binary with all drivers disabled except sqlite3
+func buildLiteGooseCLI(t *testing.T) gooseBinary {
+	binName := "goose-test"
+	dir := t.TempDir()
+	output := filepath.Join(dir, binName)
+	args := []string{
+		"build",
+		"-ldflags=-s -w -X main.version=" + gooseTestBinaryVersion,
+		// disable all drivers except sqlite3
+		"-tags=no_clickhouse no_mssql no_mysql no_vertica no_postgres",
+		"-o", output,
+		"./cmd/goose",
+	}
+	build := exec.Command("go", args...)
+	out, err := build.CombinedOutput()
+	if err != nil {
+		t.Fatalf("failed to build lite %s binary: %v: %s", binName, err, string(out))
+	}
+	return gooseBinary{
+		binaryPath: output,
+	}
 }
 
 func countSQLFiles(t *testing.T, dir string) int {
@@ -327,4 +302,12 @@ func countSQLFiles(t *testing.T, dir string) int {
 	files, err := filepath.Glob(filepath.Join(dir, "*.sql"))
 	check.NoError(t, err)
 	return len(files)
+}
+
+func createEmptyFile(t *testing.T, dir, name string) {
+	t.Helper()
+	path := filepath.Join(dir, name)
+	f, err := os.Create(path)
+	check.NoError(t, err)
+	defer f.Close()
 }
