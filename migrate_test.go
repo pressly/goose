@@ -1,7 +1,12 @@
 package goose
 
 import (
+	"math"
+	"os"
+	"path/filepath"
 	"testing"
+
+	"github.com/pressly/goose/v3/internal/check"
 )
 
 func TestMigrationSort(t *testing.T) {
@@ -55,4 +60,121 @@ func validateMigrationSort(t *testing.T, ms Migrations, sorted []int64) {
 	}
 
 	t.Log(ms)
+}
+
+func TestCollectMigrations(t *testing.T) {
+	// Not safe to run in parallel
+	t.Run("no_migration_files_found", func(t *testing.T) {
+		tmp := t.TempDir()
+		err := os.MkdirAll(filepath.Join(tmp, "migrations-test"), 0755)
+		check.NoError(t, err)
+		_, err = collectMigrationsFS(os.DirFS(tmp), "migrations-test", 0, math.MaxInt64, nil)
+		check.HasError(t, err)
+		check.Contains(t, err.Error(), "no migration files found")
+	})
+	t.Run("filesystem_registered_with_single_dirpath", func(t *testing.T) {
+		t.Cleanup(func() { clearMap(registeredGoMigrations) })
+		file1, file2 := "09081_a.go", "09082_b.go"
+		AddNamedMigrationContext(file1, nil, nil)
+		AddNamedMigrationContext(file2, nil, nil)
+		check.Number(t, len(registeredGoMigrations), 2)
+		tmp := t.TempDir()
+		dir := filepath.Join(tmp, "migrations", "dir1")
+		err := os.MkdirAll(dir, 0755)
+		check.NoError(t, err)
+		createEmptyFile(t, dir, file1)
+		createEmptyFile(t, dir, file2)
+		fsys := os.DirFS(tmp)
+		all, err := collectMigrationsFS(fsys, "migrations/dir1", 0, math.MaxInt64, registeredGoMigrations)
+		check.NoError(t, err)
+		check.Number(t, len(all), 2)
+		check.Number(t, all[0].Version, 9081)
+		check.Number(t, all[1].Version, 9082)
+	})
+	t.Run("filesystem_registered_with_multiple_dirpath", func(t *testing.T) {
+		t.Cleanup(func() { clearMap(registeredGoMigrations) })
+		file1, file2, file3 := "00001_a.go", "00002_b.go", "01111_c.go"
+		AddNamedMigrationContext(file1, nil, nil)
+		AddNamedMigrationContext(file2, nil, nil)
+		AddNamedMigrationContext(file3, nil, nil)
+		check.Number(t, len(registeredGoMigrations), 3)
+		tmp := t.TempDir()
+		dir1 := filepath.Join(tmp, "migrations", "dir1")
+		dir2 := filepath.Join(tmp, "migrations", "dir2")
+		err := os.MkdirAll(dir1, 0755)
+		check.NoError(t, err)
+		err = os.MkdirAll(dir2, 0755)
+		check.NoError(t, err)
+		createEmptyFile(t, dir1, file1)
+		createEmptyFile(t, dir1, file2)
+		createEmptyFile(t, dir2, file3)
+		fsys := os.DirFS(tmp)
+		// Validate if dirpath 1 is specified we get the two Go migrations in migrations/dir1 folder
+		// even though 3 Go migrations have been registered.
+		{
+			all, err := collectMigrationsFS(fsys, "migrations/dir1", 0, math.MaxInt64, registeredGoMigrations)
+			check.NoError(t, err)
+			check.Number(t, len(all), 2)
+			check.Number(t, all[0].Version, 1)
+			check.Number(t, all[1].Version, 2)
+		}
+		// Validate if dirpath 2 is specified we only get the one Go migration in migrations/dir2 folder
+		// even though 3 Go migrations have been registered.
+		{
+			all, err := collectMigrationsFS(fsys, "migrations/dir2", 0, math.MaxInt64, registeredGoMigrations)
+			check.NoError(t, err)
+			check.Number(t, len(all), 1)
+			check.Number(t, all[0].Version, 1111)
+		}
+	})
+	t.Run("empty_filesystem_registered_manually", func(t *testing.T) {
+		t.Cleanup(func() { clearMap(registeredGoMigrations) })
+		AddNamedMigrationContext("00101_a.go", nil, nil)
+		AddNamedMigrationContext("00102_b.go", nil, nil)
+		check.Number(t, len(registeredGoMigrations), 2)
+		tmp := t.TempDir()
+		err := os.MkdirAll(filepath.Join(tmp, "migrations"), 0755)
+		check.NoError(t, err)
+		all, err := collectMigrationsFS(os.DirFS(tmp), "migrations", 0, math.MaxInt64, registeredGoMigrations)
+		check.NoError(t, err)
+		check.Number(t, len(all), 2)
+		check.Number(t, all[0].Version, 101)
+		check.Number(t, all[1].Version, 102)
+	})
+	t.Run("unregistered_go_migrations", func(t *testing.T) {
+		t.Cleanup(func() { clearMap(registeredGoMigrations) })
+		file1, file2, file3 := "00001_a.go", "00998_b.go", "00999_c.go"
+		// Only register file1 and file3, somehow user forgot to init in the
+		// valid looking file2 Go migration
+		AddNamedMigrationContext(file1, nil, nil)
+		AddNamedMigrationContext(file3, nil, nil)
+		check.Number(t, len(registeredGoMigrations), 2)
+		tmp := t.TempDir()
+		dir1 := filepath.Join(tmp, "migrations", "dir1")
+		err := os.MkdirAll(dir1, 0755)
+		check.NoError(t, err)
+		// Include the valid file2 with file1, file3. But remember, it has NOT been
+		// registered.
+		createEmptyFile(t, dir1, file1)
+		createEmptyFile(t, dir1, file2)
+		createEmptyFile(t, dir1, file3)
+		_, err = collectMigrationsFS(os.DirFS(tmp), "migrations/dir1", 0, math.MaxInt64, registeredGoMigrations)
+		check.HasError(t, err)
+		check.Contains(t, err.Error(), "detected 1 unregistered Go file")
+		check.Contains(t, err.Error(), "migrations/dir1/00998_b.go")
+		check.Contains(t, err.Error(), "go functions must be registered and built into a custom binary")
+	})
+}
+
+func createEmptyFile(t *testing.T, dir, name string) {
+	path := filepath.Join(dir, name)
+	f, err := os.Create(path)
+	check.NoError(t, err)
+	defer f.Close()
+}
+
+func clearMap(m map[int64]*Migration) {
+	for k := range m {
+		delete(m, k)
+	}
 }
