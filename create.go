@@ -30,7 +30,7 @@ func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, m
 
 	if sequential {
 		// always use DirFS here because it's modifying operation
-		migrations, err := collectMigrationsFS(osFS{}, dir, minVersion, maxVersion)
+		migrations, err := collectMigrationsFS(osFS{}, dir, minVersion, maxVersion, registeredGoMigrations)
 		if err != nil && !errors.Is(err, ErrNoMigrationFiles) {
 			return err
 		}
