@@ -17,14 +17,14 @@ import (
 )
 
 const (
-	// gooseTestBinaryVersion is employed with a linker variable to define the version of the binary
-	// constructed specifically for testing purposes. It is used to test the --version flag.
+	// gooseTestBinaryVersion is utilized in conjunction with a linker variable to set the version
+	// of a binary created solely for testing purposes. It is used to test the --version flag.
 	gooseTestBinaryVersion = "v0.0.0"
 )
 
 func TestFullBinary(t *testing.T) {
 	t.Parallel()
-	cli := buildGooseCLI(t)
+	cli := buildGooseCLI(t, false)
 	out, err := cli.run("--version")
 	check.NoError(t, err)
 	check.Equal(t, out, "goose version: "+gooseTestBinaryVersion+"\n")
@@ -32,7 +32,7 @@ func TestFullBinary(t *testing.T) {
 
 func TestLiteBinary(t *testing.T) {
 	t.Parallel()
-	cli := buildLiteGooseCLI(t)
+	cli := buildGooseCLI(t, true)
 
 	t.Run("binary_version", func(t *testing.T) {
 		t.Parallel()
@@ -254,43 +254,26 @@ func (g gooseBinary) run(params ...string) (string, error) {
 	return string(out), nil
 }
 
-func buildGooseCLI(t *testing.T) gooseBinary {
+// buildGooseCLI builds goose test binary, which is used for testing goose CLI. It is built with all
+// drivers enabled, unless lite is true, in which case all drivers are disabled except sqlite3
+func buildGooseCLI(t *testing.T, lite bool) gooseBinary {
 	binName := "goose-test"
 	dir := t.TempDir()
 	output := filepath.Join(dir, binName)
+	// usage: go build [-o output] [build flags] [packages]
 	args := []string{
 		"build",
-		"-ldflags=-s -w -X main.version=" + gooseTestBinaryVersion,
 		"-o", output,
-		"./cmd/goose",
+		"-ldflags=-s -w -X main.version=" + gooseTestBinaryVersion,
 	}
+	if lite {
+		args = append(args, "-tags=no_clickhouse no_mssql no_mysql no_vertica no_postgres")
+	}
+	args = append(args, "./cmd/goose")
 	build := exec.Command("go", args...)
 	out, err := build.CombinedOutput()
 	if err != nil {
 		t.Fatalf("failed to build %s binary: %v: %s", binName, err, string(out))
-	}
-	return gooseBinary{
-		binaryPath: output,
-	}
-}
-
-// buildLiteGooseCLI builds goose binary with all drivers disabled except sqlite3
-func buildLiteGooseCLI(t *testing.T) gooseBinary {
-	binName := "goose-test"
-	dir := t.TempDir()
-	output := filepath.Join(dir, binName)
-	args := []string{
-		"build",
-		"-ldflags=-s -w -X main.version=" + gooseTestBinaryVersion,
-		// disable all drivers except sqlite3
-		"-tags=no_clickhouse no_mssql no_mysql no_vertica no_postgres",
-		"-o", output,
-		"./cmd/goose",
-	}
-	build := exec.Command("go", args...)
-	out, err := build.CombinedOutput()
-	if err != nil {
-		t.Fatalf("failed to build lite %s binary: %v: %s", binName, err, string(out))
 	}
 	return gooseBinary{
 		binaryPath: output,
