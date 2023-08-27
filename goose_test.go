@@ -30,9 +30,9 @@ func TestFullBinary(t *testing.T) {
 	check.Equal(t, out, "goose version: "+gooseTestBinaryVersion+"\n")
 }
 
-func TestBinary(t *testing.T) {
+func TestLiteBinary(t *testing.T) {
 	t.Parallel()
-	cli := buildGooseCLI(t)
+	cli := buildLiteGooseCLI(t)
 
 	t.Run("binary_version", func(t *testing.T) {
 		t.Parallel()
