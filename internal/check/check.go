@@ -73,7 +73,7 @@ func Bool(t *testing.T, got, want bool) {
 func Contains(t *testing.T, got, want string) {
 	t.Helper()
 	if !strings.Contains(got, want) {
-		t.Errorf("failed to find substring %q in string value %q", got, want)
+		t.Errorf("failed to find substring:\n%s\n\nin string value:\n%s", got, want)
 	}
 }
 
