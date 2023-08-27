@@ -200,6 +200,25 @@ func TestCollectMigrations(t *testing.T) {
 		check.Number(t, all[1].Version, 2)
 		check.Bool(t, all[1].Registered, false)
 	})
+	t.Run("current_and_target", func(t *testing.T) {
+		t.Cleanup(func() { clearMap(registeredGoMigrations) })
+		file1, file2, file3 := "01001_a.go", "01002_b.sql", "01003_c.go"
+		AddNamedMigrationContext(file1, nil, nil)
+		AddNamedMigrationContext(file3, nil, nil)
+		check.Number(t, len(registeredGoMigrations), 2)
+		tmp := t.TempDir()
+		dir1 := filepath.Join(tmp, "migrations", "dir1")
+		err := os.MkdirAll(dir1, 0755)
+		check.NoError(t, err)
+		createEmptyFile(t, dir1, file1)
+		createEmptyFile(t, dir1, file2)
+		createEmptyFile(t, dir1, file3)
+		all, err := collectMigrationsFS(os.DirFS(tmp), "migrations/dir1", 1001, 1003, registeredGoMigrations)
+		check.NoError(t, err)
+		check.Number(t, len(all), 2)
+		check.Number(t, all[0].Version, 1002)
+		check.Number(t, all[1].Version, 1003)
+	})
 }
 
 func TestVersionFilter(t *testing.T) {
