@@ -17,8 +17,6 @@ import (
 )
 
 func TestMigrateUpWithReset(t *testing.T) {
-	t.Parallel()
-
 	db, extraNativeDriver, cleanup, err := testdb.NewYdbWithNative()
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
@@ -58,8 +56,6 @@ func TestMigrateUpWithReset(t *testing.T) {
 }
 
 func TestMigrateUpWithRedo(t *testing.T) {
-	t.Parallel()
-
 	db, extraNativeDriver, cleanup, err := testdb.NewYdbWithNative()
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
@@ -101,8 +97,6 @@ func TestMigrateUpWithRedo(t *testing.T) {
 }
 
 func TestMigrateUpTo(t *testing.T) {
-	t.Parallel()
-
 	db, extraNativeDriver, cleanup, err := testdb.NewYdbWithNative()
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
@@ -136,8 +130,6 @@ func TestMigrateUpTo(t *testing.T) {
 }
 
 func TestMigrateUpByOne(t *testing.T) {
-	t.Parallel()
-
 	db, extraNativeDriver, cleanup, err := testdb.NewYdbWithNative()
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
@@ -176,8 +168,6 @@ func TestMigrateUpByOne(t *testing.T) {
 }
 
 func TestMigrateFull(t *testing.T) {
-	t.Parallel()
-
 	db, extraNativeDriver, cleanup, err := testdb.NewYdbWithNative()
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
