@@ -29,6 +29,7 @@ func TestMigrateUpWithReset(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	err = goose.SetDialect("ydb")
+	check.NoError(t, err)
 
 	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
 	check.NoError(t, err)
@@ -69,6 +70,7 @@ func TestMigrateUpWithRedo(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	err = goose.SetDialect("ydb")
+	check.NoError(t, err)
 
 	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
 	check.NoError(t, err)
@@ -111,6 +113,7 @@ func TestMigrateUpTo(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	err = goose.SetDialect("ydb")
+	check.NoError(t, err)
 
 	const (
 		upToVersion int64 = 2
@@ -145,6 +148,7 @@ func TestMigrateUpByOne(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	err = goose.SetDialect("ydb")
+	check.NoError(t, err)
 
 	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
 	check.NoError(t, err)
@@ -184,6 +188,7 @@ func TestMigrateFull(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	err = goose.SetDialect("ydb")
+	check.NoError(t, err)
 	knownTables := map[string]struct{}{
 		"goose_db_version": {},
 		"issues":           {},
