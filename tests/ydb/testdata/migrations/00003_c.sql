@@ -8,5 +8,6 @@ VALUES (1, 'james/rover', 3), (2, 'pressly/goose', 4);
 
 -- +goose Down
 -- +goose StatementBegin
-DELETE FROM owners WHERE owner_name IN ('james', 'pressly');
+DELETE FROM owners WHERE (owner_id = 3 OR owner_id = 4);
+DELETE FROM repos WHERE (repo_id = 1 OR repo_id = 2);
 -- +goose StatementEnd

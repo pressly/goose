@@ -25,7 +25,7 @@ const (
 	YDB_DATABASE = "local"
 )
 
-func newYdb(opts ...OptionsFunc) (*sql.DB, func(), error) {
+func newYdbWIthNative(opts ...OptionsFunc) (*sql.DB, *ydb.Driver, func(), error) {
 	option := &options{}
 	for _, f := range opts {
 		f(option)
@@ -33,7 +33,7 @@ func newYdb(opts ...OptionsFunc) (*sql.DB, func(), error) {
 	// Uses a sensible default on windows (tcp/http) and linux/osx (socket).
 	pool, err := dockertest.NewPool("")
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	runOptions := &dockertest.RunOptions{
 		Repository: YDB_IMAGE,
@@ -69,7 +69,7 @@ func newYdb(opts ...OptionsFunc) (*sql.DB, func(), error) {
 		},
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	cleanup := func() {
 
@@ -89,6 +89,7 @@ func newYdb(opts ...OptionsFunc) (*sql.DB, func(), error) {
 	)
 
 	var db *sql.DB
+	var extraNativeDriver *ydb.Driver
 	// Exponential backoff-retry, because the application in the container
 	// might not be ready to accept connections yet.
 	if err := pool.Retry(func() (err error) {
@@ -105,6 +106,16 @@ func newYdb(opts ...OptionsFunc) (*sql.DB, func(), error) {
 		//if option.debug {
 		//	opts = append(opts, ydb.WithLogger(nil, trace.DetailsAll))
 		//}
+
+		extraNativeDriver, err = ydb.Open(ctx, dsn, opts...)
+		if err != nil {
+			return err
+		}
+		defer func() {
+			if err != nil {
+				_ = extraNativeDriver.Close(context.Background())
+			}
+		}()
 
 		nativeDriver, err := ydb.Open(ctx, dsn, opts...)
 		if err != nil {
@@ -135,11 +146,16 @@ func newYdb(opts ...OptionsFunc) (*sql.DB, func(), error) {
 		db.SetMaxOpenConns(10)
 		db.SetConnMaxLifetime(time.Hour)
 
-		return db.Ping()
+		err = db.Ping()
+		if err != nil {
+			return err
+		}
+
+		return nil
 	}); err != nil {
-		return nil, cleanup, fmt.Errorf("could not connect to docker database: %w", err)
+		return nil, nil, cleanup, fmt.Errorf("could not connect to docker database: %w", err)
 	}
-	return db, cleanup, nil
+	return db, extraNativeDriver, cleanup, nil
 }
 
 func waitInit(ctx context.Context, pool *dockertest.Pool, id string) error {

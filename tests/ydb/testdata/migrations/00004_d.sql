@@ -8,6 +8,6 @@ ALTER TABLE repos
 -- +goose Down
 -- +goose StatementBegin
 ALTER TABLE repos
-DROP COLUMN  homepage_url,
+    DROP COLUMN  homepage_url,
     DROP COLUMN is_private;
 -- +goose StatementEnd
