@@ -13,6 +13,7 @@ import (
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/balancers"
+	"github.com/ydb-platform/ydb-go-sdk/v3/trace"
 )
 
 const (
@@ -101,9 +102,9 @@ func newYdb(opts ...OptionsFunc) (*sql.DB, func(), error) {
 			ydb.WithBalancer(balancers.SingleConn()),
 		}
 
-		//if option.debug {
-		//	opts = append(opts, ydb.WithLogger(nil, trace.DetailsAll))
-		//}
+		if option.debug {
+			opts = append(opts, ydb.WithLogger(nil, trace.DetailsAll))
+		}
 
 		nativeDriver, err := ydb.Open(ctx, dsn, opts...)
 		if err != nil {
