@@ -18,12 +18,10 @@ import (
 )
 
 func TestMigrateUpWithReset(t *testing.T) {
-	db, extraNativeDriver, cleanup, err := testdb.NewYdbWithNative()
+	db, cleanup, err := testdb.NewYdb()
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
-	defer func() {
-		_ = extraNativeDriver.Close(context.Background())
-	}()
+
 	migrationsDir := filepath.Join("testdata", "migrations")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -57,12 +55,9 @@ func TestMigrateUpWithReset(t *testing.T) {
 }
 
 func TestMigrateUpWithRedo(t *testing.T) {
-	db, extraNativeDriver, cleanup, err := testdb.NewYdbWithNative()
+	db, cleanup, err := testdb.NewYdb()
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
-	defer func() {
-		_ = extraNativeDriver.Close(context.Background())
-	}()
 	migrationsDir := filepath.Join("testdata", "migrations")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -98,12 +93,9 @@ func TestMigrateUpWithRedo(t *testing.T) {
 }
 
 func TestMigrateUpTo(t *testing.T) {
-	db, extraNativeDriver, cleanup, err := testdb.NewYdbWithNative()
+	db, cleanup, err := testdb.NewYdb()
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
-	defer func() {
-		_ = extraNativeDriver.Close(context.Background())
-	}()
 	migrationsDir := filepath.Join("testdata", "migrations")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -131,12 +123,9 @@ func TestMigrateUpTo(t *testing.T) {
 }
 
 func TestMigrateUpByOne(t *testing.T) {
-	db, extraNativeDriver, cleanup, err := testdb.NewYdbWithNative()
+	db, cleanup, err := testdb.NewYdb()
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
-	defer func() {
-		_ = extraNativeDriver.Close(context.Background())
-	}()
 	migrationsDir := filepath.Join("testdata", "migrations")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -169,12 +158,11 @@ func TestMigrateUpByOne(t *testing.T) {
 }
 
 func TestMigrateFull(t *testing.T) {
-	db, extraNativeDriver, cleanup, err := testdb.NewYdbWithNative()
+	db, cleanup, err := testdb.NewYdb()
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
-	defer func() {
-		_ = extraNativeDriver.Close(context.Background())
-	}()
+	extraNativeDriver, err := ydb.Unwrap(db)
+	check.NoError(t, err)
 	migrationsDir := filepath.Join("testdata", "migrations")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
