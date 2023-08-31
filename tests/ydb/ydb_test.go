@@ -10,10 +10,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ydb-platform/ydb-go-sdk/v3"
+
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/internal/check"
 	"github.com/pressly/goose/v3/internal/testdb"
-	"github.com/ydb-platform/ydb-go-sdk/v3"
 )
 
 func TestMigrateUpWithReset(t *testing.T) {
