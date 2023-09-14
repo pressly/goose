@@ -35,6 +35,11 @@ func NewProvider(dialect Dialect, db *sql.DB, opts *ProviderOptions) (*Provider,
 	if err := validateOptions(opts); err != nil {
 		return nil, err
 	}
+	//
+	// TODO(mf): implement the rest of this function
+	// - db / dialect store
+	// - collect sources
+	// - merge sources into migrations
 	return &Provider{
 		db:  db,
 		opt: opts,
