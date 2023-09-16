@@ -4,6 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -12,40 +15,70 @@ import (
 	"github.com/pressly/goose/v3/internal/sqladapter"
 	"github.com/pressly/goose/v3/internal/testdb"
 	"go.uber.org/multierr"
+	"modernc.org/sqlite"
+	_ "modernc.org/sqlite"
 )
 
 // The goal of this test is to verify the sqladapter package works as expected. This test is not
 // meant to be exhaustive or test every possible database dialect. It is meant to verify the Store
 // interface works against a real database.
 
-func TestStore_Postgres(t *testing.T) {
+func TestStore(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("skip long-running test")
-	}
-	ctx := context.Background()
+	t.Run("postgres", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skip long-running test")
+		}
+		// Test postgres specific behavior.
+		db, cleanup, err := testdb.NewPostgres()
+		check.NoError(t, err)
+		t.Cleanup(cleanup)
+		testStore(context.Background(), t, goose.DialectPostgres, db, func(t *testing.T, err error) {
+			var pgErr *pgconn.PgError
+			ok := errors.As(err, &pgErr)
+			check.Bool(t, ok, true)
+			check.Equal(t, pgErr.Code, "42P07") // duplicate_table
+		})
+	})
+	// Test generic behavior.
+	t.Run("sqlite3", func(t *testing.T) {
+		dir := t.TempDir()
+		db, err := sql.Open("sqlite", filepath.Join(dir, "sql_embed.db"))
+		check.NoError(t, err)
+		testStore(context.Background(), t, goose.DialectSQLite3, db, func(t *testing.T, err error) {
+			var sqliteErr *sqlite.Error
+			ok := errors.As(err, &sqliteErr)
+			check.Bool(t, ok, true)
+			check.Equal(t, sqliteErr.Code(), 1) // Generic error (SQLITE_ERROR)
+			check.Contains(t, sqliteErr.Error(), "table test_goose_db_version already exists")
+		})
+	})
+}
+
+// testStore tests various store operations.
+//
+// If alreadyExists is not nil, it will be used to assert the error returned by CreateVersionTable
+// when the version table already exists.
+func testStore(ctx context.Context, t *testing.T, dialect goose.Dialect, db *sql.DB, alreadyExists func(t *testing.T, err error)) {
 	const (
 		tablename = "test_goose_db_version"
 	)
-	db, cleanup, err := testdb.NewPostgres()
-	check.NoError(t, err)
-	t.Cleanup(cleanup)
-	store, err := sqladapter.NewStore(string(goose.DialectPostgres), tablename)
+	store, err := sqladapter.NewStore(string(dialect), tablename)
 	check.NoError(t, err)
 	// Create the version table.
 	err = runTx(ctx, db, func(tx *sql.Tx) error {
 		return store.CreateVersionTable(ctx, tx, tablename)
 	})
-	// Create the version table again. This should fail.
 	check.NoError(t, err)
+	// Create the version table again. This should fail.
 	err = runTx(ctx, db, func(tx *sql.Tx) error {
 		return store.CreateVersionTable(ctx, tx, tablename)
 	})
 	check.HasError(t, err)
-	var pgErr *pgconn.PgError
-	ok := errors.As(err, &pgErr)
-	check.Bool(t, ok, true)
-	check.Equal(t, pgErr.Code, "42P07") // duplicate_table
+	fmt.Println(err, reflect.TypeOf(errors.Unwrap(err)))
+	if alreadyExists != nil {
+		alreadyExists(t, err)
+	}
 
 	// List migrations. There should be none.
 	err = runConn(ctx, db, func(conn *sql.Conn) error {
@@ -110,8 +143,7 @@ func TestStore_Postgres(t *testing.T) {
 		check.NoError(t, err)
 	}
 
-	// Delete remaining migrations one by one and use all 3 connection types:
-	// 1. *sql.Tx
+	// Delete remaining migrations one by one and use all 3 connection types: 1. *sql.Tx
 	err = runTx(ctx, db, func(tx *sql.Tx) error {
 		return store.InsertOrDelete(ctx, tx, false, 2)
 	})
