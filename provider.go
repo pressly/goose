@@ -5,12 +5,15 @@ import (
 	"database/sql"
 	"errors"
 	"time"
+
+	"github.com/pressly/goose/v3/internal/sqladapter"
 )
 
 // Provider is a goose migration provider.
 type Provider struct {
-	db  *sql.DB
-	opt *ProviderOptions
+	db    *sql.DB
+	store sqladapter.Store
+	opt   *ProviderOptions
 }
 
 // NewProvider returns a new goose Provider.
@@ -35,14 +38,17 @@ func NewProvider(dialect Dialect, db *sql.DB, opts *ProviderOptions) (*Provider,
 	if err := validateOptions(opts); err != nil {
 		return nil, err
 	}
-	//
+	store, err := sqladapter.NewStore(string(dialect), opts.Tablename)
+	if err != nil {
+		return nil, err
+	}
 	// TODO(mf): implement the rest of this function
-	// - db / dialect store
 	// - collect sources
 	// - merge sources into migrations
 	return &Provider{
-		db:  db,
-		opt: opts,
+		db:    db,
+		store: store,
+		opt:   opts,
 	}, nil
 }
 
