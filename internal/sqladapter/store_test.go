@@ -4,9 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"path/filepath"
-	"reflect"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -75,14 +73,13 @@ func testStore(ctx context.Context, t *testing.T, dialect goose.Dialect, db *sql
 		return store.CreateVersionTable(ctx, tx, tablename)
 	})
 	check.HasError(t, err)
-	fmt.Println(err, reflect.TypeOf(errors.Unwrap(err)))
 	if alreadyExists != nil {
 		alreadyExists(t, err)
 	}
 
 	// List migrations. There should be none.
 	err = runConn(ctx, db, func(conn *sql.Conn) error {
-		res, err := store.ListMigrationsConn(ctx, conn)
+		res, err := store.ListMigrations(ctx, conn)
 		check.NoError(t, err)
 		check.Number(t, len(res), 0)
 		return nil
@@ -99,7 +96,7 @@ func testStore(ctx context.Context, t *testing.T, dialect goose.Dialect, db *sql
 
 	// List migrations. There should be 6.
 	err = runConn(ctx, db, func(conn *sql.Conn) error {
-		res, err := store.ListMigrationsConn(ctx, conn)
+		res, err := store.ListMigrations(ctx, conn)
 		check.NoError(t, err)
 		check.Number(t, len(res), 6)
 		// Check versions are in descending order.
@@ -120,7 +117,7 @@ func testStore(ctx context.Context, t *testing.T, dialect goose.Dialect, db *sql
 
 	// List migrations. There should be 3.
 	err = runConn(ctx, db, func(conn *sql.Conn) error {
-		res, err := store.ListMigrationsConn(ctx, conn)
+		res, err := store.ListMigrations(ctx, conn)
 		check.NoError(t, err)
 		check.Number(t, len(res), 3)
 		// Check that the remaining versions are in descending order.
@@ -134,7 +131,7 @@ func testStore(ctx context.Context, t *testing.T, dialect goose.Dialect, db *sql
 	// Get remaining migrations one by one.
 	for i := 0; i < 3; i++ {
 		err = runConn(ctx, db, func(conn *sql.Conn) error {
-			res, err := store.GetMigrationConn(ctx, conn, int64(i))
+			res, err := store.GetMigration(ctx, conn, int64(i))
 			check.NoError(t, err)
 			check.Equal(t, res.IsApplied, true)
 			check.Equal(t, res.Timestamp.IsZero(), false)
@@ -159,7 +156,7 @@ func testStore(ctx context.Context, t *testing.T, dialect goose.Dialect, db *sql
 
 	// List migrations. There should be none.
 	err = runConn(ctx, db, func(conn *sql.Conn) error {
-		res, err := store.ListMigrationsConn(ctx, conn)
+		res, err := store.ListMigrations(ctx, conn)
 		check.NoError(t, err)
 		check.Number(t, len(res), 0)
 		return nil
@@ -168,7 +165,7 @@ func testStore(ctx context.Context, t *testing.T, dialect goose.Dialect, db *sql
 
 	// Try to get a migration that does not exist.
 	err = runConn(ctx, db, func(conn *sql.Conn) error {
-		_, err := store.GetMigrationConn(ctx, conn, 0)
+		_, err := store.GetMigration(ctx, conn, 0)
 		check.HasError(t, err)
 		check.Bool(t, errors.Is(err, sql.ErrNoRows), true)
 		return nil

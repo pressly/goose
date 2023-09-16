@@ -2,11 +2,11 @@ package sqladapter
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 
 	"github.com/pressly/goose/v3/internal/dialect/dialectquery"
+	"github.com/pressly/goose/v3/internal/sqlextended"
 )
 
 var _ Store = (*store)(nil)
@@ -53,15 +53,15 @@ func NewStore(dialect string, table string) (Store, error) {
 	}, nil
 }
 
-func (s *store) CreateVersionTable(ctx context.Context, tx *sql.Tx, tablename string) error {
+func (s *store) CreateVersionTable(ctx context.Context, db sqlextended.DBTxConn, tablename string) error {
 	q := s.querier.CreateTable(s.tablename)
-	if _, err := tx.ExecContext(ctx, q); err != nil {
+	if _, err := db.ExecContext(ctx, q); err != nil {
 		return fmt.Errorf("failed to create version table %q: %w", tablename, err)
 	}
 	return nil
 }
 
-func (s *store) InsertOrDelete(ctx context.Context, db DBTxConn, direction bool, version int64) error {
+func (s *store) InsertOrDelete(ctx context.Context, db sqlextended.DBTxConn, direction bool, version int64) error {
 	if direction {
 		q := s.querier.InsertVersion(s.tablename)
 		if _, err := db.ExecContext(ctx, q, version, true); err != nil {
@@ -76,10 +76,10 @@ func (s *store) InsertOrDelete(ctx context.Context, db DBTxConn, direction bool,
 	return nil
 }
 
-func (s *store) GetMigrationConn(ctx context.Context, conn *sql.Conn, version int64) (*GetMigrationResult, error) {
+func (s *store) GetMigration(ctx context.Context, db sqlextended.DBTxConn, version int64) (*GetMigrationResult, error) {
 	q := s.querier.GetMigrationByVersion(s.tablename)
 	result := new(GetMigrationResult)
-	if err := conn.QueryRowContext(ctx, q, version).Scan(
+	if err := db.QueryRowContext(ctx, q, version).Scan(
 		&result.Timestamp,
 		&result.IsApplied,
 	); err != nil {
@@ -88,9 +88,9 @@ func (s *store) GetMigrationConn(ctx context.Context, conn *sql.Conn, version in
 	return result, nil
 }
 
-func (s *store) ListMigrationsConn(ctx context.Context, conn *sql.Conn) ([]*ListMigrationsResult, error) {
+func (s *store) ListMigrations(ctx context.Context, db sqlextended.DBTxConn) ([]*ListMigrationsResult, error) {
 	q := s.querier.ListMigrations(s.tablename)
-	rows, err := conn.QueryContext(ctx, q)
+	rows, err := db.QueryContext(ctx, q)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list migrations: %w", err)
 	}

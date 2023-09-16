@@ -5,17 +5,10 @@ package sqladapter
 
 import (
 	"context"
-	"database/sql"
 	"time"
-)
 
-// DBTxConn is an interface that is satisfied by *sql.DB, *sql.Tx and *sql.Conn.
-//
-// There is a long outstanding issue to formalize a std lib interface, but alas...
-// See: https://github.com/golang/go/issues/14468
-type DBTxConn interface {
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
-}
+	"github.com/pressly/goose/v3/internal/sqlextended"
+)
 
 // Store is the interface that wraps the basic methods for a database dialect.
 //
@@ -28,21 +21,21 @@ type DBTxConn interface {
 type Store interface {
 	// CreateVersionTable creates the version table within a transaction. This table is used to
 	// record applied migrations.
-	CreateVersionTable(ctx context.Context, tx *sql.Tx, tablename string) error
+	CreateVersionTable(ctx context.Context, db sqlextended.DBTxConn, tablename string) error
 
 	// InsertOrDelete inserts or deletes a version id from the version table.
-	InsertOrDelete(ctx context.Context, db DBTxConn, direction bool, version int64) error
+	InsertOrDelete(ctx context.Context, db sqlextended.DBTxConn, direction bool, version int64) error
 
 	// GetMigration retrieves a single migration by version id.
 	//
 	// Returns the raw sql error if the query fails. It is the callers responsibility
 	// to assert for the correct error, such as sql.ErrNoRows.
-	GetMigrationConn(ctx context.Context, conn *sql.Conn, version int64) (*GetMigrationResult, error)
+	GetMigration(ctx context.Context, db sqlextended.DBTxConn, version int64) (*GetMigrationResult, error)
 
 	// ListMigrations retrieves all migrations sorted in descending order by id.
 	//
 	// If there are no migrations, an empty slice is returned with no error.
-	ListMigrationsConn(ctx context.Context, conn *sql.Conn) ([]*ListMigrationsResult, error)
+	ListMigrations(ctx context.Context, db sqlextended.DBTxConn) ([]*ListMigrationsResult, error)
 }
 
 type GetMigrationResult struct {
