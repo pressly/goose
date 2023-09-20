@@ -7,6 +7,7 @@ DB_NAME ?= testdb
 DB_POSTGRES_PORT ?= 5433
 DB_MYSQL_PORT ?= 3307
 DB_CLICKHOUSE_PORT ?= 9001
+DB_YDB_PORT ?= 2136
 
 .PHONY: dist
 dist:
@@ -36,7 +37,7 @@ test-packages:
 test-packages-short:
 	go test -test.short $(GO_TEST_FLAGS) $$(go list ./... | grep -v -e /tests -e /bin -e /cmd -e /examples)
 
-test-e2e: test-e2e-postgres test-e2e-mysql test-e2e-clickhouse test-e2e-vertica
+test-e2e: test-e2e-postgres test-e2e-mysql test-e2e-clickhouse test-e2e-vertica test-e2e-ydb
 
 test-e2e-postgres:
 	go test $(GO_TEST_FLAGS) ./tests/e2e -dialect=postgres
@@ -49,6 +50,9 @@ test-e2e-clickhouse:
 
 test-e2e-vertica:
 	go test $(GO_TEST_FLAGS) ./tests/vertica
+
+test-e2e-ydb:
+	go test $(GO_TEST_FLAGS) -parallel=1 ./tests/e2e -dialect=ydb
 
 docker-cleanup:
 	docker stop -t=0 $$(docker ps --filter="label=goose_test" -aq)
