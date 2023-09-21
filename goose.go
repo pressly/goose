@@ -91,7 +91,12 @@ func run(ctx context.Context, command string, db *sql.DB, dir string, args []str
 		if len(args) == 2 {
 			migrationType = args[1]
 		}
-		if err := Create(db, dir, args[0], migrationType); err != nil {
+		if err := Create(db, dir, args[0], migrationType, func() (flags []string) {
+			if len(args) > 2 {
+				return args[2:]
+			}
+			return nil
+		}()...); err != nil {
 			return err
 		}
 	case "down":

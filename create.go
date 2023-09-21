@@ -24,8 +24,8 @@ func SetSequential(s bool) {
 	sequential = s
 }
 
-// Create writes a new blank migration file.
-func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, migrationType string) error {
+// CreateWithTemplate writes a new blank migration file.
+func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, migrationType string, flags ...string) error {
 	version := time.Now().Format(timestampFormat)
 
 	if sequential {
@@ -52,6 +52,11 @@ func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, m
 	if tmpl == nil {
 		if migrationType == "go" {
 			tmpl = goSQLMigrationTemplate
+			for _, f := range flags {
+				if f == "--no-tx" {
+					tmpl = goSQLNoTxMigrationTemplate
+				}
+			}
 		} else {
 			tmpl = sqlMigrationTemplate
 		}
@@ -81,8 +86,8 @@ func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, m
 }
 
 // Create writes a new blank migration file.
-func Create(db *sql.DB, dir, name, migrationType string) error {
-	return CreateWithTemplate(db, dir, nil, name, migrationType)
+func Create(db *sql.DB, dir, name, migrationType string, flags ...string) error {
+	return CreateWithTemplate(db, dir, nil, name, migrationType, flags...)
 }
 
 var sqlMigrationTemplate = template.Must(template.New("goose.sql-migration").Parse(`-- +goose Up
@@ -114,6 +119,28 @@ func up{{.CamelName}}(ctx context.Context, tx *sql.Tx) error {
 }
 
 func down{{.CamelName}}(ctx context.Context, tx *sql.Tx) error {
+	// This code is executed when the migration is rolled back.
+	return nil
+}
+`))
+
+var goSQLNoTxMigrationTemplate = template.Must(template.New("goose.go-migration").Parse(`package migrations
+
+import (
+	"database/sql"
+	"github.com/pressly/goose/v3"
+)
+
+func init() {
+	goose.AddMigrationNoTx(up{{.CamelName}}, down{{.CamelName}})
+}
+
+func up{{.CamelName}}(db *sql.DB) error {
+	// This code is executed when the migration is applied.
+	return nil
+}
+
+func down{{.CamelName}}(db *sql.DB) error {
 	// This code is executed when the migration is rolled back.
 	return nil
 }
