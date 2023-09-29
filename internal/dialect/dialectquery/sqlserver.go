@@ -28,7 +28,7 @@ func (s *Sqlserver) DeleteVersion(tableName string) string {
 
 func (s *Sqlserver) GetMigrationByVersion(tableName string) string {
 	q := `
-WITH Migrations AS
+WITH X3CZuSjfeqme3bT58enj1 AS
 (
 	SELECT tstamp, is_applied,
 	ROW_NUMBER() OVER (ORDER BY tstamp) AS 'RowNumber'
@@ -36,7 +36,7 @@ WITH Migrations AS
 	WHERE version_id=@p1
 )
 SELECT tstamp, is_applied
-FROM Migrations
+FROM X3CZuSjfeqme3bT58enj1
 WHERE RowNumber BETWEEN 1 AND 2
 ORDER BY tstamp DESC
 `
