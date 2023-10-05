@@ -15,7 +15,7 @@ import (
 const (
 	// https://hub.docker.com/r/vertica/vertica-ce
 	VERTICA_IMAGE   = "vertica/vertica-ce"
-	VERTICA_VERSION = "12.0.0-0"
+	VERTICA_VERSION = "23.3.0-0"
 	VERTICA_DB      = "testdb"
 )
 
