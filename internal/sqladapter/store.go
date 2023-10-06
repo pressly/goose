@@ -53,10 +53,10 @@ func NewStore(dialect string, table string) (Store, error) {
 	}, nil
 }
 
-func (s *store) CreateVersionTable(ctx context.Context, db sqlextended.DBTxConn, tablename string) error {
+func (s *store) CreateVersionTable(ctx context.Context, db sqlextended.DBTxConn) error {
 	q := s.querier.CreateTable(s.tablename)
 	if _, err := db.ExecContext(ctx, q); err != nil {
-		return fmt.Errorf("failed to create version table %q: %w", tablename, err)
+		return fmt.Errorf("failed to create version table %q: %w", s.tablename, err)
 	}
 	return nil
 }

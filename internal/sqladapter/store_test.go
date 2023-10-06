@@ -65,12 +65,12 @@ func testStore(ctx context.Context, t *testing.T, dialect goose.Dialect, db *sql
 	check.NoError(t, err)
 	// Create the version table.
 	err = runTx(ctx, db, func(tx *sql.Tx) error {
-		return store.CreateVersionTable(ctx, tx, tablename)
+		return store.CreateVersionTable(ctx, tx)
 	})
 	check.NoError(t, err)
 	// Create the version table again. This should fail.
 	err = runTx(ctx, db, func(tx *sql.Tx) error {
-		return store.CreateVersionTable(ctx, tx, tablename)
+		return store.CreateVersionTable(ctx, tx)
 	})
 	check.HasError(t, err)
 	if alreadyExists != nil {

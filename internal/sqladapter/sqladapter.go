@@ -21,7 +21,7 @@ import (
 type Store interface {
 	// CreateVersionTable creates the version table within a transaction. This table is used to
 	// record applied migrations.
-	CreateVersionTable(ctx context.Context, db sqlextended.DBTxConn, tablename string) error
+	CreateVersionTable(ctx context.Context, db sqlextended.DBTxConn) error
 
 	// InsertOrDelete inserts or deletes a version id from the version table.
 	InsertOrDelete(ctx context.Context, db sqlextended.DBTxConn, direction bool, version int64) error
