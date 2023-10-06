@@ -471,3 +471,151 @@ func isCIEnvironment() bool {
 	ok, _ := strconv.ParseBool(os.Getenv("CI"))
 	return ok
 }
+
+func TestEnvsubstDisabledByDefault(t *testing.T) {
+	t.Parallel()
+	// Test valid migrations with ${var} like statements are not substituted by default.
+	testMigration := `-- +goose Up
+CREATE TABLE ${PREFIX}post (
+		id int NOT NULL,
+		title text,
+		body text,
+		PRIMARY KEY(id)
+);                  -- 1st stmt
+
+-- comment
+SELECT 2;           -- 2nd stmt
+SELECT 3; SELECT 3; -- 3rd stmt
+SELECT 4;           -- 4th stmt
+
+-- +goose Down
+-- comment
+DROP TABLE ${PREFIX}post;    -- 1st stmt
+`
+
+	// up
+	stmts, _, err := ParseSQLMigration(strings.NewReader(testMigration), DirectionUp, debug)
+	if err != nil {
+		t.Error(fmt.Errorf("unexpected error: %w", err))
+	}
+	got, want := stmts[0], `CREATE TABLE ${PREFIX}post (
+		id int NOT NULL,
+		title text,
+		body text,
+		PRIMARY KEY(id)
+);                  -- 1st stmt`
+	if got != want {
+		t.Errorf("incorrect variable substitution. \ngot  `%v` \nwant `%v`", got, want)
+	}
+
+	// down
+	stmts, _, err = ParseSQLMigration(strings.NewReader(testMigration), DirectionDown, debug)
+	if err != nil {
+		t.Error(fmt.Errorf("unexpected error: %w", err))
+	}
+	got, want = stmts[0], `DROP TABLE ${PREFIX}post;    -- 1st stmt`
+	if got != want {
+		t.Errorf("incorrect variable substitution. \ngot  `%v` \nwant `%v`", got, want)
+	}
+}
+
+func TestEnvsubstOnForTheWholeMigration(t *testing.T) {
+	t.Parallel()
+	// Test valid migrations with ${var} like statements when on are substituted for the whole migration.
+	testPrefix := "prefix_works_"
+	os.Setenv("PREFIX", testPrefix)
+	testMigration := `-- +goose ENVSUBST ON
+-- +goose Up
+CREATE TABLE ${PREFIX}post (
+		id int NOT NULL,
+		title text,
+		body text,
+		PRIMARY KEY(id)
+);                  -- 1st stmt
+
+-- comment
+SELECT 2;           -- 2nd stmt
+SELECT 3; SELECT 3; -- 3rd stmt
+SELECT 4;           -- 4th stmt
+
+-- +goose Down
+-- comment
+DROP TABLE ${PREFIX}post;    -- 1st stmt
+`
+
+	// up
+	stmts, _, err := ParseSQLMigration(strings.NewReader(testMigration), DirectionUp, debug)
+	if err != nil {
+		t.Error(fmt.Errorf("unexpected error: %w", err))
+	}
+	got, want := stmts[0], fmt.Sprintf(`CREATE TABLE %spost (
+		id int NOT NULL,
+		title text,
+		body text,
+		PRIMARY KEY(id)
+);                  -- 1st stmt`, testPrefix)
+	if got != want {
+		t.Errorf("incorrect variable substitution. \ngot  `%v` \nwant `%v`", got, want)
+	}
+
+	// down
+	stmts, _, err = ParseSQLMigration(strings.NewReader(testMigration), DirectionDown, debug)
+	if err != nil {
+		t.Error(fmt.Errorf("unexpected error: %w", err))
+	}
+	got, want = stmts[0], fmt.Sprintf(`DROP TABLE %spost;    -- 1st stmt`, testPrefix)
+	if got != want {
+		t.Errorf("incorrect variable substitution. \ngot  `%v` \nwant `%v`", got, want)
+	}
+}
+
+func TestEnvsubstOnForUpAndOfForDown(t *testing.T) {
+	t.Parallel()
+	// Test valid migrations with ${var} like statements when on are substituted until substitution is switched off.
+	testPrefix := "prefix_works_"
+	os.Setenv("PREFIX", testPrefix)
+	testMigration := `-- +goose ENVSUBST ON
+-- +goose Up
+CREATE TABLE ${PREFIX}post (
+		id int NOT NULL,
+		title text,
+		body text,
+		PRIMARY KEY(id)
+);                  -- 1st stmt
+
+-- comment
+SELECT 2;           -- 2nd stmt
+SELECT 3; SELECT 3; -- 3rd stmt
+SELECT 4;           -- 4th stmt
+
+-- +goose Down
+-- +goose ENVSUBST OFF
+-- comment
+DROP TABLE ${PREFIX}post;    -- 1st stmt
+`
+
+	// up
+	stmts, _, err := ParseSQLMigration(strings.NewReader(testMigration), DirectionUp, debug)
+	if err != nil {
+		t.Error(fmt.Errorf("unexpected error: %w", err))
+	}
+	got, want := stmts[0], fmt.Sprintf(`CREATE TABLE %spost (
+		id int NOT NULL,
+		title text,
+		body text,
+		PRIMARY KEY(id)
+);                  -- 1st stmt`, testPrefix)
+	if got != want {
+		t.Errorf("incorrect variable substitution. \ngot  `%v` \nwant `%v`", got, want)
+	}
+
+	// down
+	stmts, _, err = ParseSQLMigration(strings.NewReader(testMigration), DirectionDown, debug)
+	if err != nil {
+		t.Error(fmt.Errorf("unexpected error: %w", err))
+	}
+	got, want = stmts[0], `DROP TABLE ${PREFIX}post;    -- 1st stmt`
+	if got != want {
+		t.Errorf("incorrect variable substitution. \ngot  `%v` \nwant `%v`", got, want)
+	}
+}

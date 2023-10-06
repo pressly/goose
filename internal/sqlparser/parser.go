@@ -9,6 +9,8 @@ import (
 	"log"
 	"strings"
 	"sync"
+
+	"github.com/drone/envsubst"
 )
 
 type Direction string
@@ -99,6 +101,7 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 
 	stateMachine := newStateMachine(start, debug)
 	useTx = true
+	useEnvsubst := false
 
 	var buf bytes.Buffer
 	for scanner.Scan() {
@@ -163,6 +166,14 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 			case "+goose NO TRANSACTION":
 				useTx = false
 				continue
+
+			case "+goose ENVSUBST ON":
+				useEnvsubst = true
+				continue
+
+			case "+goose ENVSUBST OFF":
+				useEnvsubst = false
+				continue
 			}
 		}
 		// Once we've started parsing a statement the buffer is no longer empty,
@@ -209,23 +220,39 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 		switch stateMachine.get() {
 		case gooseUp:
 			if endsWithSemicolon(line) {
-				stmts = append(stmts, cleanupStatement(buf.String()))
+				stmt, err := processStatement(buf.String(), useEnvsubst)
+				if err != nil {
+					return nil, false, err
+				}
+				stmts = append(stmts, stmt)
 				buf.Reset()
 				stateMachine.print("store simple Up query")
 			}
 		case gooseDown:
 			if endsWithSemicolon(line) {
-				stmts = append(stmts, cleanupStatement(buf.String()))
+				stmt, err := processStatement(buf.String(), useEnvsubst)
+				if err != nil {
+					return nil, false, err
+				}
+				stmts = append(stmts, stmt)
 				buf.Reset()
 				stateMachine.print("store simple Down query")
 			}
 		case gooseStatementEndUp:
-			stmts = append(stmts, cleanupStatement(buf.String()))
+			stmt, err := processStatement(buf.String(), useEnvsubst)
+			if err != nil {
+				return nil, false, err
+			}
+			stmts = append(stmts, stmt)
 			buf.Reset()
 			stateMachine.print("store Up statement")
 			stateMachine.set(gooseUp)
 		case gooseStatementEndDown:
-			stmts = append(stmts, cleanupStatement(buf.String()))
+			stmt, err := processStatement(buf.String(), useEnvsubst)
+			if err != nil {
+				return nil, false, err
+			}
+			stmts = append(stmts, stmt)
 			buf.Reset()
 			stateMachine.print("store Down statement")
 			stateMachine.set(gooseDown)
@@ -258,9 +285,18 @@ func missingSemicolonError(state parserState, direction Direction, s string) err
 	)
 }
 
-// cleanupStatement trims whitespace from the given statement.
-func cleanupStatement(input string) string {
-	return strings.TrimSpace(input)
+// processStatement interpolates variables and trims whitespaces
+func processStatement(input string, useEnvsubst bool) (string, error) {
+	if useEnvsubst {
+		var err error = nil
+		input, err = envsubst.EvalEnv(input)
+		if err != nil {
+			return "", fmt.Errorf("variable substitution failed: %w", err)
+		}
+	}
+	// cleanupStatement trims whitespace from the given statement.
+	input = strings.TrimSpace(input)
+	return input, nil
 }
 
 // Checks the line to see if the line has a statement-ending semicolon

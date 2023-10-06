@@ -256,6 +256,14 @@ language plpgsql;
 -- +goose StatementEnd
 ```
 
+
+**Environment variables substitution** (using https://github.com/drone/envsubst) is disabled by default to keep the existing behavior,
+given there may be many existing scripts using `${var}` for other purposes.
+
+Can be controlled by the following annotations:
+- `-- +goose ENVSUBST ON` annotation enables it for all the statements following it, to the end of the file or until switched off
+- `-- +goose ENVSUBST OFF` annotation disables it for all the statements following it, to the end of the file or until switched on
+
 ## Embedded sql migrations
 
 Go 1.16 introduced new feature: [compile-time embedding](https://pkg.go.dev/embed/) files into binary and
