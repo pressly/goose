@@ -23,12 +23,7 @@ import (
 // Functional options are used to configure the Provider. See [ProviderOption] for more information.
 //
 // Unless otherwise specified, all methods on Provider are safe for concurrent use.
-func NewProvider(
-	dialect Dialect,
-	db *sql.DB,
-	fsys fs.FS,
-	opts ...ProviderOption,
-) (*Provider, error) {
+func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption) (*Provider, error) {
 	if db == nil {
 		return nil, errors.New("db must not be nil")
 	}
