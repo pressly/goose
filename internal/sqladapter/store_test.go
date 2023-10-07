@@ -33,19 +33,6 @@ func TestStore(t *testing.T) {
 		_, err = sqladapter.NewStore("", "foo")
 		check.HasError(t, err)
 	})
-	// t.Run("failures", func(t *testing.T) {
-	//  dir := t.TempDir()
-	//  db, err := sql.Open("sqlite", filepath.Join(dir, "sql_embed.db"))
-	//  check.NoError(t, err)
-	//  store, err := sqladapter.NewStore("sqlite3", "test_goose_db_version")
-	//  check.NoError(t, err)
-	//  // Test CreateVersionTable failure.
-	//  err = store.CreateVersionTable(context.Background(), db)
-	//  check.NoError(t, err)
-	//  err = store.InsertOrDelete(context.Background(), db, false, math.MaxInt64)
-	//  fmt.Println(err)
-	//  check.HasError(t, err)
-	// })
 	t.Run("postgres", func(t *testing.T) {
 		if testing.Short() {
 			t.Skip("skip long-running test")
