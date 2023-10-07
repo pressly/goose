@@ -150,7 +150,9 @@ func testStore(ctx context.Context, t *testing.T, dialect goose.Dialect, db *sql
 		check.NoError(t, err)
 	}
 
-	// Delete remaining migrations one by one and use all 3 connection types: 1. *sql.Tx
+	// Delete remaining migrations one by one and use all 3 connection types:
+
+	// 1. *sql.Tx
 	err = runTx(ctx, db, func(tx *sql.Tx) error {
 		return store.InsertOrDelete(ctx, tx, false, 2)
 	})
