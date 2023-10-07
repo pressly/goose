@@ -14,7 +14,6 @@ import (
 	"github.com/pressly/goose/v3/internal/testdb"
 	"go.uber.org/multierr"
 	"modernc.org/sqlite"
-	_ "modernc.org/sqlite"
 )
 
 // The goal of this test is to verify the sqladapter package works as expected. This test is not
@@ -23,6 +22,30 @@ import (
 
 func TestStore(t *testing.T) {
 	t.Parallel()
+	t.Run("invalid", func(t *testing.T) {
+		// Test empty table name.
+		_, err := sqladapter.NewStore("sqlite3", "")
+		check.HasError(t, err)
+		// Test unknown dialect.
+		_, err = sqladapter.NewStore("unknown-dialect", "foo")
+		check.HasError(t, err)
+		// Test empty dialect.
+		_, err = sqladapter.NewStore("", "foo")
+		check.HasError(t, err)
+	})
+	// t.Run("failures", func(t *testing.T) {
+	//  dir := t.TempDir()
+	//  db, err := sql.Open("sqlite", filepath.Join(dir, "sql_embed.db"))
+	//  check.NoError(t, err)
+	//  store, err := sqladapter.NewStore("sqlite3", "test_goose_db_version")
+	//  check.NoError(t, err)
+	//  // Test CreateVersionTable failure.
+	//  err = store.CreateVersionTable(context.Background(), db)
+	//  check.NoError(t, err)
+	//  err = store.InsertOrDelete(context.Background(), db, false, math.MaxInt64)
+	//  fmt.Println(err)
+	//  check.HasError(t, err)
+	// })
 	t.Run("postgres", func(t *testing.T) {
 		if testing.Short() {
 			t.Skip("skip long-running test")

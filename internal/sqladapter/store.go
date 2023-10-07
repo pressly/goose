@@ -16,7 +16,7 @@ type store struct {
 	querier   dialectquery.Querier
 }
 
-// NewStore returns a new Store backed by the given dialect.
+// NewStore returns a new [Store] backed by the given dialect.
 //
 // The dialect must match one of the supported dialects defined in dialect.go.
 func NewStore(dialect string, table string) (Store, error) {
@@ -78,14 +78,14 @@ func (s *store) InsertOrDelete(ctx context.Context, db sqlextended.DBTxConn, dir
 
 func (s *store) GetMigration(ctx context.Context, db sqlextended.DBTxConn, version int64) (*GetMigrationResult, error) {
 	q := s.querier.GetMigrationByVersion(s.tablename)
-	result := new(GetMigrationResult)
+	var result GetMigrationResult
 	if err := db.QueryRowContext(ctx, q, version).Scan(
 		&result.Timestamp,
 		&result.IsApplied,
 	); err != nil {
 		return nil, fmt.Errorf("failed to get migration %d: %w", version, err)
 	}
-	return result, nil
+	return &result, nil
 }
 
 func (s *store) ListMigrations(ctx context.Context, db sqlextended.DBTxConn) ([]*ListMigrationsResult, error) {
@@ -98,11 +98,11 @@ func (s *store) ListMigrations(ctx context.Context, db sqlextended.DBTxConn) ([]
 
 	var migrations []*ListMigrationsResult
 	for rows.Next() {
-		result := new(ListMigrationsResult)
+		var result ListMigrationsResult
 		if err := rows.Scan(&result.Version, &result.IsApplied); err != nil {
 			return nil, fmt.Errorf("failed to scan list migrations result: %w", err)
 		}
-		migrations = append(migrations, result)
+		migrations = append(migrations, &result)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

@@ -17,7 +17,7 @@ import (
 // By defining a store interface, we can support multiple databases with a single codebase.
 //
 // The underlying implementation does not modify the error. It is the callers responsibility to
-// assert for the correct error, such as sql.ErrNoRows.
+// assert for the correct error, such as [sql.ErrNoRows].
 type Store interface {
 	// CreateVersionTable creates the version table within a transaction. This table is used to
 	// record applied migrations.
@@ -28,8 +28,8 @@ type Store interface {
 
 	// GetMigration retrieves a single migration by version id.
 	//
-	// Returns the raw sql error if the query fails. It is the callers responsibility
-	// to assert for the correct error, such as sql.ErrNoRows.
+	// Returns the raw sql error if the query fails. It is the callers responsibility to assert for
+	// the correct error, such as [sql.ErrNoRows].
 	GetMigration(ctx context.Context, db sqlextended.DBTxConn, version int64) (*GetMigrationResult, error)
 
 	// ListMigrations retrieves all migrations sorted in descending order by id.
