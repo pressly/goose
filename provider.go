@@ -60,6 +60,7 @@ func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption
 }
 
 // Provider is a goose migration provider.
+// Experimental: This API is experimental and may change in the future.
 type Provider struct {
 	db    *sql.DB
 	fsys  fs.FS
@@ -82,6 +83,7 @@ type MigrationStatus struct {
 
 // Status returns the status of all migrations, merging the list of migrations from the database and
 // filesystem. The returned items are ordered by version, in ascending order.
+// Experimental: This API is experimental and may change in the future.
 func (p *Provider) Status(ctx context.Context) ([]*MigrationStatus, error) {
 	return nil, errors.New("not implemented")
 }
@@ -89,6 +91,7 @@ func (p *Provider) Status(ctx context.Context) ([]*MigrationStatus, error) {
 // GetDBVersion returns the max version from the database, regardless of the applied order. For
 // example, if migrations 1,4,2,3 were applied, this method returns 4. If no migrations have been
 // applied, it returns 0.
+// Experimental: This API is experimental and may change in the future.
 func (p *Provider) GetDBVersion(ctx context.Context) (int64, error) {
 	return 0, errors.New("not implemented")
 }
@@ -108,6 +111,7 @@ const (
 // For SQL migrations, Fullpath will always be set. For Go migrations, Fullpath will will be set if
 // the migration has a corresponding file on disk. It will be empty if the migration was registered
 // manually.
+// Experimental: This API is experimental and may change in the future.
 type Source struct {
 	// Type is the type of migration.
 	Type SourceType
@@ -120,16 +124,19 @@ type Source struct {
 }
 
 // ListSources returns a list of all available migration sources the provider is aware of.
+// Experimental: This API is experimental and may change in the future.
 func (p *Provider) ListSources() []*Source {
 	return nil
 }
 
 // Ping attempts to ping the database to verify a connection is available.
+// Experimental: This API is experimental and may change in the future.
 func (p *Provider) Ping(ctx context.Context) error {
 	return errors.New("not implemented")
 }
 
 // Close closes the database connection.
+// Experimental: This API is experimental and may change in the future.
 func (p *Provider) Close() error {
 	return errors.New("not implemented")
 }
@@ -143,18 +150,21 @@ type MigrationResult struct{}
 //
 // When direction is true, the up migration is executed, and when direction is false, the down
 // migration is executed.
+// Experimental: This API is experimental and may change in the future.
 func (p *Provider) ApplyVersion(ctx context.Context, version int64, direction bool) (*MigrationResult, error) {
 	return nil, errors.New("not implemented")
 }
 
 // Up applies all pending migrations. If there are no new migrations to apply, this method returns
 // empty list and nil error.
+// Experimental: This API is experimental and may change in the future.
 func (p *Provider) Up(ctx context.Context) ([]*MigrationResult, error) {
 	return nil, errors.New("not implemented")
 }
 
 // UpByOne applies the next available migration. If there are no migrations to apply, this method
 // returns [ErrNoNextVersion].
+// Experimental: This API is experimental and may change in the future.
 func (p *Provider) UpByOne(ctx context.Context) (*MigrationResult, error) {
 	return nil, errors.New("not implemented")
 }
@@ -164,12 +174,14 @@ func (p *Provider) UpByOne(ctx context.Context) (*MigrationResult, error) {
 //
 // For instance, if there are three new migrations (9,10,11) and the current database version is 8
 // with a requested version of 10, only versions 9 and 10 will be applied.
+// Experimental: This API is experimental and may change in the future.
 func (p *Provider) UpTo(ctx context.Context, version int64) ([]*MigrationResult, error) {
 	return nil, errors.New("not implemented")
 }
 
 // Down rolls back the most recently applied migration. If there are no migrations to apply, this
 // method returns [ErrNoNextVersion].
+// Experimental: This API is experimental and may change in the future.
 func (p *Provider) Down(ctx context.Context) (*MigrationResult, error) {
 	return nil, errors.New("not implemented")
 }
@@ -178,6 +190,7 @@ func (p *Provider) Down(ctx context.Context) (*MigrationResult, error) {
 //
 // For instance, if the current database version is 11, and the requested version is 9, only
 // migrations 11 and 10 will be rolled back.
+// Experimental: This API is experimental and may change in the future.
 func (p *Provider) DownTo(ctx context.Context, version int64) ([]*MigrationResult, error) {
 	return nil, errors.New("not implemented")
 }
