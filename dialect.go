@@ -6,6 +6,20 @@ import (
 	"github.com/pressly/goose/v3/internal/dialect"
 )
 
+// Dialect is the type of database dialect.
+type Dialect string
+
+const (
+	DialectClickHouse Dialect = "clickhouse"
+	DialectMSSQL      Dialect = "mssql"
+	DialectMySQL      Dialect = "mysql"
+	DialectPostgres   Dialect = "postgres"
+	DialectRedshift   Dialect = "redshift"
+	DialectSQLite3    Dialect = "sqlite3"
+	DialectTiDB       Dialect = "tidb"
+	DialectVertica    Dialect = "vertica"
+)
+
 func init() {
 	store, _ = dialect.NewStore(dialect.Postgres)
 }

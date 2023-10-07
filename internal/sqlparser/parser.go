@@ -25,6 +25,14 @@ func FromBool(b bool) Direction {
 	return DirectionDown
 }
 
+func (d Direction) String() string {
+	return string(d)
+}
+
+func (d Direction) ToBool() bool {
+	return d == DirectionUp
+}
+
 type parserState int
 
 const (
