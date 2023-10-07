@@ -11,7 +11,7 @@ import (
 // There is a long outstanding issue to formalize a std lib interface, but alas... See:
 // https://github.com/golang/go/issues/14468
 type DBTxConn interface {
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
