@@ -3,6 +3,8 @@ package goose
 import (
 	"errors"
 	"fmt"
+
+	"github.com/pressly/goose/v3/lock"
 )
 
 const (
@@ -38,13 +40,36 @@ func WithVerbose() ProviderOption {
 	})
 }
 
+// WithSessionLocker enables locking using the provided SessionLocker.
+//
+// If WithSessionLocker is not called, locking is disabled.
+func WithSessionLocker(locker lock.SessionLocker) ProviderOption {
+	return configFunc(func(c *config) error {
+		if c.lockEnabled {
+			return errors.New("lock already enabled")
+		}
+		if c.sessionLocker != nil {
+			return errors.New("session locker already set")
+		}
+		if locker == nil {
+			return errors.New("session locker must not be nil")
+		}
+		c.lockEnabled = true
+		c.sessionLocker = locker
+		return nil
+	})
+}
+
 type config struct {
 	tableName string
 	verbose   bool
+
+	lockEnabled   bool
+	sessionLocker lock.SessionLocker
 }
 
 type configFunc func(*config) error
 
-func (o configFunc) apply(cfg *config) error {
-	return o(cfg)
+func (f configFunc) apply(cfg *config) error {
+	return f(cfg)
 }
