@@ -29,6 +29,8 @@ func TestPostgresSessionLocker(t *testing.T) {
 	t.Run("lock_and_unlock", func(t *testing.T) {
 		locker, err := lock.NewPostgresSessionLocker(
 			lock.WithLockID(lockID),
+			lock.WithLockTimeout(4*time.Second),
+			lock.WithUnlockTimeout(4*time.Second),
 		)
 		check.NoError(t, err)
 		ctx := context.Background()
@@ -56,7 +58,10 @@ func TestPostgresSessionLocker(t *testing.T) {
 		check.Number(t, len(pgLocks), 0)
 	})
 	t.Run("lock_close_conn_unlock", func(t *testing.T) {
-		locker, err := lock.NewPostgresSessionLocker()
+		locker, err := lock.NewPostgresSessionLocker(
+			lock.WithLockTimeout(4*time.Second),
+			lock.WithUnlockTimeout(4*time.Second),
+		)
 		check.NoError(t, err)
 		ctx := context.Background()
 		conn, err := db.Conn(ctx)
@@ -97,7 +102,8 @@ func TestPostgresSessionLocker(t *testing.T) {
 				// Exactly one connection should acquire the lock. While the other connections
 				// should fail to acquire the lock and timeout.
 				locker, err := lock.NewPostgresSessionLocker(
-					lock.WithLockTimeout(4 * time.Second),
+					lock.WithLockTimeout(4*time.Second),
+					lock.WithUnlockTimeout(4*time.Second),
 				)
 				check.NoError(t, err)
 				ch <- locker.SessionLock(ctx, conn)
@@ -131,6 +137,7 @@ func TestPostgresSessionLocker(t *testing.T) {
 		)
 		locker, err := lock.NewPostgresSessionLocker(
 			lock.WithLockID(lockID),
+			lock.WithLockTimeout(4*time.Second),
 			lock.WithUnlockTimeout(4*time.Second),
 		)
 		check.NoError(t, err)
