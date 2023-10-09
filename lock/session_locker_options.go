@@ -12,9 +12,9 @@ const (
 	DefaultLockID int64 = 5887940537704921958
 
 	// Default values for the lock (time to wait for the lock to be acquired) and unlock (time to
-	// wait for the lock to be released) durations.
-	DefaultLockDuration   time.Duration = 60 * time.Minute
-	DefaultUnlockDuration time.Duration = 1 * time.Minute
+	// wait for the lock to be released) wait durations.
+	DefaultLockTimeout   time.Duration = 60 * time.Minute
+	DefaultUnlockTimeout time.Duration = 1 * time.Minute
 )
 
 // SessionLockerOption is used to configure a SessionLocker.
@@ -32,26 +32,26 @@ func WithLockID(lockID int64) SessionLockerOption {
 	})
 }
 
-// WithLockDuration sets the max duration to wait for the lock to be acquired.
-func WithLockDuration(duration time.Duration) SessionLockerOption {
+// WithLockTimeout sets the max duration to wait for the lock to be acquired.
+func WithLockTimeout(duration time.Duration) SessionLockerOption {
 	return sessionLockerConfigFunc(func(c *sessionLockerConfig) error {
-		c.lockDuration = duration
+		c.lockTimeout = duration
 		return nil
 	})
 }
 
-// WithUnlockDuration sets the max duration to wait for the lock to be released.
-func WithUnlockDuration(duration time.Duration) SessionLockerOption {
+// WithUnlockTimeout sets the max duration to wait for the lock to be released.
+func WithUnlockTimeout(duration time.Duration) SessionLockerOption {
 	return sessionLockerConfigFunc(func(c *sessionLockerConfig) error {
-		c.unlockDuration = duration
+		c.unlockTimeout = duration
 		return nil
 	})
 }
 
 type sessionLockerConfig struct {
-	lockID         int64
-	lockDuration   time.Duration
-	unlockDuration time.Duration
+	lockID        int64
+	lockTimeout   time.Duration
+	unlockTimeout time.Duration
 }
 
 var _ SessionLockerOption = (sessionLockerConfigFunc)(nil)

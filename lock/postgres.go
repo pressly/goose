@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/sethvargo/go-retry"
@@ -20,9 +21,9 @@ import (
 // See [SessionLockerOption] for options that can be used to configure the SessionLocker.
 func NewPostgresSessionLocker(opts ...SessionLockerOption) (SessionLocker, error) {
 	cfg := sessionLockerConfig{
-		lockID:         DefaultLockID,
-		lockDuration:   DefaultLockDuration,
-		unlockDuration: DefaultUnlockDuration,
+		lockID:        DefaultLockID,
+		lockTimeout:   DefaultLockTimeout,
+		unlockTimeout: DefaultUnlockTimeout,
 	}
 	for _, opt := range opts {
 		if err := opt.apply(&cfg); err != nil {
@@ -32,11 +33,11 @@ func NewPostgresSessionLocker(opts ...SessionLockerOption) (SessionLocker, error
 	return &postgresSessionLocker{
 		lockID: cfg.lockID,
 		retryLock: retry.WithMaxDuration(
-			cfg.lockDuration,
+			cfg.lockTimeout,
 			retry.NewConstant(2*time.Second),
 		),
 		retryUnlock: retry.WithMaxDuration(
-			cfg.unlockDuration,
+			cfg.unlockTimeout,
 			retry.NewConstant(2*time.Second),
 		),
 	}, nil
@@ -55,7 +56,7 @@ func (l *postgresSessionLocker) SessionLock(ctx context.Context, conn *sql.Conn)
 		row := conn.QueryRowContext(ctx, "SELECT pg_try_advisory_lock($1)", l.lockID)
 		var locked bool
 		if err := row.Scan(&locked); err != nil {
-			return err
+			return fmt.Errorf("failed to execute pg_try_advisory_lock: %w", err)
 		}
 		if locked {
 			// A session-level advisory lock was acquired.
@@ -73,7 +74,7 @@ func (l *postgresSessionLocker) SessionUnlock(ctx context.Context, conn *sql.Con
 		var unlocked bool
 		row := conn.QueryRowContext(ctx, "SELECT pg_advisory_unlock($1)", l.lockID)
 		if err := row.Scan(&unlocked); err != nil {
-			return err
+			return fmt.Errorf("failed to execute pg_advisory_unlock: %w", err)
 		}
 		if unlocked {
 			// A session-level advisory lock was released.
