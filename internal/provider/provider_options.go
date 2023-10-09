@@ -60,10 +60,24 @@ func WithSessionLocker(locker lock.SessionLocker) ProviderOption {
 	})
 }
 
+// WithExcludes excludes the given file names from the list of migrations.
+//
+// If WithExcludes is called multiple times, the list of excludes is merged.
+func WithExcludes(excludes []string) ProviderOption {
+	return configFunc(func(c *config) error {
+		for _, name := range excludes {
+			c.excludes[name] = true
+		}
+		return nil
+	})
+}
+
 type config struct {
 	tableName string
 	verbose   bool
+	excludes  map[string]bool
 
+	// Locking options
 	lockEnabled   bool
 	sessionLocker lock.SessionLocker
 }
