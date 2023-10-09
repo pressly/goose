@@ -173,8 +173,7 @@ type pgLock struct {
 }
 
 func queryPgLocks(ctx context.Context, db *sql.DB) ([]pgLock, error) {
-	q := `SELECT pid,granted,((classid::bigint<<32)|objid::bigint)AS goose_lock_id FROM pg_locks
-		WHERE locktype='advisory'`
+	q := `SELECT pid,granted,((classid::bigint<<32)|objid::bigint)AS goose_lock_id FROM pg_locks WHERE locktype='advisory'`
 	rows, err := db.QueryContext(ctx, q)
 	if err != nil {
 		return nil, err
