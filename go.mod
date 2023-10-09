@@ -8,6 +8,7 @@ require (
 	github.com/jackc/pgx/v5 v5.4.3
 	github.com/microsoft/go-mssqldb v1.6.0
 	github.com/ory/dockertest/v3 v3.10.0
+	github.com/sethvargo/go-retry v0.2.4
 	github.com/vertica/vertica-sql-go v1.3.3
 	github.com/ziutek/mymysql v1.5.4
 	go.uber.org/multierr v1.11.0
