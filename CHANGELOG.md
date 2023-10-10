@@ -7,6 +7,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [v3.15.1] - 2023-10-10
+
+- Fix regression that prevented registering Go migrations that didn't have the corresponding files
+  available in the filesystem. (#588)
+  - If Go migrations have been registered globally, but there are no .go files in the filesystem,
+    **always include** them.
+  - If Go migrations have been registered, and there are .go files in the filesystem, **only
+    include** those migrations. This was the original motivation behind #553.
+  - If there are .go files in the filesystem but not registered, **raise an error**. This is to
+    prevent accidentally adding valid looking Go migration files without explicitly registering
+    them.
+
 ## [v3.15.0] - 2023-08-12
 
 - Fix `sqlparser` to avoid skipping the last statement when it's not terminated with a semicolon
@@ -49,7 +61,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add new `context.Context`-aware functions and methods, for both sql and go migrations.
 - Return error when no migration files found or dir is not a directory.
 
-[Unreleased]: https://github.com/pressly/goose/compare/v3.15.0...HEAD
+[Unreleased]: https://github.com/pressly/goose/compare/v3.15.1...HEAD
+[v3.15.1]: https://github.com/pressly/goose/compare/v3.15.0...v3.15.1
 [v3.15.0]: https://github.com/pressly/goose/compare/v3.14.0...v3.15.0
 [v3.14.0]: https://github.com/pressly/goose/compare/v3.13.4...v3.14.0
 [v3.13.4]: https://github.com/pressly/goose/compare/v3.13.1...v3.13.4
