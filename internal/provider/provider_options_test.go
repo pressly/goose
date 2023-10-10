@@ -8,6 +8,7 @@ import (
 	"testing/fstest"
 
 	"github.com/pressly/goose/v3/internal/check"
+	_ "modernc.org/sqlite"
 )
 
 func TestNewProvider(t *testing.T) {
