@@ -1,4 +1,4 @@
-package goose_test
+package provider
 
 import (
 	"database/sql"
@@ -7,7 +7,6 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/internal/check"
 )
 
@@ -18,35 +17,35 @@ func TestNewProvider(t *testing.T) {
 	fsys := newFsys()
 	t.Run("invalid", func(t *testing.T) {
 		// Empty dialect not allowed
-		_, err = goose.NewProvider("", db, fsys)
+		_, err = NewProvider("", db, fsys)
 		check.HasError(t, err)
 		// Invalid dialect not allowed
-		_, err = goose.NewProvider("unknown-dialect", db, fsys)
+		_, err = NewProvider("unknown-dialect", db, fsys)
 		check.HasError(t, err)
 		// Nil db not allowed
-		_, err = goose.NewProvider("sqlite3", nil, fsys)
+		_, err = NewProvider("sqlite3", nil, fsys)
 		check.HasError(t, err)
 		// Nil fsys not allowed
-		_, err = goose.NewProvider("sqlite3", db, nil)
+		_, err = NewProvider("sqlite3", db, nil)
 		check.HasError(t, err)
 		// Duplicate table name not allowed
-		_, err = goose.NewProvider("sqlite3", db, fsys, goose.WithTableName("foo"), goose.WithTableName("bar"))
+		_, err = NewProvider("sqlite3", db, fsys, WithTableName("foo"), WithTableName("bar"))
 		check.HasError(t, err)
 		check.Equal(t, `table already set to "foo"`, err.Error())
 		// Empty table name not allowed
-		_, err = goose.NewProvider("sqlite3", db, fsys, goose.WithTableName(""))
+		_, err = NewProvider("sqlite3", db, fsys, WithTableName(""))
 		check.HasError(t, err)
 		check.Equal(t, "table must not be empty", err.Error())
 	})
 	t.Run("valid", func(t *testing.T) {
 		// Valid dialect, db, and fsys allowed
-		_, err = goose.NewProvider("sqlite3", db, fsys)
+		_, err = NewProvider("sqlite3", db, fsys)
 		check.NoError(t, err)
 		// Valid dialect, db, fsys, and table name allowed
-		_, err = goose.NewProvider("sqlite3", db, fsys, goose.WithTableName("foo"))
+		_, err = NewProvider("sqlite3", db, fsys, WithTableName("foo"))
 		check.NoError(t, err)
 		// Valid dialect, db, fsys, and verbose allowed
-		_, err = goose.NewProvider("sqlite3", db, fsys, goose.WithVerbose())
+		_, err = NewProvider("sqlite3", db, fsys, WithVerbose())
 		check.NoError(t, err)
 	})
 }

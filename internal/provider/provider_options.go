@@ -1,4 +1,4 @@
-package goose
+package provider
 
 import (
 	"errors"
