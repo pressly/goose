@@ -81,7 +81,10 @@ func main() {
 	}
 
 	// read the `.env` or whichever file is pointed, skipping any error
-	godotenv.Load(*envFile)
+	_ = godotenv.Load(*envFile)
+
+	// load the cfg from the environment variables
+	cfg.Load()
 
 	// The -dir option has not been set, check whether the env variable is set
 	// before defaulting to ".".
