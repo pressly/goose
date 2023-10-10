@@ -46,7 +46,7 @@ func ResetContext(ctx context.Context, db *sql.DB, dir string, opts ...OptionsFu
 }
 
 func dbMigrationsStatus(ctx context.Context, db *sql.DB) (map[int64]bool, error) {
-	dbMigrations, err := store.ListMigrations(ctx, db, TableName())
+	dbMigrations, err := globalStorage().ListMigrations(ctx, db)
 	if err != nil {
 		return nil, err
 	}

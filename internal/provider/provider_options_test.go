@@ -8,6 +8,7 @@ import (
 
 	"github.com/pressly/goose/v3/internal/check"
 	"github.com/pressly/goose/v3/internal/provider"
+	"github.com/pressly/goose/v3/state/storage"
 	_ "modernc.org/sqlite"
 )
 
@@ -23,42 +24,24 @@ func TestNewProvider(t *testing.T) {
 	}
 	t.Run("invalid", func(t *testing.T) {
 		// Empty dialect not allowed
-		_, err = provider.NewProvider("", db, fsys)
-		check.HasError(t, err)
-		// Invalid dialect not allowed
-		_, err = provider.NewProvider("unknown-dialect", db, fsys)
+		_, err = provider.NewProvider(nil, db, fsys)
 		check.HasError(t, err)
 		// Nil db not allowed
-		_, err = provider.NewProvider("sqlite3", nil, fsys)
+		_, err = provider.NewProvider(storage.Sqlite3(""), nil, fsys)
 		check.HasError(t, err)
 		// Nil fsys not allowed
-		_, err = provider.NewProvider("sqlite3", db, nil)
+		_, err = provider.NewProvider(storage.Sqlite3(""), db, nil)
 		check.HasError(t, err)
-		// Duplicate table name not allowed
-		_, err = provider.NewProvider("sqlite3", db, fsys,
-			provider.WithTableName("foo"),
-			provider.WithTableName("bar"),
-		)
-		check.HasError(t, err)
-		check.Equal(t, `table already set to "foo"`, err.Error())
-		// Empty table name not allowed
-		_, err = provider.NewProvider("sqlite3", db, fsys,
-			provider.WithTableName(""),
-		)
-		check.HasError(t, err)
-		check.Equal(t, "table must not be empty", err.Error())
 	})
 	t.Run("valid", func(t *testing.T) {
 		// Valid dialect, db, and fsys allowed
-		_, err = provider.NewProvider("sqlite3", db, fsys)
+		_, err = provider.NewProvider(storage.Sqlite3(""), db, fsys)
 		check.NoError(t, err)
 		// Valid dialect, db, fsys, and table name allowed
-		_, err = provider.NewProvider("sqlite3", db, fsys,
-			provider.WithTableName("foo"),
-		)
+		_, err = provider.NewProvider(storage.Sqlite3("foo"), db, fsys)
 		check.NoError(t, err)
 		// Valid dialect, db, fsys, and verbose allowed
-		_, err = provider.NewProvider("sqlite3", db, fsys,
+		_, err = provider.NewProvider(storage.Sqlite3(""), db, fsys,
 			provider.WithVerbose(testing.Verbose()),
 		)
 		check.NoError(t, err)

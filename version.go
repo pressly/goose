@@ -38,15 +38,3 @@ func VersionContext(ctx context.Context, db *sql.DB, dir string, opts ...Options
 	log.Printf("goose: version %v\n", current)
 	return nil
 }
-
-var tableName = "goose_db_version"
-
-// TableName returns goose db version table name
-func TableName() string {
-	return tableName
-}
-
-// SetTableName set goose db version table name
-func SetTableName(n string) {
-	tableName = n
-}

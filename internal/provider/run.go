@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pressly/goose/v3/internal/sqladapter"
 	"github.com/pressly/goose/v3/internal/sqlparser"
+	"github.com/pressly/goose/v3/state"
 	"go.uber.org/multierr"
 )
 
@@ -115,7 +115,7 @@ func (p *Provider) runIndividually(
 			if p.cfg.noVersioning {
 				return nil
 			}
-			return p.store.InsertOrDelete(ctx, tx, direction, m.Source.Version)
+			return p.InsertOrDeleteVersion(ctx, tx, m.Source.Version, direction)
 		})
 	}
 	// Run the migration outside of a transaction.
@@ -135,7 +135,14 @@ func (p *Provider) runIndividually(
 	if p.cfg.noVersioning {
 		return nil
 	}
-	return p.store.InsertOrDelete(ctx, conn, direction, m.Source.Version)
+	return p.InsertOrDeleteVersion(ctx, conn, m.Source.Version, direction)
+}
+
+func (p *Provider) InsertOrDeleteVersion(ctx context.Context, db state.DB, version int64, direction bool) error {
+	if direction {
+		return p.store.InsertVersion(ctx, db, version)
+	}
+	return p.store.DeleteVersion(ctx, db, version)
 }
 
 // beginTx begins a transaction and runs the given function. If the function returns an error, the
@@ -234,7 +241,7 @@ func (p *Provider) ensureVersionTable(ctx context.Context, conn *sql.Conn) (retE
 		if p.cfg.noVersioning {
 			return nil
 		}
-		return p.store.InsertOrDelete(ctx, tx, true, 0)
+		return p.InsertOrDeleteVersion(ctx, tx, 0, true)
 	})
 }
 
@@ -246,13 +253,13 @@ type missingMigration struct {
 // findMissingMigrations returns a list of migrations that are missing from the database. A missing
 // migration is one that has a version less than the max version in the database.
 func findMissingMigrations(
-	dbMigrations []*sqladapter.ListMigrationsResult,
+	dbMigrations []*state.ListMigrationsResult,
 	fsMigrations []*migration,
 	dbMaxVersion int64,
 ) []missingMigration {
 	existing := make(map[int64]bool)
 	for _, m := range dbMigrations {
-		existing[m.Version] = true
+		existing[m.VersionID] = true
 	}
 	var missing []missingMigration
 	for _, m := range fsMigrations {
@@ -371,5 +378,5 @@ func (p *Provider) getDBVersion(ctx context.Context) (_ int64, retErr error) {
 	if len(res) == 0 {
 		return 0, nil
 	}
-	return res[0].Version, nil
+	return res[0].VersionID, nil
 }

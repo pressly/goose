@@ -34,16 +34,16 @@ func (p *Provider) down(ctx context.Context, downByOne bool, version int64) (_ [
 	if err != nil {
 		return nil, err
 	}
-	if dbMigrations[0].Version == 0 {
+	if dbMigrations[0].VersionID == 0 {
 		return nil, nil
 	}
 
 	var downMigrations []*migration
 	for _, dbMigration := range dbMigrations {
-		if dbMigration.Version <= version {
+		if dbMigration.VersionID <= version {
 			break
 		}
-		m, err := p.getMigration(dbMigration.Version)
+		m, err := p.getMigration(dbMigration.VersionID)
 		if err != nil {
 			return nil, err
 		}

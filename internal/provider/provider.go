@@ -9,14 +9,12 @@ import (
 	"math"
 	"sync"
 
-	"github.com/pressly/goose/v3/internal/sqladapter"
+	"github.com/pressly/goose/v3/state"
 )
 
 // NewProvider returns a new goose Provider.
 //
-// The caller is responsible for matching the database dialect with the database/sql driver. For
-// example, if the database dialect is "postgres", the database/sql driver could be
-// github.com/lib/pq or github.com/jackc/pgx.
+// storage implementations are available in the [state/storage] package (e.g. storage.Sqlite3).
 //
 // fsys is the filesystem used to read the migration files, but may be nil. Most users will want to
 // use os.DirFS("path/to/migrations") to read migrations from the local filesystem. However, it is
@@ -27,12 +25,12 @@ import (
 // Unless otherwise specified, all methods on Provider are safe for concurrent use.
 //
 // Experimental: This API is experimental and may change in the future.
-func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption) (*Provider, error) {
+func NewProvider(storage state.Storage, db *sql.DB, fsys fs.FS, opts ...ProviderOption) (*Provider, error) {
 	if db == nil {
 		return nil, errors.New("db must not be nil")
 	}
-	if dialect == "" {
-		return nil, errors.New("dialect must not be empty")
+	if storage == nil {
+		return nil, errors.New("storage must not be nil")
 	}
 	if fsys == nil {
 		fsys = noopFS{}
@@ -46,13 +44,7 @@ func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption
 		}
 	}
 	// Set defaults after applying user-supplied options so option funcs can check for empty values.
-	if cfg.tableName == "" {
-		cfg.tableName = DefaultTablename
-	}
-	store, err := sqladapter.NewStore(string(dialect), cfg.tableName)
-	if err != nil {
-		return nil, err
-	}
+
 	// Collect migrations from the filesystem and merge with registered migrations.
 	//
 	// Note, neither of these functions parse SQL migrations by default. SQL migrations are parsed
@@ -122,7 +114,7 @@ func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption
 		db:         db,
 		fsys:       fsys,
 		cfg:        cfg,
-		store:      store,
+		store:      storage,
 		migrations: migrations,
 	}, nil
 }
@@ -136,7 +128,7 @@ type Provider struct {
 	db         *sql.DB
 	fsys       fs.FS
 	cfg        config
-	store      sqladapter.Store
+	store      state.Storage
 	migrations []*migration
 }
 

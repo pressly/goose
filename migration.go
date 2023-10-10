@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/pressly/goose/v3/internal/sqlparser"
+	"github.com/pressly/goose/v3/state"
 )
 
 // MigrationRecord struct.
@@ -165,7 +166,7 @@ func runGoMigrationNoTx(
 		}
 	}
 	if recordVersion {
-		return insertOrDeleteVersionNoTx(ctx, db, version, direction)
+		return insertOrDeleteVersion(ctx, db, version, direction)
 	}
 	return nil
 }
@@ -204,18 +205,11 @@ func runGoMigration(
 	return nil
 }
 
-func insertOrDeleteVersion(ctx context.Context, tx *sql.Tx, version int64, direction bool) error {
+func insertOrDeleteVersion(ctx context.Context, db state.DB, version int64, direction bool) error {
 	if direction {
-		return store.InsertVersion(ctx, tx, TableName(), version)
+		return globalStorage().InsertVersion(ctx, db, version)
 	}
-	return store.DeleteVersion(ctx, tx, TableName(), version)
-}
-
-func insertOrDeleteVersionNoTx(ctx context.Context, db *sql.DB, version int64, direction bool) error {
-	if direction {
-		return store.InsertVersionNoTx(ctx, db, TableName(), version)
-	}
-	return store.DeleteVersionNoTx(ctx, db, TableName(), version)
+	return globalStorage().DeleteVersion(ctx, db, version)
 }
 
 // NumericComponent parses the version from the migration file name.

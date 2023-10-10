@@ -39,11 +39,11 @@ func (p *Provider) up(ctx context.Context, upByOne bool, version int64) (_ []*Mi
 	if err != nil {
 		return nil, err
 	}
-	dbMaxVersion := dbMigrations[0].Version
+	dbMaxVersion := dbMigrations[0].VersionID
 	// lookupAppliedInDB is a map of all applied migrations in the database.
 	lookupAppliedInDB := make(map[int64]bool)
 	for _, m := range dbMigrations {
-		lookupAppliedInDB[m.Version] = true
+		lookupAppliedInDB[m.VersionID] = true
 	}
 
 	missingMigrations := findMissingMigrations(dbMigrations, p.migrations, dbMaxVersion)
