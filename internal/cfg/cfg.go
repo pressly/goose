@@ -7,11 +7,13 @@ var (
 	GOOSEDBSTRING     = ""
 	GOOSEMIGRATIONDIR = DefaultMigrationDir
 	// https://no-color.org/
-	GOOSENOCOLOR = "false"
+	GOOSENOCOLOR        = "false"
+	GOOSEMIGRATIONTABLE = DefaultMigrationTable
 )
 
 var (
-	DefaultMigrationDir = "."
+	DefaultMigrationDir   = "."
+	DefaultMigrationTable = "goose_db_version"
 )
 
 // Load reads the config values from environment,
@@ -22,6 +24,7 @@ func Load() {
 	GOOSEMIGRATIONDIR = envOr("GOOSE_MIGRATION_DIR", GOOSEMIGRATIONDIR)
 	// https://no-color.org/
 	GOOSENOCOLOR = envOr("NO_COLOR", GOOSENOCOLOR)
+	GOOSEMIGRATIONTABLE = envOr("GOOSE_MIGRATION_TABLE", GOOSEMIGRATIONTABLE)
 }
 
 // An EnvVar is an environment variable Name=Value.
@@ -36,6 +39,7 @@ func List() []EnvVar {
 		{Name: "GOOSE_DBSTRING", Value: GOOSEDBSTRING},
 		{Name: "GOOSE_MIGRATION_DIR", Value: GOOSEMIGRATIONDIR},
 		{Name: "NO_COLOR", Value: GOOSENOCOLOR},
+		{Name: "GOOSE_MIGRATION_TABLE", Value: GOOSEMIGRATIONTABLE},
 	}
 }
 
