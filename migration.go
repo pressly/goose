@@ -218,27 +218,27 @@ func insertOrDeleteVersionNoTx(ctx context.Context, db *sql.DB, version int64, d
 	return store.DeleteVersionNoTx(ctx, db, TableName(), version)
 }
 
-// NumericComponent looks for migration scripts with names in the form:
-// XXX_descriptivename.ext where XXX specifies the version number
-// and ext specifies the type of migration
-func NumericComponent(name string) (int64, error) {
-	base := filepath.Base(name)
-
+// NumericComponent parses the version from the migration file name.
+//
+// XXX_descriptivename.ext where XXX specifies the version number and ext specifies the type of
+// migration, either .sql or .go.
+func NumericComponent(filename string) (int64, error) {
+	base := filepath.Base(filename)
 	if ext := filepath.Ext(base); ext != ".go" && ext != ".sql" {
-		return 0, errors.New("not a recognized migration file type")
+		return 0, errors.New("migration file does not have .sql or .go file extension")
 	}
-
 	idx := strings.Index(base, "_")
 	if idx < 0 {
 		return 0, errors.New("no filename separator '_' found")
 	}
-
-	n, e := strconv.ParseInt(base[:idx], 10, 64)
-	if e == nil && n <= 0 {
-		return 0, errors.New("migration IDs must be greater than zero")
+	n, err := strconv.ParseInt(base[:idx], 10, 64)
+	if err != nil {
+		return 0, err
 	}
-
-	return n, e
+	if n < 1 {
+		return 0, errors.New("migration version must be greater than zero")
+	}
+	return n, nil
 }
 
 func truncateDuration(d time.Duration) time.Duration {

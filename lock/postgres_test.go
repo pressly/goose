@@ -14,19 +14,20 @@ import (
 )
 
 func TestPostgresSessionLocker(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skip long running test")
 	}
 	db, cleanup, err := testdb.NewPostgres()
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
-	const (
-		lockID int64 = 123456789
-	)
 
 	// Do not run tests in parallel, because they are using the same database.
 
 	t.Run("lock_and_unlock", func(t *testing.T) {
+		const (
+			lockID int64 = 123456789
+		)
 		locker, err := lock.NewPostgresSessionLocker(
 			lock.WithLockID(lockID),
 			lock.WithLockTimeout(4*time.Second),

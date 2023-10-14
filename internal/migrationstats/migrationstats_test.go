@@ -8,6 +8,7 @@ import (
 )
 
 func TestParsingGoMigrations(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name                     string
 		input                    string
@@ -38,6 +39,7 @@ func TestParsingGoMigrations(t *testing.T) {
 }
 
 func TestParsingGoMigrationsError(t *testing.T) {
+	t.Parallel()
 	_, err := parseGoFile(strings.NewReader(emptyInit))
 	check.HasError(t, err)
 	check.Contains(t, err.Error(), "no registered goose functions")
