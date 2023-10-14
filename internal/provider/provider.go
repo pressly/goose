@@ -92,10 +92,6 @@ func (f noopFS) Open(name string) (fs.File, error) {
 	return nil, os.ErrNotExist
 }
 
-// func (f noopFS) ReadFile(name string) ([]byte, error) {
-// 	return nil, os.ErrNotExist
-// }
-
 // Provider is a goose migration provider.
 type Provider struct {
 	db         *sql.DB
