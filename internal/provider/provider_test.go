@@ -36,11 +36,11 @@ func TestProvider(t *testing.T) {
 	// 1
 	check.Equal(t, sources[0].Version, int64(1))
 	check.Equal(t, sources[0].Fullpath, "001_foo.sql")
-	check.Equal(t, sources[0].Type, provider.SourceTypeSQL)
+	check.Equal(t, sources[0].Type, provider.TypeSQL)
 	// 2
 	check.Equal(t, sources[1].Version, int64(2))
 	check.Equal(t, sources[1].Fullpath, "002_bar.sql")
-	check.Equal(t, sources[1].Type, provider.SourceTypeSQL)
+	check.Equal(t, sources[1].Type, provider.TypeSQL)
 }
 
 var (
