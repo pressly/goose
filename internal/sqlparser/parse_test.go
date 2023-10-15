@@ -65,15 +65,6 @@ DROP TABLE foo;
 		check.NoError(t, err)
 		assertParsedSQL(t, parsedSQL, false, 1, 1)
 	})
-
-	// mapFS := fstest.MapFS{
-	// 	"001_foo.sql": migration1,
-	// }
-	// parsedSQL, err := sqlparser.ParseAllFromFS(mapFS, "001_foo.sql", false)
-	// check.NoError(t, err)
-	// check.Equal(t, parsedSQL.UseTx, false)
-	// check.Equal(t, parsedSQL.Up, []string{})
-	// check.Equal(t, parsedSQL.Down, []string{})
 }
 
 func assertParsedSQL(t *testing.T, got *sqlparser.ParsedSQL, useTx bool, up, down int) {
