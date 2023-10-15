@@ -264,7 +264,7 @@ func (p *Provider) DownTo(ctx context.Context, version int64) ([]*MigrationResul
 // parseSQL parses all SQL migrations in BOTH directions. If a migration has already been parsed, it
 // will not be parsed again.
 //
-// Important: This function will mutate SQL migrations.
+// Important: This function will mutate SQL migrations and is not safe for concurrent use.
 func parseSQL(fsys fs.FS, debug bool, migrations []*migration) error {
 	for _, m := range migrations {
 		// If the migration is a SQL migration, and it has not been parsed, parse it.
