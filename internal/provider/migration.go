@@ -3,8 +3,8 @@ package provider
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
+	"path/filepath"
 
 	"github.com/pressly/goose/v3/internal/sqlextended"
 )
@@ -24,36 +24,83 @@ type migration struct {
 	SQL *sqlMigration
 }
 
-type MigrationType int
-
-const (
-	TypeGo MigrationType = iota + 1
-	TypeSQL
-)
-
-func (t MigrationType) String() string {
-	switch t {
-	case TypeGo:
-		return "go"
+func (m *migration) useTx(direction bool) bool {
+	switch m.Source.Type {
 	case TypeSQL:
-		return "sql"
-	default:
-		// This should never happen.
-		return fmt.Sprintf("unknown (%d)", t)
+		return m.SQL.UseTx
+	case TypeGo:
+		if m.Go == nil {
+			return false
+		}
+		if direction {
+			return m.Go.up.Run != nil
+		}
+		return m.Go.down.Run != nil
 	}
+	// This should never happen.
+	return false
 }
 
-func (m *migration) GetSQLStatements(direction bool) ([]string, error) {
-	if m.Source.Type != TypeSQL {
-		return nil, fmt.Errorf("expected sql migration, got %s: no sql statements", m.Source.Type)
+func (m *migration) filename() string {
+	return filepath.Base(m.Source.Fullpath)
+}
+
+// run runs the migration inside of a transaction.
+func (m *migration) run(ctx context.Context, tx *sql.Tx, direction bool) error {
+	switch m.Source.Type {
+	case TypeSQL:
+		if m.SQL == nil {
+			return fmt.Errorf("tx: sql migration has not been parsed")
+		}
+		return m.SQL.run(ctx, tx, direction)
+	case TypeGo:
+		return m.Go.run(ctx, tx, direction)
 	}
-	if m.SQL == nil {
-		return nil, errors.New("sql migration has not been parsed")
+	// This should never happen.
+	return fmt.Errorf("tx: failed to run migration %s: neither sql or go", filepath.Base(m.Source.Fullpath))
+}
+
+// runNoTx runs the migration without a transaction.
+func (m *migration) runNoTx(ctx context.Context, db *sql.DB, direction bool) error {
+	switch m.Source.Type {
+	case TypeSQL:
+		if m.SQL == nil {
+			return fmt.Errorf("db: sql migration has not been parsed")
+		}
+		return m.SQL.run(ctx, db, direction)
+	case TypeGo:
+		return m.Go.runNoTx(ctx, db, direction)
 	}
-	if direction {
-		return m.SQL.UpStatements, nil
+	// This should never happen.
+	return fmt.Errorf("db: failed to run migration %s: neither sql or go", filepath.Base(m.Source.Fullpath))
+}
+
+// runConn runs the migration without a transaction using the provided connection.
+func (m *migration) runConn(ctx context.Context, conn *sql.Conn, direction bool) error {
+	switch m.Source.Type {
+	case TypeSQL:
+		if m.SQL == nil {
+			return fmt.Errorf("conn: sql migration has not been parsed")
+		}
+		return m.SQL.run(ctx, conn, direction)
+	case TypeGo:
+		return fmt.Errorf("conn: go migrations are not supported with *sql.Conn")
 	}
-	return m.SQL.DownStatements, nil
+	// This should never happen.
+	return fmt.Errorf("conn: failed to run migration %s: neither sql or go", filepath.Base(m.Source.Fullpath))
+}
+
+type goMigration struct {
+	fullpath string
+	up, down *GoMigration
+}
+
+func newGoMigration(fullpath string, up, down *GoMigration) *goMigration {
+	return &goMigration{
+		fullpath: fullpath,
+		up:       up,
+		down:     down,
+	}
 }
 
 func (g *goMigration) run(ctx context.Context, tx *sql.Tx, direction bool) error {

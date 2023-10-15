@@ -59,7 +59,7 @@ func TestNewProvider(t *testing.T) {
 		check.NoError(t, err)
 		// Valid dialect, db, fsys, and verbose allowed
 		_, err = provider.NewProvider("sqlite3", db, fsys,
-			provider.WithVerbose(),
+			provider.WithVerbose(testing.Verbose()),
 		)
 		check.NoError(t, err)
 	})
