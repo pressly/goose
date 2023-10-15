@@ -254,9 +254,34 @@ func TestMerge(t *testing.T) {
 			check.Number(t, len(migrations), 5)
 			assertMigration(t, migrations[0], newSource(TypeSQL, "00001_foo.sql", 1))
 			assertMigration(t, migrations[1], newSource(TypeSQL, "00002_bar.sql", 2))
-			assertMigration(t, migrations[2], newSource(TypeGo, "manually registered (no source)", 3))
+			assertMigration(t, migrations[2], newSource(TypeGo, "", 3))
 			assertMigration(t, migrations[3], newSource(TypeSQL, "00005_baz.sql", 5))
-			assertMigration(t, migrations[4], newSource(TypeGo, "manually registered (no source)", 6))
+			assertMigration(t, migrations[4], newSource(TypeGo, "", 6))
+		})
+	})
+	t.Run("partial_go_files_on_disk", func(t *testing.T) {
+		mapFS := fstest.MapFS{
+			"migrations/00001_foo.sql": sqlMapFile,
+			"migrations/00002_bar.go":  &fstest.MapFile{Data: []byte(`package migrations`)},
+		}
+		fsys, err := fs.Sub(mapFS, "migrations")
+		check.NoError(t, err)
+		sources, err := collectFileSources(fsys, false, nil)
+		check.NoError(t, err)
+		t.Run("unregistered_all", func(t *testing.T) {
+			migrations, err := merge(sources, map[int64]*goMigration{
+				// This is the only Go file on disk.
+				2: {version: 2},
+				// These are not on disk. Explicitly registered.
+				3: {version: 3},
+				6: {version: 6},
+			})
+			check.NoError(t, err)
+			check.Number(t, len(migrations), 4)
+			assertMigration(t, migrations[0], newSource(TypeSQL, "00001_foo.sql", 1))
+			assertMigration(t, migrations[1], newSource(TypeGo, "00002_bar.go", 2))
+			assertMigration(t, migrations[2], newSource(TypeGo, "", 3))
+			assertMigration(t, migrations[3], newSource(TypeGo, "", 6))
 		})
 	})
 }

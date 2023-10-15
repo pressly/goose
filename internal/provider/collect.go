@@ -161,12 +161,15 @@ func merge(sources *fileSources, registerd map[int64]*goMigration) ([]*migration
 	// wholesale as part of migrations. This allows users to build a custom binary that only embeds
 	// the SQL migration files.
 	for version, r := range registerd {
-		fullpath := "manually registered (no source)"
+		var fullpath string
 		if s := sources.lookup(TypeGo, version); s != nil {
 			fullpath = s.Fullpath
 		}
 		// Ensure there are no duplicate versions.
 		if existing, ok := migrationLookup[version]; ok {
+			if fullpath == "" {
+				fullpath = "manually registered (no source)"
+			}
 			return nil, fmt.Errorf("found duplicate migration version %d:\n\texisting:%v\n\tcurrent:%v",
 				version,
 				existing.Source.Fullpath,
@@ -174,6 +177,7 @@ func merge(sources *fileSources, registerd map[int64]*goMigration) ([]*migration
 			)
 		}
 		m := &migration{
+			// Note, the fullpath may be empty if the migration was registered manually.
 			Source: newSource(TypeGo, fullpath, version),
 			Go:     r,
 		}
