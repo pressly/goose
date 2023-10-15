@@ -4,18 +4,22 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"time"
 
-	"github.com/pressly/goose/v3/internal/migrate"
+	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/internal/sqladapter"
+	"github.com/pressly/goose/v3/internal/sqlparser"
 )
 
 var (
 	// ErrNoMigrations is returned by [NewProvider] when no migrations are found.
 	ErrNoMigrations = errors.New("no migrations found")
 )
+
+var registeredGoMigrations = make(map[int64]*goose.Migration)
 
 // NewProvider returns a new goose Provider.
 //
@@ -68,7 +72,59 @@ func NewProvider(dialect string, db *sql.DB, fsys fs.FS, opts ...ProviderOption)
 	if err != nil {
 		return nil, err
 	}
-	migrations, err := merge(sources, nil)
+	//
+	// TODO(mf): move the merging of Go migrations into a separate function.
+	//
+	registered := make(map[int64]*goMigration)
+	// Add user-registered Go migrations.
+	for version, m := range cfg.registered {
+		registered[version] = &goMigration{
+			version: version,
+			up:      m.up,
+			down:    m.down,
+		}
+	}
+	// Add init() functions. This is a bit ugly because we need to convert from the old Migration
+	// struct to the new goMigration struct.
+	for version, m := range registeredGoMigrations {
+		if _, ok := registered[version]; ok {
+			return nil, fmt.Errorf("go migration with version %d already registered", version)
+		}
+		g := &goMigration{
+			version: version,
+		}
+		if m == nil {
+			return nil, errors.New("registered migration with nil init function")
+		}
+		if m.UpFnContext != nil && m.UpFnNoTxContext != nil {
+			return nil, errors.New("registered migration with both UpFnContext and UpFnNoTxContext")
+		}
+		if m.DownFnContext != nil && m.DownFnNoTxContext != nil {
+			return nil, errors.New("registered migration with both DownFnContext and DownFnNoTxContext")
+		}
+		// Up
+		if m.UpFnContext != nil {
+			g.up = &GoMigration{
+				Run: m.UpFnContext,
+			}
+		} else if m.UpFnNoTxContext != nil {
+			g.up = &GoMigration{
+				RunNoTx: m.UpFnNoTxContext,
+			}
+		}
+		// Down
+		if m.DownFnContext != nil {
+			g.down = &GoMigration{
+				Run: m.DownFnContext,
+			}
+		} else if m.DownFnNoTxContext != nil {
+			g.down = &GoMigration{
+				RunNoTx: m.DownFnNoTxContext,
+			}
+		}
+		registered[version] = g
+	}
+	migrations, err := merge(sources, registered)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +154,7 @@ type Provider struct {
 	fsys       fs.FS
 	cfg        config
 	store      sqladapter.Store
-	migrations []*migrate.Migration
+	migrations []*migration
 }
 
 // State represents the state of a migration.
@@ -137,48 +193,12 @@ func (p *Provider) GetDBVersion(ctx context.Context) (int64, error) {
 	return 0, errors.New("not implemented")
 }
 
-// SourceType represents the type of migration source.
-type SourceType string
-
-const (
-	// SourceTypeSQL represents a SQL migration.
-	SourceTypeSQL SourceType = "sql"
-	// SourceTypeGo represents a Go migration.
-	SourceTypeGo SourceType = "go"
-)
-
-// Source represents a single migration source.
-//
-// For SQL migrations, Fullpath will always be set. For Go migrations, Fullpath will will be set if
-// the migration has a corresponding file on disk. It will be empty if the migration was registered
-// manually.
-type Source struct {
-	// Type is the type of migration.
-	Type SourceType
-	// Full path to the migration file.
-	//
-	// Example: /path/to/migrations/001_create_users_table.sql
-	Fullpath string
-	// Version is the version of the migration.
-	Version int64
-}
-
 // ListSources returns a list of all available migration sources the provider is aware of, sorted in
 // ascending order by version.
 func (p *Provider) ListSources() []*Source {
 	sources := make([]*Source, 0, len(p.migrations))
 	for _, m := range p.migrations {
-		s := &Source{
-			Fullpath: m.Fullpath,
-			Version:  m.Version,
-		}
-		switch m.Type {
-		case migrate.TypeSQL:
-			s.Type = SourceTypeSQL
-		case migrate.TypeGo:
-			s.Type = SourceTypeGo
-		}
-		sources = append(sources, s)
+		sources = append(sources, &m.Source)
 	}
 	return sources
 }
@@ -239,4 +259,26 @@ func (p *Provider) Down(ctx context.Context) (*MigrationResult, error) {
 // migrations 11 and 10 will be rolled back.
 func (p *Provider) DownTo(ctx context.Context, version int64) ([]*MigrationResult, error) {
 	return nil, errors.New("not implemented")
+}
+
+// ParseSQL parses all SQL migrations in BOTH directions. If a migration has already been parsed, it
+// will not be parsed again.
+//
+// Important: This function will mutate SQL migrations and is not safe for concurrent use.
+func ParseSQL(fsys fs.FS, debug bool, migrations []*migration) error {
+	for _, m := range migrations {
+		// If the migration is a SQL migration, and it has not been parsed, parse it.
+		if m.Source.Type == TypeSQL && m.SQL == nil {
+			parsed, err := sqlparser.ParseAllFromFS(fsys, m.Source.Fullpath, debug)
+			if err != nil {
+				return err
+			}
+			m.SQL = &sqlMigration{
+				UseTx:          parsed.UseTx,
+				UpStatements:   parsed.Up,
+				DownStatements: parsed.Down,
+			}
+		}
+	}
+	return nil
 }

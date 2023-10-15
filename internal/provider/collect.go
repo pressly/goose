@@ -9,13 +9,54 @@ import (
 	"strings"
 
 	"github.com/pressly/goose/v3"
-	"github.com/pressly/goose/v3/internal/migrate"
 )
+
+// Source represents a single migration source.
+//
+// For SQL migrations, Fullpath will always be set. For Go migrations, Fullpath will will be set if
+// the migration has a corresponding file on disk. It will be empty if the migration was registered
+// manually.
+type Source struct {
+	// Type is the type of migration.
+	Type MigrationType
+	// Full path to the migration file.
+	//
+	// Example: /path/to/migrations/001_create_users_table.sql
+	Fullpath string
+	// Version is the version of the migration.
+	Version int64
+}
+
+func newSource(t MigrationType, fullpath string, version int64) Source {
+	return Source{
+		Type:     t,
+		Fullpath: fullpath,
+		Version:  version,
+	}
+}
 
 // fileSources represents a collection of migration files on the filesystem.
 type fileSources struct {
 	sqlSources []Source
 	goSources  []Source
+}
+
+func (s *fileSources) lookup(t MigrationType, version int64) *Source {
+	switch t {
+	case TypeGo:
+		for _, source := range s.goSources {
+			if source.Version == version {
+				return &source
+			}
+		}
+	case TypeSQL:
+		for _, source := range s.sqlSources {
+			if source.Version == version {
+				return &source
+			}
+		}
+	}
+	return nil
 }
 
 // collectFileSources scans the file system for migration files that have a numeric prefix (greater
@@ -69,15 +110,9 @@ func collectFileSources(fsys fs.FS, strict bool, excludes map[string]bool) (*fil
 			}
 			switch filepath.Ext(base) {
 			case ".sql":
-				sources.sqlSources = append(sources.sqlSources, Source{
-					Fullpath: fullpath,
-					Version:  version,
-				})
+				sources.sqlSources = append(sources.sqlSources, newSource(TypeSQL, fullpath, version))
 			case ".go":
-				sources.goSources = append(sources.goSources, Source{
-					Fullpath: fullpath,
-					Version:  version,
-				})
+				sources.goSources = append(sources.goSources, newSource(TypeGo, fullpath, version))
 			default:
 				// Should never happen since we already filtered out all other file types.
 				return nil, fmt.Errorf("unknown migration type: %s", base)
@@ -89,19 +124,17 @@ func collectFileSources(fsys fs.FS, strict bool, excludes map[string]bool) (*fil
 	return sources, nil
 }
 
-func merge(sources *fileSources, registerd map[int64]*goose.Migration) ([]*migrate.Migration, error) {
-	var migrations []*migrate.Migration
-	migrationLookup := make(map[int64]*migrate.Migration)
+func merge(sources *fileSources, registerd map[int64]*goMigration) ([]*migration, error) {
+	var migrations []*migration
+	migrationLookup := make(map[int64]*migration)
 	// Add all SQL migrations to the list of migrations.
-	for _, s := range sources.sqlSources {
-		m := &migrate.Migration{
-			Type:      migrate.TypeSQL,
-			Fullpath:  s.Fullpath,
-			Version:   s.Version,
-			SQLParsed: false,
+	for _, source := range sources.sqlSources {
+		m := &migration{
+			Source: source,
+			SQL:    nil, // SQL migrations are parsed lazily.
 		}
 		migrations = append(migrations, m)
-		migrationLookup[s.Version] = m
+		migrationLookup[source.Version] = m
 	}
 	// If there are no Go files in the filesystem and no registered Go migrations, return early.
 	if len(sources.goSources) == 0 && len(registerd) == 0 {
@@ -127,38 +160,41 @@ func merge(sources *fileSources, registerd map[int64]*goose.Migration) ([]*migra
 	// migrations may not have a corresponding file on disk. Which is fine! We include them
 	// wholesale as part of migrations. This allows users to build a custom binary that only embeds
 	// the SQL migration files.
-	for _, r := range registerd {
+	for version, r := range registerd {
+		var fullpath string
+		if s := sources.lookup(TypeGo, version); s != nil {
+			fullpath = s.Fullpath
+		}
 		// Ensure there are no duplicate versions.
-		if existing, ok := migrationLookup[r.Version]; ok {
+		if existing, ok := migrationLookup[version]; ok {
+			if fullpath == "" {
+				fullpath = "manually registered (no source)"
+			}
 			return nil, fmt.Errorf("found duplicate migration version %d:\n\texisting:%v\n\tcurrent:%v",
-				r.Version,
-				existing,
-				filepath.Base(r.Source),
+				version,
+				existing.Source.Fullpath,
+				fullpath,
 			)
 		}
-		m := &migrate.Migration{
-			Fullpath: r.Source, // May be empty if the migration was registered manually.
-			Version:  r.Version,
-			Type:     migrate.TypeGo,
-			Go: &migrate.Go{
-				UseTx:      r.UseTx,
-				UpFn:       r.UpFnContext,
-				UpFnNoTx:   r.UpFnNoTxContext,
-				DownFn:     r.DownFnContext,
-				DownFnNoTx: r.DownFnNoTxContext,
-			},
+		m := &migration{
+			// Note, the fullpath may be empty if the migration was registered manually.
+			Source: newSource(TypeGo, fullpath, version),
+			Go:     r,
 		}
 		migrations = append(migrations, m)
-		migrationLookup[r.Version] = m
+		migrationLookup[version] = m
 	}
 	// Sort migrations by version in ascending order.
 	sort.Slice(migrations, func(i, j int) bool {
-		return migrations[i].Version < migrations[j].Version
+		return migrations[i].Source.Version < migrations[j].Source.Version
 	})
 	return migrations, nil
 }
 
 func unregisteredError(unregistered []string) error {
+	const (
+		hintURL = "https://github.com/pressly/goose/tree/master/examples/go-migrations"
+	)
 	f := "file"
 	if len(unregistered) > 1 {
 		f += "s"
@@ -169,8 +205,9 @@ func unregisteredError(unregistered []string) error {
 	for _, name := range unregistered {
 		b.WriteString("\t" + name + "\n")
 	}
+	hint := fmt.Sprintf("hint: go functions must be registered and built into a custom binary see:\n%s", hintURL)
+	b.WriteString(hint)
 	b.WriteString("\n")
-	b.WriteString("go functions must be registered and built into a custom binary see:\nhttps://github.com/pressly/goose/tree/master/examples/go-migrations")
 
 	return errors.New(b.String())
 }
