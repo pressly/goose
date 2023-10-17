@@ -1,0 +1,39 @@
+package provider
+
+import (
+	"errors"
+	"fmt"
+	"path/filepath"
+)
+
+var (
+	// ErrVersionNotFound when a migration version is not found.
+	ErrVersionNotFound = errors.New("version not found")
+
+	// ErrAlreadyApplied when a migration has already been applied.
+	ErrAlreadyApplied = errors.New("already applied")
+
+	// ErrNoMigrations is returned by [NewProvider] when no migrations are found.
+	ErrNoMigrations = errors.New("no migrations found")
+
+	// ErrNoNextVersion when the next migration version is not found.
+	ErrNoNextVersion = errors.New("no next version found")
+)
+
+// PartialError is returned when a migration fails, but some migrations already got applied.
+type PartialError struct {
+	// Applied are migrations that were applied successfully before the error occurred.
+	Applied []*MigrationResult
+	// Failed contains the result of the migration that failed.
+	Failed *MigrationResult
+	// Err is the error that occurred while running the migration.
+	Err error
+}
+
+func (e *PartialError) Error() string {
+	filename := "(file unknown)"
+	if e.Failed != nil && e.Failed.Source.Fullpath != "" {
+		filename = fmt.Sprintf("(%s)", filepath.Base(e.Failed.Source.Fullpath))
+	}
+	return fmt.Sprintf("partial migration error %s (%d): %v", filename, e.Failed.Source.Version, e.Err)
+}

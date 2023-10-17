@@ -4,30 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
-
-	"github.com/pressly/goose/v3"
 )
 
-// Source represents a single migration source.
-//
-// For SQL migrations, Fullpath will always be set. For Go migrations, Fullpath will will be set if
-// the migration has a corresponding file on disk. It will be empty if the migration was registered
-// manually.
-type Source struct {
-	// Type is the type of migration.
-	Type MigrationType
-	// Full path to the migration file.
-	//
-	// Example: /path/to/migrations/001_create_users_table.sql
-	Fullpath string
-	// Version is the version of the migration.
-	Version int64
-}
-
-func newSource(t MigrationType, fullpath string, version int64) Source {
+func NewSource(t MigrationType, fullpath string, version int64) Source {
 	return Source{
 		Type:     t,
 		Fullpath: fullpath,
@@ -41,6 +25,7 @@ type fileSources struct {
 	goSources  []Source
 }
 
+// TODO(mf): remove?
 func (s *fileSources) lookup(t MigrationType, version int64) *Source {
 	switch t {
 	case TypeGo:
@@ -93,7 +78,7 @@ func collectFileSources(fsys fs.FS, strict bool, excludes map[string]bool) (*fil
 			// filenames, but still have versioned migrations within the same directory. For
 			// example, a user could have a helpers.go file which contains unexported helper
 			// functions for migrations.
-			version, err := goose.NumericComponent(base)
+			version, err := NumericComponent(base)
 			if err != nil {
 				if strict {
 					return nil, fmt.Errorf("failed to parse numeric component from %q: %w", base, err)
@@ -110,9 +95,9 @@ func collectFileSources(fsys fs.FS, strict bool, excludes map[string]bool) (*fil
 			}
 			switch filepath.Ext(base) {
 			case ".sql":
-				sources.sqlSources = append(sources.sqlSources, newSource(TypeSQL, fullpath, version))
+				sources.sqlSources = append(sources.sqlSources, NewSource(TypeSQL, fullpath, version))
 			case ".go":
-				sources.goSources = append(sources.goSources, newSource(TypeGo, fullpath, version))
+				sources.goSources = append(sources.goSources, NewSource(TypeGo, fullpath, version))
 			default:
 				// Should never happen since we already filtered out all other file types.
 				return nil, fmt.Errorf("unknown migration type: %s", base)
@@ -161,12 +146,15 @@ func merge(sources *fileSources, registerd map[int64]*goMigration) ([]*migration
 	// wholesale as part of migrations. This allows users to build a custom binary that only embeds
 	// the SQL migration files.
 	for version, r := range registerd {
-		var fullpath string
-		if s := sources.lookup(TypeGo, version); s != nil {
-			fullpath = s.Fullpath
+		fullpath := r.fullpath
+		if fullpath == "" {
+			if s := sources.lookup(TypeGo, version); s != nil {
+				fullpath = s.Fullpath
+			}
 		}
 		// Ensure there are no duplicate versions.
 		if existing, ok := migrationLookup[version]; ok {
+			fullpath := r.fullpath
 			if fullpath == "" {
 				fullpath = "manually registered (no source)"
 			}
@@ -178,7 +166,7 @@ func merge(sources *fileSources, registerd map[int64]*goMigration) ([]*migration
 		}
 		m := &migration{
 			// Note, the fullpath may be empty if the migration was registered manually.
-			Source: newSource(TypeGo, fullpath, version),
+			Source: NewSource(TypeGo, fullpath, version),
 			Go:     r,
 		}
 		migrations = append(migrations, m)
@@ -210,4 +198,35 @@ func unregisteredError(unregistered []string) error {
 	b.WriteString("\n")
 
 	return errors.New(b.String())
+}
+
+type noopFS struct{}
+
+var _ fs.FS = noopFS{}
+
+func (f noopFS) Open(name string) (fs.File, error) {
+	return nil, os.ErrNotExist
+}
+
+// NumericComponent parses the version from the migration file name.
+//
+// XXX_descriptivename.ext where XXX specifies the version number and ext specifies the type of
+// migration, either .sql or .go.
+func NumericComponent(filename string) (int64, error) {
+	base := filepath.Base(filename)
+	if ext := filepath.Ext(base); ext != ".go" && ext != ".sql" {
+		return 0, errors.New("migration file does not have .sql or .go file extension")
+	}
+	idx := strings.Index(base, "_")
+	if idx < 0 {
+		return 0, errors.New("no filename separator '_' found")
+	}
+	n, err := strconv.ParseInt(base[:idx], 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	if n < 1 {
+		return 0, errors.New("migration version must be greater than zero")
+	}
+	return n, nil
 }

@@ -47,10 +47,10 @@ func TestCollectFileSources(t *testing.T) {
 		check.Number(t, len(sources.goSources), 0)
 		expected := fileSources{
 			sqlSources: []Source{
-				newSource(TypeSQL, "00001_foo.sql", 1),
-				newSource(TypeSQL, "00002_bar.sql", 2),
-				newSource(TypeSQL, "00003_baz.sql", 3),
-				newSource(TypeSQL, "00110_qux.sql", 110),
+				NewSource(TypeSQL, "00001_foo.sql", 1),
+				NewSource(TypeSQL, "00002_bar.sql", 2),
+				NewSource(TypeSQL, "00003_baz.sql", 3),
+				NewSource(TypeSQL, "00110_qux.sql", 110),
 			},
 		}
 		for i := 0; i < len(sources.sqlSources); i++ {
@@ -74,8 +74,8 @@ func TestCollectFileSources(t *testing.T) {
 		check.Number(t, len(sources.goSources), 0)
 		expected := fileSources{
 			sqlSources: []Source{
-				newSource(TypeSQL, "00001_foo.sql", 1),
-				newSource(TypeSQL, "00003_baz.sql", 3),
+				NewSource(TypeSQL, "00001_foo.sql", 1),
+				NewSource(TypeSQL, "00003_baz.sql", 3),
 			},
 		}
 		for i := 0; i < len(sources.sqlSources); i++ {
@@ -159,15 +159,15 @@ func TestCollectFileSources(t *testing.T) {
 			}
 		}
 		assertDirpath(".", []Source{
-			newSource(TypeSQL, "876_a.sql", 876),
+			NewSource(TypeSQL, "876_a.sql", 876),
 		})
 		assertDirpath("dir1", []Source{
-			newSource(TypeSQL, "101_a.sql", 101),
-			newSource(TypeSQL, "102_b.sql", 102),
-			newSource(TypeSQL, "103_c.sql", 103),
+			NewSource(TypeSQL, "101_a.sql", 101),
+			NewSource(TypeSQL, "102_b.sql", 102),
+			NewSource(TypeSQL, "103_c.sql", 103),
 		})
 		assertDirpath("dir2", []Source{
-			newSource(TypeSQL, "201_a.sql", 201),
+			NewSource(TypeSQL, "201_a.sql", 201),
 		})
 		assertDirpath("dir3", nil)
 	})
@@ -199,14 +199,14 @@ func TestMerge(t *testing.T) {
 
 		t.Run("valid", func(t *testing.T) {
 			migrations, err := merge(sources, map[int64]*goMigration{
-				2: {version: 2},
-				3: {version: 3},
+				2: newGoMigration("", nil, nil),
+				3: newGoMigration("", nil, nil),
 			})
 			check.NoError(t, err)
 			check.Number(t, len(migrations), 3)
-			assertMigration(t, migrations[0], newSource(TypeSQL, "00001_foo.sql", 1))
-			assertMigration(t, migrations[1], newSource(TypeGo, "00002_bar.go", 2))
-			assertMigration(t, migrations[2], newSource(TypeGo, "00003_baz.go", 3))
+			assertMigration(t, migrations[0], NewSource(TypeSQL, "00001_foo.sql", 1))
+			assertMigration(t, migrations[1], NewSource(TypeGo, "00002_bar.go", 2))
+			assertMigration(t, migrations[2], NewSource(TypeGo, "00003_baz.go", 3))
 		})
 		t.Run("unregistered_all", func(t *testing.T) {
 			_, err := merge(sources, nil)
@@ -217,7 +217,7 @@ func TestMerge(t *testing.T) {
 		})
 		t.Run("unregistered_some", func(t *testing.T) {
 			_, err := merge(sources, map[int64]*goMigration{
-				2: {version: 2},
+				2: newGoMigration("", nil, nil),
 			})
 			check.HasError(t, err)
 			check.Contains(t, err.Error(), "error: detected 1 unregistered Go file")
@@ -225,9 +225,9 @@ func TestMerge(t *testing.T) {
 		})
 		t.Run("duplicate_sql", func(t *testing.T) {
 			_, err := merge(sources, map[int64]*goMigration{
-				1: {version: 1}, // duplicate. SQL already exists.
-				2: {version: 2},
-				3: {version: 3},
+				1: newGoMigration("", nil, nil), // duplicate. SQL already exists.
+				2: newGoMigration("", nil, nil),
+				3: newGoMigration("", nil, nil),
 			})
 			check.HasError(t, err)
 			check.Contains(t, err.Error(), "found duplicate migration version 1")
@@ -246,17 +246,17 @@ func TestMerge(t *testing.T) {
 		check.NoError(t, err)
 		t.Run("unregistered_all", func(t *testing.T) {
 			migrations, err := merge(sources, map[int64]*goMigration{
-				3: {version: 3},
+				3: newGoMigration("", nil, nil),
 				// 4 is missing
-				6: {version: 6},
+				6: newGoMigration("", nil, nil),
 			})
 			check.NoError(t, err)
 			check.Number(t, len(migrations), 5)
-			assertMigration(t, migrations[0], newSource(TypeSQL, "00001_foo.sql", 1))
-			assertMigration(t, migrations[1], newSource(TypeSQL, "00002_bar.sql", 2))
-			assertMigration(t, migrations[2], newSource(TypeGo, "", 3))
-			assertMigration(t, migrations[3], newSource(TypeSQL, "00005_baz.sql", 5))
-			assertMigration(t, migrations[4], newSource(TypeGo, "", 6))
+			assertMigration(t, migrations[0], NewSource(TypeSQL, "00001_foo.sql", 1))
+			assertMigration(t, migrations[1], NewSource(TypeSQL, "00002_bar.sql", 2))
+			assertMigration(t, migrations[2], NewSource(TypeGo, "", 3))
+			assertMigration(t, migrations[3], NewSource(TypeSQL, "00005_baz.sql", 5))
+			assertMigration(t, migrations[4], NewSource(TypeGo, "", 6))
 		})
 	})
 	t.Run("partial_go_files_on_disk", func(t *testing.T) {
@@ -271,17 +271,17 @@ func TestMerge(t *testing.T) {
 		t.Run("unregistered_all", func(t *testing.T) {
 			migrations, err := merge(sources, map[int64]*goMigration{
 				// This is the only Go file on disk.
-				2: {version: 2},
+				2: newGoMigration("", nil, nil),
 				// These are not on disk. Explicitly registered.
-				3: {version: 3},
-				6: {version: 6},
+				3: newGoMigration("", nil, nil),
+				6: newGoMigration("", nil, nil),
 			})
 			check.NoError(t, err)
 			check.Number(t, len(migrations), 4)
-			assertMigration(t, migrations[0], newSource(TypeSQL, "00001_foo.sql", 1))
-			assertMigration(t, migrations[1], newSource(TypeGo, "00002_bar.go", 2))
-			assertMigration(t, migrations[2], newSource(TypeGo, "", 3))
-			assertMigration(t, migrations[3], newSource(TypeGo, "", 6))
+			assertMigration(t, migrations[0], NewSource(TypeSQL, "00001_foo.sql", 1))
+			assertMigration(t, migrations[1], NewSource(TypeGo, "00002_bar.go", 2))
+			assertMigration(t, migrations[2], NewSource(TypeGo, "", 3))
+			assertMigration(t, migrations[3], NewSource(TypeGo, "", 6))
 		})
 	})
 }
@@ -291,7 +291,7 @@ func assertMigration(t *testing.T, got *migration, want Source) {
 	check.Equal(t, got.Source, want)
 	switch got.Source.Type {
 	case TypeGo:
-		check.Equal(t, got.Go.version, want.Version)
+		check.Bool(t, got.Go != nil, true)
 	case TypeSQL:
 		check.Bool(t, got.SQL == nil, true)
 	default:

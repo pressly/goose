@@ -1,6 +1,7 @@
 package sqlparser
 
 import (
+	"fmt"
 	"io/fs"
 
 	"go.uber.org/multierr"
@@ -50,5 +51,9 @@ func parse(fsys fs.FS, filename string, direction Direction, debug bool) (_ []st
 	defer func() {
 		retErr = multierr.Append(retErr, r.Close())
 	}()
-	return ParseSQLMigration(r, direction, debug)
+	stmts, useTx, err := ParseSQLMigration(r, direction, debug)
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to parse %s: %w", filename, err)
+	}
+	return stmts, useTx, nil
 }

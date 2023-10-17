@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	defaultTablename = "goose_db_version"
+	DefaultTablename = "goose_db_version"
 )
 
 // ProviderOption is a configuration option for a goose provider.
@@ -35,9 +35,9 @@ func WithTableName(name string) ProviderOption {
 }
 
 // WithVerbose enables verbose logging.
-func WithVerbose() ProviderOption {
+func WithVerbose(b bool) ProviderOption {
 	return configFunc(func(c *config) error {
-		c.verbose = true
+		c.verbose = b
 		return nil
 	})
 }
@@ -89,7 +89,7 @@ type GoMigration struct {
 func WithGoMigration(version int64, up, down *GoMigration) ProviderOption {
 	return configFunc(func(c *config) error {
 		if version < 1 {
-			return fmt.Errorf("go migration version must be greater than 0")
+			return errors.New("version must be greater than zero")
 		}
 		if _, ok := c.registered[version]; ok {
 			return fmt.Errorf("go migration with version %d already registered", version)
@@ -113,17 +113,33 @@ func WithGoMigration(version int64, up, down *GoMigration) ProviderOption {
 			}
 		}
 		c.registered[version] = &goMigration{
-			version: version,
-			up:      up,
-			down:    down,
+			up:   up,
+			down: down,
 		}
 		return nil
 	})
 }
 
-type goMigration struct {
-	version  int64
-	up, down *GoMigration
+// WithAllowMissing allows the provider to apply missing (out-of-order) migrations.
+//
+// Example: migrations 1,6 are applied and then version 2,3,5 are introduced. If this option is
+// true, then goose will apply 2,3,5 instead of raising an error. The final order of applied
+// migrations will be: 1,6,2,3,5.
+func WithAllowMissing(b bool) ProviderOption {
+	return configFunc(func(c *config) error {
+		c.allowMissing = b
+		return nil
+	})
+}
+
+// WithNoVersioning disables versioning. Disabling versioning allows the ability to apply migrations
+// without tracking the versions in the database schema table. Useful for tests, seeding a database
+// or running ad-hoc queries.
+func WithNoVersioning(b bool) ProviderOption {
+	return configFunc(func(c *config) error {
+		c.noVersioning = b
+		return nil
+	})
 }
 
 type config struct {
@@ -138,6 +154,10 @@ type config struct {
 	// Locking options
 	lockEnabled   bool
 	sessionLocker lock.SessionLocker
+
+	// Feature
+	noVersioning bool
+	allowMissing bool
 }
 
 type configFunc func(*config) error

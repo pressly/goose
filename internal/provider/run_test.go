@@ -1,0 +1,1282 @@
+package provider_test
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"io/fs"
+	"math"
+	"math/rand"
+	"os"
+	"path/filepath"
+	"reflect"
+	"sort"
+	"sync"
+	"testing"
+	"testing/fstest"
+
+	"github.com/pressly/goose/v3/internal/check"
+	"github.com/pressly/goose/v3/internal/provider"
+	"github.com/pressly/goose/v3/internal/testdb"
+	"github.com/pressly/goose/v3/lock"
+	"golang.org/x/sync/errgroup"
+)
+
+func TestProviderRun(t *testing.T) {
+	t.Parallel()
+
+	t.Run("closed_db", func(t *testing.T) {
+		p, db := newProviderWithDB(t)
+		check.NoError(t, db.Close())
+		_, err := p.Up(context.Background())
+		check.HasError(t, err)
+		check.Equal(t, err.Error(), "sql: database is closed")
+	})
+	t.Run("ping_and_close", func(t *testing.T) {
+		p, _ := newProviderWithDB(t)
+		t.Cleanup(func() {
+			check.NoError(t, p.Close())
+		})
+		check.NoError(t, p.Ping(context.Background()))
+	})
+	t.Run("apply_unknown_version", func(t *testing.T) {
+		p, _ := newProviderWithDB(t)
+		_, err := p.ApplyVersion(context.Background(), 999, true)
+		check.HasError(t, err)
+		check.Bool(t, errors.Is(err, provider.ErrVersionNotFound), true)
+		_, err = p.ApplyVersion(context.Background(), 999, false)
+		check.HasError(t, err)
+		check.Bool(t, errors.Is(err, provider.ErrVersionNotFound), true)
+	})
+	t.Run("run_zero", func(t *testing.T) {
+		p, _ := newProviderWithDB(t)
+		_, err := p.UpTo(context.Background(), 0)
+		check.HasError(t, err)
+		check.Equal(t, err.Error(), "version must be greater than zero")
+		_, err = p.DownTo(context.Background(), -1)
+		check.HasError(t, err)
+		check.Equal(t, err.Error(), "version must be a number greater than or equal zero: -1")
+		_, err = p.ApplyVersion(context.Background(), 0, true)
+		check.HasError(t, err)
+		check.Equal(t, err.Error(), "version must be greater than zero")
+	})
+	t.Run("up_and_down_all", func(t *testing.T) {
+		ctx := context.Background()
+		p, _ := newProviderWithDB(t)
+		const (
+			numCount = 7
+		)
+		sources := p.ListSources()
+		check.Number(t, len(sources), numCount)
+		// Ensure only SQL migrations are returned
+		for _, s := range sources {
+			check.Equal(t, s.Type, provider.TypeSQL)
+		}
+		// Test Up
+		res, err := p.Up(ctx)
+		check.NoError(t, err)
+		check.Number(t, len(res), numCount)
+		assertResult(t, res[0], provider.NewSource(provider.TypeSQL, "00001_users_table.sql", 1), "up")
+		assertResult(t, res[1], provider.NewSource(provider.TypeSQL, "00002_posts_table.sql", 2), "up")
+		assertResult(t, res[2], provider.NewSource(provider.TypeSQL, "00003_comments_table.sql", 3), "up")
+		assertResult(t, res[3], provider.NewSource(provider.TypeSQL, "00004_insert_data.sql", 4), "up")
+		assertResult(t, res[4], provider.NewSource(provider.TypeSQL, "00005_posts_view.sql", 5), "up")
+		assertResult(t, res[5], provider.NewSource(provider.TypeSQL, "00006_empty_up.sql", 6), "up")
+		assertResult(t, res[6], provider.NewSource(provider.TypeSQL, "00007_empty_up_down.sql", 7), "up")
+		// Test Down
+		res, err = p.DownTo(ctx, 0)
+		check.NoError(t, err)
+		check.Number(t, len(res), numCount)
+		assertResult(t, res[0], provider.NewSource(provider.TypeSQL, "00007_empty_up_down.sql", 7), "down")
+		assertResult(t, res[1], provider.NewSource(provider.TypeSQL, "00006_empty_up.sql", 6), "down")
+		assertResult(t, res[2], provider.NewSource(provider.TypeSQL, "00005_posts_view.sql", 5), "down")
+		assertResult(t, res[3], provider.NewSource(provider.TypeSQL, "00004_insert_data.sql", 4), "down")
+		assertResult(t, res[4], provider.NewSource(provider.TypeSQL, "00003_comments_table.sql", 3), "down")
+		assertResult(t, res[5], provider.NewSource(provider.TypeSQL, "00002_posts_table.sql", 2), "down")
+		assertResult(t, res[6], provider.NewSource(provider.TypeSQL, "00001_users_table.sql", 1), "down")
+	})
+	t.Run("up_and_down_by_one", func(t *testing.T) {
+		ctx := context.Background()
+		p, _ := newProviderWithDB(t)
+		maxVersion := len(p.ListSources())
+		// Apply all migrations one-by-one.
+		var counter int
+		for {
+			res, err := p.UpByOne(ctx)
+			counter++
+			if counter > maxVersion {
+				if !errors.Is(err, provider.ErrNoNextVersion) {
+					t.Fatalf("incorrect error: got:%v want:%v", err, provider.ErrNoNextVersion)
+				}
+				break
+			}
+			check.NoError(t, err)
+			check.Number(t, len(res), 1)
+			check.Number(t, res[0].Source.Version, int64(counter))
+		}
+		currentVersion, err := p.GetDBVersion(ctx)
+		check.NoError(t, err)
+		check.Number(t, currentVersion, int64(maxVersion))
+		// Reset counter
+		counter = 0
+		// Rollback all migrations one-by-one.
+		for {
+			res, err := p.Down(ctx)
+			counter++
+			if counter > maxVersion {
+				if !errors.Is(err, provider.ErrNoNextVersion) {
+					t.Fatalf("incorrect error: got:%v want:%v", err, provider.ErrNoNextVersion)
+				}
+				break
+			}
+			check.NoError(t, err)
+			check.Number(t, len(res), 1)
+			check.Number(t, res[0].Source.Version, int64(maxVersion-counter+1))
+		}
+		// Once everything is tested the version should match the highest testdata version
+		currentVersion, err = p.GetDBVersion(ctx)
+		check.NoError(t, err)
+		check.Number(t, currentVersion, 0)
+	})
+	t.Run("up_to", func(t *testing.T) {
+		ctx := context.Background()
+		p, db := newProviderWithDB(t)
+		const (
+			upToVersion int64 = 2
+		)
+		results, err := p.UpTo(ctx, upToVersion)
+		check.NoError(t, err)
+		check.Number(t, len(results), upToVersion)
+		assertResult(t, results[0], provider.NewSource(provider.TypeSQL, "00001_users_table.sql", 1), "up")
+		assertResult(t, results[1], provider.NewSource(provider.TypeSQL, "00002_posts_table.sql", 2), "up")
+		// Fetch the goose version from DB
+		currentVersion, err := p.GetDBVersion(ctx)
+		check.NoError(t, err)
+		check.Number(t, currentVersion, upToVersion)
+		// Validate the version actually matches what goose claims it is
+		gotVersion, err := getMaxVersionID(db, provider.DefaultTablename)
+		check.NoError(t, err)
+		check.Number(t, gotVersion, upToVersion)
+	})
+	t.Run("sql_connections", func(t *testing.T) {
+		tt := []struct {
+			name         string
+			maxOpenConns int
+			maxIdleConns int
+			useDefaults  bool
+		}{
+			// Single connection ensures goose is able to function correctly when multiple
+			// connections are not available.
+			{name: "single_conn", maxOpenConns: 1, maxIdleConns: 1},
+			{name: "defaults", useDefaults: true},
+		}
+		for _, tc := range tt {
+			t.Run(tc.name, func(t *testing.T) {
+				ctx := context.Background()
+				// Start a new database for each test case.
+				p, db := newProviderWithDB(t)
+				if !tc.useDefaults {
+					db.SetMaxOpenConns(tc.maxOpenConns)
+					db.SetMaxIdleConns(tc.maxIdleConns)
+				}
+				sources := p.ListSources()
+				check.NumberNotZero(t, len(sources))
+
+				currentVersion, err := p.GetDBVersion(ctx)
+				check.NoError(t, err)
+				check.Number(t, currentVersion, 0)
+
+				{
+					// Apply all up migrations
+					upResult, err := p.Up(ctx)
+					check.NoError(t, err)
+					check.Number(t, len(upResult), len(sources))
+					currentVersion, err := p.GetDBVersion(ctx)
+					check.NoError(t, err)
+					check.Number(t, currentVersion, p.ListSources()[len(sources)-1].Version)
+					// Validate the db migration version actually matches what goose claims it is
+					gotVersion, err := getMaxVersionID(db, provider.DefaultTablename)
+					check.NoError(t, err)
+					check.Number(t, gotVersion, currentVersion)
+					tables, err := getTableNames(db)
+					check.NoError(t, err)
+					if !reflect.DeepEqual(tables, knownTables) {
+						t.Logf("got tables: %v", tables)
+						t.Logf("known tables: %v", knownTables)
+						t.Fatal("failed to match tables")
+					}
+				}
+				{
+					// Apply all down migrations
+					downResult, err := p.DownTo(ctx, 0)
+					check.NoError(t, err)
+					check.Number(t, len(downResult), len(sources))
+					gotVersion, err := getMaxVersionID(db, provider.DefaultTablename)
+					check.NoError(t, err)
+					check.Number(t, gotVersion, 0)
+					// Should only be left with a single table, the default goose table
+					tables, err := getTableNames(db)
+					check.NoError(t, err)
+					knownTables := []string{provider.DefaultTablename, "sqlite_sequence"}
+					if !reflect.DeepEqual(tables, knownTables) {
+						t.Logf("got tables: %v", tables)
+						t.Logf("known tables: %v", knownTables)
+						t.Fatal("failed to match tables")
+					}
+				}
+			})
+		}
+	})
+	t.Run("apply", func(t *testing.T) {
+		ctx := context.Background()
+		p, _ := newProviderWithDB(t)
+		sources := p.ListSources()
+		// Apply all migrations in the up direction.
+		for _, s := range sources {
+			res, err := p.ApplyVersion(ctx, s.Version, true)
+			check.NoError(t, err)
+			// Round-trip the migration result through the database to ensure it's valid.
+			assertResult(t, res, s, "up")
+		}
+		// Apply all migrations in the down direction.
+		for i := len(sources) - 1; i >= 0; i-- {
+			s := sources[i]
+			res, err := p.ApplyVersion(ctx, s.Version, false)
+			check.NoError(t, err)
+			// Round-trip the migration result through the database to ensure it's valid.
+			assertResult(t, res, s, "down")
+		}
+		// Try apply version 1 multiple times
+		_, err := p.ApplyVersion(ctx, 1, true)
+		check.NoError(t, err)
+		_, err = p.ApplyVersion(ctx, 1, true)
+		check.HasError(t, err)
+		check.Bool(t, errors.Is(err, provider.ErrAlreadyApplied), true)
+		check.Contains(t, err.Error(), "version 1: already applied")
+	})
+	t.Run("status", func(t *testing.T) {
+		ctx := context.Background()
+		p, _ := newProviderWithDB(t)
+		numCount := len(p.ListSources())
+		// Before any migrations are applied, the status should be empty.
+		status, err := p.Status(ctx)
+		check.NoError(t, err)
+		check.Number(t, len(status), numCount)
+		assertStatus(t, status[0], provider.StatePending, provider.NewSource(provider.TypeSQL, "00001_users_table.sql", 1), true)
+		assertStatus(t, status[1], provider.StatePending, provider.NewSource(provider.TypeSQL, "00002_posts_table.sql", 2), true)
+		assertStatus(t, status[2], provider.StatePending, provider.NewSource(provider.TypeSQL, "00003_comments_table.sql", 3), true)
+		assertStatus(t, status[3], provider.StatePending, provider.NewSource(provider.TypeSQL, "00004_insert_data.sql", 4), true)
+		assertStatus(t, status[4], provider.StatePending, provider.NewSource(provider.TypeSQL, "00005_posts_view.sql", 5), true)
+		assertStatus(t, status[5], provider.StatePending, provider.NewSource(provider.TypeSQL, "00006_empty_up.sql", 6), true)
+		assertStatus(t, status[6], provider.StatePending, provider.NewSource(provider.TypeSQL, "00007_empty_up_down.sql", 7), true)
+		// Apply all migrations
+		_, err = p.Up(ctx)
+		check.NoError(t, err)
+		status, err = p.Status(ctx)
+		check.NoError(t, err)
+		check.Number(t, len(status), numCount)
+		assertStatus(t, status[0], provider.StateApplied, provider.NewSource(provider.TypeSQL, "00001_users_table.sql", 1), false)
+		assertStatus(t, status[1], provider.StateApplied, provider.NewSource(provider.TypeSQL, "00002_posts_table.sql", 2), false)
+		assertStatus(t, status[2], provider.StateApplied, provider.NewSource(provider.TypeSQL, "00003_comments_table.sql", 3), false)
+		assertStatus(t, status[3], provider.StateApplied, provider.NewSource(provider.TypeSQL, "00004_insert_data.sql", 4), false)
+		assertStatus(t, status[4], provider.StateApplied, provider.NewSource(provider.TypeSQL, "00005_posts_view.sql", 5), false)
+		assertStatus(t, status[5], provider.StateApplied, provider.NewSource(provider.TypeSQL, "00006_empty_up.sql", 6), false)
+		assertStatus(t, status[6], provider.StateApplied, provider.NewSource(provider.TypeSQL, "00007_empty_up_down.sql", 7), false)
+	})
+	t.Run("tx_partial_errors", func(t *testing.T) {
+		countOwners := func(db *sql.DB) (int, error) {
+			q := `SELECT count(*)FROM owners`
+			var count int
+			if err := db.QueryRow(q).Scan(&count); err != nil {
+				return 0, err
+			}
+			return count, nil
+		}
+
+		ctx := context.Background()
+		db := newDB(t)
+		mapFS := fstest.MapFS{
+			"00001_users_table.sql": newMapFile(`
+-- +goose Up
+CREATE TABLE owners ( owner_name TEXT NOT NULL );
+`),
+			"00002_partial_error.sql": newMapFile(`
+-- +goose Up
+INSERT INTO invalid_table (invalid_table) VALUES ('invalid_value');
+`),
+			"00003_insert_data.sql": newMapFile(`
+-- +goose Up
+INSERT INTO owners (owner_name) VALUES ('seed-user-1');
+INSERT INTO owners (owner_name) VALUES ('seed-user-2');
+INSERT INTO owners (owner_name) VALUES ('seed-user-3');
+`),
+		}
+		p, err := provider.NewProvider(provider.DialectSQLite3, db, mapFS)
+		check.NoError(t, err)
+		_, err = p.Up(ctx)
+		check.HasError(t, err)
+		check.Contains(t, err.Error(), "partial migration error (00002_partial_error.sql) (2)")
+		var expected *provider.PartialError
+		check.Bool(t, errors.As(err, &expected), true)
+		// Check Err field
+		check.Bool(t, expected.Err != nil, true)
+		check.Contains(t, expected.Err.Error(), "SQL logic error: no such table: invalid_table (1)")
+		// Check Results field
+		check.Number(t, len(expected.Applied), 1)
+		assertResult(t, expected.Applied[0], provider.NewSource(provider.TypeSQL, "00001_users_table.sql", 1), "up")
+		// Check Failed field
+		check.Bool(t, expected.Failed != nil, true)
+		assertSource(t, expected.Failed.Source, provider.TypeSQL, "00002_partial_error.sql", 2)
+		check.Bool(t, expected.Failed.Empty, false)
+		check.Bool(t, expected.Failed.Error != nil, true)
+		check.Contains(t, expected.Failed.Error.Error(), "SQL logic error: no such table: invalid_table (1)")
+		check.Equal(t, expected.Failed.Direction, "up")
+		check.Bool(t, expected.Failed.Duration > 0, true)
+
+		// Ensure the partial error did not affect the database.
+		count, err := countOwners(db)
+		check.NoError(t, err)
+		check.Number(t, count, 0)
+
+		status, err := p.Status(ctx)
+		check.NoError(t, err)
+		check.Number(t, len(status), 3)
+		assertStatus(t, status[0], provider.StateApplied, provider.NewSource(provider.TypeSQL, "00001_users_table.sql", 1), false)
+		assertStatus(t, status[1], provider.StatePending, provider.NewSource(provider.TypeSQL, "00002_partial_error.sql", 2), true)
+		assertStatus(t, status[2], provider.StatePending, provider.NewSource(provider.TypeSQL, "00003_insert_data.sql", 3), true)
+	})
+}
+
+func TestConcurrentProvider(t *testing.T) {
+	t.Parallel()
+
+	t.Run("up", func(t *testing.T) {
+		ctx := context.Background()
+		p, _ := newProviderWithDB(t)
+		maxVersion := len(p.ListSources())
+
+		ch := make(chan int64)
+		var wg sync.WaitGroup
+		for i := 0; i < maxVersion; i++ {
+			wg.Add(1)
+
+			go func() {
+				defer wg.Done()
+				res, err := p.UpByOne(ctx)
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				if len(res) != 1 {
+					t.Errorf("expected 1 result, got %d", len(res))
+					return
+				}
+				ch <- res[0].Source.Version
+			}()
+		}
+		go func() {
+			wg.Wait()
+			close(ch)
+		}()
+		var versions []int64
+		for version := range ch {
+			versions = append(versions, version)
+		}
+		// Fail early if any of the goroutines failed.
+		if t.Failed() {
+			return
+		}
+		check.Number(t, len(versions), maxVersion)
+		for i := 0; i < maxVersion; i++ {
+			check.Number(t, versions[i], int64(i+1))
+		}
+		currentVersion, err := p.GetDBVersion(ctx)
+		check.NoError(t, err)
+		check.Number(t, currentVersion, maxVersion)
+	})
+	t.Run("down", func(t *testing.T) {
+		ctx := context.Background()
+		p, _ := newProviderWithDB(t)
+		maxVersion := len(p.ListSources())
+		// Apply all migrations
+		_, err := p.Up(ctx)
+		check.NoError(t, err)
+		currentVersion, err := p.GetDBVersion(ctx)
+		check.NoError(t, err)
+		check.Number(t, currentVersion, maxVersion)
+
+		ch := make(chan []*provider.MigrationResult)
+		var wg sync.WaitGroup
+		for i := 0; i < maxVersion; i++ {
+			wg.Add(1)
+
+			go func() {
+				defer wg.Done()
+				res, err := p.DownTo(ctx, 0)
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				ch <- res
+			}()
+		}
+		go func() {
+			wg.Wait()
+			close(ch)
+		}()
+		var (
+			valid [][]*provider.MigrationResult
+			empty [][]*provider.MigrationResult
+		)
+		for results := range ch {
+			if len(results) == 0 {
+				empty = append(empty, results)
+				continue
+			}
+			valid = append(valid, results)
+		}
+		// Fail early if any of the goroutines failed.
+		if t.Failed() {
+			return
+		}
+		check.Equal(t, len(valid), 1)
+		check.Equal(t, len(empty), maxVersion-1)
+		// Ensure the valid result is correct.
+		check.Number(t, len(valid[0]), maxVersion)
+	})
+}
+
+func TestNoVersioning(t *testing.T) {
+	t.Parallel()
+
+	countSeedOwners := func(db *sql.DB) (int, error) {
+		q := `SELECT count(*)FROM owners WHERE owner_name LIKE'seed-user-%'`
+		var count int
+		if err := db.QueryRow(q).Scan(&count); err != nil {
+			return 0, err
+		}
+		return count, nil
+	}
+	countOwners := func(db *sql.DB) (int, error) {
+		q := `SELECT count(*)FROM owners`
+		var count int
+		if err := db.QueryRow(q).Scan(&count); err != nil {
+			return 0, err
+		}
+		return count, nil
+	}
+	ctx := context.Background()
+	dbName := fmt.Sprintf("test_%s.db", randomAlphaNumeric(8))
+	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), dbName))
+	check.NoError(t, err)
+	fsys := os.DirFS(filepath.Join("testdata", "no-versioning", "migrations"))
+	const (
+		// Total owners created by the seed files.
+		wantSeedOwnerCount = 250
+		// These are owners created by migration files.
+		wantOwnerCount = 4
+	)
+	p, err := provider.NewProvider(provider.DialectSQLite3, db, fsys,
+		provider.WithVerbose(testing.Verbose()),
+		provider.WithNoVersioning(false), // This is the default.
+	)
+	check.Number(t, len(p.ListSources()), 3)
+	check.NoError(t, err)
+	_, err = p.Up(ctx)
+	check.NoError(t, err)
+	baseVersion, err := p.GetDBVersion(ctx)
+	check.NoError(t, err)
+	check.Number(t, baseVersion, 3)
+	t.Run("seed-up-down-to-zero", func(t *testing.T) {
+		fsys := os.DirFS(filepath.Join("testdata", "no-versioning", "seed"))
+		p, err := provider.NewProvider(provider.DialectSQLite3, db, fsys,
+			provider.WithVerbose(testing.Verbose()),
+			provider.WithNoVersioning(true), // Provider with no versioning.
+		)
+		check.NoError(t, err)
+		check.Number(t, len(p.ListSources()), 2)
+
+		// Run (all) up migrations from the seed dir
+		{
+			upResult, err := p.Up(ctx)
+			check.NoError(t, err)
+			check.Number(t, len(upResult), 2)
+			// Confirm no changes to the versioned schema in the DB
+			currentVersion, err := p.GetDBVersion(ctx)
+			check.NoError(t, err)
+			check.Number(t, baseVersion, currentVersion)
+			seedOwnerCount, err := countSeedOwners(db)
+			check.NoError(t, err)
+			check.Number(t, seedOwnerCount, wantSeedOwnerCount)
+		}
+		// Run (all) down migrations from the seed dir
+		{
+			downResult, err := p.DownTo(ctx, 0)
+			check.NoError(t, err)
+			check.Number(t, len(downResult), 2)
+			// Confirm no changes to the versioned schema in the DB
+			currentVersion, err := p.GetDBVersion(ctx)
+			check.NoError(t, err)
+			check.Number(t, baseVersion, currentVersion)
+			seedOwnerCount, err := countSeedOwners(db)
+			check.NoError(t, err)
+			check.Number(t, seedOwnerCount, 0)
+		}
+		// The migrations added 4 non-seed owners, they must remain in the database afterwards
+		ownerCount, err := countOwners(db)
+		check.NoError(t, err)
+		check.Number(t, ownerCount, wantOwnerCount)
+	})
+}
+
+func TestAllowMissing(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	// Developer A and B check out the "main" branch which is currently on version 3. Developer A
+	// mistakenly creates migration 5 and commits. Developer B did not pull the latest changes and
+	// commits migration 4. Oops -- now the migrations are out of order.
+	//
+	// When goose is set to allow missing migrations, then 5 is applied after 4 with no error.
+	// Otherwise it's expected to be an error.
+
+	t.Run("missing_now_allowed", func(t *testing.T) {
+		db := newDB(t)
+		p, err := provider.NewProvider(provider.DialectSQLite3, db, newFsys(),
+			provider.WithAllowMissing(false),
+		)
+		check.NoError(t, err)
+
+		// Create and apply first 3 migrations.
+		_, err = p.UpTo(ctx, 3)
+		check.NoError(t, err)
+		currentVersion, err := p.GetDBVersion(ctx)
+		check.NoError(t, err)
+		check.Number(t, currentVersion, 3)
+
+		// Developer A - migration 5 (mistakenly applied)
+		result, err := p.ApplyVersion(ctx, 5, true)
+		check.NoError(t, err)
+		check.Number(t, result.Source.Version, 5)
+		current, err := p.GetDBVersion(ctx)
+		check.NoError(t, err)
+		check.Number(t, current, 5)
+
+		// The database has migrations 1,2,3,5 applied.
+
+		// Developer B is on version 3 (e.g., never pulled the latest changes). Adds migration 4. By
+		// default goose does not allow missing (out-of-order) migrations, which means halt if a
+		// missing migration is detected.
+		_, err = p.Up(ctx)
+		check.HasError(t, err)
+		// found 1 missing (out-of-order) migration: [00004_insert_data.sql]
+		check.Contains(t, err.Error(), "missing (out-of-order) migration")
+		// Confirm db version is unchanged.
+		current, err = p.GetDBVersion(ctx)
+		check.NoError(t, err)
+		check.Number(t, current, 5)
+
+		_, err = p.UpByOne(ctx)
+		check.HasError(t, err)
+		// found 1 missing (out-of-order) migration: [00004_insert_data.sql]
+		check.Contains(t, err.Error(), "missing (out-of-order) migration")
+		// Confirm db version is unchanged.
+		current, err = p.GetDBVersion(ctx)
+		check.NoError(t, err)
+		check.Number(t, current, 5)
+
+		_, err = p.UpTo(ctx, math.MaxInt64)
+		check.HasError(t, err)
+		// found 1 missing (out-of-order) migration: [00004_insert_data.sql]
+		check.Contains(t, err.Error(), "missing (out-of-order) migration")
+		// Confirm db version is unchanged.
+		current, err = p.GetDBVersion(ctx)
+		check.NoError(t, err)
+		check.Number(t, current, 5)
+	})
+
+	t.Run("missing_allowed", func(t *testing.T) {
+		db := newDB(t)
+		p, err := provider.NewProvider(provider.DialectSQLite3, db, newFsys(),
+			provider.WithAllowMissing(true),
+		)
+		check.NoError(t, err)
+
+		// Create and apply first 3 migrations.
+		_, err = p.UpTo(ctx, 3)
+		check.NoError(t, err)
+		currentVersion, err := p.GetDBVersion(ctx)
+		check.NoError(t, err)
+		check.Number(t, currentVersion, 3)
+
+		// Developer A - migration 5 (mistakenly applied)
+		{
+			_, err = p.ApplyVersion(ctx, 5, true)
+			check.NoError(t, err)
+			current, err := p.GetDBVersion(ctx)
+			check.NoError(t, err)
+			check.Number(t, current, 5)
+		}
+		// Developer B - migration 4 (missing) and 6 (new)
+		{
+			// 4
+			upResult, err := p.UpByOne(ctx)
+			check.NoError(t, err)
+			check.Number(t, len(upResult), 1)
+			check.Number(t, upResult[0].Source.Version, 4)
+			// 6
+			upResult, err = p.UpByOne(ctx)
+			check.NoError(t, err)
+			check.Number(t, len(upResult), 1)
+			check.Number(t, upResult[0].Source.Version, 6)
+
+			count, err := getGooseVersionCount(db, provider.DefaultTablename)
+			check.NoError(t, err)
+			check.Number(t, count, 6)
+			current, err := p.GetDBVersion(ctx)
+			check.NoError(t, err)
+			// Expecting max(version_id) to be 8
+			check.Number(t, current, 6)
+		}
+
+		// The applied order in the database is expected to be:
+		// 1,2,3,5,4,6
+		// So migrating down should be the reverse of the applied order:
+		// 6,4,5,3,2,1
+
+		expected := []int64{6, 4, 5, 3, 2, 1}
+		for i, v := range expected {
+			// TODO(mf): this is returning it by the order it was applied.
+			current, err := p.GetDBVersion(ctx)
+			check.NoError(t, err)
+			check.Number(t, current, v)
+			downResult, err := p.Down(ctx)
+			if i == len(expected)-1 {
+				check.HasError(t, provider.ErrVersionNotFound)
+			} else {
+				check.NoError(t, err)
+				check.Number(t, len(downResult), 1)
+				check.Number(t, downResult[0].Source.Version, v)
+			}
+		}
+	})
+}
+
+func getGooseVersionCount(db *sql.DB, gooseTable string) (int64, error) {
+	var gotVersion int64
+	if err := db.QueryRow(
+		fmt.Sprintf("SELECT count(*) FROM %s WHERE version_id > 0", gooseTable),
+	).Scan(&gotVersion); err != nil {
+		return 0, err
+	}
+	return gotVersion, nil
+}
+
+func TestGoOnly(t *testing.T) {
+	// Not parallel because it modifies global state.
+
+	countUser := func(db *sql.DB) int {
+		q := `SELECT count(*)FROM users`
+		var count int
+		err := db.QueryRow(q).Scan(&count)
+		check.NoError(t, err)
+		return count
+	}
+
+	t.Run("with_tx", func(t *testing.T) {
+		ctx := context.Background()
+		register := []*provider.Migration{
+			{
+				Version: 1, Source: "00001_users_table.go", Registered: true, UseTx: true,
+				UpFnContext:   newTxFn("CREATE TABLE users (id INTEGER PRIMARY KEY)"),
+				DownFnContext: newTxFn("DROP TABLE users"),
+			},
+		}
+		err := provider.SetGlobalGoMigrations(register)
+		check.NoError(t, err)
+		t.Cleanup(provider.ResetGlobalGoMigrations)
+
+		db := newDB(t)
+		p, err := provider.NewProvider(provider.DialectSQLite3, db, nil,
+			provider.WithGoMigration(
+				2,
+				&provider.GoMigration{Run: newTxFn("INSERT INTO users (id) VALUES (1), (2), (3)")},
+				&provider.GoMigration{Run: newTxFn("DELETE FROM users")},
+			),
+		)
+		check.NoError(t, err)
+		sources := p.ListSources()
+		check.Number(t, len(p.ListSources()), 2)
+		assertSource(t, sources[0], provider.TypeGo, "00001_users_table.go", 1)
+		assertSource(t, sources[1], provider.TypeGo, "", 2)
+		// Apply migration 1
+		res, err := p.UpByOne(ctx)
+		check.NoError(t, err)
+		check.Number(t, len(res), 1)
+		assertResult(t, res[0], provider.NewSource(provider.TypeGo, "00001_users_table.go", 1), "up")
+		check.Number(t, countUser(db), 0)
+		check.Bool(t, tableExists(t, db, "users"), true)
+		// Apply migration 2
+		res, err = p.UpByOne(ctx)
+		check.NoError(t, err)
+		check.Number(t, len(res), 1)
+		assertResult(t, res[0], provider.NewSource(provider.TypeGo, "", 2), "up")
+		check.Number(t, countUser(db), 3)
+		// Rollback migration 2
+		res, err = p.Down(ctx)
+		check.NoError(t, err)
+		check.Number(t, len(res), 1)
+		assertResult(t, res[0], provider.NewSource(provider.TypeGo, "", 2), "down")
+		check.Number(t, countUser(db), 0)
+		// Rollback migration 1
+		res, err = p.Down(ctx)
+		check.NoError(t, err)
+		check.Number(t, len(res), 1)
+		assertResult(t, res[0], provider.NewSource(provider.TypeGo, "00001_users_table.go", 1), "down")
+		// Check table does not exist
+		check.Bool(t, tableExists(t, db, "users"), false)
+	})
+	t.Run("with_db", func(t *testing.T) {
+		ctx := context.Background()
+		register := []*provider.Migration{
+			{
+				Version: 1, Source: "00001_users_table.go", Registered: true, UseTx: true,
+				UpFnNoTxContext:   newDBFn("CREATE TABLE users (id INTEGER PRIMARY KEY)"),
+				DownFnNoTxContext: newDBFn("DROP TABLE users"),
+			},
+		}
+		err := provider.SetGlobalGoMigrations(register)
+		check.NoError(t, err)
+		t.Cleanup(provider.ResetGlobalGoMigrations)
+
+		db := newDB(t)
+		p, err := provider.NewProvider(provider.DialectSQLite3, db, nil,
+			provider.WithGoMigration(
+				2,
+				&provider.GoMigration{RunNoTx: newDBFn("INSERT INTO users (id) VALUES (1), (2), (3)")},
+				&provider.GoMigration{RunNoTx: newDBFn("DELETE FROM users")},
+			),
+		)
+		check.NoError(t, err)
+		sources := p.ListSources()
+		check.Number(t, len(p.ListSources()), 2)
+		assertSource(t, sources[0], provider.TypeGo, "00001_users_table.go", 1)
+		assertSource(t, sources[1], provider.TypeGo, "", 2)
+		// Apply migration 1
+		res, err := p.UpByOne(ctx)
+		check.NoError(t, err)
+		check.Number(t, len(res), 1)
+		assertResult(t, res[0], provider.NewSource(provider.TypeGo, "00001_users_table.go", 1), "up")
+		check.Number(t, countUser(db), 0)
+		check.Bool(t, tableExists(t, db, "users"), true)
+		// Apply migration 2
+		res, err = p.UpByOne(ctx)
+		check.NoError(t, err)
+		check.Number(t, len(res), 1)
+		assertResult(t, res[0], provider.NewSource(provider.TypeGo, "", 2), "up")
+		check.Number(t, countUser(db), 3)
+		// Rollback migration 2
+		res, err = p.Down(ctx)
+		check.NoError(t, err)
+		check.Number(t, len(res), 1)
+		assertResult(t, res[0], provider.NewSource(provider.TypeGo, "", 2), "down")
+		check.Number(t, countUser(db), 0)
+		// Rollback migration 1
+		res, err = p.Down(ctx)
+		check.NoError(t, err)
+		check.Number(t, len(res), 1)
+		assertResult(t, res[0], provider.NewSource(provider.TypeGo, "00001_users_table.go", 1), "down")
+		// Check table does not exist
+		check.Bool(t, tableExists(t, db, "users"), false)
+	})
+}
+
+func TestLockModeAdvisorySession(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip long running test")
+	}
+
+	// The migrations are written in such a way that they cannot be applied concurrently, they will
+	// fail 99.9999% of the time. This test ensures that the advisory session lock mode works as
+	// expected.
+
+	// TODO(mf): small improvement here is to use the SAME postgres instance but different databases
+	// created from a template. This will speed up the test.
+
+	db, cleanup, err := testdb.NewPostgres()
+	check.NoError(t, err)
+	t.Cleanup(cleanup)
+
+	newProvider := func() *provider.Provider {
+		sessionLocker, err := lock.NewPostgresSessionLocker()
+		check.NoError(t, err)
+		p, err := provider.NewProvider(provider.DialectPostgres, db, os.DirFS("../../testdata/migrations"),
+			provider.WithSessionLocker(sessionLocker), // Use advisory session lock mode.
+			provider.WithVerbose(testing.Verbose()),
+		)
+		check.NoError(t, err)
+		return p
+	}
+	provider1 := newProvider()
+	provider2 := newProvider()
+
+	sources := provider1.ListSources()
+	maxVersion := sources[len(sources)-1].Version
+
+	// Since the lock mode is advisory session, only one of these providers is expected to apply ALL
+	// the migrations. The other provider should apply NO migrations. The test MUST fail if both
+	// providers apply migrations.
+
+	t.Run("up", func(t *testing.T) {
+		var g errgroup.Group
+		var res1, res2 int
+		g.Go(func() error {
+			ctx := context.Background()
+			results, err := provider1.Up(ctx)
+			check.NoError(t, err)
+			res1 = len(results)
+			currentVersion, err := provider1.GetDBVersion(ctx)
+			check.NoError(t, err)
+			check.Number(t, currentVersion, maxVersion)
+			return nil
+		})
+		g.Go(func() error {
+			ctx := context.Background()
+			results, err := provider2.Up(ctx)
+			check.NoError(t, err)
+			res2 = len(results)
+			currentVersion, err := provider2.GetDBVersion(ctx)
+			check.NoError(t, err)
+			check.Number(t, currentVersion, maxVersion)
+			return nil
+		})
+		check.NoError(t, g.Wait())
+		// One of the providers should have applied all migrations and the other should have applied
+		// no migrations, but with no error.
+		if res1 == 0 && res2 == 0 {
+			t.Fatal("both providers applied no migrations")
+		}
+		if res1 > 0 && res2 > 0 {
+			t.Fatal("both providers applied migrations")
+		}
+	})
+
+	// Reset the database and run the same test with the advisory lock mode, but apply migrations
+	// one-by-one.
+	{
+		_, err := provider1.DownTo(context.Background(), 0)
+		check.NoError(t, err)
+		currentVersion, err := provider1.GetDBVersion(context.Background())
+		check.NoError(t, err)
+		check.Number(t, currentVersion, 0)
+	}
+	t.Run("up_by_one", func(t *testing.T) {
+		var g errgroup.Group
+		var (
+			mu      sync.Mutex
+			applied []int64
+		)
+		g.Go(func() error {
+			for {
+				results, err := provider1.UpByOne(context.Background())
+				if err != nil {
+					if errors.Is(err, provider.ErrNoNextVersion) {
+						return nil
+					}
+					return err
+				}
+				check.NoError(t, err)
+				if len(results) != 1 {
+					return fmt.Errorf("expected 1 result, got %d", len(results))
+				}
+				mu.Lock()
+				applied = append(applied, results[0].Source.Version)
+				mu.Unlock()
+			}
+		})
+		g.Go(func() error {
+			for {
+				results, err := provider2.UpByOne(context.Background())
+				if err != nil {
+					if errors.Is(err, provider.ErrNoNextVersion) {
+						return nil
+					}
+					return err
+				}
+				check.NoError(t, err)
+				if len(results) != 1 {
+					return fmt.Errorf("expected 1 result, got %d", len(results))
+				}
+				mu.Lock()
+				applied = append(applied, results[0].Source.Version)
+				mu.Unlock()
+			}
+		})
+		check.NoError(t, g.Wait())
+		check.Number(t, len(applied), len(sources))
+		sort.Slice(applied, func(i, j int) bool {
+			return applied[i] < applied[j]
+		})
+		// Each migration should have been applied up exactly once.
+		for i := 0; i < len(sources); i++ {
+			check.Number(t, applied[i], sources[i].Version)
+		}
+	})
+
+	// Restore the database state by applying all migrations and run the same test with the advisory
+	// lock mode, but apply down migrations in parallel.
+	{
+		_, err := provider1.Up(context.Background())
+		check.NoError(t, err)
+		currentVersion, err := provider1.GetDBVersion(context.Background())
+		check.NoError(t, err)
+		check.Number(t, currentVersion, maxVersion)
+	}
+
+	t.Run("down_to", func(t *testing.T) {
+		var g errgroup.Group
+		var res1, res2 int
+		g.Go(func() error {
+			ctx := context.Background()
+			results, err := provider1.DownTo(ctx, 0)
+			check.NoError(t, err)
+			res1 = len(results)
+			currentVersion, err := provider1.GetDBVersion(ctx)
+			check.NoError(t, err)
+			check.Number(t, currentVersion, 0)
+			return nil
+		})
+		g.Go(func() error {
+			ctx := context.Background()
+			results, err := provider2.DownTo(ctx, 0)
+			check.NoError(t, err)
+			res2 = len(results)
+			currentVersion, err := provider2.GetDBVersion(ctx)
+			check.NoError(t, err)
+			check.Number(t, currentVersion, 0)
+			return nil
+		})
+		check.NoError(t, g.Wait())
+
+		if res1 == 0 && res2 == 0 {
+			t.Fatal("both providers applied no migrations")
+		}
+		if res1 > 0 && res2 > 0 {
+			t.Fatal("both providers applied migrations")
+		}
+	})
+
+	// Restore the database state by applying all migrations and run the same test with the advisory
+	// lock mode, but apply down migrations one-by-one.
+	{
+		_, err := provider1.Up(context.Background())
+		check.NoError(t, err)
+		currentVersion, err := provider1.GetDBVersion(context.Background())
+		check.NoError(t, err)
+		check.Number(t, currentVersion, maxVersion)
+	}
+
+	t.Run("down_by_one", func(t *testing.T) {
+		var g errgroup.Group
+		var (
+			mu      sync.Mutex
+			applied []int64
+		)
+		g.Go(func() error {
+			for {
+				results, err := provider1.Down(context.Background())
+				if err != nil {
+					if errors.Is(err, provider.ErrNoNextVersion) {
+						return nil
+					}
+					return err
+				}
+				if len(results) != 1 {
+					return fmt.Errorf("expected 1 result, got %d", len(results))
+				}
+				check.NoError(t, err)
+				mu.Lock()
+				applied = append(applied, results[0].Source.Version)
+				mu.Unlock()
+			}
+		})
+		g.Go(func() error {
+			for {
+				results, err := provider2.Down(context.Background())
+				if err != nil {
+					if errors.Is(err, provider.ErrNoNextVersion) {
+						return nil
+					}
+					return err
+				}
+				if len(results) != 1 {
+					return fmt.Errorf("expected 1 result, got %d", len(results))
+				}
+				check.NoError(t, err)
+				mu.Lock()
+				applied = append(applied, results[0].Source.Version)
+				mu.Unlock()
+			}
+		})
+		check.NoError(t, g.Wait())
+		check.Number(t, len(applied), len(sources))
+		sort.Slice(applied, func(i, j int) bool {
+			return applied[i] < applied[j]
+		})
+		// Each migration should have been applied down exactly once. Since this is sequential the
+		// applied down migrations should be in reverse order.
+		for i := len(sources) - 1; i >= 0; i-- {
+			check.Number(t, applied[i], sources[i].Version)
+		}
+	})
+}
+
+func newDBFn(query string) func(context.Context, *sql.DB) error {
+	return func(ctx context.Context, db *sql.DB) error {
+		_, err := db.ExecContext(ctx, query)
+		return err
+	}
+}
+
+func newTxFn(query string) func(context.Context, *sql.Tx) error {
+	return func(ctx context.Context, tx *sql.Tx) error {
+		_, err := tx.ExecContext(ctx, query)
+		return err
+	}
+}
+
+func tableExists(t *testing.T, db *sql.DB, table string) bool {
+	q := fmt.Sprintf(`SELECT CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END AS table_exists FROM sqlite_master WHERE type = 'table' AND name = '%s'`, table)
+	var b string
+	err := db.QueryRow(q).Scan(&b)
+	check.NoError(t, err)
+	return b == "1"
+}
+
+const (
+	charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+)
+
+func randomAlphaNumeric(length int) string {
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
+func newProviderWithDB(t *testing.T, opts ...provider.ProviderOption) (*provider.Provider, *sql.DB) {
+	t.Helper()
+	db := newDB(t)
+	opts = append(
+		opts,
+		provider.WithVerbose(testing.Verbose()),
+	)
+	p, err := provider.NewProvider(provider.DialectSQLite3, db, newFsys(), opts...)
+	check.NoError(t, err)
+	return p, db
+}
+
+func newDB(t *testing.T) *sql.DB {
+	t.Helper()
+	dbName := fmt.Sprintf("test_%s.db", randomAlphaNumeric(8))
+	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), dbName))
+	check.NoError(t, err)
+	return db
+}
+
+func getMaxVersionID(db *sql.DB, gooseTable string) (int64, error) {
+	var gotVersion int64
+	if err := db.QueryRow(
+		fmt.Sprintf("select max(version_id) from %s", gooseTable),
+	).Scan(&gotVersion); err != nil {
+		return 0, err
+	}
+	return gotVersion, nil
+}
+
+func getTableNames(db *sql.DB) ([]string, error) {
+	rows, err := db.Query(`SELECT name FROM sqlite_master WHERE type='table' ORDER BY name`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var tables []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		tables = append(tables, name)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return tables, nil
+}
+
+func assertStatus(t *testing.T, got *provider.MigrationStatus, state provider.State, source provider.Source, appliedIsZero bool) {
+	t.Helper()
+	check.Equal(t, got.State, state)
+	check.Equal(t, got.Source, source)
+	check.Bool(t, got.AppliedAt.IsZero(), appliedIsZero)
+}
+
+func assertResult(t *testing.T, got *provider.MigrationResult, source provider.Source, direction string) {
+	t.Helper()
+	check.Equal(t, got.Source, source)
+	check.Equal(t, got.Direction, direction)
+	check.Equal(t, got.Empty, false)
+	check.Bool(t, got.Error == nil, true)
+	check.Bool(t, got.Duration > 0, true)
+}
+
+func assertSource(t *testing.T, got provider.Source, typ provider.MigrationType, name string, version int64) {
+	t.Helper()
+	check.Equal(t, got.Type, typ)
+	check.Equal(t, got.Fullpath, name)
+	check.Equal(t, got.Version, version)
+	switch got.Type {
+	case provider.TypeGo:
+		check.Equal(t, got.Type.String(), "go")
+	case provider.TypeSQL:
+		check.Equal(t, got.Type.String(), "sql")
+	}
+}
+
+func newMapFile(data string) *fstest.MapFile {
+	return &fstest.MapFile{
+		Data: []byte(data),
+	}
+}
+
+func newFsys() fs.FS {
+	return fstest.MapFS{
+		"00001_users_table.sql":    newMapFile(runMigration1),
+		"00002_posts_table.sql":    newMapFile(runMigration2),
+		"00003_comments_table.sql": newMapFile(runMigration3),
+		"00004_insert_data.sql":    newMapFile(runMigration4),
+		"00005_posts_view.sql":     newMapFile(runMigration5),
+		"00006_empty_up.sql":       newMapFile(runMigration6),
+		"00007_empty_up_down.sql":  newMapFile(runMigration7),
+	}
+}
+
+var (
+
+	// known tables are the tables (including goose table) created by running all migration files.
+	// If you add a table, make sure to add to this list and keep it in order.
+	knownTables = []string{
+		"comments",
+		"goose_db_version",
+		"posts",
+		"sqlite_sequence",
+		"users",
+	}
+
+	runMigration1 = `
+-- +goose Up
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY,
+    username TEXT NOT NULL,
+    email TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- +goose Down
+DROP TABLE users;
+`
+
+	runMigration2 = `
+-- +goose Up
+-- +goose StatementBegin
+CREATE TABLE posts (
+    id INTEGER PRIMARY KEY,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    author_id INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (author_id) REFERENCES users(id)
+);
+-- +goose StatementEnd
+SELECT 1;
+SELECT 2;
+
+-- +goose Down
+DROP TABLE posts;
+`
+
+	runMigration3 = `
+-- +goose Up
+CREATE TABLE comments (
+    id INTEGER PRIMARY KEY,
+    post_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (post_id) REFERENCES posts(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- +goose Down
+DROP TABLE comments;
+SELECT 1;
+SELECT 2;
+SELECT 3;
+`
+
+	runMigration4 = `
+-- +goose Up
+INSERT INTO users (id, username, email)
+VALUES
+    (1, 'john_doe', 'john@example.com'),
+    (2, 'jane_smith', 'jane@example.com'),
+    (3, 'alice_wonderland', 'alice@example.com');
+
+INSERT INTO posts (id, title, content, author_id)
+VALUES
+    (1, 'Introduction to SQL', 'SQL is a powerful language for managing databases...', 1),
+    (2, 'Data Modeling Techniques', 'Choosing the right data model is crucial...', 2),
+    (3, 'Advanced Query Optimization', 'Optimizing queries can greatly improve...', 1);
+
+INSERT INTO comments (id, post_id, user_id, content)
+VALUES
+    (1, 1, 3, 'Great introduction! Looking forward to more.'),
+    (2, 1, 2, 'SQL can be a bit tricky at first, but practice helps.'),
+    (3, 2, 1, 'You covered normalization really well in this post.');
+
+-- +goose Down
+DELETE FROM comments;
+DELETE FROM posts;
+DELETE FROM users;
+`
+
+	runMigration5 = `
+-- +goose NO TRANSACTION
+
+-- +goose Up
+CREATE VIEW posts_view AS
+    SELECT
+        p.id,
+        p.title,
+        p.content,
+        p.created_at,
+        u.username AS author
+    FROM posts p
+    JOIN users u ON p.author_id = u.id;
+
+-- +goose Down
+DROP VIEW posts_view;
+`
+
+	runMigration6 = `
+-- +goose Up
+`
+
+	runMigration7 = `
+-- +goose Up
+-- +goose Down
+`
+)
