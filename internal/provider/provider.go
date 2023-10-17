@@ -79,10 +79,10 @@ func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption
 		if _, ok := registered[version]; ok {
 			return nil, fmt.Errorf("go migration with version %d already registered", version)
 		}
-		g := newGoMigration(m.Source, nil, nil)
 		if m == nil {
 			return nil, errors.New("registered migration with nil init function")
 		}
+		g := newGoMigration(m.Source, nil, nil)
 		if m.UpFnContext != nil && m.UpFnNoTxContext != nil {
 			return nil, errors.New("registered migration with both UpFnContext and UpFnNoTxContext")
 		}

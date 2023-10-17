@@ -124,7 +124,7 @@ func (p *Provider) runIndividually(
 		// Note, we're using *sql.DB instead of *sql.Conn because it's the contract of the
 		// GoMigrationNoTx function. This may be a deadlock scenario if the caller sets max open
 		// connections to 1. See the comment in runMigrations for more details.
-		if err := m.Go.runNoTx(ctx, p.db, direction); err != nil {
+		if err := m.runNoTx(ctx, p.db, direction); err != nil {
 			return err
 		}
 	case TypeSQL:

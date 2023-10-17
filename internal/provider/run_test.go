@@ -1117,12 +1117,6 @@ func getTableNames(db *sql.DB) ([]string, error) {
 	return tables, nil
 }
 
-func assertPartialError(t *testing.T, got error) {
-	t.Helper()
-	var e *provider.PartialError
-	check.Bool(t, errors.As(got, &e), true)
-}
-
 func assertStatus(t *testing.T, got *provider.MigrationStatus, state provider.State, source provider.Source, appliedIsZero bool) {
 	t.Helper()
 	check.Equal(t, got.State, state)
