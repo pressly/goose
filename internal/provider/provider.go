@@ -40,6 +40,7 @@ func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption
 	}
 	cfg := config{
 		registered: make(map[int64]*goMigration),
+		excludes:   make(map[string]bool),
 	}
 	for _, opt := range opts {
 		if err := opt.apply(&cfg); err != nil {
@@ -183,6 +184,9 @@ func (p *Provider) Close() error {
 // When direction is true, the up migration is executed, and when direction is false, the down
 // migration is executed.
 func (p *Provider) ApplyVersion(ctx context.Context, version int64, direction bool) (*MigrationResult, error) {
+	if version < 1 {
+		return nil, fmt.Errorf("invalid version: must be greater than zero: %d", version)
+	}
 	return p.apply(ctx, version, direction)
 }
 
@@ -215,6 +219,9 @@ func (p *Provider) UpByOne(ctx context.Context) (*MigrationResult, error) {
 // For instance, if there are three new migrations (9,10,11) and the current database version is 8
 // with a requested version of 10, only versions 9,10 will be applied.
 func (p *Provider) UpTo(ctx context.Context, version int64) ([]*MigrationResult, error) {
+	if version < 1 {
+		return nil, fmt.Errorf("invalid version: must be greater than zero: %d", version)
+	}
 	return p.up(ctx, false, version)
 }
 
@@ -240,7 +247,7 @@ func (p *Provider) Down(ctx context.Context) (*MigrationResult, error) {
 // migrations 11, 10 will be rolled back.
 func (p *Provider) DownTo(ctx context.Context, version int64) ([]*MigrationResult, error) {
 	if version < 0 {
-		return nil, fmt.Errorf("version must be a number greater than or equal zero: %d", version)
+		return nil, fmt.Errorf("invalid version: must be a valid number or zero: %d", version)
 	}
 	return p.down(ctx, false, version)
 }
