@@ -13,9 +13,9 @@ import (
 
 func NewSource(t MigrationType, fullpath string, version int64) Source {
 	return Source{
-		Type:     t,
-		Fullpath: fullpath,
-		Version:  version,
+		Type:    t,
+		Path:    fullpath,
+		Version: version,
 	}
 }
 
@@ -133,7 +133,7 @@ func merge(sources *fileSources, registerd map[int64]*goMigration) ([]*migration
 	var unregistered []string
 	for _, s := range sources.goSources {
 		if _, ok := registerd[s.Version]; !ok {
-			unregistered = append(unregistered, s.Fullpath)
+			unregistered = append(unregistered, s.Path)
 		}
 	}
 	if len(unregistered) > 0 {
@@ -149,7 +149,7 @@ func merge(sources *fileSources, registerd map[int64]*goMigration) ([]*migration
 		fullpath := r.fullpath
 		if fullpath == "" {
 			if s := sources.lookup(TypeGo, version); s != nil {
-				fullpath = s.Fullpath
+				fullpath = s.Path
 			}
 		}
 		// Ensure there are no duplicate versions.
@@ -160,7 +160,7 @@ func merge(sources *fileSources, registerd map[int64]*goMigration) ([]*migration
 			}
 			return nil, fmt.Errorf("found duplicate migration version %d:\n\texisting:%v\n\tcurrent:%v",
 				version,
-				existing.Source.Fullpath,
+				existing.Source.Path,
 				fullpath,
 			)
 		}

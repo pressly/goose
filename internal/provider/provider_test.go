@@ -41,7 +41,7 @@ func TestProvider(t *testing.T) {
 		// Not parallel because it modifies global state.
 		register := []*provider.Migration{
 			{
-				Version: 1, Source: "00001_users_table.go", Registered: true, UseTx: true,
+				Version: 1, Source: "00001_users_table.go", Registered: true,
 				UpFnContext:   nil,
 				DownFnContext: nil,
 			},
@@ -69,32 +69,46 @@ func TestProvider(t *testing.T) {
 	t.Run("duplicate_up", func(t *testing.T) {
 		err := provider.SetGlobalGoMigrations([]*provider.Migration{
 			{
-				Version: 1, Source: "00001_users_table.go", Registered: true, UseTx: true,
+				Version: 1, Source: "00001_users_table.go", Registered: true,
 				UpFnContext:     func(context.Context, *sql.Tx) error { return nil },
 				UpFnNoTxContext: func(ctx context.Context, db *sql.DB) error { return nil },
 			},
 		})
-		check.NoError(t, err)
 		t.Cleanup(provider.ResetGlobalGoMigrations)
-		db := newDB(t)
-		_, err = provider.NewProvider(provider.DialectSQLite3, db, nil)
 		check.HasError(t, err)
-		check.Contains(t, err.Error(), "registered migration with both UpFnContext and UpFnNoTxContext")
+		check.Contains(t, err.Error(), "must specify exactly one of UpFnContext or UpFnNoTxContext")
 	})
 	t.Run("duplicate_down", func(t *testing.T) {
 		err := provider.SetGlobalGoMigrations([]*provider.Migration{
 			{
-				Version: 1, Source: "00001_users_table.go", Registered: true, UseTx: true,
+				Version: 1, Source: "00001_users_table.go", Registered: true,
 				DownFnContext:     func(context.Context, *sql.Tx) error { return nil },
 				DownFnNoTxContext: func(ctx context.Context, db *sql.DB) error { return nil },
 			},
 		})
-		check.NoError(t, err)
 		t.Cleanup(provider.ResetGlobalGoMigrations)
-		db := newDB(t)
-		_, err = provider.NewProvider(provider.DialectSQLite3, db, nil)
 		check.HasError(t, err)
-		check.Contains(t, err.Error(), "registered migration with both DownFnContext and DownFnNoTxContext")
+		check.Contains(t, err.Error(), "must specify exactly one of DownFnContext or DownFnNoTxContext")
+	})
+	t.Run("not_registered", func(t *testing.T) {
+		err := provider.SetGlobalGoMigrations([]*provider.Migration{
+			{
+				Version: 1, Source: "00001_users_table.go",
+			},
+		})
+		t.Cleanup(provider.ResetGlobalGoMigrations)
+		check.HasError(t, err)
+		check.Contains(t, err.Error(), "migration must be registered")
+	})
+	t.Run("zero_not_allowed", func(t *testing.T) {
+		err := provider.SetGlobalGoMigrations([]*provider.Migration{
+			{
+				Version: 0,
+			},
+		})
+		t.Cleanup(provider.ResetGlobalGoMigrations)
+		check.HasError(t, err)
+		check.Contains(t, err.Error(), "migration versions must be greater than zero")
 	})
 }
 

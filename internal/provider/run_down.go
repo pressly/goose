@@ -15,29 +15,27 @@ func (p *Provider) down(ctx context.Context, downByOne bool, version int64) (_ [
 	defer func() {
 		retErr = multierr.Append(retErr, cleanup())
 	}()
-
 	if len(p.migrations) == 0 {
 		return nil, nil
 	}
-
 	if p.cfg.noVersioning {
-		var downMigrations []*migration
+		downMigrations := p.migrations
 		if downByOne {
-			downMigrations = append(downMigrations, p.migrations[len(p.migrations)-1])
-		} else {
-			downMigrations = p.migrations
+			last := p.migrations[len(p.migrations)-1]
+			downMigrations = []*migration{last}
 		}
 		return p.runMigrations(ctx, conn, downMigrations, sqlparser.DirectionDown, downByOne)
 	}
-
 	dbMigrations, err := p.store.ListMigrations(ctx, conn)
 	if err != nil {
 		return nil, err
 	}
+	if len(dbMigrations) == 0 {
+		return nil, errMissingZeroVersion
+	}
 	if dbMigrations[0].Version == 0 {
 		return nil, nil
 	}
-
 	var downMigrations []*migration
 	for _, dbMigration := range dbMigrations {
 		if dbMigration.Version <= version {

@@ -10,6 +10,9 @@ import (
 )
 
 const (
+	// DefaultTablename is the default name of the database table used to track history of applied
+	// migrations. It can be overridden using the [WithTableName] option when creating a new
+	// provider.
 	DefaultTablename = "goose_db_version"
 )
 
@@ -85,7 +88,8 @@ type GoMigration struct {
 // WithGoMigration registers a Go migration with the given version.
 //
 // If WithGoMigration is called multiple times with the same version, an error is returned. Both up
-// and down functions may be nil. But if set, exactly one of Run or RunNoTx functions must be set.
+// and down [GoMigration] may be nil. But if set, exactly one of Run or RunNoTx functions must be
+// set.
 func WithGoMigration(version int64, up, down *GoMigration) ProviderOption {
 	return configFunc(func(c *config) error {
 		if version < 1 {
@@ -122,9 +126,10 @@ func WithGoMigration(version int64, up, down *GoMigration) ProviderOption {
 
 // WithAllowMissing allows the provider to apply missing (out-of-order) migrations.
 //
-// Example: migrations 1,6 are applied and then version 2,3,5 are introduced. If this option is
-// true, then goose will apply 2,3,5 instead of raising an error. The final order of applied
-// migrations will be: 1,6,2,3,5.
+// Example: migrations 1,3 are applied and then version 2,6 are introduced. If this option is true,
+// then goose will apply 2 (missing) and 6 (new) instead of raising an error. The final order of
+// applied migrations will be: 1,3,2,6. Out-of-order migrations are always applied first, followed
+// by new migrations.
 func WithAllowMissing(b bool) ProviderOption {
 	return configFunc(func(c *config) error {
 		c.allowMissing = b
@@ -132,9 +137,9 @@ func WithAllowMissing(b bool) ProviderOption {
 	})
 }
 
-// WithNoVersioning disables versioning. Disabling versioning allows the ability to apply migrations
-// without tracking the versions in the database schema table. Useful for tests, seeding a database
-// or running ad-hoc queries.
+// WithNoVersioning disables versioning. Disabling versioning allows applying migrations without
+// tracking the versions in the database schema table. Useful for tests, seeding a database or
+// running ad-hoc queries.
 func WithNoVersioning(b bool) ProviderOption {
 	return configFunc(func(c *config) error {
 		c.noVersioning = b

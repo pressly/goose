@@ -19,8 +19,9 @@ import (
 // github.com/lib/pq or github.com/jackc/pgx.
 //
 // fsys is the filesystem used to read the migration files, but may be nil. Most users will want to
-// use os.DirFS("path/to/migrations") to read migrations from the local filesystem. However, it is
-// possible to use a different filesystem, such as embed.FS or filter out migrations using fs.Sub.
+// use [os.DirFS], os.DirFS("path/to/migrations"), to read migrations from the local filesystem.
+// However, it is possible to use a different "filesystem", such as [embed.FS] or filter out
+// migrations using [fs.Sub].
 //
 // See [ProviderOption] for more information on configuring the provider.
 //
@@ -133,10 +134,12 @@ type Provider struct {
 	// database.
 	mu sync.Mutex
 
-	db         *sql.DB
-	fsys       fs.FS
-	cfg        config
-	store      sqladapter.Store
+	db    *sql.DB
+	fsys  fs.FS
+	cfg   config
+	store sqladapter.Store
+
+	// migrations are ordered by version in ascending order.
 	migrations []*migration
 }
 
@@ -149,8 +152,6 @@ func (p *Provider) Status(ctx context.Context) ([]*MigrationStatus, error) {
 // GetDBVersion returns the max version from the database, regardless of the applied order. For
 // example, if migrations 1,4,2,3 were applied, this method returns 4. If no migrations have been
 // applied, it returns 0.
-//
-// TODO(mf): this is not true?
 func (p *Provider) GetDBVersion(ctx context.Context) (int64, error) {
 	return p.getDBVersion(ctx)
 }
@@ -175,9 +176,9 @@ func (p *Provider) Close() error {
 	return p.db.Close()
 }
 
-// ApplyVersion applies exactly one migration at the specified version. If there is no source for
-// the specified version, this method returns [ErrNoCurrentVersion]. If the migration has been
-// applied already, this method returns [ErrAlreadyApplied].
+// ApplyVersion applies exactly one migration by version. If there is no source for the specified
+// version, this method returns [ErrVersionNotFound]. If the migration has been applied already,
+// this method returns [ErrAlreadyApplied].
 //
 // When direction is true, the up migration is executed, and when direction is false, the down
 // migration is executed.
@@ -185,15 +186,15 @@ func (p *Provider) ApplyVersion(ctx context.Context, version int64, direction bo
 	return p.apply(ctx, version, direction)
 }
 
-// Up applies all pending migrations. If there are no new migrations to apply, this method returns
-// empty list and nil error.
+// Up applies all [StatePending] migrations. If there are no new migrations to apply, this method
+// returns empty list and nil error.
 func (p *Provider) Up(ctx context.Context) ([]*MigrationResult, error) {
 	return p.up(ctx, false, math.MaxInt64)
 }
 
 // UpByOne applies the next available migration. If there are no migrations to apply, this method
 // returns [ErrNoNextVersion]. The returned list will always have exactly one migration result.
-func (p *Provider) UpByOne(ctx context.Context) ([]*MigrationResult, error) {
+func (p *Provider) UpByOne(ctx context.Context) (*MigrationResult, error) {
 	res, err := p.up(ctx, true, math.MaxInt64)
 	if err != nil {
 		return nil, err
@@ -201,21 +202,25 @@ func (p *Provider) UpByOne(ctx context.Context) ([]*MigrationResult, error) {
 	if len(res) == 0 {
 		return nil, ErrNoNextVersion
 	}
-	return res, nil
+	// This should never happen. We should always have exactly one result and test for this.
+	if len(res) > 1 {
+		return nil, fmt.Errorf("unexpected number of migrations returned running up-by-one: %d", len(res))
+	}
+	return res[0], nil
 }
 
-// UpTo applies all available migrations up to and including the specified version. If there are no
-// migrations to apply, this method returns empty list and nil error.
+// UpTo applies all available migrations up to, and including, the specified version. If there are
+// no migrations to apply, this method returns empty list and nil error.
 //
 // For instance, if there are three new migrations (9,10,11) and the current database version is 8
-// with a requested version of 10, only versions 9 and 10 will be applied.
+// with a requested version of 10, only versions 9,10 will be applied.
 func (p *Provider) UpTo(ctx context.Context, version int64) ([]*MigrationResult, error) {
 	return p.up(ctx, false, version)
 }
 
 // Down rolls back the most recently applied migration. If there are no migrations to apply, this
 // method returns [ErrNoNextVersion].
-func (p *Provider) Down(ctx context.Context) ([]*MigrationResult, error) {
+func (p *Provider) Down(ctx context.Context) (*MigrationResult, error) {
 	res, err := p.down(ctx, true, 0)
 	if err != nil {
 		return nil, err
@@ -223,13 +228,16 @@ func (p *Provider) Down(ctx context.Context) ([]*MigrationResult, error) {
 	if len(res) == 0 {
 		return nil, ErrNoNextVersion
 	}
-	return res, nil
+	if len(res) > 1 {
+		return nil, fmt.Errorf("unexpected number of migrations returned running down: %d", len(res))
+	}
+	return res[0], nil
 }
 
-// DownTo rolls back all migrations down to but not including the specified version.
+// DownTo rolls back all migrations down to, but not including, the specified version.
 //
-// For instance, if the current database version is 11, and the requested version is 9, only
-// migrations 11 and 10 will be rolled back.
+// For instance, if the current database version is 11,10,9... and the requested version is 9, only
+// migrations 11, 10 will be rolled back.
 func (p *Provider) DownTo(ctx context.Context, version int64) ([]*MigrationResult, error) {
 	if version < 0 {
 		return nil, fmt.Errorf("version must be a number greater than or equal zero: %d", version)

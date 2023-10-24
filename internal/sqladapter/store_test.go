@@ -61,6 +61,25 @@ func TestStore(t *testing.T) {
 			check.Contains(t, sqliteErr.Error(), "table test_goose_db_version already exists")
 		})
 	})
+	t.Run("ListMigrations", func(t *testing.T) {
+		dir := t.TempDir()
+		db, err := sql.Open("sqlite", filepath.Join(dir, "sql_embed.db"))
+		check.NoError(t, err)
+		store, err := sqladapter.NewStore("sqlite3", "foo")
+		check.NoError(t, err)
+		err = store.CreateVersionTable(context.Background(), db)
+		check.NoError(t, err)
+		check.NoError(t, store.InsertOrDelete(context.Background(), db, true, 1))
+		check.NoError(t, store.InsertOrDelete(context.Background(), db, true, 3))
+		check.NoError(t, store.InsertOrDelete(context.Background(), db, true, 2))
+		res, err := store.ListMigrations(context.Background(), db)
+		check.NoError(t, err)
+		check.Number(t, len(res), 3)
+		// Check versions are in descending order: [2, 3, 1]
+		check.Number(t, res[0].Version, 2)
+		check.Number(t, res[1].Version, 3)
+		check.Number(t, res[2].Version, 1)
+	})
 }
 
 // testStore tests various store operations.
