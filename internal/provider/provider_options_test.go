@@ -27,21 +27,21 @@ func TestNewProvider(t *testing.T) {
 		_, err = provider.NewProvider(nil, db, fsys)
 		check.HasError(t, err)
 		// Nil db not allowed
-		_, err = provider.NewProvider(storage.Sqlite3(""), nil, fsys)
+		_, err = provider.NewProvider(storage.Sqlite3(), nil, fsys)
 		check.HasError(t, err)
 		// Nil fsys not allowed
-		_, err = provider.NewProvider(storage.Sqlite3(""), db, nil)
+		_, err = provider.NewProvider(storage.Sqlite3(), db, nil)
 		check.HasError(t, err)
 	})
 	t.Run("valid", func(t *testing.T) {
 		// Valid dialect, db, and fsys allowed
-		_, err = provider.NewProvider(storage.Sqlite3(""), db, fsys)
+		_, err = provider.NewProvider(storage.Sqlite3(), db, fsys)
 		check.NoError(t, err)
 		// Valid dialect, db, fsys, and table name allowed
-		_, err = provider.NewProvider(storage.Sqlite3("foo"), db, fsys)
+		_, err = provider.NewProvider(storage.Sqlite3WithTableName("foo"), db, fsys)
 		check.NoError(t, err)
 		// Valid dialect, db, fsys, and verbose allowed
-		_, err = provider.NewProvider(storage.Sqlite3(""), db, fsys,
+		_, err = provider.NewProvider(storage.Sqlite3(), db, fsys,
 			provider.WithVerbose(testing.Verbose()),
 		)
 		check.NoError(t, err)

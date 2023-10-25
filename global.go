@@ -11,7 +11,7 @@ var global = struct {
 	storageFactory func(string) state.Storage
 	tableName      string
 }{
-	storageFactory: storage.PostgreSQL,
+	storageFactory: storage.PostgreSQLWithTableName,
 	tableName:      "goose_db_version",
 }
 
@@ -47,11 +47,11 @@ const (
 func SetDialect(s string) error {
 	switch s {
 	case "postgres", "pgx":
-		global.storageFactory = storage.PostgreSQL
+		global.storageFactory = storage.PostgreSQLWithTableName
 	// case "mysql":
 	// 	d = dialect.Mysql
 	case "sqlite3", "sqlite":
-		global.storageFactory = storage.Sqlite3
+		global.storageFactory = storage.Sqlite3WithTableName
 	// case "mssql", "azuresql", "sqlserver":
 	// d = dialect.Sqlserver
 	// case "redshift":

@@ -313,7 +313,7 @@ INSERT INTO owners (owner_name) VALUES ('seed-user-2');
 INSERT INTO owners (owner_name) VALUES ('seed-user-3');
 `),
 		}
-		p, err := provider.NewProvider(storage.Sqlite3(""), db, mapFS)
+		p, err := provider.NewProvider(storage.Sqlite3(), db, mapFS)
 		check.NoError(t, err)
 		_, err = p.Up(ctx)
 		check.HasError(t, err)
@@ -478,7 +478,7 @@ func TestNoVersioning(t *testing.T) {
 		// These are owners created by migration files.
 		wantOwnerCount = 4
 	)
-	p, err := provider.NewProvider(storage.Sqlite3(""), db, fsys,
+	p, err := provider.NewProvider(storage.Sqlite3(), db, fsys,
 		provider.WithVerbose(testing.Verbose()),
 		provider.WithNoVersioning(false), // This is the default.
 	)
@@ -491,7 +491,7 @@ func TestNoVersioning(t *testing.T) {
 	check.Number(t, baseVersion, 3)
 	t.Run("seed-up-down-to-zero", func(t *testing.T) {
 		fsys := os.DirFS(filepath.Join("testdata", "no-versioning", "seed"))
-		p, err := provider.NewProvider(storage.Sqlite3(""), db, fsys,
+		p, err := provider.NewProvider(storage.Sqlite3(), db, fsys,
 			provider.WithVerbose(testing.Verbose()),
 			provider.WithNoVersioning(true), // Provider with no versioning.
 		)
@@ -544,7 +544,7 @@ func TestAllowMissing(t *testing.T) {
 
 	t.Run("missing_now_allowed", func(t *testing.T) {
 		db := newDB(t)
-		p, err := provider.NewProvider(storage.Sqlite3(""), db, newFsys(),
+		p, err := provider.NewProvider(storage.Sqlite3(), db, newFsys(),
 			provider.WithAllowMissing(false),
 		)
 		check.NoError(t, err)
@@ -599,7 +599,7 @@ func TestAllowMissing(t *testing.T) {
 
 	t.Run("missing_allowed", func(t *testing.T) {
 		db := newDB(t)
-		p, err := provider.NewProvider(storage.Sqlite3(""), db, newFsys(),
+		p, err := provider.NewProvider(storage.Sqlite3(), db, newFsys(),
 			provider.WithAllowMissing(true),
 		)
 		check.NoError(t, err)
@@ -699,7 +699,7 @@ func TestGoOnly(t *testing.T) {
 		t.Cleanup(provider.ResetGlobalGoMigrations)
 
 		db := newDB(t)
-		p, err := provider.NewProvider(storage.Sqlite3(""), db, nil,
+		p, err := provider.NewProvider(storage.Sqlite3(), db, nil,
 			provider.WithGoMigration(
 				2,
 				&provider.GoMigration{Run: newTxFn("INSERT INTO users (id) VALUES (1), (2), (3)")},
@@ -752,7 +752,7 @@ func TestGoOnly(t *testing.T) {
 		t.Cleanup(provider.ResetGlobalGoMigrations)
 
 		db := newDB(t)
-		p, err := provider.NewProvider(storage.Sqlite3(""), db, nil,
+		p, err := provider.NewProvider(storage.Sqlite3(), db, nil,
 			provider.WithGoMigration(
 				2,
 				&provider.GoMigration{RunNoTx: newDBFn("INSERT INTO users (id) VALUES (1), (2), (3)")},
@@ -813,7 +813,7 @@ func TestLockModeAdvisorySession(t *testing.T) {
 	newProvider := func() *provider.Provider {
 		sessionLocker, err := lock.NewPostgresSessionLocker()
 		check.NoError(t, err)
-		p, err := provider.NewProvider(storage.PostgreSQL(""), db, os.DirFS("../../testdata/migrations"),
+		p, err := provider.NewProvider(storage.PostgreSQL(), db, os.DirFS("../../testdata/migrations"),
 			provider.WithSessionLocker(sessionLocker), // Use advisory session lock mode.
 			provider.WithVerbose(testing.Verbose()),
 		)
@@ -1075,7 +1075,7 @@ func newProviderWithDB(t *testing.T, opts ...provider.ProviderOption) (*provider
 		opts,
 		provider.WithVerbose(testing.Verbose()),
 	)
-	p, err := provider.NewProvider(storage.Sqlite3(""), db, newFsys(), opts...)
+	p, err := provider.NewProvider(storage.Sqlite3(), db, newFsys(), opts...)
 	check.NoError(t, err)
 	return p, db
 }

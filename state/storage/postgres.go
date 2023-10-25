@@ -6,12 +6,19 @@ import (
 	"github.com/pressly/goose/v3/state"
 )
 
-// PostgreSQL is a storage implementation for PostgreSQL.
-// Pass an empty table name to use the default "goose_db_version" table name.
+// PostgreSQL is a storage implementation for PostgreSQL
+// which uses the "goose_db_version" table name to store the migration state.
 //
 // Experimental: This API is experimental and may change in the future.
-func PostgreSQL(tableName string) state.Storage {
-	tableName = defaultTablename(tableName)
+func PostgreSQL() state.Storage {
+	return PostgreSQLWithTableName(defaultTablename)
+}
+
+// PostgreSQL is a storage implementation for PostgreSQL.
+// Sepicify the name of the table to store the migration state.
+//
+// Experimental: This API is experimental and may change in the future.
+func PostgreSQLWithTableName(tableName string) state.Storage {
 	return queries{
 		createTable: fmt.Sprintf(`CREATE TABLE %s (
 			id serial NOT NULL,

@@ -7,12 +7,7 @@ import (
 	"github.com/pressly/goose/v3/state"
 )
 
-func defaultTablename(override string) string {
-	if override != "" {
-		return override
-	}
-	return "goose_db_version"
-}
+const defaultTablename = "goose_db_version"
 
 type queries struct {
 	createTable           string

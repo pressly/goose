@@ -6,12 +6,19 @@ import (
 	"github.com/pressly/goose/v3/state"
 )
 
-// Sqlite3 is a storage implementation for sqlite.
-// Pass an empty table name to use the default "goose_db_version" table name.
+// Sqlite3 is a storage implementation for sqlite
+// which uses the "goose_db_version" table name to store the migration state.
 //
 // Experimental: This API is experimental and may change in the future.
-func Sqlite3(tableName string) state.Storage {
-	tableName = defaultTablename(tableName)
+func Sqlite3() state.Storage {
+	return Sqlite3WithTableName(defaultTablename)
+}
+
+// Sqlite3 is a storage implementation for sqlite.
+// Sepicify the name of the table to store the migration state.
+//
+// Experimental: This API is experimental and may change in the future.
+func Sqlite3WithTableName(tableName string) state.Storage {
 	return queries{
 		createTable: fmt.Sprintf(`CREATE TABLE %s (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
