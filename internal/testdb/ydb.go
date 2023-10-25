@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	YDB_IMAGE    = "cr.yandex/yc/yandex-docker-local-ydb"
+	YDB_IMAGE    = "ghcr.io/ydb-platform/local-ydb"
 	YDB_VERSION  = "23.3"
 	YDB_PORT     = "2136"
 	YDB_UI_PORT  = "8765"
