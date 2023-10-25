@@ -33,6 +33,8 @@ func SetGlobalGoMigrations(migrations []*Migration) error {
 			return errors.New("migration must be registered")
 		}
 		if m.Source != "" {
+			// If the source is set, expect it to be a file path with a numeric component that
+			// matches the version.
 			version, err := NumericComponent(m.Source)
 			if err != nil {
 				return err
@@ -41,6 +43,7 @@ func SetGlobalGoMigrations(migrations []*Migration) error {
 				return fmt.Errorf("migration version %d does not match source %q", m.Version, m.Source)
 			}
 		}
+		// It's valid for all of these to be nil.
 		if m.UpFnContext != nil && m.UpFnNoTxContext != nil {
 			return errors.New("must specify exactly one of UpFnContext or UpFnNoTxContext")
 		}
