@@ -1,7 +1,7 @@
 # goose [![Goose CI](https://github.com/pressly/goose/actions/workflows/ci.yaml/badge.svg)](https://github.com/pressly/goose/actions/workflows/ci.yaml) [![Go Reference](https://pkg.go.dev/badge/github.com/pressly/goose/v3.svg)](https://pkg.go.dev/github.com/pressly/goose/v3)
 
 <p align="center">
-  <img src="assets/goose_logo.png" width="125"">
+  <img src="assets/goose_logo.png" width="125">
 </p>
 
 Goose is a database migration tool. Manage your database schema by creating incremental SQL changes or Go functions.
@@ -44,7 +44,7 @@ This will install the `goose` binary to your `$GOPATH/bin` directory.
 For a lite version of the binary without DB connection dependent commands, use the exclusive build tags:
 
 ```shell
-go build -tags='no_postgres no_mysql no_sqlite3' -o goose ./cmd/goose
+go build -tags='no_postgres no_mysql no_sqlite3 no_ydb' -o goose ./cmd/goose
 ```
 
 For macOS users `goose` is available as a [Homebrew Formulae](https://formulae.brew.sh/formula/goose#default):
@@ -69,6 +69,7 @@ Drivers:
     tidb
     clickhouse
     vertica
+    ydb
 
 Examples:
     goose sqlite3 ./foo.db status
@@ -84,6 +85,7 @@ Examples:
     goose mssql "sqlserver://user:password@dbname:1433?database=master" status
     goose clickhouse "tcp://127.0.0.1:9000" status
     goose vertica "vertica://user:password@localhost:5433/dbname?connection_load_balance=1" status
+    goose ydb "grpc://localhost:2136/local?go_query_mode=scripting&go_fake_tx=scripting&go_query_bind=declare,numeric" status
 
 Options:
 

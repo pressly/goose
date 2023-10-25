@@ -14,7 +14,7 @@ jobs:
     strategy:
       max-parallel: 2
       matrix:
-        dialect: ["postgres", "mysql", "vertica", "clickhouse"]
+        dialect: ["postgres", "mysql", "vertica", "clickhouse", "ydb"]
 
     steps:
       - name: Checkout code

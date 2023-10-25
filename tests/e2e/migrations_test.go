@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -228,14 +229,7 @@ func getGooseVersionCount(db *sql.DB, gooseTable string) (int64, error) {
 	return gotVersion, nil
 }
 
-func getTableNames(db *sql.DB) ([]string, error) {
-	var query string
-	switch *dialect {
-	case dialectPostgres:
-		query = `SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name`
-	case dialectMySQL:
-		query = `SELECT table_name FROM INFORMATION_SCHEMA.tables WHERE TABLE_TYPE='BASE TABLE' ORDER BY table_name`
-	}
+func getTableNamesThroughQuery(db *sql.DB, query string) ([]string, error) {
 	rows, err := db.Query(query)
 	if err != nil {
 		return nil, err
@@ -250,4 +244,39 @@ func getTableNames(db *sql.DB) ([]string, error) {
 		tableNames = append(tableNames, name)
 	}
 	return tableNames, nil
+}
+
+func getTableNames(db *sql.DB) (tableNames []string, _ error) {
+	switch *dialect {
+	case dialectPostgres:
+		return getTableNamesThroughQuery(db,
+			`SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name`,
+		)
+	case dialectMySQL:
+		return getTableNamesThroughQuery(db,
+			`SELECT table_name FROM INFORMATION_SCHEMA.tables WHERE TABLE_TYPE='BASE TABLE' ORDER BY table_name`,
+		)
+	case dialectYdb:
+		conn, err := db.Conn(context.Background())
+		if err != nil {
+			return nil, err
+		}
+		if err = conn.Raw(func(rawConn any) error {
+			if tables, has := rawConn.(interface {
+				GetTables(ctx context.Context, folder string, recursive bool, excludeSysDirs bool) (tables []string, err error)
+			}); has {
+				tableNames, err = tables.GetTables(context.Background(), ".", true, true)
+				if err != nil {
+					return err
+				}
+				return nil
+			}
+			return fmt.Errorf("%T not implemented GetTables interface", rawConn)
+		}); err != nil {
+			return nil, err
+		}
+		return tableNames, nil
+	default:
+		return nil, fmt.Errorf("getTableNames not supported with dialect %q", *dialect)
+	}
 }
