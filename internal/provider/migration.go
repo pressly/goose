@@ -29,7 +29,7 @@ func (m *migration) useTx(direction bool) bool {
 	case TypeSQL:
 		return m.SQL.UseTx
 	case TypeGo:
-		if m.Go == nil {
+		if m.Go == nil || m.Go.isEmpty(direction) {
 			return false
 		}
 		if direction {
@@ -41,8 +41,18 @@ func (m *migration) useTx(direction bool) bool {
 	return false
 }
 
+func (m *migration) isEmpty(direction bool) bool {
+	switch m.Source.Type {
+	case TypeSQL:
+		return m.SQL == nil || m.SQL.IsEmpty(direction)
+	case TypeGo:
+		return m.Go == nil || m.Go.isEmpty(direction)
+	}
+	return true
+}
+
 func (m *migration) filename() string {
-	return filepath.Base(m.Source.Fullpath)
+	return filepath.Base(m.Source.Path)
 }
 
 // run runs the migration inside of a transaction.
@@ -57,7 +67,7 @@ func (m *migration) run(ctx context.Context, tx *sql.Tx, direction bool) error {
 		return m.Go.run(ctx, tx, direction)
 	}
 	// This should never happen.
-	return fmt.Errorf("tx: failed to run migration %s: neither sql or go", filepath.Base(m.Source.Fullpath))
+	return fmt.Errorf("tx: failed to run migration %s: neither sql or go", filepath.Base(m.Source.Path))
 }
 
 // runNoTx runs the migration without a transaction.
@@ -72,7 +82,7 @@ func (m *migration) runNoTx(ctx context.Context, db *sql.DB, direction bool) err
 		return m.Go.runNoTx(ctx, db, direction)
 	}
 	// This should never happen.
-	return fmt.Errorf("db: failed to run migration %s: neither sql or go", filepath.Base(m.Source.Fullpath))
+	return fmt.Errorf("db: failed to run migration %s: neither sql or go", filepath.Base(m.Source.Path))
 }
 
 // runConn runs the migration without a transaction using the provided connection.
@@ -87,12 +97,22 @@ func (m *migration) runConn(ctx context.Context, conn *sql.Conn, direction bool)
 		return fmt.Errorf("conn: go migrations are not supported with *sql.Conn")
 	}
 	// This should never happen.
-	return fmt.Errorf("conn: failed to run migration %s: neither sql or go", filepath.Base(m.Source.Fullpath))
+	return fmt.Errorf("conn: failed to run migration %s: neither sql or go", filepath.Base(m.Source.Path))
 }
 
 type goMigration struct {
 	fullpath string
 	up, down *GoMigration
+}
+
+func (g *goMigration) isEmpty(direction bool) bool {
+	if g.up == nil && g.down == nil {
+		panic("go migration has no up or down")
+	}
+	if direction {
+		return g.up == nil
+	}
+	return g.down == nil
 }
 
 func newGoMigration(fullpath string, up, down *GoMigration) *goMigration {

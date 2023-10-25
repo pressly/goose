@@ -22,18 +22,19 @@ var (
 
 // PartialError is returned when a migration fails, but some migrations already got applied.
 type PartialError struct {
-	// Applied are migrations that were applied successfully before the error occurred.
+	// Applied are migrations that were applied successfully before the error occurred. May be
+	// empty.
 	Applied []*MigrationResult
-	// Failed contains the result of the migration that failed.
+	// Failed contains the result of the migration that failed. Cannot be nil.
 	Failed *MigrationResult
-	// Err is the error that occurred while running the migration.
+	// Err is the error that occurred while running the migration and caused the failure.
 	Err error
 }
 
 func (e *PartialError) Error() string {
 	filename := "(file unknown)"
-	if e.Failed != nil && e.Failed.Source.Fullpath != "" {
-		filename = fmt.Sprintf("(%s)", filepath.Base(e.Failed.Source.Fullpath))
+	if e.Failed != nil && e.Failed.Source.Path != "" {
+		filename = fmt.Sprintf("(%s)", filepath.Base(e.Failed.Source.Path))
 	}
 	return fmt.Sprintf("partial migration error %s (%d): %v", filename, e.Failed.Source.Version, e.Err)
 }

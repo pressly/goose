@@ -8,6 +8,13 @@ import (
 	"testing"
 )
 
+func NotNil(t *testing.T, v any) {
+	t.Helper()
+	if v == nil {
+		t.Fatal("unexpected nil value")
+	}
+}
+
 func NoError(t *testing.T, err error) {
 	t.Helper()
 	if err != nil {

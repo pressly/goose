@@ -6,6 +6,7 @@ import (
 	"testing/fstest"
 
 	"github.com/pressly/goose/v3/internal/check"
+	"github.com/pressly/goose/v3/internal/sqladapter"
 )
 
 func TestCollectFileSources(t *testing.T) {
@@ -120,13 +121,13 @@ func TestCollectFileSources(t *testing.T) {
 		check.Number(t, len(sources.sqlSources), 2)
 		check.Number(t, len(sources.goSources), 1)
 		// 1
-		check.Equal(t, sources.sqlSources[0].Fullpath, "1_foo.sql")
+		check.Equal(t, sources.sqlSources[0].Path, "1_foo.sql")
 		check.Equal(t, sources.sqlSources[0].Version, int64(1))
 		// 2
-		check.Equal(t, sources.sqlSources[1].Fullpath, "5_qux.sql")
+		check.Equal(t, sources.sqlSources[1].Path, "5_qux.sql")
 		check.Equal(t, sources.sqlSources[1].Version, int64(5))
 		// 3
-		check.Equal(t, sources.goSources[0].Fullpath, "4_something.go")
+		check.Equal(t, sources.goSources[0].Path, "4_something.go")
 		check.Equal(t, sources.goSources[0].Version, int64(4))
 	})
 	t.Run("duplicate_versions", func(t *testing.T) {
@@ -284,6 +285,65 @@ func TestMerge(t *testing.T) {
 			assertMigration(t, migrations[3], NewSource(TypeGo, "", 6))
 		})
 	})
+}
+
+func TestFindMissingMigrations(t *testing.T) {
+	t.Parallel()
+
+	t.Run("db_has_max_version", func(t *testing.T) {
+		// Test case: database has migrations 1, 3, 4, 5, 7
+		// Missing migrations: 2, 6
+		// Filesystem has migrations 1, 2, 3, 4, 5, 6, 7, 8
+		dbMigrations := []*sqladapter.ListMigrationsResult{
+			{Version: 1},
+			{Version: 3},
+			{Version: 4},
+			{Version: 5},
+			{Version: 7}, // <-- database max version_id
+		}
+		fsMigrations := []*migration{
+			newMigration(1),
+			newMigration(2), // missing migration
+			newMigration(3),
+			newMigration(4),
+			newMigration(5),
+			newMigration(6), // missing migration
+			newMigration(7), // ----- database max version_id -----
+			newMigration(8), // new migration
+		}
+		got := findMissingMigrations(dbMigrations, fsMigrations)
+		check.Number(t, len(got), 2)
+		check.Number(t, got[0].versionID, 2)
+		check.Number(t, got[1].versionID, 6)
+
+		// Sanity check.
+		check.Number(t, len(findMissingMigrations(nil, nil)), 0)
+		check.Number(t, len(findMissingMigrations(dbMigrations, nil)), 0)
+		check.Number(t, len(findMissingMigrations(nil, fsMigrations)), 0)
+	})
+	t.Run("fs_has_max_version", func(t *testing.T) {
+		dbMigrations := []*sqladapter.ListMigrationsResult{
+			{Version: 1},
+			{Version: 5},
+			{Version: 2},
+		}
+		fsMigrations := []*migration{
+			newMigration(3), // new migration
+			newMigration(4), // new migration
+		}
+		got := findMissingMigrations(dbMigrations, fsMigrations)
+		check.Number(t, len(got), 2)
+		check.Number(t, got[0].versionID, 3)
+		check.Number(t, got[1].versionID, 4)
+	})
+}
+
+func newMigration(version int64) *migration {
+	return &migration{
+		Source: Source{
+			Version: version,
+		},
+	}
 }
 
 func assertMigration(t *testing.T, got *migration, want Source) {

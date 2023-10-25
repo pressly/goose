@@ -15,9 +15,153 @@ import (
 	"go.uber.org/multierr"
 )
 
+var (
+	errMissingZeroVersion = errors.New("missing zero version migration")
+)
+
+func (p *Provider) up(ctx context.Context, upByOne bool, version int64) (_ []*MigrationResult, retErr error) {
+	if version < 1 {
+		return nil, errors.New("version must be greater than zero")
+	}
+	conn, cleanup, err := p.initialize(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		retErr = multierr.Append(retErr, cleanup())
+	}()
+	if len(p.migrations) == 0 {
+		return nil, nil
+	}
+	var apply []*migration
+	if p.cfg.noVersioning {
+		apply = p.migrations
+	} else {
+		// optimize(mf): Listing all migrations from the database isn't great. This is only required to
+		// support the allow missing (out-of-order) feature. For users that don't use this feature, we
+		// could just query the database for the current max version and then apply migrations greater
+		// than that version.
+		dbMigrations, err := p.store.ListMigrations(ctx, conn)
+		if err != nil {
+			return nil, err
+		}
+		if len(dbMigrations) == 0 {
+			return nil, errMissingZeroVersion
+		}
+		apply, err = p.resolveUpMigrations(dbMigrations, version)
+		if err != nil {
+			return nil, err
+		}
+	}
+	// feat(mf): this is where can (optionally) group multiple migrations to be run in a single
+	// transaction. The default is to apply each migration sequentially on its own.
+	// https://github.com/pressly/goose/issues/222
+	//
+	// Careful, we can't use a single transaction for all migrations because some may have to be run
+	// in their own transaction.
+	return p.runMigrations(ctx, conn, apply, sqlparser.DirectionUp, upByOne)
+}
+
+func (p *Provider) resolveUpMigrations(
+	dbVersions []*sqladapter.ListMigrationsResult,
+	version int64,
+) ([]*migration, error) {
+	var apply []*migration
+	var dbMaxVersion int64
+	// dbAppliedVersions is a map of all applied migrations in the database.
+	dbAppliedVersions := make(map[int64]bool, len(dbVersions))
+	for _, m := range dbVersions {
+		dbAppliedVersions[m.Version] = true
+		if m.Version > dbMaxVersion {
+			dbMaxVersion = m.Version
+		}
+	}
+	missingMigrations := findMissingMigrations(dbVersions, p.migrations)
+	// feat(mf): It is very possible someone may want to apply ONLY new migrations and skip missing
+	// migrations entirely. At the moment this is not supported, but leaving this comment because
+	// that's where that logic would be handled.
+	//
+	// For example, if db has 1,4 applied and 2,3,5 are new, we would apply only 5 and skip 2,3.
+	// Not sure if this is a common use case, but it's possible.
+	if len(missingMigrations) > 0 && !p.cfg.allowMissing {
+		var collected []string
+		for _, v := range missingMigrations {
+			collected = append(collected, v.filename)
+		}
+		msg := "migration"
+		if len(collected) > 1 {
+			msg += "s"
+		}
+		return nil, fmt.Errorf("found %d missing (out-of-order) %s lower than current max (%d): [%s]",
+			len(missingMigrations), msg, dbMaxVersion, strings.Join(collected, ","),
+		)
+	}
+	for _, v := range missingMigrations {
+		m, err := p.getMigration(v.versionID)
+		if err != nil {
+			return nil, err
+		}
+		apply = append(apply, m)
+	}
+	// filter all migrations with a version greater than the supplied version (min) and less than or
+	// equal to the requested version (max). Skip any migrations that have already been applied.
+	for _, m := range p.migrations {
+		if dbAppliedVersions[m.Source.Version] {
+			continue
+		}
+		if m.Source.Version > dbMaxVersion && m.Source.Version <= version {
+			apply = append(apply, m)
+		}
+	}
+	return apply, nil
+}
+
+func (p *Provider) down(ctx context.Context, downByOne bool, version int64) (_ []*MigrationResult, retErr error) {
+	conn, cleanup, err := p.initialize(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		retErr = multierr.Append(retErr, cleanup())
+	}()
+	if len(p.migrations) == 0 {
+		return nil, nil
+	}
+	if p.cfg.noVersioning {
+		downMigrations := p.migrations
+		if downByOne {
+			last := p.migrations[len(p.migrations)-1]
+			downMigrations = []*migration{last}
+		}
+		return p.runMigrations(ctx, conn, downMigrations, sqlparser.DirectionDown, downByOne)
+	}
+	dbMigrations, err := p.store.ListMigrations(ctx, conn)
+	if err != nil {
+		return nil, err
+	}
+	if len(dbMigrations) == 0 {
+		return nil, errMissingZeroVersion
+	}
+	if dbMigrations[0].Version == 0 {
+		return nil, nil
+	}
+	var downMigrations []*migration
+	for _, dbMigration := range dbMigrations {
+		if dbMigration.Version <= version {
+			break
+		}
+		m, err := p.getMigration(dbMigration.Version)
+		if err != nil {
+			return nil, err
+		}
+		downMigrations = append(downMigrations, m)
+	}
+	return p.runMigrations(ctx, conn, downMigrations, sqlparser.DirectionDown, downByOne)
+}
+
 // runMigrations runs migrations sequentially in the given direction.
 //
-// If the migrations slice is empty, this function returns nil with no error.
+// If the migrations list is empty, return nil without error.
 func (p *Provider) runMigrations(
 	ctx context.Context,
 	conn *sql.Conn,
@@ -28,27 +172,19 @@ func (p *Provider) runMigrations(
 	if len(migrations) == 0 {
 		return nil, nil
 	}
-	var apply []*migration
+	apply := migrations
 	if byOne {
-		apply = []*migration{migrations[0]}
-	} else {
-		apply = migrations
+		apply = migrations[:1]
 	}
 	// Lazily parse SQL migrations (if any) in both directions. We do this before running any
 	// migrations so that we can fail fast if there are any errors and avoid leaving the database in
 	// a partially migrated state.
-
 	if err := parseSQL(p.fsys, false, apply); err != nil {
 		return nil, err
 	}
-
-	// TODO(mf): If we decide to add support for advisory locks at the transaction level, this may
+	// feat(mf): If we decide to add support for advisory locks at the transaction level, this may
 	// be a good place to acquire the lock. However, we need to be sure that ALL migrations are safe
 	// to run in a transaction.
-
-	//
-	//
-	//
 
 	// bug(mf): this is a potential deadlock scenario. We're running Go migrations with *sql.DB, but
 	// are locking the database with *sql.Conn. If the caller sets max open connections to 1, then
@@ -57,31 +193,32 @@ func (p *Provider) runMigrations(
 	//
 	// A potential solution is to expose a third Go register function *sql.Conn. Or continue to use
 	// *sql.DB and document that the user SHOULD NOT SET max open connections to 1. This is a bit of
-	// an edge case. if p.opt.LockMode != LockModeNone && p.db.Stats().MaxOpenConnections == 1 {
-	//  for _, m := range apply {
-	//      if m.IsGo() && !m.Go.UseTx {
-	//          return nil, errors.New("potential deadlock detected: cannot run GoMigrationNoTx with max open connections set to 1")
-	//      }
-	//  }
-	// }
+	// an edge case.
+	if p.cfg.lockEnabled && p.cfg.sessionLocker != nil && p.db.Stats().MaxOpenConnections == 1 {
+		for _, m := range apply {
+			switch m.Source.Type {
+			case TypeGo:
+				if m.Go != nil && m.useTx(direction.ToBool()) {
+					return nil, errors.New("potential deadlock detected: cannot run Go migrations without a transaction when max open connections set to 1")
+				}
+			}
+		}
+	}
 
-	// Run migrations individually, opening a new transaction for each migration if the migration is
-	// safe to run in a transaction.
-
-	// Avoid allocating a slice because we may have a partial migration error. 1. Avoid giving the
-	// impression that N migrations were applied when in fact some were not 2. Avoid the caller
-	// having to check for nil results
+	// Avoid allocating a slice because we may have a partial migration error.
+	//  1. Avoid giving the impression that N migrations were applied when in fact some were not
+	//  2. Avoid the caller having to check for nil results
 	var results []*MigrationResult
 	for _, m := range apply {
 		current := &MigrationResult{
 			Source:    m.Source,
-			Direction: strings.ToLower(direction.String()),
-			// TODO(mf): empty set here
+			Direction: direction.String(),
+			Empty:     m.isEmpty(direction.ToBool()),
 		}
-
 		start := time.Now()
 		if err := p.runIndividually(ctx, conn, direction.ToBool(), m); err != nil {
-			// TODO(mf): we should also return the pending migrations here.
+			// TODO(mf): we should also return the pending migrations here, the remaining items in
+			// the apply slice.
 			current.Error = err
 			current.Duration = time.Since(start)
 			return nil, &PartialError{
@@ -90,16 +227,12 @@ func (p *Provider) runMigrations(
 				Err:     err,
 			}
 		}
-
 		current.Duration = time.Since(start)
 		results = append(results, current)
 	}
 	return results, nil
 }
 
-// runIndividually runs an individual migration, opening a new transaction if the migration is safe
-// to run in a transaction. Otherwise, it runs the migration outside of a transaction with the
-// supplied connection.
 func (p *Provider) runIndividually(
 	ctx context.Context,
 	conn *sql.Conn,
@@ -182,8 +315,8 @@ func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, err
 		cleanup = func() error {
 			p.mu.Unlock()
 			// Use a detached context to unlock the session. This is because the context passed to
-			// SessionLock may have been canceled, and we don't want to cancel the unlock.
-			// TODO(mf): use [context.WithoutCancel] added in go1.21
+			// SessionLock may have been canceled, and we don't want to cancel the unlock. TODO(mf):
+			// use [context.WithoutCancel] added in go1.21
 			detachedCtx := context.Background()
 			return multierr.Append(l.SessionUnlock(detachedCtx, conn), conn.Close())
 		}
@@ -206,7 +339,7 @@ func parseSQL(fsys fs.FS, debug bool, migrations []*migration) error {
 	for _, m := range migrations {
 		// If the migration is a SQL migration, and it has not been parsed, parse it.
 		if m.Source.Type == TypeSQL && m.SQL == nil {
-			parsed, err := sqlparser.ParseAllFromFS(fsys, m.Source.Fullpath, debug)
+			parsed, err := sqlparser.ParseAllFromFS(fsys, m.Source.Path, debug)
 			if err != nil {
 				return err
 			}
@@ -248,11 +381,14 @@ type missingMigration struct {
 func findMissingMigrations(
 	dbMigrations []*sqladapter.ListMigrationsResult,
 	fsMigrations []*migration,
-	dbMaxVersion int64,
 ) []missingMigration {
 	existing := make(map[int64]bool)
+	var dbMaxVersion int64
 	for _, m := range dbMigrations {
 		existing[m.Version] = true
+		if m.Version > dbMaxVersion {
+			dbMaxVersion = m.Version
+		}
 	}
 	var missing []missingMigration
 	for _, m := range fsMigrations {
@@ -282,10 +418,6 @@ func (p *Provider) getMigration(version int64) (*migration, error) {
 }
 
 func (p *Provider) apply(ctx context.Context, version int64, direction bool) (_ *MigrationResult, retErr error) {
-	if version < 1 {
-		return nil, errors.New("version must be greater than zero")
-	}
-
 	m, err := p.getMigration(version)
 	if err != nil {
 		return nil, err
@@ -371,5 +503,8 @@ func (p *Provider) getDBVersion(ctx context.Context) (_ int64, retErr error) {
 	if len(res) == 0 {
 		return 0, nil
 	}
+	sort.Slice(res, func(i, j int) bool {
+		return res[i].Version > res[j].Version
+	})
 	return res[0].Version, nil
 }

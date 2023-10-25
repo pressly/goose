@@ -53,13 +53,13 @@ func TestProviderRun(t *testing.T) {
 		p, _ := newProviderWithDB(t)
 		_, err := p.UpTo(context.Background(), 0)
 		check.HasError(t, err)
-		check.Equal(t, err.Error(), "version must be greater than zero")
+		check.Equal(t, err.Error(), "invalid version: must be greater than zero: 0")
 		_, err = p.DownTo(context.Background(), -1)
 		check.HasError(t, err)
-		check.Equal(t, err.Error(), "version must be a number greater than or equal zero: -1")
+		check.Equal(t, err.Error(), "invalid version: must be a valid number or zero: -1")
 		_, err = p.ApplyVersion(context.Background(), 0, true)
 		check.HasError(t, err)
-		check.Equal(t, err.Error(), "version must be greater than zero")
+		check.Equal(t, err.Error(), "invalid version: must be greater than zero: 0")
 	})
 	t.Run("up_and_down_all", func(t *testing.T) {
 		ctx := context.Background()
@@ -77,24 +77,24 @@ func TestProviderRun(t *testing.T) {
 		res, err := p.Up(ctx)
 		check.NoError(t, err)
 		check.Number(t, len(res), numCount)
-		assertResult(t, res[0], provider.NewSource(provider.TypeSQL, "00001_users_table.sql", 1), "up")
-		assertResult(t, res[1], provider.NewSource(provider.TypeSQL, "00002_posts_table.sql", 2), "up")
-		assertResult(t, res[2], provider.NewSource(provider.TypeSQL, "00003_comments_table.sql", 3), "up")
-		assertResult(t, res[3], provider.NewSource(provider.TypeSQL, "00004_insert_data.sql", 4), "up")
-		assertResult(t, res[4], provider.NewSource(provider.TypeSQL, "00005_posts_view.sql", 5), "up")
-		assertResult(t, res[5], provider.NewSource(provider.TypeSQL, "00006_empty_up.sql", 6), "up")
-		assertResult(t, res[6], provider.NewSource(provider.TypeSQL, "00007_empty_up_down.sql", 7), "up")
+		assertResult(t, res[0], provider.NewSource(provider.TypeSQL, "00001_users_table.sql", 1), "up", false)
+		assertResult(t, res[1], provider.NewSource(provider.TypeSQL, "00002_posts_table.sql", 2), "up", false)
+		assertResult(t, res[2], provider.NewSource(provider.TypeSQL, "00003_comments_table.sql", 3), "up", false)
+		assertResult(t, res[3], provider.NewSource(provider.TypeSQL, "00004_insert_data.sql", 4), "up", false)
+		assertResult(t, res[4], provider.NewSource(provider.TypeSQL, "00005_posts_view.sql", 5), "up", false)
+		assertResult(t, res[5], provider.NewSource(provider.TypeSQL, "00006_empty_up.sql", 6), "up", true)
+		assertResult(t, res[6], provider.NewSource(provider.TypeSQL, "00007_empty_up_down.sql", 7), "up", true)
 		// Test Down
 		res, err = p.DownTo(ctx, 0)
 		check.NoError(t, err)
 		check.Number(t, len(res), numCount)
-		assertResult(t, res[0], provider.NewSource(provider.TypeSQL, "00007_empty_up_down.sql", 7), "down")
-		assertResult(t, res[1], provider.NewSource(provider.TypeSQL, "00006_empty_up.sql", 6), "down")
-		assertResult(t, res[2], provider.NewSource(provider.TypeSQL, "00005_posts_view.sql", 5), "down")
-		assertResult(t, res[3], provider.NewSource(provider.TypeSQL, "00004_insert_data.sql", 4), "down")
-		assertResult(t, res[4], provider.NewSource(provider.TypeSQL, "00003_comments_table.sql", 3), "down")
-		assertResult(t, res[5], provider.NewSource(provider.TypeSQL, "00002_posts_table.sql", 2), "down")
-		assertResult(t, res[6], provider.NewSource(provider.TypeSQL, "00001_users_table.sql", 1), "down")
+		assertResult(t, res[0], provider.NewSource(provider.TypeSQL, "00007_empty_up_down.sql", 7), "down", true)
+		assertResult(t, res[1], provider.NewSource(provider.TypeSQL, "00006_empty_up.sql", 6), "down", true)
+		assertResult(t, res[2], provider.NewSource(provider.TypeSQL, "00005_posts_view.sql", 5), "down", false)
+		assertResult(t, res[3], provider.NewSource(provider.TypeSQL, "00004_insert_data.sql", 4), "down", false)
+		assertResult(t, res[4], provider.NewSource(provider.TypeSQL, "00003_comments_table.sql", 3), "down", false)
+		assertResult(t, res[5], provider.NewSource(provider.TypeSQL, "00002_posts_table.sql", 2), "down", false)
+		assertResult(t, res[6], provider.NewSource(provider.TypeSQL, "00001_users_table.sql", 1), "down", false)
 	})
 	t.Run("up_and_down_by_one", func(t *testing.T) {
 		ctx := context.Background()
@@ -112,8 +112,8 @@ func TestProviderRun(t *testing.T) {
 				break
 			}
 			check.NoError(t, err)
-			check.Number(t, len(res), 1)
-			check.Number(t, res[0].Source.Version, int64(counter))
+			check.NotNil(t, res)
+			check.Number(t, res.Source.Version, int64(counter))
 		}
 		currentVersion, err := p.GetDBVersion(ctx)
 		check.NoError(t, err)
@@ -131,8 +131,8 @@ func TestProviderRun(t *testing.T) {
 				break
 			}
 			check.NoError(t, err)
-			check.Number(t, len(res), 1)
-			check.Number(t, res[0].Source.Version, int64(maxVersion-counter+1))
+			check.NotNil(t, res)
+			check.Number(t, res.Source.Version, int64(maxVersion-counter+1))
 		}
 		// Once everything is tested the version should match the highest testdata version
 		currentVersion, err = p.GetDBVersion(ctx)
@@ -148,8 +148,8 @@ func TestProviderRun(t *testing.T) {
 		results, err := p.UpTo(ctx, upToVersion)
 		check.NoError(t, err)
 		check.Number(t, len(results), upToVersion)
-		assertResult(t, results[0], provider.NewSource(provider.TypeSQL, "00001_users_table.sql", 1), "up")
-		assertResult(t, results[1], provider.NewSource(provider.TypeSQL, "00002_posts_table.sql", 2), "up")
+		assertResult(t, results[0], provider.NewSource(provider.TypeSQL, "00001_users_table.sql", 1), "up", false)
+		assertResult(t, results[1], provider.NewSource(provider.TypeSQL, "00002_posts_table.sql", 2), "up", false)
 		// Fetch the goose version from DB
 		currentVersion, err := p.GetDBVersion(ctx)
 		check.NoError(t, err)
@@ -237,7 +237,11 @@ func TestProviderRun(t *testing.T) {
 			res, err := p.ApplyVersion(ctx, s.Version, true)
 			check.NoError(t, err)
 			// Round-trip the migration result through the database to ensure it's valid.
-			assertResult(t, res, s, "up")
+			var empty bool
+			if s.Version == 6 || s.Version == 7 {
+				empty = true
+			}
+			assertResult(t, res, s, "up", empty)
 		}
 		// Apply all migrations in the down direction.
 		for i := len(sources) - 1; i >= 0; i-- {
@@ -245,7 +249,11 @@ func TestProviderRun(t *testing.T) {
 			res, err := p.ApplyVersion(ctx, s.Version, false)
 			check.NoError(t, err)
 			// Round-trip the migration result through the database to ensure it's valid.
-			assertResult(t, res, s, "down")
+			var empty bool
+			if s.Version == 6 || s.Version == 7 {
+				empty = true
+			}
+			assertResult(t, res, s, "down", empty)
 		}
 		// Try apply version 1 multiple times
 		_, err := p.ApplyVersion(ctx, 1, true)
@@ -324,7 +332,7 @@ INSERT INTO owners (owner_name) VALUES ('seed-user-3');
 		check.Contains(t, expected.Err.Error(), "SQL logic error: no such table: invalid_table (1)")
 		// Check Results field
 		check.Number(t, len(expected.Applied), 1)
-		assertResult(t, expected.Applied[0], provider.NewSource(provider.TypeSQL, "00001_users_table.sql", 1), "up")
+		assertResult(t, expected.Applied[0], provider.NewSource(provider.TypeSQL, "00001_users_table.sql", 1), "up", false)
 		// Check Failed field
 		check.Bool(t, expected.Failed != nil, true)
 		assertSource(t, expected.Failed.Source, provider.TypeSQL, "00002_partial_error.sql", 2)
@@ -368,11 +376,11 @@ func TestConcurrentProvider(t *testing.T) {
 					t.Error(err)
 					return
 				}
-				if len(res) != 1 {
-					t.Errorf("expected 1 result, got %d", len(res))
+				if res == nil {
+					t.Errorf("expected non-nil result, got nil")
 					return
 				}
-				ch <- res[0].Source.Version
+				ch <- res.Source.Version
 			}()
 		}
 		go func() {
@@ -623,13 +631,13 @@ func TestAllowMissing(t *testing.T) {
 			// 4
 			upResult, err := p.UpByOne(ctx)
 			check.NoError(t, err)
-			check.Number(t, len(upResult), 1)
-			check.Number(t, upResult[0].Source.Version, 4)
+			check.NotNil(t, upResult)
+			check.Number(t, upResult.Source.Version, 4)
 			// 6
 			upResult, err = p.UpByOne(ctx)
 			check.NoError(t, err)
-			check.Number(t, len(upResult), 1)
-			check.Number(t, upResult[0].Source.Version, 6)
+			check.NotNil(t, upResult)
+			check.Number(t, upResult.Source.Version, 6)
 
 			count, err := getGooseVersionCount(db, provider.DefaultTablename)
 			check.NoError(t, err)
@@ -645,21 +653,29 @@ func TestAllowMissing(t *testing.T) {
 		// So migrating down should be the reverse of the applied order:
 		// 6,4,5,3,2,1
 
-		expected := []int64{6, 4, 5, 3, 2, 1}
-		for i, v := range expected {
-			// TODO(mf): this is returning it by the order it was applied.
-			current, err := p.GetDBVersion(ctx)
+		testDownAndVersion := func(wantDBVersion, wantResultVersion int64) {
+			currentVersion, err := p.GetDBVersion(ctx)
 			check.NoError(t, err)
-			check.Number(t, current, v)
-			downResult, err := p.Down(ctx)
-			if i == len(expected)-1 {
-				check.HasError(t, provider.ErrVersionNotFound)
-			} else {
-				check.NoError(t, err)
-				check.Number(t, len(downResult), 1)
-				check.Number(t, downResult[0].Source.Version, v)
-			}
+			check.Number(t, currentVersion, wantDBVersion)
+			downRes, err := p.Down(ctx)
+			check.NoError(t, err)
+			check.NotNil(t, downRes)
+			check.Number(t, downRes.Source.Version, wantResultVersion)
 		}
+
+		// This behaviour may need to change, see the following issues for more details:
+		// 	- https://github.com/pressly/goose/issues/523
+		// 	- https://github.com/pressly/goose/issues/402
+
+		testDownAndVersion(6, 6)
+		testDownAndVersion(5, 4) // Ensure the max db version is 5 before down.
+		testDownAndVersion(5, 5)
+		testDownAndVersion(3, 3)
+		testDownAndVersion(2, 2)
+		testDownAndVersion(1, 1)
+		_, err = p.Down(ctx)
+		check.HasError(t, err)
+		check.Bool(t, errors.Is(err, provider.ErrNoNextVersion), true)
 	})
 }
 
@@ -674,7 +690,7 @@ func getGooseVersionCount(db *sql.DB, gooseTable string) (int64, error) {
 }
 
 func TestGoOnly(t *testing.T) {
-	// Not parallel because it modifies global state.
+	// Not parallel because each subtest modifies global state.
 
 	countUser := func(db *sql.DB) int {
 		q := `SELECT count(*)FROM users`
@@ -688,7 +704,7 @@ func TestGoOnly(t *testing.T) {
 		ctx := context.Background()
 		register := []*provider.Migration{
 			{
-				Version: 1, Source: "00001_users_table.go", Registered: true, UseTx: true,
+				Version: 1, Source: "00001_users_table.go", Registered: true,
 				UpFnContext:   newTxFn("CREATE TABLE users (id INTEGER PRIMARY KEY)"),
 				DownFnContext: newTxFn("DROP TABLE users"),
 			},
@@ -713,27 +729,23 @@ func TestGoOnly(t *testing.T) {
 		// Apply migration 1
 		res, err := p.UpByOne(ctx)
 		check.NoError(t, err)
-		check.Number(t, len(res), 1)
-		assertResult(t, res[0], provider.NewSource(provider.TypeGo, "00001_users_table.go", 1), "up")
+		assertResult(t, res, provider.NewSource(provider.TypeGo, "00001_users_table.go", 1), "up", false)
 		check.Number(t, countUser(db), 0)
 		check.Bool(t, tableExists(t, db, "users"), true)
 		// Apply migration 2
 		res, err = p.UpByOne(ctx)
 		check.NoError(t, err)
-		check.Number(t, len(res), 1)
-		assertResult(t, res[0], provider.NewSource(provider.TypeGo, "", 2), "up")
+		assertResult(t, res, provider.NewSource(provider.TypeGo, "", 2), "up", false)
 		check.Number(t, countUser(db), 3)
 		// Rollback migration 2
 		res, err = p.Down(ctx)
 		check.NoError(t, err)
-		check.Number(t, len(res), 1)
-		assertResult(t, res[0], provider.NewSource(provider.TypeGo, "", 2), "down")
+		assertResult(t, res, provider.NewSource(provider.TypeGo, "", 2), "down", false)
 		check.Number(t, countUser(db), 0)
 		// Rollback migration 1
 		res, err = p.Down(ctx)
 		check.NoError(t, err)
-		check.Number(t, len(res), 1)
-		assertResult(t, res[0], provider.NewSource(provider.TypeGo, "00001_users_table.go", 1), "down")
+		assertResult(t, res, provider.NewSource(provider.TypeGo, "00001_users_table.go", 1), "down", false)
 		// Check table does not exist
 		check.Bool(t, tableExists(t, db, "users"), false)
 	})
@@ -741,7 +753,7 @@ func TestGoOnly(t *testing.T) {
 		ctx := context.Background()
 		register := []*provider.Migration{
 			{
-				Version: 1, Source: "00001_users_table.go", Registered: true, UseTx: true,
+				Version: 1, Source: "00001_users_table.go", Registered: true,
 				UpFnNoTxContext:   newDBFn("CREATE TABLE users (id INTEGER PRIMARY KEY)"),
 				DownFnNoTxContext: newDBFn("DROP TABLE users"),
 			},
@@ -766,27 +778,23 @@ func TestGoOnly(t *testing.T) {
 		// Apply migration 1
 		res, err := p.UpByOne(ctx)
 		check.NoError(t, err)
-		check.Number(t, len(res), 1)
-		assertResult(t, res[0], provider.NewSource(provider.TypeGo, "00001_users_table.go", 1), "up")
+		assertResult(t, res, provider.NewSource(provider.TypeGo, "00001_users_table.go", 1), "up", false)
 		check.Number(t, countUser(db), 0)
 		check.Bool(t, tableExists(t, db, "users"), true)
 		// Apply migration 2
 		res, err = p.UpByOne(ctx)
 		check.NoError(t, err)
-		check.Number(t, len(res), 1)
-		assertResult(t, res[0], provider.NewSource(provider.TypeGo, "", 2), "up")
+		assertResult(t, res, provider.NewSource(provider.TypeGo, "", 2), "up", false)
 		check.Number(t, countUser(db), 3)
 		// Rollback migration 2
 		res, err = p.Down(ctx)
 		check.NoError(t, err)
-		check.Number(t, len(res), 1)
-		assertResult(t, res[0], provider.NewSource(provider.TypeGo, "", 2), "down")
+		assertResult(t, res, provider.NewSource(provider.TypeGo, "", 2), "down", false)
 		check.Number(t, countUser(db), 0)
 		// Rollback migration 1
 		res, err = p.Down(ctx)
 		check.NoError(t, err)
-		check.Number(t, len(res), 1)
-		assertResult(t, res[0], provider.NewSource(provider.TypeGo, "00001_users_table.go", 1), "down")
+		assertResult(t, res, provider.NewSource(provider.TypeGo, "00001_users_table.go", 1), "down", false)
 		// Check table does not exist
 		check.Bool(t, tableExists(t, db, "users"), false)
 	})
@@ -880,7 +888,7 @@ func TestLockModeAdvisorySession(t *testing.T) {
 		)
 		g.Go(func() error {
 			for {
-				results, err := provider1.UpByOne(context.Background())
+				result, err := provider1.UpByOne(context.Background())
 				if err != nil {
 					if errors.Is(err, provider.ErrNoNextVersion) {
 						return nil
@@ -888,17 +896,15 @@ func TestLockModeAdvisorySession(t *testing.T) {
 					return err
 				}
 				check.NoError(t, err)
-				if len(results) != 1 {
-					return fmt.Errorf("expected 1 result, got %d", len(results))
-				}
+				check.NotNil(t, result)
 				mu.Lock()
-				applied = append(applied, results[0].Source.Version)
+				applied = append(applied, result.Source.Version)
 				mu.Unlock()
 			}
 		})
 		g.Go(func() error {
 			for {
-				results, err := provider2.UpByOne(context.Background())
+				result, err := provider2.UpByOne(context.Background())
 				if err != nil {
 					if errors.Is(err, provider.ErrNoNextVersion) {
 						return nil
@@ -906,11 +912,9 @@ func TestLockModeAdvisorySession(t *testing.T) {
 					return err
 				}
 				check.NoError(t, err)
-				if len(results) != 1 {
-					return fmt.Errorf("expected 1 result, got %d", len(results))
-				}
+				check.NotNil(t, result)
 				mu.Lock()
-				applied = append(applied, results[0].Source.Version)
+				applied = append(applied, result.Source.Version)
 				mu.Unlock()
 			}
 		})
@@ -986,37 +990,33 @@ func TestLockModeAdvisorySession(t *testing.T) {
 		)
 		g.Go(func() error {
 			for {
-				results, err := provider1.Down(context.Background())
+				result, err := provider1.Down(context.Background())
 				if err != nil {
 					if errors.Is(err, provider.ErrNoNextVersion) {
 						return nil
 					}
 					return err
 				}
-				if len(results) != 1 {
-					return fmt.Errorf("expected 1 result, got %d", len(results))
-				}
 				check.NoError(t, err)
+				check.NotNil(t, result)
 				mu.Lock()
-				applied = append(applied, results[0].Source.Version)
+				applied = append(applied, result.Source.Version)
 				mu.Unlock()
 			}
 		})
 		g.Go(func() error {
 			for {
-				results, err := provider2.Down(context.Background())
+				result, err := provider2.Down(context.Background())
 				if err != nil {
 					if errors.Is(err, provider.ErrNoNextVersion) {
 						return nil
 					}
 					return err
 				}
-				if len(results) != 1 {
-					return fmt.Errorf("expected 1 result, got %d", len(results))
-				}
 				check.NoError(t, err)
+				check.NotNil(t, result)
 				mu.Lock()
-				applied = append(applied, results[0].Source.Version)
+				applied = append(applied, result.Source.Version)
 				mu.Unlock()
 			}
 		})
@@ -1124,11 +1124,12 @@ func assertStatus(t *testing.T, got *provider.MigrationStatus, state provider.St
 	check.Bool(t, got.AppliedAt.IsZero(), appliedIsZero)
 }
 
-func assertResult(t *testing.T, got *provider.MigrationResult, source provider.Source, direction string) {
+func assertResult(t *testing.T, got *provider.MigrationResult, source provider.Source, direction string, isEmpty bool) {
 	t.Helper()
+	check.NotNil(t, got)
 	check.Equal(t, got.Source, source)
 	check.Equal(t, got.Direction, direction)
-	check.Equal(t, got.Empty, false)
+	check.Equal(t, got.Empty, isEmpty)
 	check.Bool(t, got.Error == nil, true)
 	check.Bool(t, got.Duration > 0, true)
 }
@@ -1136,7 +1137,7 @@ func assertResult(t *testing.T, got *provider.MigrationResult, source provider.S
 func assertSource(t *testing.T, got provider.Source, typ provider.MigrationType, name string, version int64) {
 	t.Helper()
 	check.Equal(t, got.Type, typ)
-	check.Equal(t, got.Fullpath, name)
+	check.Equal(t, got.Path, name)
 	check.Equal(t, got.Version, version)
 	switch got.Type {
 	case provider.TypeGo:
