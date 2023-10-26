@@ -47,6 +47,7 @@ func NewStore(dialect Dialect, tablename string) (Store, error) {
 		DialectSQLite3:    &dialectquery.Sqlite3{},
 		DialectTiDB:       &dialectquery.Tidb{},
 		DialectVertica:    &dialectquery.Vertica{},
+		DialectYdB:        &dialectquery.Ydb{},
 	}
 	querier, ok := lookup[dialect]
 	if !ok {
