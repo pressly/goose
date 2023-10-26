@@ -87,7 +87,13 @@ func TestDialectStore(t *testing.T) {
 //
 // If alreadyExists is not nil, it will be used to assert the error returned by CreateVersionTable
 // when the version table already exists.
-func testStore(ctx context.Context, t *testing.T, d database.Dialect, db *sql.DB, alreadyExists func(t *testing.T, err error)) {
+func testStore(
+	ctx context.Context,
+	t *testing.T,
+	d database.Dialect,
+	db *sql.DB,
+	alreadyExists func(t *testing.T, err error),
+) {
 	const (
 		tablename = "test_goose_db_version"
 	)
