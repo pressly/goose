@@ -6,6 +6,11 @@ import (
 	"fmt"
 )
 
+var (
+	// ErrNoMigration when no migration found
+	ErrNoMigration = fmt.Errorf("no migration")
+)
+
 // Down rolls back a single migration from the current version.
 func Down(db *sql.DB, dir string, opts ...OptionsFunc) error {
 	ctx := context.Background()
@@ -36,7 +41,7 @@ func DownContext(ctx context.Context, db *sql.DB, dir string, opts ...OptionsFun
 	}
 	current, err := migrations.Current(currentVersion)
 	if err != nil {
-		return fmt.Errorf("no migration %v", currentVersion)
+		return fmt.Errorf("current version %v: %w", currentVersion, ErrNoMigration)
 	}
 	return current.DownContext(ctx, db)
 }
