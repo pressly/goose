@@ -9,7 +9,7 @@ import (
 	"math"
 	"sync"
 
-	"github.com/pressly/goose/v3/internal/sqladapter"
+	"github.com/pressly/goose/v3/database"
 )
 
 // NewProvider returns a new goose Provider.
@@ -28,12 +28,9 @@ import (
 // Unless otherwise specified, all methods on Provider are safe for concurrent use.
 //
 // Experimental: This API is experimental and may change in the future.
-func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption) (*Provider, error) {
+func NewProvider(dialect database.Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption) (*Provider, error) {
 	if db == nil {
 		return nil, errors.New("db must not be nil")
-	}
-	if dialect == "" {
-		return nil, errors.New("dialect must not be empty")
 	}
 	if fsys == nil {
 		fsys = noopFS{}
@@ -51,7 +48,7 @@ func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption
 	if cfg.tableName == "" {
 		cfg.tableName = DefaultTablename
 	}
-	store, err := sqladapter.NewStore(string(dialect), cfg.tableName)
+	store, err := database.NewStore(dialect, cfg.tableName)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +135,7 @@ type Provider struct {
 	db    *sql.DB
 	fsys  fs.FS
 	cfg   config
-	store sqladapter.Store
+	store database.Store
 
 	// migrations are ordered by version in ascending order.
 	migrations []*migration

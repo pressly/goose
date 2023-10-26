@@ -1,4 +1,4 @@
-package dialect_test
+package database_test
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/pressly/goose/v3/database/dialect"
+	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/internal/check"
 	"github.com/pressly/goose/v3/internal/testdb"
 	"go.uber.org/multierr"
@@ -23,15 +23,15 @@ func TestDialectStore(t *testing.T) {
 	t.Parallel()
 	t.Run("invalid", func(t *testing.T) {
 		// Test empty table name.
-		_, err := dialect.NewStore(dialect.SQLite3, "")
+		_, err := database.NewStore(database.DialectSQLite3, "")
 		check.HasError(t, err)
 		// Test unknown dialect.
-		_, err = dialect.NewStore("unknown-dialect", "foo")
+		_, err = database.NewStore("unknown-dialect", "foo")
 		check.HasError(t, err)
 		// Test empty dialect.
-		_, err = dialect.NewStore("", "foo")
+		_, err = database.NewStore("", "foo")
 		check.HasError(t, err)
-		_, err = dialect.NewStore(dialect.Custom, "foo")
+		_, err = database.NewStore(database.DialectCustom, "foo")
 		check.HasError(t, err)
 	})
 	t.Run("postgres", func(t *testing.T) {
@@ -42,7 +42,7 @@ func TestDialectStore(t *testing.T) {
 		db, cleanup, err := testdb.NewPostgres()
 		check.NoError(t, err)
 		t.Cleanup(cleanup)
-		testStore(context.Background(), t, dialect.Postgres, db, func(t *testing.T, err error) {
+		testStore(context.Background(), t, database.DialectPostgres, db, func(t *testing.T, err error) {
 			var pgErr *pgconn.PgError
 			ok := errors.As(err, &pgErr)
 			check.Bool(t, ok, true)
@@ -54,7 +54,7 @@ func TestDialectStore(t *testing.T) {
 		dir := t.TempDir()
 		db, err := sql.Open("sqlite", filepath.Join(dir, "sql_embed.db"))
 		check.NoError(t, err)
-		testStore(context.Background(), t, dialect.SQLite3, db, func(t *testing.T, err error) {
+		testStore(context.Background(), t, database.DialectSQLite3, db, func(t *testing.T, err error) {
 			var sqliteErr *sqlite.Error
 			ok := errors.As(err, &sqliteErr)
 			check.Bool(t, ok, true)
@@ -66,7 +66,7 @@ func TestDialectStore(t *testing.T) {
 		dir := t.TempDir()
 		db, err := sql.Open("sqlite", filepath.Join(dir, "sql_embed.db"))
 		check.NoError(t, err)
-		store, err := dialect.NewStore(dialect.SQLite3, "foo")
+		store, err := database.NewStore(database.DialectSQLite3, "foo")
 		check.NoError(t, err)
 		err = store.CreateVersionTable(context.Background(), db)
 		check.NoError(t, err)
@@ -87,11 +87,11 @@ func TestDialectStore(t *testing.T) {
 //
 // If alreadyExists is not nil, it will be used to assert the error returned by CreateVersionTable
 // when the version table already exists.
-func testStore(ctx context.Context, t *testing.T, d dialect.Dialect, db *sql.DB, alreadyExists func(t *testing.T, err error)) {
+func testStore(ctx context.Context, t *testing.T, d database.Dialect, db *sql.DB, alreadyExists func(t *testing.T, err error)) {
 	const (
 		tablename = "test_goose_db_version"
 	)
-	store, err := dialect.NewStore(d, tablename)
+	store, err := database.NewStore(d, tablename)
 	check.NoError(t, err)
 	// Create the version table.
 	err = runTx(ctx, db, func(tx *sql.Tx) error {
