@@ -52,6 +52,11 @@ func NewProvider(dialect database.Dialect, db *sql.DB, fsys fs.FS, opts ...Provi
 	if err != nil {
 		return nil, err
 	}
+	// TODO(mf): in the future we enable users to bring their own Store implementation so we should
+	// ensure at least the tablename is set.
+	if store.Tablename() == "" {
+		return nil, errors.New("invalid store implementation: table name must not be empty")
+	}
 	// Collect migrations from the filesystem and merge with registered migrations.
 	//
 	// Note, neither of these functions parse SQL migrations by default. SQL migrations are parsed

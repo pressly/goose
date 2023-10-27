@@ -11,6 +11,9 @@ import (
 // Each database dialect requires a specific implementation of this interface. A dialect represents
 // a set of SQL statements specific to a particular database system.
 type Store interface {
+	// Tablename is the version table used to record applied migrations. Must not be empty.
+	Tablename() string
+
 	// CreateVersionTable creates the version table. This table is used to record applied
 	// migrations.
 	CreateVersionTable(ctx context.Context, db DBTxConn) error
@@ -26,6 +29,9 @@ type Store interface {
 	// ListMigrations retrieves all migrations sorted in descending order by id or timestamp. If
 	// there are no migrations, return empty slice with no error.
 	ListMigrations(ctx context.Context, db DBTxConn) ([]*ListMigrationsResult, error)
+
+	// TODO(mf): remove this method once the Provider is public and a custom Store can be used.
+	private()
 }
 
 type GetMigrationResult struct {

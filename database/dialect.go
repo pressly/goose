@@ -66,6 +66,12 @@ type store struct {
 
 var _ Store = (*store)(nil)
 
+func (s *store) private() {}
+
+func (s *store) Tablename() string {
+	return s.tablename
+}
+
 func (s *store) CreateVersionTable(ctx context.Context, db DBTxConn) error {
 	q := s.querier.CreateTable(s.tablename)
 	if _, err := db.ExecContext(ctx, q); err != nil {
