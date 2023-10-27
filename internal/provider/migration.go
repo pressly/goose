@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/pressly/goose/v3/internal/sqlextended"
+	"github.com/pressly/goose/v3/database"
 )
 
 type migration struct {
@@ -170,7 +170,7 @@ func (s *sqlMigration) IsEmpty(direction bool) bool {
 	return len(s.DownStatements) == 0
 }
 
-func (s *sqlMigration) run(ctx context.Context, db sqlextended.DBTxConn, direction bool) error {
+func (s *sqlMigration) run(ctx context.Context, db database.DBTxConn, direction bool) error {
 	var statements []string
 	if direction {
 		statements = s.UpStatements

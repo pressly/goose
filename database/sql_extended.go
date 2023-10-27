@@ -1,14 +1,14 @@
-package sqlextended
+package database
 
 import (
 	"context"
 	"database/sql"
 )
 
-// DBTxConn is a thin interface for common method that is satisfied by *sql.DB, *sql.Tx and
+// DBTxConn is a thin interface for common methods that is satisfied by *sql.DB, *sql.Tx and
 // *sql.Conn.
 //
-// There is a long outstanding issue to formalize a std lib interface, but alas... See:
+// There is a long outstanding issue to formalize a std lib interface, but alas. See:
 // https://github.com/golang/go/issues/14468
 type DBTxConn interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)

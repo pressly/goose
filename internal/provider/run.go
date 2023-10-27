@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pressly/goose/v3/internal/sqladapter"
+	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/internal/sqlparser"
 	"go.uber.org/multierr"
 )
@@ -63,7 +63,7 @@ func (p *Provider) up(ctx context.Context, upByOne bool, version int64) (_ []*Mi
 }
 
 func (p *Provider) resolveUpMigrations(
-	dbVersions []*sqladapter.ListMigrationsResult,
+	dbVersions []*database.ListMigrationsResult,
 	version int64,
 ) ([]*migration, error) {
 	var apply []*migration
@@ -379,7 +379,7 @@ type missingMigration struct {
 // findMissingMigrations returns a list of migrations that are missing from the database. A missing
 // migration is one that has a version less than the max version in the database.
 func findMissingMigrations(
-	dbMigrations []*sqladapter.ListMigrationsResult,
+	dbMigrations []*database.ListMigrationsResult,
 	fsMigrations []*migration,
 ) []missingMigration {
 	existing := make(map[int64]bool)

@@ -5,8 +5,8 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/internal/check"
-	"github.com/pressly/goose/v3/internal/sqladapter"
 )
 
 func TestCollectFileSources(t *testing.T) {
@@ -294,7 +294,7 @@ func TestFindMissingMigrations(t *testing.T) {
 		// Test case: database has migrations 1, 3, 4, 5, 7
 		// Missing migrations: 2, 6
 		// Filesystem has migrations 1, 2, 3, 4, 5, 6, 7, 8
-		dbMigrations := []*sqladapter.ListMigrationsResult{
+		dbMigrations := []*database.ListMigrationsResult{
 			{Version: 1},
 			{Version: 3},
 			{Version: 4},
@@ -322,7 +322,7 @@ func TestFindMissingMigrations(t *testing.T) {
 		check.Number(t, len(findMissingMigrations(nil, fsMigrations)), 0)
 	})
 	t.Run("fs_has_max_version", func(t *testing.T) {
-		dbMigrations := []*sqladapter.ListMigrationsResult{
+		dbMigrations := []*database.ListMigrationsResult{
 			{Version: 1},
 			{Version: 5},
 			{Version: 2},

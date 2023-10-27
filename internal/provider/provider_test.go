@@ -9,6 +9,7 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/internal/check"
 	"github.com/pressly/goose/v3/internal/provider"
 	_ "modernc.org/sqlite"
@@ -51,7 +52,7 @@ func TestProvider(t *testing.T) {
 		t.Cleanup(provider.ResetGlobalGoMigrations)
 
 		db := newDB(t)
-		_, err = provider.NewProvider(provider.DialectSQLite3, db, nil,
+		_, err = provider.NewProvider(database.DialectSQLite3, db, nil,
 			provider.WithGoMigration(1, nil, nil),
 		)
 		check.HasError(t, err)
@@ -60,7 +61,7 @@ func TestProvider(t *testing.T) {
 	t.Run("empty_go", func(t *testing.T) {
 		db := newDB(t)
 		// explicit
-		_, err := provider.NewProvider(provider.DialectSQLite3, db, nil,
+		_, err := provider.NewProvider(database.DialectSQLite3, db, nil,
 			provider.WithGoMigration(1, &provider.GoMigration{Run: nil}, &provider.GoMigration{Run: nil}),
 		)
 		check.HasError(t, err)
