@@ -51,8 +51,7 @@ func TestDialectStore(t *testing.T) {
 	})
 	// Test generic behavior.
 	t.Run("sqlite3", func(t *testing.T) {
-		dir := t.TempDir()
-		db, err := sql.Open("sqlite", filepath.Join(dir, "sql_embed.db"))
+		db, err := sql.Open("sqlite", ":memory:")
 		check.NoError(t, err)
 		testStore(context.Background(), t, database.DialectSQLite3, db, func(t *testing.T, err error) {
 			var sqliteErr *sqlite.Error
