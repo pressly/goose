@@ -1,8 +1,14 @@
-// Package database provides a Store interface for goose to use when interacting with the database.
-// It also provides a an implementation for each supported database dialect.
+// Package database defines a generic [Store] interface for goose to use when interacting with the
+// database. It is meant to be generic and not tied to any specific database technology.
 //
-// The Store interface is meant to be generic and not tied to any specific database.
+// At a high level, a [Store] is responsible for:
+//   - Creating a version table
+//   - Inserting and deleting a version
+//   - Getting a specific version
+//   - Listing all applied versions
 //
-// It's possible to implement a custom Store for a database that goose does not support. To do so,
-// implement the [Store] interface and pass it to [goose.NewProvider].
+// Use the [NewStore] function to create a [Store] for one of the supported dialects.
+//
+// For more advanced use cases, it's possible to implement a custom [Store] for a database that
+// goose does not support.
 package database
