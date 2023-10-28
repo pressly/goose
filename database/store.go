@@ -11,13 +11,18 @@ import (
 // Each database dialect requires a specific implementation of this interface. A dialect represents
 // a set of SQL statements specific to a particular database system.
 type Store interface {
+	// Tablename is the version table used to record applied migrations. Must not be empty.
+	Tablename() string
+
 	// CreateVersionTable creates the version table. This table is used to record applied
 	// migrations.
 	CreateVersionTable(ctx context.Context, db DBTxConn) error
 
-	// InsertOrDelete inserts or deletes a version id from the version table. If direction is true,
-	// insert the version id. If direction is false, delete the version id.
-	InsertOrDelete(ctx context.Context, db DBTxConn, direction bool, version int64) error
+	// Insert inserts a version id into the version table.
+	Insert(ctx context.Context, db DBTxConn, req InsertRequest) error
+
+	// Delete deletes a version id from the version table.
+	Delete(ctx context.Context, db DBTxConn, version int64) error
 
 	// GetMigration retrieves a single migration by version id. This method may return the raw sql
 	// error if the query fails so the caller can assert for errors such as [sql.ErrNoRows].
@@ -26,6 +31,18 @@ type Store interface {
 	// ListMigrations retrieves all migrations sorted in descending order by id or timestamp. If
 	// there are no migrations, return empty slice with no error.
 	ListMigrations(ctx context.Context, db DBTxConn) ([]*ListMigrationsResult, error)
+
+	// TODO(mf): remove this method once the Provider is public and a custom Store can be used.
+	private()
+}
+
+type InsertRequest struct {
+	Version int64
+
+	// TODO(mf): in the future, we maybe want to expand this struct so implementors can store
+	// additional information. See the following issues for more information:
+	//  - https://github.com/pressly/goose/issues/422
+	//  - https://github.com/pressly/goose/issues/288
 }
 
 type GetMigrationResult struct {

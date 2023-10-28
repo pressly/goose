@@ -248,7 +248,10 @@ func (p *Provider) runIndividually(
 			if p.cfg.noVersioning {
 				return nil
 			}
-			return p.store.InsertOrDelete(ctx, tx, direction, m.Source.Version)
+			if direction {
+				return p.store.Insert(ctx, tx, database.InsertRequest{Version: m.Source.Version})
+			}
+			return p.store.Delete(ctx, tx, m.Source.Version)
 		})
 	}
 	// Run the migration outside of a transaction.
@@ -268,7 +271,10 @@ func (p *Provider) runIndividually(
 	if p.cfg.noVersioning {
 		return nil
 	}
-	return p.store.InsertOrDelete(ctx, conn, direction, m.Source.Version)
+	if direction {
+		return p.store.Insert(ctx, conn, database.InsertRequest{Version: m.Source.Version})
+	}
+	return p.store.Delete(ctx, conn, m.Source.Version)
 }
 
 // beginTx begins a transaction and runs the given function. If the function returns an error, the
@@ -367,7 +373,7 @@ func (p *Provider) ensureVersionTable(ctx context.Context, conn *sql.Conn) (retE
 		if p.cfg.noVersioning {
 			return nil
 		}
-		return p.store.InsertOrDelete(ctx, tx, true, 0)
+		return p.store.Insert(ctx, tx, database.InsertRequest{Version: 0})
 	})
 }
 

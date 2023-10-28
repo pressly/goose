@@ -21,22 +21,15 @@ const (
 	DialectTiDB       Dialect = "tidb"
 	DialectVertica    Dialect = "vertica"
 	DialectYdB        Dialect = "ydb"
-
-	// DialectCustom is a special dialect that allows users to provide their own [Store]
-	// implementation when constructing a [goose.Provider].
-	DialectCustom Dialect = "custom"
 )
 
-// NewStore returns a new [Store] backed by the given dialect.
+// NewStore returns a new [Store] implementation for the given dialect.
 func NewStore(dialect Dialect, tablename string) (Store, error) {
 	if tablename == "" {
-		return nil, errors.New("tablename must not be empty")
+		return nil, errors.New("table name must not be empty")
 	}
 	if dialect == "" {
 		return nil, errors.New("dialect must not be empty")
-	}
-	if dialect == DialectCustom {
-		return nil, errors.New("dialect must not be custom")
 	}
 	lookup := map[Dialect]dialectquery.Querier{
 		DialectClickHouse: &dialectquery.Clickhouse{},
@@ -66,6 +59,12 @@ type store struct {
 
 var _ Store = (*store)(nil)
 
+func (s *store) private() {}
+
+func (s *store) Tablename() string {
+	return s.tablename
+}
+
 func (s *store) CreateVersionTable(ctx context.Context, db DBTxConn) error {
 	q := s.querier.CreateTable(s.tablename)
 	if _, err := db.ExecContext(ctx, q); err != nil {
@@ -74,14 +73,15 @@ func (s *store) CreateVersionTable(ctx context.Context, db DBTxConn) error {
 	return nil
 }
 
-func (s *store) InsertOrDelete(ctx context.Context, db DBTxConn, direction bool, version int64) error {
-	if direction {
-		q := s.querier.InsertVersion(s.tablename)
-		if _, err := db.ExecContext(ctx, q, version, true); err != nil {
-			return fmt.Errorf("failed to insert version %d: %w", version, err)
-		}
-		return nil
+func (s *store) Insert(ctx context.Context, db DBTxConn, req InsertRequest) error {
+	q := s.querier.InsertVersion(s.tablename)
+	if _, err := db.ExecContext(ctx, q, req.Version, true); err != nil {
+		return fmt.Errorf("failed to insert version %d: %w", req.Version, err)
 	}
+	return nil
+}
+
+func (s *store) Delete(ctx context.Context, db DBTxConn, version int64) error {
 	q := s.querier.DeleteVersion(s.tablename)
 	if _, err := db.ExecContext(ctx, q, version); err != nil {
 		return fmt.Errorf("failed to delete version %d: %w", version, err)

@@ -5,20 +5,6 @@ import (
 	"time"
 )
 
-// Dialect is the type of database dialect.
-type Dialect string
-
-const (
-	DialectClickHouse Dialect = "clickhouse"
-	DialectMSSQL      Dialect = "mssql"
-	DialectMySQL      Dialect = "mysql"
-	DialectPostgres   Dialect = "postgres"
-	DialectRedshift   Dialect = "redshift"
-	DialectSQLite3    Dialect = "sqlite3"
-	DialectTiDB       Dialect = "tidb"
-	DialectVertica    Dialect = "vertica"
-)
-
 // MigrationType is the type of migration.
 type MigrationType int
 

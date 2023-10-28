@@ -16,7 +16,9 @@ import (
 //
 // The caller is responsible for matching the database dialect with the database/sql driver. For
 // example, if the database dialect is "postgres", the database/sql driver could be
-// github.com/lib/pq or github.com/jackc/pgx.
+// github.com/lib/pq or github.com/jackc/pgx. Each dialect has a corresponding [database.Dialect]
+// constant backed by a default [database.Store] implementation. For more advanced use cases, such
+// as using a custom table name or supplying a custom store implementation, see [WithStore].
 //
 // fsys is the filesystem used to read the migration files, but may be nil. Most users will want to
 // use [os.DirFS], os.DirFS("path/to/migrations"), to read migrations from the local filesystem.
@@ -44,13 +46,24 @@ func NewProvider(dialect database.Dialect, db *sql.DB, fsys fs.FS, opts ...Provi
 			return nil, err
 		}
 	}
-	// Set defaults after applying user-supplied options so option funcs can check for empty values.
-	if cfg.tableName == "" {
-		cfg.tableName = DefaultTablename
+	if dialect == "" && cfg.store == nil {
+		return nil, errors.New("dialect must not be empty")
 	}
-	store, err := database.NewStore(dialect, cfg.tableName)
-	if err != nil {
-		return nil, err
+	if dialect != "" && cfg.store != nil {
+		return nil, errors.New("cannot set both dialect and store")
+	}
+	var store database.Store
+	if dialect != "" {
+		var err error
+		store, err = database.NewStore(dialect, DefaultTablename)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		store = cfg.store
+	}
+	if store.Tablename() == "" {
+		return nil, errors.New("invalid store implementation: table name must not be empty")
 	}
 	// Collect migrations from the filesystem and merge with registered migrations.
 	//
