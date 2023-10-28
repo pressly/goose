@@ -26,7 +26,7 @@ const (
 // NewStore returns a new [Store] implementation for the given dialect.
 func NewStore(dialect Dialect, tablename string) (Store, error) {
 	if tablename == "" {
-		return nil, errors.New("tablename must not be empty")
+		return nil, errors.New("table name must not be empty")
 	}
 	if dialect == "" {
 		return nil, errors.New("dialect must not be empty")
