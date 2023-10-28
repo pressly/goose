@@ -23,7 +23,7 @@ func TestGlobalRegister(t *testing.T) {
 	)
 	check.NoError(t, err)
 	err = goose.SetGlobalMigrations(
-		goose.Migration{Registered: true, Version: 1, Type: goose.TypeGo},
+		goose.Migration{Registered: true, Version: 1, Type: goose.TypeGo, UpFnContext: fn},
 	)
 	check.NoError(t, err)
 	err = goose.SetGlobalMigrations(
@@ -32,7 +32,14 @@ func TestGlobalRegister(t *testing.T) {
 	check.HasError(t, err)
 	check.Contains(t, err.Error(), "go migration with version 1 already registered")
 	err = goose.SetGlobalMigrations(
-		goose.Migration{Registered: true, Version: 2, Source: "00002_foo.sql", Type: goose.TypeGo},
+		goose.Migration{
+			Registered:        true,
+			Version:           2,
+			Source:            "00002_foo.sql",
+			Type:              goose.TypeGo,
+			UpFnContext:       func(context.Context, *sql.Tx) error { return nil },
+			DownFnNoTxContext: func(context.Context, *sql.DB) error { return nil },
+		},
 	)
 	check.NoError(t, err)
 	// Reset.
