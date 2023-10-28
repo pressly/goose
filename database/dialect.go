@@ -23,7 +23,7 @@ const (
 	DialectYdB        Dialect = "ydb"
 )
 
-// NewStore returns a new [Store] backed by the given dialect.
+// NewStore returns a new [Store] implementation for the given dialect.
 func NewStore(dialect Dialect, tablename string) (Store, error) {
 	if tablename == "" {
 		return nil, errors.New("tablename must not be empty")

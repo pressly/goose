@@ -16,7 +16,9 @@ import (
 //
 // The caller is responsible for matching the database dialect with the database/sql driver. For
 // example, if the database dialect is "postgres", the database/sql driver could be
-// github.com/lib/pq or github.com/jackc/pgx.
+// github.com/lib/pq or github.com/jackc/pgx. Each dialect has a corresponding [database.Dialect]
+// constant backed by a default [database.Store] implementation. For more advanced use cases, such
+// as using a custom table name or supplying a custom store implementation, see [WithStore].
 //
 // fsys is the filesystem used to read the migration files, but may be nil. Most users will want to
 // use [os.DirFS], os.DirFS("path/to/migrations"), to read migrations from the local filesystem.
