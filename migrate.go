@@ -23,8 +23,6 @@ var (
 	ErrNoNextVersion = errors.New("no next version found")
 	// MaxVersion is the maximum allowed version.
 	MaxVersion int64 = math.MaxInt64
-
-	registeredGoMigrations = map[int64]*Migration{}
 )
 
 // Migrations slice.

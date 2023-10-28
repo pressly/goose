@@ -20,25 +20,27 @@ type MigrationRecord struct {
 	IsApplied bool // was this a result of up() or down()
 }
 
-// Migration struct.
+// Migration struct represents either a SQL or Go migration.
 type Migration struct {
-	Version    int64
-	Next       int64  // next version, or -1 if none
-	Previous   int64  // previous version, -1 if none
-	Source     string // path to .sql script or go file
-	Registered bool
-	UseTx      bool
+	Type                               MigrationType
+	Version                            int64
+	Source                             string // path to .sql script or .go file
+	Registered                         bool
+	UpFnContext, DownFnContext         GoMigrationContext
+	UpFnNoTxContext, DownFnNoTxContext GoMigrationNoTxContext
 
-	// These are deprecated and will be removed in the future.
-	// For backwards compatibility we still save the non-context versions in the struct in case someone is using them.
-	// Goose does not use these internally anymore and instead uses the context versions.
+	// These fields will be removed in a future major version. They are here for backwards
+	// compatibility and are an implementation detail.
+	UseTx    bool
+	Next     int64 // next version, or -1 if none
+	Previous int64 // previous version, -1 if none
+
+	// We still save the non-context versions in the struct in case someone is using them. Goose
+	// does not use these internally anymore in favor of the context-aware versions.
 	UpFn, DownFn         GoMigration
 	UpFnNoTx, DownFnNoTx GoMigrationNoTx
 
-	// New functions with context
-	UpFnContext, DownFnContext         GoMigrationContext
-	UpFnNoTxContext, DownFnNoTxContext GoMigrationNoTxContext
-	noVersioning                       bool
+	noVersioning bool
 }
 
 func (m *Migration) String() string {
@@ -233,7 +235,7 @@ func NumericComponent(filename string) (int64, error) {
 	}
 	n, err := strconv.ParseInt(base[:idx], 10, 64)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to parse version from migration file: %s: %w", base, err)
 	}
 	if n < 1 {
 		return 0, errors.New("migration version must be greater than zero")
