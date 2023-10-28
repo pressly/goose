@@ -21,10 +21,6 @@ const (
 	DialectTiDB       Dialect = "tidb"
 	DialectVertica    Dialect = "vertica"
 	DialectYdB        Dialect = "ydb"
-
-	// DialectCustom is a special dialect that allows users to provide their own [Store]
-	// implementation when constructing a [goose.Provider].
-	DialectCustom Dialect = "custom"
 )
 
 // NewStore returns a new [Store] backed by the given dialect.
@@ -34,9 +30,6 @@ func NewStore(dialect Dialect, tablename string) (Store, error) {
 	}
 	if dialect == "" {
 		return nil, errors.New("dialect must not be empty")
-	}
-	if dialect == DialectCustom {
-		return nil, errors.New("dialect must not be custom")
 	}
 	lookup := map[Dialect]dialectquery.Querier{
 		DialectClickHouse: &dialectquery.Clickhouse{},

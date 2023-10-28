@@ -34,28 +34,10 @@ func TestNewProvider(t *testing.T) {
 		// Nil fsys not allowed
 		_, err = provider.NewProvider("sqlite3", db, nil)
 		check.HasError(t, err)
-		// Duplicate table name not allowed
-		_, err = provider.NewProvider("sqlite3", db, fsys,
-			provider.WithTableName("foo"),
-			provider.WithTableName("bar"),
-		)
-		check.HasError(t, err)
-		check.Equal(t, `table already set to "foo"`, err.Error())
-		// Empty table name not allowed
-		_, err = provider.NewProvider("sqlite3", db, fsys,
-			provider.WithTableName(""),
-		)
-		check.HasError(t, err)
-		check.Equal(t, "table must not be empty", err.Error())
 	})
 	t.Run("valid", func(t *testing.T) {
 		// Valid dialect, db, and fsys allowed
 		_, err = provider.NewProvider("sqlite3", db, fsys)
-		check.NoError(t, err)
-		// Valid dialect, db, fsys, and table name allowed
-		_, err = provider.NewProvider("sqlite3", db, fsys,
-			provider.WithTableName("foo"),
-		)
 		check.NoError(t, err)
 		// Valid dialect, db, fsys, and verbose allowed
 		_, err = provider.NewProvider("sqlite3", db, fsys,

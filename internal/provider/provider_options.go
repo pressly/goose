@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/lock"
 )
 
@@ -21,18 +22,36 @@ type ProviderOption interface {
 	apply(*config) error
 }
 
-// WithTableName sets the name of the database table used to track history of applied migrations.
+// WithStore configures the provider with a custom [database.Store] implementation.
 //
-// If WithTableName is not called, the default value is "goose_db_version".
-func WithTableName(name string) ProviderOption {
+// By default, the provider uses the [database.NewStore] function to create a store backed by the
+// given dialect. However, this option allows users to provide their own implementation or call
+// [database.NewStore] with custom options, such as setting the table name.
+//
+// Example:
+//
+//	// Create a store with a custom table name.
+//	store, err := database.NewStore(database.DialectPostgres, "my_custom_table_name")
+//	if err != nil {
+//	    return err
+//	}
+//	// Create a provider with the custom store.
+//	provider, err := goose.NewProvider("", db, nil, goose.WithStore(store))
+//	if err != nil {
+//	    return err
+//	}
+func WithStore(store database.Store) ProviderOption {
 	return configFunc(func(c *config) error {
-		if c.tableName != "" {
-			return fmt.Errorf("table already set to %q", c.tableName)
+		if c.store != nil {
+			return fmt.Errorf("store already set: %T", c.store)
 		}
-		if name == "" {
-			return errors.New("table must not be empty")
+		if store == nil {
+			return errors.New("store must not be nil")
 		}
-		c.tableName = name
+		if store.Tablename() == "" {
+			return errors.New("store implementation must set the table name")
+		}
+		c.store = store
 		return nil
 	})
 }
@@ -148,9 +167,10 @@ func WithNoVersioning(b bool) ProviderOption {
 }
 
 type config struct {
-	tableName string
-	verbose   bool
-	excludes  map[string]bool
+	store database.Store
+
+	verbose  bool
+	excludes map[string]bool
 
 	// Go migrations registered by the user. These will be merged/resolved with migrations from the
 	// filesystem and init() functions.

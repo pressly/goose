@@ -31,8 +31,6 @@ func TestDialectStore(t *testing.T) {
 		// Test empty dialect.
 		_, err = database.NewStore("", "foo")
 		check.HasError(t, err)
-		_, err = database.NewStore(database.DialectCustom, "foo")
-		check.HasError(t, err)
 	})
 	t.Run("postgres", func(t *testing.T) {
 		if testing.Short() {
