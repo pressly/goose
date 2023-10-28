@@ -67,9 +67,12 @@ func TestDialectStore(t *testing.T) {
 		check.NoError(t, err)
 		err = store.CreateVersionTable(context.Background(), db)
 		check.NoError(t, err)
-		check.NoError(t, store.InsertOrDelete(context.Background(), db, true, 1))
-		check.NoError(t, store.InsertOrDelete(context.Background(), db, true, 3))
-		check.NoError(t, store.InsertOrDelete(context.Background(), db, true, 2))
+		insert := func(db *sql.DB, version int64) error {
+			return store.Insert(context.Background(), db, database.InsertRequest{Version: version})
+		}
+		check.NoError(t, insert(db, 1))
+		check.NoError(t, insert(db, 3))
+		check.NoError(t, insert(db, 2))
 		res, err := store.ListMigrations(context.Background(), db)
 		check.NoError(t, err)
 		check.Number(t, len(res), 3)
@@ -122,7 +125,7 @@ func testStore(
 	// Insert 5 migrations in addition to the zero migration.
 	for i := 0; i < 6; i++ {
 		err = runConn(ctx, db, func(conn *sql.Conn) error {
-			return store.InsertOrDelete(ctx, conn, true, int64(i))
+			return store.Insert(ctx, conn, database.InsertRequest{Version: int64(i)})
 		})
 		check.NoError(t, err)
 	}
@@ -143,7 +146,7 @@ func testStore(
 	// Delete 3 migrations backwards
 	for i := 5; i >= 3; i-- {
 		err = runConn(ctx, db, func(conn *sql.Conn) error {
-			return store.InsertOrDelete(ctx, conn, false, int64(i))
+			return store.Delete(ctx, conn, int64(i))
 		})
 		check.NoError(t, err)
 	}
@@ -177,16 +180,16 @@ func testStore(
 
 	// 1. *sql.Tx
 	err = runTx(ctx, db, func(tx *sql.Tx) error {
-		return store.InsertOrDelete(ctx, tx, false, 2)
+		return store.Delete(ctx, tx, 2)
 	})
 	check.NoError(t, err)
 	// 2. *sql.Conn
 	err = runConn(ctx, db, func(conn *sql.Conn) error {
-		return store.InsertOrDelete(ctx, conn, false, 1)
+		return store.Delete(ctx, conn, 1)
 	})
 	check.NoError(t, err)
 	// 3. *sql.DB
-	err = store.InsertOrDelete(ctx, db, false, 0)
+	err = store.Delete(ctx, db, 0)
 	check.NoError(t, err)
 
 	// List migrations. There should be none.

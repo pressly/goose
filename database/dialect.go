@@ -73,14 +73,15 @@ func (s *store) CreateVersionTable(ctx context.Context, db DBTxConn) error {
 	return nil
 }
 
-func (s *store) InsertOrDelete(ctx context.Context, db DBTxConn, direction bool, version int64) error {
-	if direction {
-		q := s.querier.InsertVersion(s.tablename)
-		if _, err := db.ExecContext(ctx, q, version, true); err != nil {
-			return fmt.Errorf("failed to insert version %d: %w", version, err)
-		}
-		return nil
+func (s *store) Insert(ctx context.Context, db DBTxConn, req InsertRequest) error {
+	q := s.querier.InsertVersion(s.tablename)
+	if _, err := db.ExecContext(ctx, q, req.Version, true); err != nil {
+		return fmt.Errorf("failed to insert version %d: %w", req.Version, err)
 	}
+	return nil
+}
+
+func (s *store) Delete(ctx context.Context, db DBTxConn, version int64) error {
 	q := s.querier.DeleteVersion(s.tablename)
 	if _, err := db.ExecContext(ctx, q, version); err != nil {
 		return fmt.Errorf("failed to delete version %d: %w", version, err)
