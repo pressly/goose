@@ -44,11 +44,11 @@ func NewProvider(dialect database.Dialect, db *sql.DB, fsys fs.FS, opts ...Provi
 			return nil, err
 		}
 	}
-	if dialect != "" && cfg.store != nil {
-		return nil, errors.New("cannot set both dialect and store")
-	}
 	if dialect == "" && cfg.store == nil {
 		return nil, errors.New("dialect must not be empty")
+	}
+	if dialect != "" && cfg.store != nil {
+		return nil, errors.New("cannot set both dialect and store")
 	}
 	var store database.Store
 	if dialect != "" {
@@ -60,9 +60,6 @@ func NewProvider(dialect database.Dialect, db *sql.DB, fsys fs.FS, opts ...Provi
 	} else {
 		store = cfg.store
 	}
-
-	// TODO(mf): in the future we enable users to bring their own Store implementation so we should
-	// ensure at least the tablename is set.
 	if store.Tablename() == "" {
 		return nil, errors.New("invalid store implementation: table name must not be empty")
 	}
