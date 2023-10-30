@@ -90,7 +90,7 @@ func newProvider(
 	store database.Store,
 	fsys fs.FS,
 	cfg config,
-	global map[int64]*Migration,
+	global map[int64]*MigrationCopy,
 ) (*Provider, error) {
 	// Collect migrations from the filesystem and merge with registered migrations.
 	//

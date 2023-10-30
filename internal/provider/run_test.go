@@ -703,7 +703,7 @@ func TestGoOnly(t *testing.T) {
 
 	t.Run("with_tx", func(t *testing.T) {
 		ctx := context.Background()
-		register := []*provider.Migration{
+		register := []*provider.MigrationCopy{
 			{
 				Version: 1, Source: "00001_users_table.go", Registered: true,
 				UpFnContext:   newTxFn("CREATE TABLE users (id INTEGER PRIMARY KEY)"),
@@ -752,7 +752,7 @@ func TestGoOnly(t *testing.T) {
 	})
 	t.Run("with_db", func(t *testing.T) {
 		ctx := context.Background()
-		register := []*provider.Migration{
+		register := []*provider.MigrationCopy{
 			{
 				Version: 1, Source: "00001_users_table.go", Registered: true,
 				UpFnNoTxContext:   newDBFn("CREATE TABLE users (id INTEGER PRIMARY KEY)"),
