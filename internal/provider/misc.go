@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+
+	"github.com/pressly/goose/v3"
 )
 
 type Migration struct {
@@ -35,7 +37,7 @@ func SetGlobalGoMigrations(migrations []*Migration) error {
 		if m.Source != "" {
 			// If the source is set, expect it to be a file path with a numeric component that
 			// matches the version.
-			version, err := NumericComponent(m.Source)
+			version, err := goose.NumericComponent(m.Source)
 			if err != nil {
 				return err
 			}

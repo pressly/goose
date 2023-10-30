@@ -12,6 +12,21 @@ import (
 	"github.com/pressly/goose/v3/database"
 )
 
+// Provider is a goose migration provider.
+type Provider struct {
+	// mu protects all accesses to the provider and must be held when calling operations on the
+	// database.
+	mu sync.Mutex
+
+	db    *sql.DB
+	fsys  fs.FS
+	cfg   config
+	store database.Store
+
+	// migrations are ordered by version in ascending order.
+	migrations []*migration
+}
+
 // NewProvider returns a new goose Provider.
 //
 // The caller is responsible for matching the database dialect with the database/sql driver. For
@@ -46,11 +61,13 @@ func NewProvider(dialect database.Dialect, db *sql.DB, fsys fs.FS, opts ...Provi
 			return nil, err
 		}
 	}
+	// Allow users to specify a custom store implementation, but only if they don't specify a
+	// dialect. If they specify a dialect, we'll use the default store implementation.
 	if dialect == "" && cfg.store == nil {
 		return nil, errors.New("dialect must not be empty")
 	}
 	if dialect != "" && cfg.store != nil {
-		return nil, errors.New("cannot set both dialect and store")
+		return nil, errors.New("cannot set both dialect and custom store")
 	}
 	var store database.Store
 	if dialect != "" {
@@ -65,6 +82,16 @@ func NewProvider(dialect database.Dialect, db *sql.DB, fsys fs.FS, opts ...Provi
 	if store.Tablename() == "" {
 		return nil, errors.New("invalid store implementation: table name must not be empty")
 	}
+	return newProvider(db, store, fsys, cfg, registeredGoMigrations /* global */)
+}
+
+func newProvider(
+	db *sql.DB,
+	store database.Store,
+	fsys fs.FS,
+	cfg config,
+	global map[int64]*Migration,
+) (*Provider, error) {
 	// Collect migrations from the filesystem and merge with registered migrations.
 	//
 	// Note, neither of these functions parse SQL migrations by default. SQL migrations are parsed
@@ -73,13 +100,10 @@ func NewProvider(dialect database.Dialect, db *sql.DB, fsys fs.FS, opts ...Provi
 	// TODO(mf): we should expose a way to parse SQL migrations eagerly. This would allow us to
 	// return an error if there are any SQL parsing errors. This adds a bit overhead to startup
 	// though, so we should make it optional.
-	sources, err := collectFileSources(fsys, false, cfg.excludes)
+	filesystemSources, err := collectFilesystemSources(fsys, false, cfg.excludes)
 	if err != nil {
 		return nil, err
 	}
-	//
-	// TODO(mf): move the merging of Go migrations into a separate function.
-	//
 	registered := make(map[int64]*goMigration)
 	// Add user-registered Go migrations.
 	for version, m := range cfg.registered {
@@ -87,7 +111,7 @@ func NewProvider(dialect database.Dialect, db *sql.DB, fsys fs.FS, opts ...Provi
 	}
 	// Add init() functions. This is a bit ugly because we need to convert from the old Migration
 	// struct to the new goMigration struct.
-	for version, m := range registeredGoMigrations {
+	for version, m := range global {
 		if _, ok := registered[version]; ok {
 			return nil, fmt.Errorf("go migration with version %d already registered", version)
 		}
@@ -103,27 +127,27 @@ func NewProvider(dialect database.Dialect, db *sql.DB, fsys fs.FS, opts ...Provi
 		}
 		// Up
 		if m.UpFnContext != nil {
-			g.up = &GoMigration{
+			g.up = &GoMigrationFunc{
 				Run: m.UpFnContext,
 			}
 		} else if m.UpFnNoTxContext != nil {
-			g.up = &GoMigration{
+			g.up = &GoMigrationFunc{
 				RunNoTx: m.UpFnNoTxContext,
 			}
 		}
 		// Down
 		if m.DownFnContext != nil {
-			g.down = &GoMigration{
+			g.down = &GoMigrationFunc{
 				Run: m.DownFnContext,
 			}
 		} else if m.DownFnNoTxContext != nil {
-			g.down = &GoMigration{
+			g.down = &GoMigrationFunc{
 				RunNoTx: m.DownFnNoTxContext,
 			}
 		}
 		registered[version] = g
 	}
-	migrations, err := merge(sources, registered)
+	migrations, err := merge(filesystemSources, registered)
 	if err != nil {
 		return nil, err
 	}
@@ -137,21 +161,6 @@ func NewProvider(dialect database.Dialect, db *sql.DB, fsys fs.FS, opts ...Provi
 		store:      store,
 		migrations: migrations,
 	}, nil
-}
-
-// Provider is a goose migration provider.
-type Provider struct {
-	// mu protects all accesses to the provider and must be held when calling operations on the
-	// database.
-	mu sync.Mutex
-
-	db    *sql.DB
-	fsys  fs.FS
-	cfg   config
-	store database.Store
-
-	// migrations are ordered by version in ascending order.
-	migrations []*migration
 }
 
 // Status returns the status of all migrations, merging the list of migrations from the database and

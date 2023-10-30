@@ -62,7 +62,7 @@ func TestProvider(t *testing.T) {
 		db := newDB(t)
 		// explicit
 		_, err := provider.NewProvider(database.DialectSQLite3, db, nil,
-			provider.WithGoMigration(1, &provider.GoMigration{Run: nil}, &provider.GoMigration{Run: nil}),
+			provider.WithGoMigration(1, &provider.GoMigrationFunc{Run: nil}, &provider.GoMigrationFunc{Run: nil}),
 		)
 		check.HasError(t, err)
 		check.Contains(t, err.Error(), "go migration with version 1 must have an up function")

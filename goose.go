@@ -8,7 +8,7 @@ import (
 	"strconv"
 )
 
-// Deprecated: VERSION will no longer be supported in v4.
+// Deprecated: VERSION will no longer be supported in the next major release.
 const VERSION = "v3.2.0"
 
 var (

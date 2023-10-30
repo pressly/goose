@@ -488,7 +488,7 @@ func TestNoVersioning(t *testing.T) {
 	)
 	p, err := provider.NewProvider(database.DialectSQLite3, db, fsys,
 		provider.WithVerbose(testing.Verbose()),
-		provider.WithNoVersioning(false), // This is the default.
+		provider.WithDisabledVersioning(false), // This is the default.
 	)
 	check.Number(t, len(p.ListSources()), 3)
 	check.NoError(t, err)
@@ -501,7 +501,7 @@ func TestNoVersioning(t *testing.T) {
 		fsys := os.DirFS(filepath.Join("testdata", "no-versioning", "seed"))
 		p, err := provider.NewProvider(database.DialectSQLite3, db, fsys,
 			provider.WithVerbose(testing.Verbose()),
-			provider.WithNoVersioning(true), // Provider with no versioning.
+			provider.WithDisabledVersioning(true), // Provider with no versioning.
 		)
 		check.NoError(t, err)
 		check.Number(t, len(p.ListSources()), 2)
@@ -553,7 +553,7 @@ func TestAllowMissing(t *testing.T) {
 	t.Run("missing_now_allowed", func(t *testing.T) {
 		db := newDB(t)
 		p, err := provider.NewProvider(database.DialectSQLite3, db, newFsys(),
-			provider.WithAllowMissing(false),
+			provider.WithAllowedMissing(false),
 		)
 		check.NoError(t, err)
 
@@ -608,7 +608,7 @@ func TestAllowMissing(t *testing.T) {
 	t.Run("missing_allowed", func(t *testing.T) {
 		db := newDB(t)
 		p, err := provider.NewProvider(database.DialectSQLite3, db, newFsys(),
-			provider.WithAllowMissing(true),
+			provider.WithAllowedMissing(true),
 		)
 		check.NoError(t, err)
 
@@ -718,8 +718,8 @@ func TestGoOnly(t *testing.T) {
 		p, err := provider.NewProvider(database.DialectSQLite3, db, nil,
 			provider.WithGoMigration(
 				2,
-				&provider.GoMigration{Run: newTxFn("INSERT INTO users (id) VALUES (1), (2), (3)")},
-				&provider.GoMigration{Run: newTxFn("DELETE FROM users")},
+				&provider.GoMigrationFunc{Run: newTxFn("INSERT INTO users (id) VALUES (1), (2), (3)")},
+				&provider.GoMigrationFunc{Run: newTxFn("DELETE FROM users")},
 			),
 		)
 		check.NoError(t, err)
@@ -767,8 +767,8 @@ func TestGoOnly(t *testing.T) {
 		p, err := provider.NewProvider(database.DialectSQLite3, db, nil,
 			provider.WithGoMigration(
 				2,
-				&provider.GoMigration{RunNoTx: newDBFn("INSERT INTO users (id) VALUES (1), (2), (3)")},
-				&provider.GoMigration{RunNoTx: newDBFn("DELETE FROM users")},
+				&provider.GoMigrationFunc{RunNoTx: newDBFn("INSERT INTO users (id) VALUES (1), (2), (3)")},
+				&provider.GoMigrationFunc{RunNoTx: newDBFn("DELETE FROM users")},
 			),
 		)
 		check.NoError(t, err)

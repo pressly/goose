@@ -102,7 +102,7 @@ func (m *migration) runConn(ctx context.Context, conn *sql.Conn, direction bool)
 
 type goMigration struct {
 	fullpath string
-	up, down *GoMigration
+	up, down *GoMigrationFunc
 }
 
 func (g *goMigration) isEmpty(direction bool) bool {
@@ -115,7 +115,7 @@ func (g *goMigration) isEmpty(direction bool) bool {
 	return g.down == nil
 }
 
-func newGoMigration(fullpath string, up, down *GoMigration) *goMigration {
+func newGoMigration(fullpath string, up, down *GoMigrationFunc) *goMigration {
 	return &goMigration{
 		fullpath: fullpath,
 		up:       up,

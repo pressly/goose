@@ -7,8 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
+
+	"github.com/pressly/goose/v3"
 )
 
 func NewSource(t MigrationType, fullpath string, version int64) Source {
@@ -44,16 +45,16 @@ func (s *fileSources) lookup(t MigrationType, version int64) *Source {
 	return nil
 }
 
-// collectFileSources scans the file system for migration files that have a numeric prefix (greater
-// than one) followed by an underscore and a file extension of either .go or .sql. fsys may be nil,
-// in which case an empty fileSources is returned.
+// collectFilesystemSources scans the file system for migration files that have a numeric prefix
+// (greater than one) followed by an underscore and a file extension of either .go or .sql. fsys may
+// be nil, in which case an empty fileSources is returned.
 //
 // If strict is true, then any error parsing the numeric component of the filename will result in an
 // error. The file is skipped otherwise.
 //
 // This function DOES NOT parse SQL migrations or merge registered Go migrations. It only collects
 // migration sources from the filesystem.
-func collectFileSources(fsys fs.FS, strict bool, excludes map[string]bool) (*fileSources, error) {
+func collectFilesystemSources(fsys fs.FS, strict bool, excludes map[string]bool) (*fileSources, error) {
 	if fsys == nil {
 		return new(fileSources), nil
 	}
@@ -78,7 +79,7 @@ func collectFileSources(fsys fs.FS, strict bool, excludes map[string]bool) (*fil
 			// filenames, but still have versioned migrations within the same directory. For
 			// example, a user could have a helpers.go file which contains unexported helper
 			// functions for migrations.
-			version, err := NumericComponent(base)
+			version, err := goose.NumericComponent(base)
 			if err != nil {
 				if strict {
 					return nil, fmt.Errorf("failed to parse numeric component from %q: %w", base, err)
@@ -206,27 +207,4 @@ var _ fs.FS = noopFS{}
 
 func (f noopFS) Open(name string) (fs.File, error) {
 	return nil, os.ErrNotExist
-}
-
-// NumericComponent parses the version from the migration file name.
-//
-// XXX_descriptivename.ext where XXX specifies the version number and ext specifies the type of
-// migration, either .sql or .go.
-func NumericComponent(filename string) (int64, error) {
-	base := filepath.Base(filename)
-	if ext := filepath.Ext(base); ext != ".go" && ext != ".sql" {
-		return 0, errors.New("migration file does not have .sql or .go file extension")
-	}
-	idx := strings.Index(base, "_")
-	if idx < 0 {
-		return 0, errors.New("no filename separator '_' found")
-	}
-	n, err := strconv.ParseInt(base[:idx], 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	if n < 1 {
-		return 0, errors.New("migration version must be greater than zero")
-	}
-	return n, nil
 }
