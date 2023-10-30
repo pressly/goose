@@ -96,8 +96,8 @@ func WithExcludes(excludes []string) ProviderOption {
 	})
 }
 
-// GoMigration is a user-defined Go migration, registered using the option [WithGoMigration].
-type GoMigration struct {
+// GoMigrationFunc is a user-defined Go migration, registered using the option [WithGoMigration].
+type GoMigrationFunc struct {
 	// One of the following must be set:
 	Run func(context.Context, *sql.Tx) error
 	// -- OR --
@@ -109,7 +109,7 @@ type GoMigration struct {
 // If WithGoMigration is called multiple times with the same version, an error is returned. Both up
 // and down [GoMigration] may be nil. But if set, exactly one of Run or RunNoTx functions must be
 // set.
-func WithGoMigration(version int64, up, down *GoMigration) ProviderOption {
+func WithGoMigration(version int64, up, down *GoMigrationFunc) ProviderOption {
 	return configFunc(func(c *config) error {
 		if version < 1 {
 			return errors.New("version must be greater than zero")
@@ -143,25 +143,27 @@ func WithGoMigration(version int64, up, down *GoMigration) ProviderOption {
 	})
 }
 
-// WithAllowMissing allows the provider to apply missing (out-of-order) migrations.
+// WithAllowedMissing allows the provider to apply missing (out-of-order) migrations. By default,
+// goose will raise an error if it encounters a missing migration.
 //
 // Example: migrations 1,3 are applied and then version 2,6 are introduced. If this option is true,
 // then goose will apply 2 (missing) and 6 (new) instead of raising an error. The final order of
 // applied migrations will be: 1,3,2,6. Out-of-order migrations are always applied first, followed
 // by new migrations.
-func WithAllowMissing(b bool) ProviderOption {
+func WithAllowedMissing(b bool) ProviderOption {
 	return configFunc(func(c *config) error {
 		c.allowMissing = b
 		return nil
 	})
 }
 
-// WithNoVersioning disables versioning. Disabling versioning allows applying migrations without
-// tracking the versions in the database schema table. Useful for tests, seeding a database or
-// running ad-hoc queries.
-func WithNoVersioning(b bool) ProviderOption {
+// WithDisabledVersioning disables versioning. Disabling versioning allows applying migrations
+// without tracking the versions in the database schema table. Useful for tests, seeding a database
+// or running ad-hoc queries. By default, goose will track all versions in the database schema
+// table.
+func WithDisabledVersioning(b bool) ProviderOption {
 	return configFunc(func(c *config) error {
-		c.noVersioning = b
+		c.disableVersioning = b
 		return nil
 	})
 }
@@ -181,8 +183,8 @@ type config struct {
 	sessionLocker lock.SessionLocker
 
 	// Feature
-	noVersioning bool
-	allowMissing bool
+	disableVersioning bool
+	allowMissing      bool
 }
 
 type configFunc func(*config) error

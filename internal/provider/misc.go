@@ -5,9 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+
+	"github.com/pressly/goose/v3"
 )
 
-type Migration struct {
+type MigrationCopy struct {
 	Version                            int64
 	Source                             string // path to .sql script or go file
 	Registered                         bool
@@ -15,13 +17,13 @@ type Migration struct {
 	UpFnNoTxContext, DownFnNoTxContext func(context.Context, *sql.DB) error
 }
 
-var registeredGoMigrations = make(map[int64]*Migration)
+var registeredGoMigrations = make(map[int64]*MigrationCopy)
 
 // SetGlobalGoMigrations registers the given go migrations globally. It returns an error if any of
 // the migrations are nil or if a migration with the same version has already been registered.
 //
 // Not safe for concurrent use.
-func SetGlobalGoMigrations(migrations []*Migration) error {
+func SetGlobalGoMigrations(migrations []*MigrationCopy) error {
 	for _, m := range migrations {
 		if m == nil {
 			return errors.New("cannot register nil go migration")
@@ -35,7 +37,7 @@ func SetGlobalGoMigrations(migrations []*Migration) error {
 		if m.Source != "" {
 			// If the source is set, expect it to be a file path with a numeric component that
 			// matches the version.
-			version, err := NumericComponent(m.Source)
+			version, err := goose.NumericComponent(m.Source)
 			if err != nil {
 				return err
 			}
@@ -62,5 +64,5 @@ func SetGlobalGoMigrations(migrations []*Migration) error {
 //
 // Not safe for concurrent use.
 func ResetGlobalGoMigrations() {
-	registeredGoMigrations = make(map[int64]*Migration)
+	registeredGoMigrations = make(map[int64]*MigrationCopy)
 }

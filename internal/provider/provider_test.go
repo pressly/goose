@@ -35,12 +35,12 @@ func TestProvider(t *testing.T) {
 	check.NoError(t, err)
 	sources := p.ListSources()
 	check.Equal(t, len(sources), 2)
-	check.Equal(t, sources[0], provider.NewSource(provider.TypeSQL, "001_foo.sql", 1))
-	check.Equal(t, sources[1], provider.NewSource(provider.TypeSQL, "002_bar.sql", 2))
+	check.Equal(t, sources[0], newSource(provider.TypeSQL, "001_foo.sql", 1))
+	check.Equal(t, sources[1], newSource(provider.TypeSQL, "002_bar.sql", 2))
 
 	t.Run("duplicate_go", func(t *testing.T) {
 		// Not parallel because it modifies global state.
-		register := []*provider.Migration{
+		register := []*provider.MigrationCopy{
 			{
 				Version: 1, Source: "00001_users_table.go", Registered: true,
 				UpFnContext:   nil,
@@ -62,13 +62,13 @@ func TestProvider(t *testing.T) {
 		db := newDB(t)
 		// explicit
 		_, err := provider.NewProvider(database.DialectSQLite3, db, nil,
-			provider.WithGoMigration(1, &provider.GoMigration{Run: nil}, &provider.GoMigration{Run: nil}),
+			provider.WithGoMigration(1, &provider.GoMigrationFunc{Run: nil}, &provider.GoMigrationFunc{Run: nil}),
 		)
 		check.HasError(t, err)
 		check.Contains(t, err.Error(), "go migration with version 1 must have an up function")
 	})
 	t.Run("duplicate_up", func(t *testing.T) {
-		err := provider.SetGlobalGoMigrations([]*provider.Migration{
+		err := provider.SetGlobalGoMigrations([]*provider.MigrationCopy{
 			{
 				Version: 1, Source: "00001_users_table.go", Registered: true,
 				UpFnContext:     func(context.Context, *sql.Tx) error { return nil },
@@ -80,7 +80,7 @@ func TestProvider(t *testing.T) {
 		check.Contains(t, err.Error(), "must specify exactly one of UpFnContext or UpFnNoTxContext")
 	})
 	t.Run("duplicate_down", func(t *testing.T) {
-		err := provider.SetGlobalGoMigrations([]*provider.Migration{
+		err := provider.SetGlobalGoMigrations([]*provider.MigrationCopy{
 			{
 				Version: 1, Source: "00001_users_table.go", Registered: true,
 				DownFnContext:     func(context.Context, *sql.Tx) error { return nil },
@@ -92,7 +92,7 @@ func TestProvider(t *testing.T) {
 		check.Contains(t, err.Error(), "must specify exactly one of DownFnContext or DownFnNoTxContext")
 	})
 	t.Run("not_registered", func(t *testing.T) {
-		err := provider.SetGlobalGoMigrations([]*provider.Migration{
+		err := provider.SetGlobalGoMigrations([]*provider.MigrationCopy{
 			{
 				Version: 1, Source: "00001_users_table.go",
 			},
@@ -102,7 +102,7 @@ func TestProvider(t *testing.T) {
 		check.Contains(t, err.Error(), "migration must be registered")
 	})
 	t.Run("zero_not_allowed", func(t *testing.T) {
-		err := provider.SetGlobalGoMigrations([]*provider.Migration{
+		err := provider.SetGlobalGoMigrations([]*provider.MigrationCopy{
 			{
 				Version: 0,
 			},

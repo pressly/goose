@@ -34,13 +34,13 @@ func (p *Provider) up(ctx context.Context, upByOne bool, version int64) (_ []*Mi
 		return nil, nil
 	}
 	var apply []*migration
-	if p.cfg.noVersioning {
+	if p.cfg.disableVersioning {
 		apply = p.migrations
 	} else {
-		// optimize(mf): Listing all migrations from the database isn't great. This is only required to
-		// support the allow missing (out-of-order) feature. For users that don't use this feature, we
-		// could just query the database for the current max version and then apply migrations greater
-		// than that version.
+		// optimize(mf): Listing all migrations from the database isn't great. This is only required
+		// to support the allow missing (out-of-order) feature. For users that don't use this
+		// feature, we could just query the database for the current max version and then apply
+		// migrations greater than that version.
 		dbMigrations, err := p.store.ListMigrations(ctx, conn)
 		if err != nil {
 			return nil, err
@@ -76,13 +76,13 @@ func (p *Provider) resolveUpMigrations(
 			dbMaxVersion = m.Version
 		}
 	}
-	missingMigrations := findMissingMigrations(dbVersions, p.migrations)
+	missingMigrations := checkMissingMigrations(dbVersions, p.migrations)
 	// feat(mf): It is very possible someone may want to apply ONLY new migrations and skip missing
 	// migrations entirely. At the moment this is not supported, but leaving this comment because
 	// that's where that logic would be handled.
 	//
-	// For example, if db has 1,4 applied and 2,3,5 are new, we would apply only 5 and skip 2,3.
-	// Not sure if this is a common use case, but it's possible.
+	// For example, if db has 1,4 applied and 2,3,5 are new, we would apply only 5 and skip 2,3. Not
+	// sure if this is a common use case, but it's possible.
 	if len(missingMigrations) > 0 && !p.cfg.allowMissing {
 		var collected []string
 		for _, v := range missingMigrations {
@@ -127,7 +127,7 @@ func (p *Provider) down(ctx context.Context, downByOne bool, version int64) (_ [
 	if len(p.migrations) == 0 {
 		return nil, nil
 	}
-	if p.cfg.noVersioning {
+	if p.cfg.disableVersioning {
 		downMigrations := p.migrations
 		if downByOne {
 			last := p.migrations[len(p.migrations)-1]
@@ -245,7 +245,7 @@ func (p *Provider) runIndividually(
 			if err := m.run(ctx, tx, direction); err != nil {
 				return err
 			}
-			if p.cfg.noVersioning {
+			if p.cfg.disableVersioning {
 				return nil
 			}
 			if direction {
@@ -268,7 +268,7 @@ func (p *Provider) runIndividually(
 			return err
 		}
 	}
-	if p.cfg.noVersioning {
+	if p.cfg.disableVersioning {
 		return nil
 	}
 	if direction {
@@ -329,7 +329,7 @@ func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, err
 	}
 	// If versioning is enabled, ensure the version table exists. For ad-hoc migrations, we don't
 	// need the version table because there is no versioning.
-	if !p.cfg.noVersioning {
+	if !p.cfg.disableVersioning {
 		if err := p.ensureVersionTable(ctx, conn); err != nil {
 			return nil, nil, multierr.Append(err, cleanup())
 		}
@@ -370,7 +370,7 @@ func (p *Provider) ensureVersionTable(ctx context.Context, conn *sql.Conn) (retE
 		if err := p.store.CreateVersionTable(ctx, tx); err != nil {
 			return err
 		}
-		if p.cfg.noVersioning {
+		if p.cfg.disableVersioning {
 			return nil
 		}
 		return p.store.Insert(ctx, tx, database.InsertRequest{Version: 0})
@@ -382,9 +382,9 @@ type missingMigration struct {
 	filename  string
 }
 
-// findMissingMigrations returns a list of migrations that are missing from the database. A missing
+// checkMissingMigrations returns a list of migrations that are missing from the database. A missing
 // migration is one that has a version less than the max version in the database.
-func findMissingMigrations(
+func checkMissingMigrations(
 	dbMigrations []*database.ListMigrationsResult,
 	fsMigrations []*migration,
 ) []missingMigration {
