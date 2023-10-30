@@ -35,8 +35,8 @@ func TestProvider(t *testing.T) {
 	check.NoError(t, err)
 	sources := p.ListSources()
 	check.Equal(t, len(sources), 2)
-	check.Equal(t, sources[0], provider.NewSource(provider.TypeSQL, "001_foo.sql", 1))
-	check.Equal(t, sources[1], provider.NewSource(provider.TypeSQL, "002_bar.sql", 2))
+	check.Equal(t, sources[0], newSource(provider.TypeSQL, "001_foo.sql", 1))
+	check.Equal(t, sources[1], newSource(provider.TypeSQL, "002_bar.sql", 2))
 
 	t.Run("duplicate_go", func(t *testing.T) {
 		// Not parallel because it modifies global state.

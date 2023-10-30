@@ -12,14 +12,6 @@ import (
 	"github.com/pressly/goose/v3"
 )
 
-func NewSource(t MigrationType, fullpath string, version int64) Source {
-	return Source{
-		Type:    t,
-		Path:    fullpath,
-		Version: version,
-	}
-}
-
 // fileSources represents a collection of migration files on the filesystem.
 type fileSources struct {
 	sqlSources []Source
@@ -96,9 +88,17 @@ func collectFilesystemSources(fsys fs.FS, strict bool, excludes map[string]bool)
 			}
 			switch filepath.Ext(base) {
 			case ".sql":
-				sources.sqlSources = append(sources.sqlSources, NewSource(TypeSQL, fullpath, version))
+				sources.sqlSources = append(sources.sqlSources, Source{
+					Type:    TypeSQL,
+					Path:    fullpath,
+					Version: version,
+				})
 			case ".go":
-				sources.goSources = append(sources.goSources, NewSource(TypeGo, fullpath, version))
+				sources.goSources = append(sources.goSources, Source{
+					Type:    TypeGo,
+					Path:    fullpath,
+					Version: version,
+				})
 			default:
 				// Should never happen since we already filtered out all other file types.
 				return nil, fmt.Errorf("unknown migration type: %s", base)
@@ -166,9 +166,12 @@ func merge(sources *fileSources, registerd map[int64]*goMigration) ([]*migration
 			)
 		}
 		m := &migration{
-			// Note, the fullpath may be empty if the migration was registered manually.
-			Source: NewSource(TypeGo, fullpath, version),
-			Go:     r,
+			Source: Source{
+				Type:    TypeGo,
+				Path:    fullpath, // May be empty if migration was registered manually.
+				Version: version,
+			},
+			Go: r,
 		}
 		migrations = append(migrations, m)
 		migrationLookup[version] = m
