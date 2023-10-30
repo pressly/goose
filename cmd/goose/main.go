@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	_ "embed"
 	"errors"
 	"flag"
@@ -36,11 +37,14 @@ var (
 	sslkey       = flags.String("ssl-key", "", "file path to SSL key in pem format (only support on mysql)")
 	noVersioning = flags.Bool("no-versioning", false, "apply migration commands with no versioning, in file order, from directory pointed to")
 	noColor      = flags.Bool("no-color", false, "disable color output (NO_COLOR env variable supported)")
+	timeout      = flags.Duration("timeout", 0, "duration that the migration should run for; e.g. 1h13m")
 )
 
 var version string
 
 func main() {
+	ctx := context.Background()
+
 	flags.Usage = usage
 	if err := flags.Parse(os.Args[1:]); err != nil {
 		log.Fatalf("failed to parse args: %v", err)
@@ -149,7 +153,11 @@ func main() {
 	if *noVersioning {
 		options = append(options, goose.WithNoVersioning())
 	}
-	if err := goose.RunWithOptions(
+	if timeout != nil && *timeout != 0 {
+		ctx, _ = context.WithTimeout(ctx, *timeout)
+	}
+	if err := goose.RunWithOptionsContext(
+		ctx,
 		command,
 		db,
 		*dir,

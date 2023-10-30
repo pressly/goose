@@ -105,6 +105,8 @@ Options:
     	file path to SSL key in pem format (only supported on mysql)
   -table string
     	migrations table name (default "goose_db_version")
+  -timeout duration 
+         duration that the queries should run for; e.g. 1h13m
   -v	enable verbose mode
   -version
     	print version

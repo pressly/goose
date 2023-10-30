@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/internal/check"
@@ -97,6 +98,56 @@ func TestMigrateUpTo(t *testing.T) {
 	gotVersion, err := getCurrentGooseVersion(db, goose.TableName())
 	check.NoError(t, err)
 	check.Number(t, gotVersion, upToVersion) // incorrect database version
+}
+
+func TestMigrateUpTimeout(t *testing.T) {
+	t.Parallel()
+
+	// simulate timeout
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(1))
+	defer cancel()
+
+	db, err := newDockerDB(t)
+	check.NoError(t, err)
+	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
+	check.NoError(t, err)
+	check.NumberNotZero(t, len(migrations))
+	// Apply all migrations one-by-one.
+	err = goose.UpByOneContext(ctx, db, migrationsDir)
+	check.HasError(t, err) // expect it to timeout.
+
+	currentVersion, err := goose.GetDBVersion(db)
+	check.NoError(t, err)
+	check.Number(t, currentVersion, 0)
+	// Validate the db migration version actually matches what goose claims it is
+	gotVersion, err := getCurrentGooseVersion(db, goose.TableName())
+	check.NoError(t, err)
+	check.Number(t, gotVersion, 0) // incorrect database version
+}
+
+func TestMigrateDownTimeout(t *testing.T) {
+	t.Parallel()
+
+	// simulate timeout
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(1))
+	defer cancel()
+
+	db, err := newDockerDB(t)
+	check.NoError(t, err)
+	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
+	check.NoError(t, err)
+	check.NumberNotZero(t, len(migrations))
+	// Apply all migrations one-by-one.
+	err = goose.DownContext(ctx, db, migrationsDir)
+	check.HasError(t, err) // expect it to timeout.
+
+	currentVersion, err := goose.GetDBVersion(db)
+	check.NoError(t, err)
+	check.Number(t, currentVersion, 0)
+	// Validate the db migration version actually matches what goose claims it is
+	gotVersion, err := getCurrentGooseVersion(db, goose.TableName())
+	check.NoError(t, err)
+	check.Number(t, gotVersion, 0) // incorrect database version
 }
 
 func TestMigrateUpByOne(t *testing.T) {
