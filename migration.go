@@ -35,13 +35,13 @@ func NewGoMigration(version int64, up, down *GoFunc) Migration {
 	// is registered.
 	if up != nil {
 		if up.RunDB != nil {
-			m.UpFnNoTxContext = up.RunDB // func(context.Context, *sql.DB) error
-			m.UpFnNoTx = func(db *sql.DB) error { return up.RunDB(context.Background(), db) }
+			m.UpFnNoTxContext = up.RunDB          // func(context.Context, *sql.DB) error
+			m.UpFnNoTx = withoutContext(up.RunDB) // func(*sql.DB) error
 		}
 		if up.RunTx != nil {
 			m.UseTx = true
-			m.UpFnContext = up.RunTx // func(context.Context, *sql.Tx) error
-			m.UpFn = func(tx *sql.Tx) error { return up.RunTx(context.Background(), tx) }
+			m.UpFnContext = up.RunTx          // func(context.Context, *sql.Tx) error
+			m.UpFn = withoutContext(up.RunTx) // func(*sql.Tx) error
 		}
 	}
 	if down != nil {

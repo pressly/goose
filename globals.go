@@ -25,20 +25,13 @@ func ResetGlobalMigrations() {
 func SetGlobalMigrations(migrations ...Migration) error {
 	for _, migration := range migrations {
 		m := &migration
-		if err := setGoMigration(m); err != nil {
-			return err
+		if _, ok := registeredGoMigrations[m.Version]; ok {
+			return fmt.Errorf("go migration with version %d already registered", m.Version)
+		}
+		if err := checkMigration(m); err != nil {
+			return fmt.Errorf("invalid go migration: %w", err)
 		}
 		registeredGoMigrations[m.Version] = m
-	}
-	return nil
-}
-
-func setGoMigration(m *Migration) error {
-	if _, ok := registeredGoMigrations[m.Version]; ok {
-		return fmt.Errorf("go migration with version %d already registered", m.Version)
-	}
-	if err := checkMigration(m); err != nil {
-		return fmt.Errorf("invalid go migration: %w", err)
 	}
 	return nil
 }

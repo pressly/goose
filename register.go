@@ -74,7 +74,6 @@ func withContext[T any](fn func(T) error) func(context.Context, T) error {
 	if fn == nil {
 		return nil
 	}
-
 	return func(ctx context.Context, t T) error {
 		return fn(t)
 	}
