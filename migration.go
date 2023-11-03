@@ -23,16 +23,43 @@ func NewGoMigration(version int64, up, down *GoFunc) Migration {
 		Type:       TypeGo,
 		Registered: true,
 		Version:    version,
-		Next:       -1,
-		Previous:   -1,
-		goUp:       &GoFunc{Mode: TransactionEnabled},
-		goDown:     &GoFunc{Mode: TransactionEnabled},
+		Next:       -1, Previous: -1,
+		goUp:      up,
+		goDown:    down,
+		construct: true,
 	}
+	// To maintain backwards compatibility, we set ALL legacy functions. In a future major version,
+	// we will remove these fields in favor of [GoFunc].
+	//
+	// Note, this function does not do any validation. Validation is lazily done when the migration
+	// is registered.
 	if up != nil {
-		m.goUp = up
+		if up.RunDB != nil {
+			m.UpFnNoTxContext = up.RunDB // func(context.Context, *sql.DB) error
+			m.UpFnNoTx = func(db *sql.DB) error { return up.RunDB(context.Background(), db) }
+		}
+		if up.RunTx != nil {
+			m.UseTx = true
+			m.UpFnContext = up.RunTx // func(context.Context, *sql.Tx) error
+			m.UpFn = func(tx *sql.Tx) error { return up.RunTx(context.Background(), tx) }
+		}
 	}
 	if down != nil {
-		m.goDown = down
+		if down.RunDB != nil {
+			m.DownFnNoTxContext = down.RunDB          // func(context.Context, *sql.DB) error
+			m.DownFnNoTx = withoutContext(down.RunDB) // func(*sql.DB) error
+		}
+		if down.RunTx != nil {
+			m.UseTx = true
+			m.DownFnContext = down.RunTx          // func(context.Context, *sql.Tx) error
+			m.DownFn = withoutContext(down.RunTx) // func(*sql.Tx) error
+		}
+	}
+	if m.goUp == nil {
+		m.goUp = &GoFunc{Mode: TransactionEnabled}
+	}
+	if m.goDown == nil {
+		m.goDown = &GoFunc{Mode: TransactionEnabled}
 	}
 	return m
 }
@@ -51,6 +78,7 @@ type Migration struct {
 	UpFnNoTxContext, DownFnNoTxContext GoMigrationNoTxContext
 	// These fields are used internally by goose and users are not expected to set them. Instead,
 	// use [NewGoMigration] to create a new go migration.
+	construct    bool
 	goUp, goDown *GoFunc
 
 	// These fields will be removed in a future major version. They are here for backwards
@@ -331,116 +359,4 @@ func truncateDuration(d time.Duration) time.Duration {
 		}
 	}
 	return d
-}
-
-func verifyAndUpdateGoFunc(f *GoFunc) error {
-	if f == nil {
-		return nil
-	}
-	if f.RunTx != nil && f.RunDB != nil {
-		return errors.New("must specify exactly one of RunTx or RunDB")
-	}
-	if f.RunTx == nil && f.RunDB == nil {
-		switch f.Mode {
-		case 0:
-			// Default to TransactionEnabled ONLY if mode is not set explicitly.
-			f.Mode = TransactionEnabled
-		case TransactionEnabled, TransactionDisabled:
-			// No functions but mode is set. This is not an error. It means the user wants to record
-			// a version with the given mode but not run any functions.
-		default:
-			return fmt.Errorf("invalid mode: %d", f.Mode)
-		}
-		return nil
-	}
-	if f.RunDB != nil {
-		switch f.Mode {
-		case 0, TransactionDisabled:
-			f.Mode = TransactionDisabled
-		default:
-			return fmt.Errorf("transaction mode must be disabled or unspecified when RunDB is set")
-		}
-	}
-	if f.RunTx != nil {
-		switch f.Mode {
-		case 0, TransactionEnabled:
-			f.Mode = TransactionEnabled
-		default:
-			return fmt.Errorf("transaction mode must be enabled or unspecified when RunTx is set")
-		}
-	}
-	// This is a defensive check. If the mode is still 0, it means we failed to infer the mode from
-	// the functions or return an error. This should never happen.
-	if f.Mode == 0 {
-		return errors.New("failed to infer transaction mode")
-	}
-	return nil
-}
-
-func updateLegacyFuncs(m *Migration) error {
-	// Assign the context-aware functions to the legacy functions. This is an implementation detail
-	// and will be removed in a future major version. Users are encouraged to use [NewGoMigration]
-	// instead of constructing a Migration struct directly.
-	if up := m.goUp; up != nil {
-		if up.RunTx != nil {
-			m.UpFnContext = up.RunTx
-			m.UseTx = true
-		}
-		if up.RunDB != nil {
-			m.UpFnNoTxContext = up.RunDB
-		}
-	}
-	if down := m.goDown; down != nil {
-		if down.RunTx != nil {
-			m.DownFnContext = down.RunTx
-			m.UseTx = true
-		}
-		if down.RunDB != nil {
-			m.DownFnNoTxContext = down.RunDB
-		}
-	}
-	if m.UpFnContext != nil && m.UpFnNoTxContext != nil {
-		return errors.New("must specify exactly one of UpFnContext or UpFnNoTxContext")
-	}
-	if m.DownFnContext != nil && m.DownFnNoTxContext != nil {
-		return errors.New("must specify exactly one of DownFnContext or DownFnNoTxContext")
-	}
-	// Do not allow legacy functions to be set.
-	if m.UpFn != nil {
-		return errors.New("must not specify UpFn")
-	}
-	if m.DownFn != nil {
-		return errors.New("must not specify DownFn")
-	}
-	if m.UpFnNoTx != nil {
-		return errors.New("must not specify UpFnNoTx")
-	}
-	if m.DownFnNoTx != nil {
-		return errors.New("must not specify DownFnNoTx")
-	}
-	return nil
-}
-
-func validGoMigration(m *Migration) error {
-	if !m.Registered {
-		return errors.New("must be registered")
-	}
-	if m.Type != TypeGo {
-		return fmt.Errorf("type must be %q", TypeGo)
-	}
-	if m.Version < 1 {
-		return errors.New("version must be greater than zero")
-	}
-	if m.Source != "" {
-		// If the source is set, expect it to be a path with a numeric component that matches the
-		// version. This field is not intended to be used for descriptive purposes.
-		version, err := NumericComponent(m.Source)
-		if err != nil {
-			return err
-		}
-		if version != m.Version {
-			return fmt.Errorf("version:%d does not match numeric component in source %q", m.Version, m.Source)
-		}
-	}
-	return nil
 }

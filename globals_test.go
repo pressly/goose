@@ -31,6 +31,23 @@ func TestNewGoMigration(t *testing.T) {
 		check.Equal(t, m.goUp.Mode, TransactionEnabled)
 		check.Equal(t, m.goDown.Mode, TransactionEnabled)
 	})
+	t.Run("all_set", func(t *testing.T) {
+		// This will eventually be an error when registering migrations.
+		m := NewGoMigration(
+			1,
+			&GoFunc{RunTx: func(context.Context, *sql.Tx) error { return nil }, RunDB: func(context.Context, *sql.DB) error { return nil }},
+			&GoFunc{RunTx: func(context.Context, *sql.Tx) error { return nil }, RunDB: func(context.Context, *sql.DB) error { return nil }},
+		)
+		// check only functions
+		check.Bool(t, m.UpFn != nil, true)
+		check.Bool(t, m.UpFnContext != nil, true)
+		check.Bool(t, m.UpFnNoTx != nil, true)
+		check.Bool(t, m.UpFnNoTxContext != nil, true)
+		check.Bool(t, m.DownFn != nil, true)
+		check.Bool(t, m.DownFnContext != nil, true)
+		check.Bool(t, m.DownFnNoTx != nil, true)
+		check.Bool(t, m.DownFnNoTxContext != nil, true)
+	})
 }
 
 func TestTransactionMode(t *testing.T) {
@@ -121,6 +138,7 @@ func TestLegacyFunctions(t *testing.T) {
 	}
 
 	t.Run("all_tx", func(t *testing.T) {
+		t.Cleanup(ResetGlobalMigrations)
 		err := SetGlobalMigrations(
 			NewGoMigration(1, &GoFunc{RunTx: runTx}, &GoFunc{RunTx: runTx}),
 		)
@@ -137,17 +155,18 @@ func TestLegacyFunctions(t *testing.T) {
 		check.Bool(t, m.goDown == nil, false)
 		check.Bool(t, m.DownFnContext == nil, false)
 		// Always nil
-		check.Bool(t, m.UpFn == nil, true)
-		check.Bool(t, m.DownFn == nil, true)
+		check.Bool(t, m.UpFn == nil, false)
+		check.Bool(t, m.DownFn == nil, false)
 		check.Bool(t, m.UpFnNoTx == nil, true)
 		check.Bool(t, m.DownFnNoTx == nil, true)
 	})
 	t.Run("all_db", func(t *testing.T) {
+		t.Cleanup(ResetGlobalMigrations)
 		err := SetGlobalMigrations(
 			NewGoMigration(2, &GoFunc{RunDB: runDB}, &GoFunc{RunDB: runDB}),
 		)
 		check.NoError(t, err)
-		check.Number(t, len(registeredGoMigrations), 2)
+		check.Number(t, len(registeredGoMigrations), 1)
 		m := registeredGoMigrations[2]
 		assertMigration(t, m, 2)
 		// Legacy functions.
@@ -161,15 +180,15 @@ func TestLegacyFunctions(t *testing.T) {
 		// Always nil
 		check.Bool(t, m.UpFn == nil, true)
 		check.Bool(t, m.DownFn == nil, true)
-		check.Bool(t, m.UpFnNoTx == nil, true)
-		check.Bool(t, m.DownFnNoTx == nil, true)
+		check.Bool(t, m.UpFnNoTx == nil, false)
+		check.Bool(t, m.DownFnNoTx == nil, false)
 	})
 }
 
 func TestGlobalRegister(t *testing.T) {
 	t.Cleanup(ResetGlobalMigrations)
 
-	runDB := func(context.Context, *sql.DB) error { return nil }
+	// runDB := func(context.Context, *sql.DB) error { return nil }
 	runTx := func(context.Context, *sql.Tx) error { return nil }
 
 	// Success.
@@ -185,87 +204,63 @@ func TestGlobalRegister(t *testing.T) {
 	)
 	check.HasError(t, err)
 	check.Contains(t, err.Error(), "go migration with version 1 already registered")
-	err = SetGlobalMigrations(
-		Migration{
-			Registered:        true,
-			Version:           2,
-			Source:            "00002_foo.sql",
-			Type:              TypeGo,
-			UpFnContext:       func(context.Context, *sql.Tx) error { return nil },
-			DownFnNoTxContext: func(context.Context, *sql.DB) error { return nil },
-		},
-	)
+	err = SetGlobalMigrations(Migration{Registered: true, Version: 2, Type: TypeGo})
+	check.HasError(t, err)
+	check.Contains(t, err.Error(), "must use NewGoMigration to construct migrations")
+}
+
+func TestCheckMigration(t *testing.T) {
+	// Failures.
+	err := checkMigration(&Migration{})
+	check.HasError(t, err)
+	check.Contains(t, err.Error(), "must use NewGoMigration to construct migrations")
+	err = checkMigration(&Migration{construct: true})
+	check.HasError(t, err)
+	check.Contains(t, err.Error(), "must be registered")
+	err = checkMigration(&Migration{construct: true, Registered: true})
+	check.HasError(t, err)
+	check.Contains(t, err.Error(), `type must be "go"`)
+	err = checkMigration(&Migration{construct: true, Registered: true, Type: TypeGo})
+	check.HasError(t, err)
+	check.Contains(t, err.Error(), "version must be greater than zero")
+	// Success.
+	err = checkMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 1})
 	check.NoError(t, err)
-	// Reset.
-	{
-		ResetGlobalMigrations()
-	}
-	// Failure.
-	err = SetGlobalMigrations(
-		Migration{},
-	)
+	// Failures.
+	err = checkMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 1, Source: "foo"})
 	check.HasError(t, err)
-	check.Contains(t, err.Error(), "invalid go migration: must be registered")
-	err = SetGlobalMigrations(
-		Migration{Registered: true},
-	)
+	check.Contains(t, err.Error(), `source must have .go extension: "foo"`)
+	err = checkMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 1, Source: "foo.go"})
 	check.HasError(t, err)
-	check.Contains(t, err.Error(), `invalid go migration: type must be "go"`)
-	err = SetGlobalMigrations(
-		Migration{Registered: true, Version: 1, Type: TypeSQL},
-	)
+	check.Contains(t, err.Error(), `no filename separator '_' found`)
+	err = checkMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 2, Source: "00001_foo.sql"})
 	check.HasError(t, err)
-	check.Contains(t, err.Error(), `invalid go migration: type must be "go"`)
-	err = SetGlobalMigrations(
-		Migration{Registered: true, Version: 0, Type: TypeGo},
-	)
+	check.Contains(t, err.Error(), `source must have .go extension: "00001_foo.sql"`)
+	err = checkMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 2, Source: "00001_foo.go"})
 	check.HasError(t, err)
-	check.Contains(t, err.Error(), "invalid go migration: version must be greater than zero")
-	err = SetGlobalMigrations(
-		Migration{Registered: true, Version: 1, Source: "2_foo.sql", Type: TypeGo},
-	)
+	check.Contains(t, err.Error(), `version:2 does not match numeric component in source "00001_foo.go"`)
+	err = checkMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 1,
+		UpFnContext:     func(context.Context, *sql.Tx) error { return nil },
+		UpFnNoTxContext: func(context.Context, *sql.DB) error { return nil },
+	})
 	check.HasError(t, err)
-	check.Contains(
-		t,
-		err.Error(),
-		`invalid go migration: version:1 does not match numeric component in source "2_foo.sql"`,
-	)
-	// Legacy functions.
-	err = SetGlobalMigrations(
-		Migration{Registered: true, Version: 1, UpFn: func(tx *sql.Tx) error { return nil }, Type: TypeGo},
-	)
+	check.Contains(t, err.Error(), "must specify exactly one of UpFnContext or UpFnNoTxContext")
+	err = checkMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 1,
+		DownFnContext:     func(context.Context, *sql.Tx) error { return nil },
+		DownFnNoTxContext: func(context.Context, *sql.DB) error { return nil },
+	})
 	check.HasError(t, err)
-	check.Contains(t, err.Error(), "invalid go migration: must not specify UpFn")
-	err = SetGlobalMigrations(
-		Migration{Registered: true, Version: 1, DownFn: func(tx *sql.Tx) error { return nil }, Type: TypeGo},
-	)
+	check.Contains(t, err.Error(), "must specify exactly one of DownFnContext or DownFnNoTxContext")
+	err = checkMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 1,
+		UpFn:     func(*sql.Tx) error { return nil },
+		UpFnNoTx: func(*sql.DB) error { return nil },
+	})
 	check.HasError(t, err)
-	check.Contains(t, err.Error(), "invalid go migration: must not specify DownFn")
-	err = SetGlobalMigrations(
-		Migration{Registered: true, Version: 1, UpFnNoTx: func(db *sql.DB) error { return nil }, Type: TypeGo},
-	)
+	check.Contains(t, err.Error(), "must specify exactly one of UpFn or UpFnNoTx")
+	err = checkMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 1,
+		DownFn:     func(*sql.Tx) error { return nil },
+		DownFnNoTx: func(*sql.DB) error { return nil },
+	})
 	check.HasError(t, err)
-	check.Contains(t, err.Error(), "invalid go migration: must not specify UpFnNoTx")
-	err = SetGlobalMigrations(
-		Migration{Registered: true, Version: 1, DownFnNoTx: func(db *sql.DB) error { return nil }, Type: TypeGo},
-	)
-	check.HasError(t, err)
-	check.Contains(t, err.Error(), "invalid go migration: must not specify DownFnNoTx")
-	// Context-aware functions.
-	err = SetGlobalMigrations(
-		Migration{Registered: true, Version: 1, UpFnContext: runTx, UpFnNoTxContext: runDB, Type: TypeGo},
-	)
-	check.HasError(t, err)
-	check.Contains(t, err.Error(), "invalid go migration: must specify exactly one of UpFnContext or UpFnNoTxContext")
-	err = SetGlobalMigrations(
-		Migration{Registered: true, Version: 1, DownFnContext: runTx, DownFnNoTxContext: runDB, Type: TypeGo},
-	)
-	check.HasError(t, err)
-	check.Contains(t, err.Error(), "invalid go migration: must specify exactly one of DownFnContext or DownFnNoTxContext")
-	// Source and version mismatch.
-	err = SetGlobalMigrations(
-		Migration{Registered: true, Version: 1, Source: "invalid_numeric.sql", Type: TypeGo},
-	)
-	check.HasError(t, err)
-	check.Contains(t, err.Error(), `invalid go migration: failed to parse version from migration file: invalid_numeric.sql`)
+	check.Contains(t, err.Error(), "must specify exactly one of DownFn or DownFnNoTx")
 }
