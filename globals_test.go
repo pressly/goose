@@ -26,8 +26,8 @@ func TestNewGoMigration(t *testing.T) {
 		check.Bool(t, m.DownFn == nil, true)
 		check.Bool(t, m.UpFnNoTx == nil, true)
 		check.Bool(t, m.DownFnNoTx == nil, true)
-		check.NotNil(t, m.goUp)
-		check.NotNil(t, m.goDown)
+		check.Bool(t, m.goUp != nil, true)
+		check.Bool(t, m.goDown != nil, true)
 		check.Equal(t, m.goUp.Mode, TransactionEnabled)
 		check.Equal(t, m.goDown.Mode, TransactionEnabled)
 	})
@@ -95,8 +95,8 @@ func TestTransactionMode(t *testing.T) {
 		check.NoError(t, err)
 		check.Number(t, len(registeredGoMigrations), 1)
 		registered := registeredGoMigrations[1]
-		check.NotNil(t, registered.goUp)
-		check.NotNil(t, registered.goDown)
+		check.Bool(t, registered.goUp != nil, true)
+		check.Bool(t, registered.goDown != nil, true)
 		check.Equal(t, registered.goUp.Mode, TransactionEnabled)
 		check.Equal(t, registered.goDown.Mode, TransactionEnabled)
 
@@ -107,8 +107,8 @@ func TestTransactionMode(t *testing.T) {
 		check.NoError(t, err)
 		check.Number(t, len(registeredGoMigrations), 2)
 		registered = registeredGoMigrations[2]
-		check.NotNil(t, registered.goUp)
-		check.NotNil(t, registered.goDown)
+		check.Bool(t, registered.goUp != nil, true)
+		check.Bool(t, registered.goDown != nil, true)
 		check.Equal(t, registered.goUp.Mode, TransactionEnabled)
 		check.Equal(t, registered.goDown.Mode, TransactionEnabled)
 	})
