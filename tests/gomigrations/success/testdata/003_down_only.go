@@ -11,7 +11,5 @@ func init() {
 }
 
 func down003(tx *sql.Tx) error {
-	q := "TRUNCATE TABLE foo"
-	_, err := tx.Exec(q)
-	return err
+	return dropTable(tx, "bravo")
 }
