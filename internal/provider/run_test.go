@@ -113,7 +113,7 @@ func TestProviderRun(t *testing.T) {
 				break
 			}
 			check.NoError(t, err)
-			check.NotNil(t, res)
+			check.Bool(t, res != nil, true)
 			check.Number(t, res.Source.Version, int64(counter))
 		}
 		currentVersion, err := p.GetDBVersion(ctx)
@@ -132,7 +132,7 @@ func TestProviderRun(t *testing.T) {
 				break
 			}
 			check.NoError(t, err)
-			check.NotNil(t, res)
+			check.Bool(t, res != nil, true)
 			check.Number(t, res.Source.Version, int64(maxVersion-counter+1))
 		}
 		// Once everything is tested the version should match the highest testdata version
@@ -632,12 +632,12 @@ func TestAllowMissing(t *testing.T) {
 			// 4
 			upResult, err := p.UpByOne(ctx)
 			check.NoError(t, err)
-			check.NotNil(t, upResult)
+			check.Bool(t, upResult != nil, true)
 			check.Number(t, upResult.Source.Version, 4)
 			// 6
 			upResult, err = p.UpByOne(ctx)
 			check.NoError(t, err)
-			check.NotNil(t, upResult)
+			check.Bool(t, upResult != nil, true)
 			check.Number(t, upResult.Source.Version, 6)
 
 			count, err := getGooseVersionCount(db, provider.DefaultTablename)
@@ -660,7 +660,7 @@ func TestAllowMissing(t *testing.T) {
 			check.Number(t, currentVersion, wantDBVersion)
 			downRes, err := p.Down(ctx)
 			check.NoError(t, err)
-			check.NotNil(t, downRes)
+			check.Bool(t, downRes != nil, true)
 			check.Number(t, downRes.Source.Version, wantResultVersion)
 		}
 
@@ -897,7 +897,7 @@ func TestLockModeAdvisorySession(t *testing.T) {
 					return err
 				}
 				check.NoError(t, err)
-				check.NotNil(t, result)
+				check.Bool(t, result != nil, true)
 				mu.Lock()
 				applied = append(applied, result.Source.Version)
 				mu.Unlock()
@@ -913,7 +913,7 @@ func TestLockModeAdvisorySession(t *testing.T) {
 					return err
 				}
 				check.NoError(t, err)
-				check.NotNil(t, result)
+				check.Bool(t, result != nil, true)
 				mu.Lock()
 				applied = append(applied, result.Source.Version)
 				mu.Unlock()
@@ -999,7 +999,7 @@ func TestLockModeAdvisorySession(t *testing.T) {
 					return err
 				}
 				check.NoError(t, err)
-				check.NotNil(t, result)
+				check.Bool(t, result != nil, true)
 				mu.Lock()
 				applied = append(applied, result.Source.Version)
 				mu.Unlock()
@@ -1015,7 +1015,7 @@ func TestLockModeAdvisorySession(t *testing.T) {
 					return err
 				}
 				check.NoError(t, err)
-				check.NotNil(t, result)
+				check.Bool(t, result != nil, true)
 				mu.Lock()
 				applied = append(applied, result.Source.Version)
 				mu.Unlock()
@@ -1127,7 +1127,7 @@ func assertStatus(t *testing.T, got *provider.MigrationStatus, state provider.St
 
 func assertResult(t *testing.T, got *provider.MigrationResult, source provider.Source, direction string, isEmpty bool) {
 	t.Helper()
-	check.NotNil(t, got)
+	check.Bool(t, got != nil, true)
 	check.Equal(t, got.Source, source)
 	check.Equal(t, got.Direction, direction)
 	check.Equal(t, got.Empty, isEmpty)

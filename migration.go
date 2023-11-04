@@ -13,34 +13,139 @@ import (
 	"github.com/pressly/goose/v3/internal/sqlparser"
 )
 
+// NewGoMigration creates a new Go migration.
+//
+// Both up and down functions may be nil, in which case the migration will be recorded in the
+// versions table but no functions will be run. This is useful for recording (up) or deleting (down)
+// a version without running any functions. See [GoFunc] for more details.
+func NewGoMigration(version int64, up, down *GoFunc) Migration {
+	m := Migration{
+		Type:       TypeGo,
+		Registered: true,
+		Version:    version,
+		Next:       -1, Previous: -1,
+		goUp:      up,
+		goDown:    down,
+		construct: true,
+	}
+	// To maintain backwards compatibility, we set ALL legacy functions. In a future major version,
+	// we will remove these fields in favor of [GoFunc].
+	//
+	// Note, this function does not do any validation. Validation is lazily done when the migration
+	// is registered.
+	if up != nil {
+		if up.RunDB != nil {
+			m.UpFnNoTxContext = up.RunDB          // func(context.Context, *sql.DB) error
+			m.UpFnNoTx = withoutContext(up.RunDB) // func(*sql.DB) error
+		}
+		if up.RunTx != nil {
+			m.UseTx = true
+			m.UpFnContext = up.RunTx          // func(context.Context, *sql.Tx) error
+			m.UpFn = withoutContext(up.RunTx) // func(*sql.Tx) error
+		}
+	}
+	if down != nil {
+		if down.RunDB != nil {
+			m.DownFnNoTxContext = down.RunDB          // func(context.Context, *sql.DB) error
+			m.DownFnNoTx = withoutContext(down.RunDB) // func(*sql.DB) error
+		}
+		if down.RunTx != nil {
+			m.UseTx = true
+			m.DownFnContext = down.RunTx          // func(context.Context, *sql.Tx) error
+			m.DownFn = withoutContext(down.RunTx) // func(*sql.Tx) error
+		}
+	}
+	if m.goUp == nil {
+		m.goUp = &GoFunc{Mode: TransactionEnabled}
+	}
+	if m.goDown == nil {
+		m.goDown = &GoFunc{Mode: TransactionEnabled}
+	}
+	return m
+}
+
+// Migration struct represents either a SQL or Go migration.
+//
+// Avoid constructing migrations manually, use [NewGoMigration] function.
+type Migration struct {
+	Type    MigrationType
+	Version int64
+	// Source is the path to the .sql script or .go file. It may be empty for Go migrations that
+	// have been registered globally and don't have a source file.
+	Source string
+
+	UpFnContext, DownFnContext         GoMigrationContext
+	UpFnNoTxContext, DownFnNoTxContext GoMigrationNoTxContext
+	// These fields are used internally by goose and users are not expected to set them. Instead,
+	// use [NewGoMigration] to create a new go migration.
+	construct    bool
+	goUp, goDown *GoFunc
+
+	// These fields will be removed in a future major version. They are here for backwards
+	// compatibility and are an implementation detail.
+	Registered bool
+	UseTx      bool
+	Next       int64 // next version, or -1 if none
+	Previous   int64 // previous version, -1 if none
+
+	// We still save the non-context versions in the struct in case someone is using them. Goose
+	// does not use these internally anymore in favor of the context-aware versions. These fields
+	// will be removed in a future major version.
+
+	UpFn       GoMigration     // Deprecated: use UpFnContext instead.
+	DownFn     GoMigration     // Deprecated: use DownFnContext instead.
+	UpFnNoTx   GoMigrationNoTx // Deprecated: use UpFnNoTxContext instead.
+	DownFnNoTx GoMigrationNoTx // Deprecated: use DownFnNoTxContext instead.
+
+	noVersioning bool
+}
+
+// GoFunc represents a Go migration function.
+type GoFunc struct {
+	// Exactly one of these must be set, or both must be nil.
+	RunTx func(ctx context.Context, tx *sql.Tx) error
+	// -- OR --
+	RunDB func(ctx context.Context, db *sql.DB) error
+
+	// Mode is the transaction mode for the migration. When one of the run functions is set, the
+	// mode will be inferred from the function and the field is ignored. Users do not need to set
+	// this field when supplying a run function.
+	//
+	// If both run functions are nil, the mode defaults to TransactionEnabled. The use case for nil
+	// functions is to record a version in the version table without invoking a Go migration
+	// function.
+	//
+	// The only time this field is required is if BOTH run functions are nil AND you want to
+	// override the default transaction mode.
+	Mode TransactionMode
+}
+
+// TransactionMode represents the possible transaction modes for a migration.
+type TransactionMode int
+
+const (
+	TransactionEnabled TransactionMode = iota + 1
+	TransactionDisabled
+)
+
+func (m TransactionMode) String() string {
+	switch m {
+	case TransactionEnabled:
+		return "transaction_enabled"
+	case TransactionDisabled:
+		return "transaction_disabled"
+	default:
+		return fmt.Sprintf("unknown transaction mode (%d)", m)
+	}
+}
+
 // MigrationRecord struct.
+//
+// Deprecated: unused and will be removed in a future major version.
 type MigrationRecord struct {
 	VersionID int64
 	TStamp    time.Time
 	IsApplied bool // was this a result of up() or down()
-}
-
-// Migration struct represents either a SQL or Go migration.
-type Migration struct {
-	Type                               MigrationType
-	Version                            int64
-	Source                             string // path to .sql script or .go file
-	Registered                         bool
-	UpFnContext, DownFnContext         GoMigrationContext
-	UpFnNoTxContext, DownFnNoTxContext GoMigrationNoTxContext
-
-	// These fields will be removed in a future major version. They are here for backwards
-	// compatibility and are an implementation detail.
-	UseTx    bool
-	Next     int64 // next version, or -1 if none
-	Previous int64 // previous version, -1 if none
-
-	// We still save the non-context versions in the struct in case someone is using them. Goose
-	// does not use these internally anymore in favor of the context-aware versions.
-	UpFn, DownFn         GoMigration
-	UpFnNoTx, DownFnNoTx GoMigrationNoTx
-
-	noVersioning bool
 }
 
 func (m *Migration) String() string {
