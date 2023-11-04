@@ -104,13 +104,15 @@ func TestTransactionMode(t *testing.T) {
 		// reset so we can check the default is set
 		migration2.goUp.Mode, migration2.goDown.Mode = 0, 0
 		err = SetGlobalMigrations(migration2)
-		check.NoError(t, err)
-		check.Number(t, len(registeredGoMigrations), 2)
-		registered = registeredGoMigrations[2]
-		check.Bool(t, registered.goUp != nil, true)
-		check.Bool(t, registered.goDown != nil, true)
-		check.Equal(t, registered.goUp.Mode, TransactionEnabled)
-		check.Equal(t, registered.goDown.Mode, TransactionEnabled)
+		check.HasError(t, err)
+		check.Contains(t, err.Error(), "invalid go migration: up function: invalid mode: 0")
+
+		migration3 := NewGoMigration(3, nil, nil)
+		// reset so we can check the default is set
+		migration3.goDown.Mode = 0
+		err = SetGlobalMigrations(migration3)
+		check.HasError(t, err)
+		check.Contains(t, err.Error(), "invalid go migration: down function: invalid mode: 0")
 	})
 	t.Run("unknown_mode", func(t *testing.T) {
 		m := NewGoMigration(1, nil, nil)
@@ -192,7 +194,7 @@ func TestGlobalRegister(t *testing.T) {
 	runTx := func(context.Context, *sql.Tx) error { return nil }
 
 	// Success.
-	err := SetGlobalMigrations([]Migration{}...)
+	err := SetGlobalMigrations([]*Migration{}...)
 	check.NoError(t, err)
 	err = SetGlobalMigrations(
 		NewGoMigration(1, &GoFunc{RunTx: runTx}, nil),
@@ -204,62 +206,79 @@ func TestGlobalRegister(t *testing.T) {
 	)
 	check.HasError(t, err)
 	check.Contains(t, err.Error(), "go migration with version 1 already registered")
-	err = SetGlobalMigrations(Migration{Registered: true, Version: 2, Type: TypeGo})
+	err = SetGlobalMigrations(&Migration{Registered: true, Version: 2, Type: TypeGo})
 	check.HasError(t, err)
 	check.Contains(t, err.Error(), "must use NewGoMigration to construct migrations")
 }
 
 func TestCheckMigration(t *testing.T) {
-	// Failures.
-	err := checkMigration(&Migration{})
-	check.HasError(t, err)
-	check.Contains(t, err.Error(), "must use NewGoMigration to construct migrations")
-	err = checkMigration(&Migration{construct: true})
-	check.HasError(t, err)
-	check.Contains(t, err.Error(), "must be registered")
-	err = checkMigration(&Migration{construct: true, Registered: true})
-	check.HasError(t, err)
-	check.Contains(t, err.Error(), `type must be "go"`)
-	err = checkMigration(&Migration{construct: true, Registered: true, Type: TypeGo})
-	check.HasError(t, err)
-	check.Contains(t, err.Error(), "version must be greater than zero")
 	// Success.
-	err = checkMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 1})
+	err := checkGoMigration(NewGoMigration(1, nil, nil))
 	check.NoError(t, err)
 	// Failures.
-	err = checkMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 1, Source: "foo"})
+	err = checkGoMigration(&Migration{})
+	check.HasError(t, err)
+	check.Contains(t, err.Error(), "must use NewGoMigration to construct migrations")
+	err = checkGoMigration(&Migration{construct: true})
+	check.HasError(t, err)
+	check.Contains(t, err.Error(), "must be registered")
+	err = checkGoMigration(&Migration{construct: true, Registered: true})
+	check.HasError(t, err)
+	check.Contains(t, err.Error(), `type must be "go"`)
+	err = checkGoMigration(&Migration{construct: true, Registered: true, Type: TypeGo})
+	check.HasError(t, err)
+	check.Contains(t, err.Error(), "version must be greater than zero")
+	err = checkGoMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 1, goUp: &GoFunc{}, goDown: &GoFunc{}})
+	check.HasError(t, err)
+	check.Contains(t, err.Error(), "up function: invalid mode: 0")
+	err = checkGoMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 1, goUp: &GoFunc{Mode: TransactionEnabled}, goDown: &GoFunc{}})
+	check.HasError(t, err)
+	check.Contains(t, err.Error(), "down function: invalid mode: 0")
+	// Success.
+	err = checkGoMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 1, goUp: &GoFunc{Mode: TransactionEnabled}, goDown: &GoFunc{Mode: TransactionEnabled}})
+	check.NoError(t, err)
+	// Failures.
+	err = checkGoMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 1, Source: "foo"})
 	check.HasError(t, err)
 	check.Contains(t, err.Error(), `source must have .go extension: "foo"`)
-	err = checkMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 1, Source: "foo.go"})
+	err = checkGoMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 1, Source: "foo.go"})
 	check.HasError(t, err)
 	check.Contains(t, err.Error(), `no filename separator '_' found`)
-	err = checkMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 2, Source: "00001_foo.sql"})
+	err = checkGoMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 2, Source: "00001_foo.sql"})
 	check.HasError(t, err)
 	check.Contains(t, err.Error(), `source must have .go extension: "00001_foo.sql"`)
-	err = checkMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 2, Source: "00001_foo.go"})
+	err = checkGoMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 2, Source: "00001_foo.go"})
 	check.HasError(t, err)
 	check.Contains(t, err.Error(), `version:2 does not match numeric component in source "00001_foo.go"`)
-	err = checkMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 1,
+	err = checkGoMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 1,
 		UpFnContext:     func(context.Context, *sql.Tx) error { return nil },
 		UpFnNoTxContext: func(context.Context, *sql.DB) error { return nil },
+		goUp:            &GoFunc{Mode: TransactionEnabled},
+		goDown:          &GoFunc{Mode: TransactionEnabled},
 	})
 	check.HasError(t, err)
 	check.Contains(t, err.Error(), "must specify exactly one of UpFnContext or UpFnNoTxContext")
-	err = checkMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 1,
+	err = checkGoMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 1,
 		DownFnContext:     func(context.Context, *sql.Tx) error { return nil },
 		DownFnNoTxContext: func(context.Context, *sql.DB) error { return nil },
+		goUp:              &GoFunc{Mode: TransactionEnabled},
+		goDown:            &GoFunc{Mode: TransactionEnabled},
 	})
 	check.HasError(t, err)
 	check.Contains(t, err.Error(), "must specify exactly one of DownFnContext or DownFnNoTxContext")
-	err = checkMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 1,
+	err = checkGoMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 1,
 		UpFn:     func(*sql.Tx) error { return nil },
 		UpFnNoTx: func(*sql.DB) error { return nil },
+		goUp:     &GoFunc{Mode: TransactionEnabled},
+		goDown:   &GoFunc{Mode: TransactionEnabled},
 	})
 	check.HasError(t, err)
 	check.Contains(t, err.Error(), "must specify exactly one of UpFn or UpFnNoTx")
-	err = checkMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 1,
+	err = checkGoMigration(&Migration{construct: true, Registered: true, Type: TypeGo, Version: 1,
 		DownFn:     func(*sql.Tx) error { return nil },
 		DownFnNoTx: func(*sql.DB) error { return nil },
+		goUp:       &GoFunc{Mode: TransactionEnabled},
+		goDown:     &GoFunc{Mode: TransactionEnabled},
 	})
 	check.HasError(t, err)
 	check.Contains(t, err.Error(), "must specify exactly one of DownFn or DownFnNoTx")

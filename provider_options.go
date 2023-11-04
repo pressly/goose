@@ -1,8 +1,6 @@
-package provider
+package goose
 
 import (
-	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 
@@ -12,12 +10,11 @@ import (
 
 const (
 	// DefaultTablename is the default name of the database table used to track history of applied
-	// migrations. It can be overridden using the [WithTableName] option when creating a new
-	// provider.
+	// migrations. It can be overridden using the [WithTableName] option when creating a new goose.
 	DefaultTablename = "goose_db_version"
 )
 
-// ProviderOption is a configuration option for a goose provider.
+// ProviderOption is a configuration option for a goose goose.
 type ProviderOption interface {
 	apply(*config) error
 }
@@ -84,60 +81,48 @@ func WithSessionLocker(locker lock.SessionLocker) ProviderOption {
 	})
 }
 
-// WithExcludes excludes the given file names from the list of migrations.
-//
-// If WithExcludes is called multiple times, the list of excludes is merged.
-func WithExcludes(excludes []string) ProviderOption {
+// WithExcludeNames excludes the given file name from the list of migrations. If called multiple
+// times, the list of excludes is merged.
+func WithExcludeNames(excludes []string) ProviderOption {
 	return configFunc(func(c *config) error {
 		for _, name := range excludes {
-			c.excludes[name] = true
+			if _, ok := c.excludePaths[name]; ok {
+				return fmt.Errorf("duplicate exclude file name: %s", name)
+			}
+			c.excludePaths[name] = true
 		}
 		return nil
 	})
 }
 
-// GoMigrationFunc is a user-defined Go migration, registered using the option [WithGoMigration].
-type GoMigrationFunc struct {
-	// One of the following must be set:
-	Run func(context.Context, *sql.Tx) error
-	// -- OR --
-	RunNoTx func(context.Context, *sql.DB) error
+// WithExcludeVersions excludes the given versions from the list of migrations. If called multiple
+// times, the list of excludes is merged.
+func WithExcludeVersions(versions []int64) ProviderOption {
+	return configFunc(func(c *config) error {
+		for _, version := range versions {
+			if _, ok := c.excludeVersions[version]; ok {
+				return fmt.Errorf("duplicate excludes version: %d", version)
+			}
+			c.excludeVersions[version] = true
+		}
+		return nil
+	})
 }
 
-// WithGoMigration registers a Go migration with the given version.
+// WithGoMigrations registers Go migrations with the provider. If a Go migration with the same
+// version has already been registered, an error will be returned.
 //
-// If WithGoMigration is called multiple times with the same version, an error is returned. Both up
-// and down [GoMigration] may be nil. But if set, exactly one of Run or RunNoTx functions must be
-// set.
-func WithGoMigration(version int64, up, down *GoMigrationFunc) ProviderOption {
+// Go migrations must be constructed using the [NewGoMigration] function.
+func WithGoMigrations(migrations ...*Migration) ProviderOption {
 	return configFunc(func(c *config) error {
-		if version < 1 {
-			return errors.New("version must be greater than zero")
-		}
-		if _, ok := c.registered[version]; ok {
-			return fmt.Errorf("go migration with version %d already registered", version)
-		}
-		// Allow nil up/down functions. This enables users to apply "no-op" migrations, while
-		// versioning them.
-		if up != nil {
-			if up.Run == nil && up.RunNoTx == nil {
-				return fmt.Errorf("go migration with version %d must have an up function", version)
+		for _, m := range migrations {
+			if _, ok := c.registered[m.Version]; ok {
+				return fmt.Errorf("go migration with version %d already registered", m.Version)
 			}
-			if up.Run != nil && up.RunNoTx != nil {
-				return fmt.Errorf("go migration with version %d must not have both an up and upNoTx function", version)
+			if err := checkGoMigration(m); err != nil {
+				return fmt.Errorf("invalid go migration: %w", err)
 			}
-		}
-		if down != nil {
-			if down.Run == nil && down.RunNoTx == nil {
-				return fmt.Errorf("go migration with version %d must have a down function", version)
-			}
-			if down.Run != nil && down.RunNoTx != nil {
-				return fmt.Errorf("go migration with version %d must not have both a down and downNoTx function", version)
-			}
-		}
-		c.registered[version] = &goMigration{
-			up:   up,
-			down: down,
+			c.registered[m.Version] = m
 		}
 		return nil
 	})
@@ -171,12 +156,13 @@ func WithDisabledVersioning(b bool) ProviderOption {
 type config struct {
 	store database.Store
 
-	verbose  bool
-	excludes map[string]bool
+	verbose         bool
+	excludePaths    map[string]bool
+	excludeVersions map[int64]bool
 
-	// Go migrations registered by the user. These will be merged/resolved with migrations from the
-	// filesystem and init() functions.
-	registered map[int64]*goMigration
+	// Go migrations registered by the user. These will be merged/resolved against the globally
+	// registered migrations.
+	registered map[int64]*Migration
 
 	// Locking options
 	lockEnabled   bool

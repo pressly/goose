@@ -18,15 +18,27 @@ import (
 // Both up and down functions may be nil, in which case the migration will be recorded in the
 // versions table but no functions will be run. This is useful for recording (up) or deleting (down)
 // a version without running any functions. See [GoFunc] for more details.
-func NewGoMigration(version int64, up, down *GoFunc) Migration {
-	m := Migration{
+func NewGoMigration(version int64, up, down *GoFunc) *Migration {
+	m := &Migration{
 		Type:       TypeGo,
 		Registered: true,
 		Version:    version,
 		Next:       -1, Previous: -1,
-		goUp:      up,
-		goDown:    down,
+		goUp:      &GoFunc{Mode: TransactionEnabled},
+		goDown:    &GoFunc{Mode: TransactionEnabled},
 		construct: true,
+	}
+	updateMode := func(f *GoFunc) *GoFunc {
+		// infer mode from function
+		if f.Mode == 0 {
+			if f.RunTx != nil && f.RunDB == nil {
+				f.Mode = TransactionEnabled
+			}
+			if f.RunTx == nil && f.RunDB != nil {
+				f.Mode = TransactionDisabled
+			}
+		}
+		return f
 	}
 	// To maintain backwards compatibility, we set ALL legacy functions. In a future major version,
 	// we will remove these fields in favor of [GoFunc].
@@ -34,6 +46,8 @@ func NewGoMigration(version int64, up, down *GoFunc) Migration {
 	// Note, this function does not do any validation. Validation is lazily done when the migration
 	// is registered.
 	if up != nil {
+		m.goUp = updateMode(up)
+
 		if up.RunDB != nil {
 			m.UpFnNoTxContext = up.RunDB          // func(context.Context, *sql.DB) error
 			m.UpFnNoTx = withoutContext(up.RunDB) // func(*sql.DB) error
@@ -45,6 +59,8 @@ func NewGoMigration(version int64, up, down *GoFunc) Migration {
 		}
 	}
 	if down != nil {
+		m.goDown = updateMode(down)
+
 		if down.RunDB != nil {
 			m.DownFnNoTxContext = down.RunDB          // func(context.Context, *sql.DB) error
 			m.DownFnNoTx = withoutContext(down.RunDB) // func(*sql.DB) error
@@ -54,12 +70,6 @@ func NewGoMigration(version int64, up, down *GoFunc) Migration {
 			m.DownFnContext = down.RunTx          // func(context.Context, *sql.Tx) error
 			m.DownFn = withoutContext(down.RunTx) // func(*sql.Tx) error
 		}
-	}
-	if m.goUp == nil {
-		m.goUp = &GoFunc{Mode: TransactionEnabled}
-	}
-	if m.goDown == nil {
-		m.goDown = &GoFunc{Mode: TransactionEnabled}
 	}
 	return m
 }
@@ -76,10 +86,6 @@ type Migration struct {
 
 	UpFnContext, DownFnContext         GoMigrationContext
 	UpFnNoTxContext, DownFnNoTxContext GoMigrationNoTxContext
-	// These fields are used internally by goose and users are not expected to set them. Instead,
-	// use [NewGoMigration] to create a new go migration.
-	construct    bool
-	goUp, goDown *GoFunc
 
 	// These fields will be removed in a future major version. They are here for backwards
 	// compatibility and are an implementation detail.
@@ -98,6 +104,26 @@ type Migration struct {
 	DownFnNoTx GoMigrationNoTx // Deprecated: use DownFnNoTxContext instead.
 
 	noVersioning bool
+
+	// These fields are used internally by goose and users are not expected to set them. Instead,
+	// use [NewGoMigration] to create a new go migration.
+	construct    bool
+	goUp, goDown *GoFunc
+
+	sql sqlMigration
+}
+
+type sqlMigration struct {
+	// The Parsed field is used to track whether the SQL migration has been parsed. It serves as an
+	// optimization to avoid parsing migrations that may never be needed. Typically, migrations are
+	// incremental, and users often run only the most recent ones, making parsing of prior
+	// migrations unnecessary in most cases.
+	Parsed bool
+
+	// Parsed must be set to true before the following fields are used.
+	UseTx bool
+	Up    []string
+	Down  []string
 }
 
 // GoFunc represents a Go migration function.

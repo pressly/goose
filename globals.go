@@ -22,13 +22,12 @@ func ResetGlobalMigrations() {
 // [NewGoMigration] function.
 //
 // Not safe for concurrent use.
-func SetGlobalMigrations(migrations ...Migration) error {
-	for _, migration := range migrations {
-		m := &migration
+func SetGlobalMigrations(migrations ...*Migration) error {
+	for _, m := range migrations {
 		if _, ok := registeredGoMigrations[m.Version]; ok {
 			return fmt.Errorf("go migration with version %d already registered", m.Version)
 		}
-		if err := checkMigration(m); err != nil {
+		if err := checkGoMigration(m); err != nil {
 			return fmt.Errorf("invalid go migration: %w", err)
 		}
 		registeredGoMigrations[m.Version] = m
@@ -36,7 +35,7 @@ func SetGlobalMigrations(migrations ...Migration) error {
 	return nil
 }
 
-func checkMigration(m *Migration) error {
+func checkGoMigration(m *Migration) error {
 	if !m.construct {
 		return errors.New("must use NewGoMigration to construct migrations")
 	}
@@ -63,10 +62,10 @@ func checkMigration(m *Migration) error {
 			return fmt.Errorf("version:%d does not match numeric component in source %q", m.Version, m.Source)
 		}
 	}
-	if err := setGoFunc(m.goUp); err != nil {
+	if err := checkGoFunc(m.goUp); err != nil {
 		return fmt.Errorf("up function: %w", err)
 	}
-	if err := setGoFunc(m.goDown); err != nil {
+	if err := checkGoFunc(m.goDown); err != nil {
 		return fmt.Errorf("down function: %w", err)
 	}
 	if m.UpFnContext != nil && m.UpFnNoTxContext != nil {
@@ -84,47 +83,22 @@ func checkMigration(m *Migration) error {
 	return nil
 }
 
-func setGoFunc(f *GoFunc) error {
-	if f == nil {
-		f = &GoFunc{Mode: TransactionEnabled}
-		return nil
-	}
+func checkGoFunc(f *GoFunc) error {
 	if f.RunTx != nil && f.RunDB != nil {
 		return errors.New("must specify exactly one of RunTx or RunDB")
 	}
-	if f.RunTx == nil && f.RunDB == nil {
-		switch f.Mode {
-		case 0:
-			// Default to TransactionEnabled ONLY if mode is not set explicitly.
-			f.Mode = TransactionEnabled
-		case TransactionEnabled, TransactionDisabled:
-			// No functions but mode is set. This is not an error. It means the user wants to record
-			// a version with the given mode but not run any functions.
-		default:
-			return fmt.Errorf("invalid mode: %d", f.Mode)
-		}
-		return nil
+	switch f.Mode {
+	case TransactionEnabled, TransactionDisabled:
+		// No functions, but mode is set. This is not an error. It means the user wants to
+		// record a version with the given mode but not run any functions.
+	default:
+		return fmt.Errorf("invalid mode: %d", f.Mode)
 	}
-	if f.RunDB != nil {
-		switch f.Mode {
-		case 0, TransactionDisabled:
-			f.Mode = TransactionDisabled
-		default:
-			return fmt.Errorf("transaction mode must be disabled or unspecified when RunDB is set")
-		}
+	if f.RunDB != nil && f.Mode != TransactionDisabled {
+		return fmt.Errorf("transaction mode must be disabled or unspecified when RunDB is set")
 	}
-	if f.RunTx != nil {
-		switch f.Mode {
-		case 0, TransactionEnabled:
-			f.Mode = TransactionEnabled
-		default:
-			return fmt.Errorf("transaction mode must be enabled or unspecified when RunTx is set")
-		}
-	}
-	// This is a defensive check. If the mode is still 0, it means we failed to infer the mode from
-	// the functions or return an error. This should never happen.
-	if f.Mode == 0 {
-		return errors.New("failed to infer transaction mode")
+	if f.RunTx != nil && f.Mode != TransactionEnabled {
+		return fmt.Errorf("transaction mode must be enabled or unspecified when RunTx is set")
 	}
 	return nil
 }

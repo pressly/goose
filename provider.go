@@ -1,4 +1,4 @@
-package provider
+package goose
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"github.com/pressly/goose/v3/database"
 )
 
-// Provider is a goose migration provider.
+// Provider is a goose migration goose.
 type Provider struct {
 	// mu protects all accesses to the provider and must be held when calling operations on the
 	// database.
@@ -24,10 +24,10 @@ type Provider struct {
 	store database.Store
 
 	// migrations are ordered by version in ascending order.
-	migrations []*migration
+	migrations []*Migration
 }
 
-// NewProvider returns a new goose Provider.
+// NewProvider returns a new goose goose.
 //
 // The caller is responsible for matching the database dialect with the database/sql driver. For
 // example, if the database dialect is "postgres", the database/sql driver could be
@@ -40,7 +40,7 @@ type Provider struct {
 // However, it is possible to use a different "filesystem", such as [embed.FS] or filter out
 // migrations using [fs.Sub].
 //
-// See [ProviderOption] for more information on configuring the provider.
+// See [ProviderOption] for more information on configuring the goose.
 //
 // Unless otherwise specified, all methods on Provider are safe for concurrent use.
 //
@@ -53,8 +53,9 @@ func NewProvider(dialect database.Dialect, db *sql.DB, fsys fs.FS, opts ...Provi
 		fsys = noopFS{}
 	}
 	cfg := config{
-		registered: make(map[int64]*goMigration),
-		excludes:   make(map[string]bool),
+		registered:      make(map[int64]*Migration),
+		excludePaths:    make(map[string]bool),
+		excludeVersions: make(map[int64]bool),
 	}
 	for _, opt := range opts {
 		if err := opt.apply(&cfg); err != nil {
@@ -90,7 +91,7 @@ func newProvider(
 	store database.Store,
 	fsys fs.FS,
 	cfg config,
-	global map[int64]*MigrationCopy,
+	global map[int64]*Migration,
 ) (*Provider, error) {
 	// Collect migrations from the filesystem and merge with registered migrations.
 	//
@@ -100,54 +101,24 @@ func newProvider(
 	// TODO(mf): we should expose a way to parse SQL migrations eagerly. This would allow us to
 	// return an error if there are any SQL parsing errors. This adds a bit overhead to startup
 	// though, so we should make it optional.
-	filesystemSources, err := collectFilesystemSources(fsys, false, cfg.excludes)
+	filesystemSources, err := collectFilesystemSources(fsys, false, cfg.excludePaths, cfg.excludeVersions)
 	if err != nil {
 		return nil, err
 	}
-	registered := make(map[int64]*goMigration)
+	versionToGoMigration := make(map[int64]*Migration)
 	// Add user-registered Go migrations.
 	for version, m := range cfg.registered {
-		registered[version] = newGoMigration("", m.up, m.down)
+		versionToGoMigration[version] = m
 	}
 	// Add init() functions. This is a bit ugly because we need to convert from the old Migration
 	// struct to the new goMigration struct.
 	for version, m := range global {
-		if _, ok := registered[version]; ok {
-			return nil, fmt.Errorf("go migration with version %d already registered", version)
+		if _, ok := versionToGoMigration[version]; ok {
+			return nil, fmt.Errorf("global go migration with version %d already registered with provider", version)
 		}
-		if m == nil {
-			return nil, errors.New("registered migration with nil init function")
-		}
-		g := newGoMigration(m.Source, nil, nil)
-		if m.UpFnContext != nil && m.UpFnNoTxContext != nil {
-			return nil, errors.New("registered migration with both UpFnContext and UpFnNoTxContext")
-		}
-		if m.DownFnContext != nil && m.DownFnNoTxContext != nil {
-			return nil, errors.New("registered migration with both DownFnContext and DownFnNoTxContext")
-		}
-		// Up
-		if m.UpFnContext != nil {
-			g.up = &GoMigrationFunc{
-				Run: m.UpFnContext,
-			}
-		} else if m.UpFnNoTxContext != nil {
-			g.up = &GoMigrationFunc{
-				RunNoTx: m.UpFnNoTxContext,
-			}
-		}
-		// Down
-		if m.DownFnContext != nil {
-			g.down = &GoMigrationFunc{
-				Run: m.DownFnContext,
-			}
-		} else if m.DownFnNoTxContext != nil {
-			g.down = &GoMigrationFunc{
-				RunNoTx: m.DownFnNoTxContext,
-			}
-		}
-		registered[version] = g
+		versionToGoMigration[version] = m
 	}
-	migrations, err := merge(filesystemSources, registered)
+	migrations, err := merge(filesystemSources, versionToGoMigration)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +152,11 @@ func (p *Provider) GetDBVersion(ctx context.Context) (int64, error) {
 func (p *Provider) ListSources() []Source {
 	sources := make([]Source, 0, len(p.migrations))
 	for _, m := range p.migrations {
-		sources = append(sources, m.Source)
+		sources = append(sources, Source{
+			Type:    m.Type,
+			Path:    m.Source,
+			Version: m.Version,
+		})
 	}
 	return sources
 }

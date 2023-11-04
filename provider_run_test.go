@@ -1,4 +1,4 @@
-package provider_test
+package goose_test
 
 import (
 	"context"
@@ -16,9 +16,9 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/internal/check"
-	"github.com/pressly/goose/v3/internal/provider"
 	"github.com/pressly/goose/v3/internal/testdb"
 	"github.com/pressly/goose/v3/lock"
 	"golang.org/x/sync/errgroup"
@@ -45,10 +45,10 @@ func TestProviderRun(t *testing.T) {
 		p, _ := newProviderWithDB(t)
 		_, err := p.ApplyVersion(context.Background(), 999, true)
 		check.HasError(t, err)
-		check.Bool(t, errors.Is(err, provider.ErrVersionNotFound), true)
+		check.Bool(t, errors.Is(err, goose.ErrVersionNotFound), true)
 		_, err = p.ApplyVersion(context.Background(), 999, false)
 		check.HasError(t, err)
-		check.Bool(t, errors.Is(err, provider.ErrVersionNotFound), true)
+		check.Bool(t, errors.Is(err, goose.ErrVersionNotFound), true)
 	})
 	t.Run("run_zero", func(t *testing.T) {
 		p, _ := newProviderWithDB(t)
@@ -72,30 +72,30 @@ func TestProviderRun(t *testing.T) {
 		check.Number(t, len(sources), numCount)
 		// Ensure only SQL migrations are returned
 		for _, s := range sources {
-			check.Equal(t, s.Type, provider.TypeSQL)
+			check.Equal(t, s.Type, goose.TypeSQL)
 		}
 		// Test Up
 		res, err := p.Up(ctx)
 		check.NoError(t, err)
 		check.Number(t, len(res), numCount)
-		assertResult(t, res[0], newSource(provider.TypeSQL, "00001_users_table.sql", 1), "up", false)
-		assertResult(t, res[1], newSource(provider.TypeSQL, "00002_posts_table.sql", 2), "up", false)
-		assertResult(t, res[2], newSource(provider.TypeSQL, "00003_comments_table.sql", 3), "up", false)
-		assertResult(t, res[3], newSource(provider.TypeSQL, "00004_insert_data.sql", 4), "up", false)
-		assertResult(t, res[4], newSource(provider.TypeSQL, "00005_posts_view.sql", 5), "up", false)
-		assertResult(t, res[5], newSource(provider.TypeSQL, "00006_empty_up.sql", 6), "up", true)
-		assertResult(t, res[6], newSource(provider.TypeSQL, "00007_empty_up_down.sql", 7), "up", true)
+		assertResult(t, res[0], newSource(goose.TypeSQL, "00001_users_table.sql", 1), "up", false)
+		assertResult(t, res[1], newSource(goose.TypeSQL, "00002_posts_table.sql", 2), "up", false)
+		assertResult(t, res[2], newSource(goose.TypeSQL, "00003_comments_table.sql", 3), "up", false)
+		assertResult(t, res[3], newSource(goose.TypeSQL, "00004_insert_data.sql", 4), "up", false)
+		assertResult(t, res[4], newSource(goose.TypeSQL, "00005_posts_view.sql", 5), "up", false)
+		assertResult(t, res[5], newSource(goose.TypeSQL, "00006_empty_up.sql", 6), "up", true)
+		assertResult(t, res[6], newSource(goose.TypeSQL, "00007_empty_up_down.sql", 7), "up", true)
 		// Test Down
 		res, err = p.DownTo(ctx, 0)
 		check.NoError(t, err)
 		check.Number(t, len(res), numCount)
-		assertResult(t, res[0], newSource(provider.TypeSQL, "00007_empty_up_down.sql", 7), "down", true)
-		assertResult(t, res[1], newSource(provider.TypeSQL, "00006_empty_up.sql", 6), "down", true)
-		assertResult(t, res[2], newSource(provider.TypeSQL, "00005_posts_view.sql", 5), "down", false)
-		assertResult(t, res[3], newSource(provider.TypeSQL, "00004_insert_data.sql", 4), "down", false)
-		assertResult(t, res[4], newSource(provider.TypeSQL, "00003_comments_table.sql", 3), "down", false)
-		assertResult(t, res[5], newSource(provider.TypeSQL, "00002_posts_table.sql", 2), "down", false)
-		assertResult(t, res[6], newSource(provider.TypeSQL, "00001_users_table.sql", 1), "down", false)
+		assertResult(t, res[0], newSource(goose.TypeSQL, "00007_empty_up_down.sql", 7), "down", true)
+		assertResult(t, res[1], newSource(goose.TypeSQL, "00006_empty_up.sql", 6), "down", true)
+		assertResult(t, res[2], newSource(goose.TypeSQL, "00005_posts_view.sql", 5), "down", false)
+		assertResult(t, res[3], newSource(goose.TypeSQL, "00004_insert_data.sql", 4), "down", false)
+		assertResult(t, res[4], newSource(goose.TypeSQL, "00003_comments_table.sql", 3), "down", false)
+		assertResult(t, res[5], newSource(goose.TypeSQL, "00002_posts_table.sql", 2), "down", false)
+		assertResult(t, res[6], newSource(goose.TypeSQL, "00001_users_table.sql", 1), "down", false)
 	})
 	t.Run("up_and_down_by_one", func(t *testing.T) {
 		ctx := context.Background()
@@ -107,8 +107,8 @@ func TestProviderRun(t *testing.T) {
 			res, err := p.UpByOne(ctx)
 			counter++
 			if counter > maxVersion {
-				if !errors.Is(err, provider.ErrNoNextVersion) {
-					t.Fatalf("incorrect error: got:%v want:%v", err, provider.ErrNoNextVersion)
+				if !errors.Is(err, goose.ErrNoNextVersion) {
+					t.Fatalf("incorrect error: got:%v want:%v", err, goose.ErrNoNextVersion)
 				}
 				break
 			}
@@ -126,8 +126,8 @@ func TestProviderRun(t *testing.T) {
 			res, err := p.Down(ctx)
 			counter++
 			if counter > maxVersion {
-				if !errors.Is(err, provider.ErrNoNextVersion) {
-					t.Fatalf("incorrect error: got:%v want:%v", err, provider.ErrNoNextVersion)
+				if !errors.Is(err, goose.ErrNoNextVersion) {
+					t.Fatalf("incorrect error: got:%v want:%v", err, goose.ErrNoNextVersion)
 				}
 				break
 			}
@@ -149,14 +149,14 @@ func TestProviderRun(t *testing.T) {
 		results, err := p.UpTo(ctx, upToVersion)
 		check.NoError(t, err)
 		check.Number(t, len(results), upToVersion)
-		assertResult(t, results[0], newSource(provider.TypeSQL, "00001_users_table.sql", 1), "up", false)
-		assertResult(t, results[1], newSource(provider.TypeSQL, "00002_posts_table.sql", 2), "up", false)
+		assertResult(t, results[0], newSource(goose.TypeSQL, "00001_users_table.sql", 1), "up", false)
+		assertResult(t, results[1], newSource(goose.TypeSQL, "00002_posts_table.sql", 2), "up", false)
 		// Fetch the goose version from DB
 		currentVersion, err := p.GetDBVersion(ctx)
 		check.NoError(t, err)
 		check.Number(t, currentVersion, upToVersion)
 		// Validate the version actually matches what goose claims it is
-		gotVersion, err := getMaxVersionID(db, provider.DefaultTablename)
+		gotVersion, err := getMaxVersionID(db, goose.DefaultTablename)
 		check.NoError(t, err)
 		check.Number(t, gotVersion, upToVersion)
 	})
@@ -197,7 +197,7 @@ func TestProviderRun(t *testing.T) {
 					check.NoError(t, err)
 					check.Number(t, currentVersion, p.ListSources()[len(sources)-1].Version)
 					// Validate the db migration version actually matches what goose claims it is
-					gotVersion, err := getMaxVersionID(db, provider.DefaultTablename)
+					gotVersion, err := getMaxVersionID(db, goose.DefaultTablename)
 					check.NoError(t, err)
 					check.Number(t, gotVersion, currentVersion)
 					tables, err := getTableNames(db)
@@ -213,13 +213,13 @@ func TestProviderRun(t *testing.T) {
 					downResult, err := p.DownTo(ctx, 0)
 					check.NoError(t, err)
 					check.Number(t, len(downResult), len(sources))
-					gotVersion, err := getMaxVersionID(db, provider.DefaultTablename)
+					gotVersion, err := getMaxVersionID(db, goose.DefaultTablename)
 					check.NoError(t, err)
 					check.Number(t, gotVersion, 0)
 					// Should only be left with a single table, the default goose table
 					tables, err := getTableNames(db)
 					check.NoError(t, err)
-					knownTables := []string{provider.DefaultTablename, "sqlite_sequence"}
+					knownTables := []string{goose.DefaultTablename, "sqlite_sequence"}
 					if !reflect.DeepEqual(tables, knownTables) {
 						t.Logf("got tables: %v", tables)
 						t.Logf("known tables: %v", knownTables)
@@ -261,7 +261,7 @@ func TestProviderRun(t *testing.T) {
 		check.NoError(t, err)
 		_, err = p.ApplyVersion(ctx, 1, true)
 		check.HasError(t, err)
-		check.Bool(t, errors.Is(err, provider.ErrAlreadyApplied), true)
+		check.Bool(t, errors.Is(err, goose.ErrAlreadyApplied), true)
 		check.Contains(t, err.Error(), "version 1: already applied")
 	})
 	t.Run("status", func(t *testing.T) {
@@ -272,26 +272,26 @@ func TestProviderRun(t *testing.T) {
 		status, err := p.Status(ctx)
 		check.NoError(t, err)
 		check.Number(t, len(status), numCount)
-		assertStatus(t, status[0], provider.StatePending, newSource(provider.TypeSQL, "00001_users_table.sql", 1), true)
-		assertStatus(t, status[1], provider.StatePending, newSource(provider.TypeSQL, "00002_posts_table.sql", 2), true)
-		assertStatus(t, status[2], provider.StatePending, newSource(provider.TypeSQL, "00003_comments_table.sql", 3), true)
-		assertStatus(t, status[3], provider.StatePending, newSource(provider.TypeSQL, "00004_insert_data.sql", 4), true)
-		assertStatus(t, status[4], provider.StatePending, newSource(provider.TypeSQL, "00005_posts_view.sql", 5), true)
-		assertStatus(t, status[5], provider.StatePending, newSource(provider.TypeSQL, "00006_empty_up.sql", 6), true)
-		assertStatus(t, status[6], provider.StatePending, newSource(provider.TypeSQL, "00007_empty_up_down.sql", 7), true)
+		assertStatus(t, status[0], goose.StatePending, newSource(goose.TypeSQL, "00001_users_table.sql", 1), true)
+		assertStatus(t, status[1], goose.StatePending, newSource(goose.TypeSQL, "00002_posts_table.sql", 2), true)
+		assertStatus(t, status[2], goose.StatePending, newSource(goose.TypeSQL, "00003_comments_table.sql", 3), true)
+		assertStatus(t, status[3], goose.StatePending, newSource(goose.TypeSQL, "00004_insert_data.sql", 4), true)
+		assertStatus(t, status[4], goose.StatePending, newSource(goose.TypeSQL, "00005_posts_view.sql", 5), true)
+		assertStatus(t, status[5], goose.StatePending, newSource(goose.TypeSQL, "00006_empty_up.sql", 6), true)
+		assertStatus(t, status[6], goose.StatePending, newSource(goose.TypeSQL, "00007_empty_up_down.sql", 7), true)
 		// Apply all migrations
 		_, err = p.Up(ctx)
 		check.NoError(t, err)
 		status, err = p.Status(ctx)
 		check.NoError(t, err)
 		check.Number(t, len(status), numCount)
-		assertStatus(t, status[0], provider.StateApplied, newSource(provider.TypeSQL, "00001_users_table.sql", 1), false)
-		assertStatus(t, status[1], provider.StateApplied, newSource(provider.TypeSQL, "00002_posts_table.sql", 2), false)
-		assertStatus(t, status[2], provider.StateApplied, newSource(provider.TypeSQL, "00003_comments_table.sql", 3), false)
-		assertStatus(t, status[3], provider.StateApplied, newSource(provider.TypeSQL, "00004_insert_data.sql", 4), false)
-		assertStatus(t, status[4], provider.StateApplied, newSource(provider.TypeSQL, "00005_posts_view.sql", 5), false)
-		assertStatus(t, status[5], provider.StateApplied, newSource(provider.TypeSQL, "00006_empty_up.sql", 6), false)
-		assertStatus(t, status[6], provider.StateApplied, newSource(provider.TypeSQL, "00007_empty_up_down.sql", 7), false)
+		assertStatus(t, status[0], goose.StateApplied, newSource(goose.TypeSQL, "00001_users_table.sql", 1), false)
+		assertStatus(t, status[1], goose.StateApplied, newSource(goose.TypeSQL, "00002_posts_table.sql", 2), false)
+		assertStatus(t, status[2], goose.StateApplied, newSource(goose.TypeSQL, "00003_comments_table.sql", 3), false)
+		assertStatus(t, status[3], goose.StateApplied, newSource(goose.TypeSQL, "00004_insert_data.sql", 4), false)
+		assertStatus(t, status[4], goose.StateApplied, newSource(goose.TypeSQL, "00005_posts_view.sql", 5), false)
+		assertStatus(t, status[5], goose.StateApplied, newSource(goose.TypeSQL, "00006_empty_up.sql", 6), false)
+		assertStatus(t, status[6], goose.StateApplied, newSource(goose.TypeSQL, "00007_empty_up_down.sql", 7), false)
 	})
 	t.Run("tx_partial_errors", func(t *testing.T) {
 		countOwners := func(db *sql.DB) (int, error) {
@@ -321,22 +321,22 @@ INSERT INTO owners (owner_name) VALUES ('seed-user-2');
 INSERT INTO owners (owner_name) VALUES ('seed-user-3');
 `),
 		}
-		p, err := provider.NewProvider(database.DialectSQLite3, db, mapFS)
+		p, err := goose.NewProvider(database.DialectSQLite3, db, mapFS)
 		check.NoError(t, err)
 		_, err = p.Up(ctx)
 		check.HasError(t, err)
 		check.Contains(t, err.Error(), "partial migration error (00002_partial_error.sql) (2)")
-		var expected *provider.PartialError
+		var expected *goose.PartialError
 		check.Bool(t, errors.As(err, &expected), true)
 		// Check Err field
 		check.Bool(t, expected.Err != nil, true)
 		check.Contains(t, expected.Err.Error(), "SQL logic error: no such table: invalid_table (1)")
 		// Check Results field
 		check.Number(t, len(expected.Applied), 1)
-		assertResult(t, expected.Applied[0], newSource(provider.TypeSQL, "00001_users_table.sql", 1), "up", false)
+		assertResult(t, expected.Applied[0], newSource(goose.TypeSQL, "00001_users_table.sql", 1), "up", false)
 		// Check Failed field
 		check.Bool(t, expected.Failed != nil, true)
-		assertSource(t, expected.Failed.Source, provider.TypeSQL, "00002_partial_error.sql", 2)
+		assertSource(t, expected.Failed.Source, goose.TypeSQL, "00002_partial_error.sql", 2)
 		check.Bool(t, expected.Failed.Empty, false)
 		check.Bool(t, expected.Failed.Error != nil, true)
 		check.Contains(t, expected.Failed.Error.Error(), "SQL logic error: no such table: invalid_table (1)")
@@ -351,9 +351,9 @@ INSERT INTO owners (owner_name) VALUES ('seed-user-3');
 		status, err := p.Status(ctx)
 		check.NoError(t, err)
 		check.Number(t, len(status), 3)
-		assertStatus(t, status[0], provider.StateApplied, newSource(provider.TypeSQL, "00001_users_table.sql", 1), false)
-		assertStatus(t, status[1], provider.StatePending, newSource(provider.TypeSQL, "00002_partial_error.sql", 2), true)
-		assertStatus(t, status[2], provider.StatePending, newSource(provider.TypeSQL, "00003_insert_data.sql", 3), true)
+		assertStatus(t, status[0], goose.StateApplied, newSource(goose.TypeSQL, "00001_users_table.sql", 1), false)
+		assertStatus(t, status[1], goose.StatePending, newSource(goose.TypeSQL, "00002_partial_error.sql", 2), true)
+		assertStatus(t, status[2], goose.StatePending, newSource(goose.TypeSQL, "00003_insert_data.sql", 3), true)
 	})
 }
 
@@ -415,7 +415,7 @@ func TestConcurrentProvider(t *testing.T) {
 		check.NoError(t, err)
 		check.Number(t, currentVersion, maxVersion)
 
-		ch := make(chan []*provider.MigrationResult)
+		ch := make(chan []*goose.MigrationResult)
 		var wg sync.WaitGroup
 		for i := 0; i < maxVersion; i++ {
 			wg.Add(1)
@@ -435,8 +435,8 @@ func TestConcurrentProvider(t *testing.T) {
 			close(ch)
 		}()
 		var (
-			valid [][]*provider.MigrationResult
-			empty [][]*provider.MigrationResult
+			valid [][]*goose.MigrationResult
+			empty [][]*goose.MigrationResult
 		)
 		for results := range ch {
 			if len(results) == 0 {
@@ -486,9 +486,9 @@ func TestNoVersioning(t *testing.T) {
 		// These are owners created by migration files.
 		wantOwnerCount = 4
 	)
-	p, err := provider.NewProvider(database.DialectSQLite3, db, fsys,
-		provider.WithVerbose(testing.Verbose()),
-		provider.WithDisabledVersioning(false), // This is the default.
+	p, err := goose.NewProvider(database.DialectSQLite3, db, fsys,
+		goose.WithVerbose(testing.Verbose()),
+		goose.WithDisabledVersioning(false), // This is the default.
 	)
 	check.Number(t, len(p.ListSources()), 3)
 	check.NoError(t, err)
@@ -499,9 +499,9 @@ func TestNoVersioning(t *testing.T) {
 	check.Number(t, baseVersion, 3)
 	t.Run("seed-up-down-to-zero", func(t *testing.T) {
 		fsys := os.DirFS(filepath.Join("testdata", "no-versioning", "seed"))
-		p, err := provider.NewProvider(database.DialectSQLite3, db, fsys,
-			provider.WithVerbose(testing.Verbose()),
-			provider.WithDisabledVersioning(true), // Provider with no versioning.
+		p, err := goose.NewProvider(database.DialectSQLite3, db, fsys,
+			goose.WithVerbose(testing.Verbose()),
+			goose.WithDisabledVersioning(true), // Provider with no versioning.
 		)
 		check.NoError(t, err)
 		check.Number(t, len(p.ListSources()), 2)
@@ -552,8 +552,8 @@ func TestAllowMissing(t *testing.T) {
 
 	t.Run("missing_now_allowed", func(t *testing.T) {
 		db := newDB(t)
-		p, err := provider.NewProvider(database.DialectSQLite3, db, newFsys(),
-			provider.WithAllowedMissing(false),
+		p, err := goose.NewProvider(database.DialectSQLite3, db, newFsys(),
+			goose.WithAllowedMissing(false),
 		)
 		check.NoError(t, err)
 
@@ -607,8 +607,8 @@ func TestAllowMissing(t *testing.T) {
 
 	t.Run("missing_allowed", func(t *testing.T) {
 		db := newDB(t)
-		p, err := provider.NewProvider(database.DialectSQLite3, db, newFsys(),
-			provider.WithAllowedMissing(true),
+		p, err := goose.NewProvider(database.DialectSQLite3, db, newFsys(),
+			goose.WithAllowedMissing(true),
 		)
 		check.NoError(t, err)
 
@@ -640,7 +640,7 @@ func TestAllowMissing(t *testing.T) {
 			check.Bool(t, upResult != nil, true)
 			check.Number(t, upResult.Source.Version, 6)
 
-			count, err := getGooseVersionCount(db, provider.DefaultTablename)
+			count, err := getGooseVersionCount(db, goose.DefaultTablename)
 			check.NoError(t, err)
 			check.Number(t, count, 6)
 			current, err := p.GetDBVersion(ctx)
@@ -676,7 +676,7 @@ func TestAllowMissing(t *testing.T) {
 		testDownAndVersion(1, 1)
 		_, err = p.Down(ctx)
 		check.HasError(t, err)
-		check.Bool(t, errors.Is(err, provider.ErrNoNextVersion), true)
+		check.Bool(t, errors.Is(err, goose.ErrNoNextVersion), true)
 	})
 }
 
@@ -691,6 +691,7 @@ func getGooseVersionCount(db *sql.DB, gooseTable string) (int64, error) {
 }
 
 func TestGoOnly(t *testing.T) {
+	t.Cleanup(goose.ResetGlobalMigrations)
 	// Not parallel because each subtest modifies global state.
 
 	countUser := func(db *sql.DB) int {
@@ -703,99 +704,109 @@ func TestGoOnly(t *testing.T) {
 
 	t.Run("with_tx", func(t *testing.T) {
 		ctx := context.Background()
-		register := []*provider.MigrationCopy{
-			{
-				Version: 1, Source: "00001_users_table.go", Registered: true,
-				UpFnContext:   newTxFn("CREATE TABLE users (id INTEGER PRIMARY KEY)"),
-				DownFnContext: newTxFn("DROP TABLE users"),
-			},
+		register := []*goose.Migration{
+			goose.NewGoMigration(
+				1,
+				&goose.GoFunc{RunTx: newTxFn("CREATE TABLE users (id INTEGER PRIMARY KEY)")},
+				&goose.GoFunc{RunTx: newTxFn("DROP TABLE users")},
+			),
 		}
-		err := provider.SetGlobalGoMigrations(register)
+		err := goose.SetGlobalMigrations(register...)
 		check.NoError(t, err)
-		t.Cleanup(provider.ResetGlobalGoMigrations)
+		t.Cleanup(goose.ResetGlobalMigrations)
 
 		db := newDB(t)
-		p, err := provider.NewProvider(database.DialectSQLite3, db, nil,
-			provider.WithGoMigration(
+		register = []*goose.Migration{
+			goose.NewGoMigration(
 				2,
-				&provider.GoMigrationFunc{Run: newTxFn("INSERT INTO users (id) VALUES (1), (2), (3)")},
-				&provider.GoMigrationFunc{Run: newTxFn("DELETE FROM users")},
+				&goose.GoFunc{RunTx: newTxFn("INSERT INTO users (id) VALUES (1), (2), (3)")},
+				&goose.GoFunc{RunTx: newTxFn("DELETE FROM users")},
 			),
+		}
+		p, err := goose.NewProvider(database.DialectSQLite3, db, nil,
+			goose.WithGoMigrations(register...),
 		)
 		check.NoError(t, err)
 		sources := p.ListSources()
 		check.Number(t, len(p.ListSources()), 2)
-		assertSource(t, sources[0], provider.TypeGo, "00001_users_table.go", 1)
-		assertSource(t, sources[1], provider.TypeGo, "", 2)
+		assertSource(t, sources[0], goose.TypeGo, "", 1)
+		assertSource(t, sources[1], goose.TypeGo, "", 2)
 		// Apply migration 1
 		res, err := p.UpByOne(ctx)
 		check.NoError(t, err)
-		assertResult(t, res, newSource(provider.TypeGo, "00001_users_table.go", 1), "up", false)
+		assertResult(t, res, newSource(goose.TypeGo, "", 1), "up", false)
 		check.Number(t, countUser(db), 0)
 		check.Bool(t, tableExists(t, db, "users"), true)
 		// Apply migration 2
 		res, err = p.UpByOne(ctx)
 		check.NoError(t, err)
-		assertResult(t, res, newSource(provider.TypeGo, "", 2), "up", false)
+		assertResult(t, res, newSource(goose.TypeGo, "", 2), "up", false)
 		check.Number(t, countUser(db), 3)
 		// Rollback migration 2
 		res, err = p.Down(ctx)
 		check.NoError(t, err)
-		assertResult(t, res, newSource(provider.TypeGo, "", 2), "down", false)
+		assertResult(t, res, newSource(goose.TypeGo, "", 2), "down", false)
 		check.Number(t, countUser(db), 0)
 		// Rollback migration 1
 		res, err = p.Down(ctx)
 		check.NoError(t, err)
-		assertResult(t, res, newSource(provider.TypeGo, "00001_users_table.go", 1), "down", false)
+		assertResult(t, res, newSource(goose.TypeGo, "", 1), "down", false)
 		// Check table does not exist
 		check.Bool(t, tableExists(t, db, "users"), false)
 	})
 	t.Run("with_db", func(t *testing.T) {
 		ctx := context.Background()
-		register := []*provider.MigrationCopy{
-			{
-				Version: 1, Source: "00001_users_table.go", Registered: true,
-				UpFnNoTxContext:   newDBFn("CREATE TABLE users (id INTEGER PRIMARY KEY)"),
-				DownFnNoTxContext: newDBFn("DROP TABLE users"),
-			},
+		register := []*goose.Migration{
+			goose.NewGoMigration(
+				1,
+				&goose.GoFunc{
+					RunDB: newDBFn("CREATE TABLE users (id INTEGER PRIMARY KEY)"),
+				},
+				&goose.GoFunc{
+					RunDB: newDBFn("DROP TABLE users"),
+				},
+			),
 		}
-		err := provider.SetGlobalGoMigrations(register)
+		err := goose.SetGlobalMigrations(register...)
 		check.NoError(t, err)
-		t.Cleanup(provider.ResetGlobalGoMigrations)
+		t.Cleanup(goose.ResetGlobalMigrations)
 
 		db := newDB(t)
-		p, err := provider.NewProvider(database.DialectSQLite3, db, nil,
-			provider.WithGoMigration(
+		register = []*goose.Migration{
+			goose.NewGoMigration(
 				2,
-				&provider.GoMigrationFunc{RunNoTx: newDBFn("INSERT INTO users (id) VALUES (1), (2), (3)")},
-				&provider.GoMigrationFunc{RunNoTx: newDBFn("DELETE FROM users")},
+				&goose.GoFunc{RunDB: newDBFn("INSERT INTO users (id) VALUES (1), (2), (3)")},
+				&goose.GoFunc{RunDB: newDBFn("DELETE FROM users")},
 			),
+		}
+		p, err := goose.NewProvider(database.DialectSQLite3, db, nil,
+			goose.WithGoMigrations(register...),
 		)
 		check.NoError(t, err)
 		sources := p.ListSources()
 		check.Number(t, len(p.ListSources()), 2)
-		assertSource(t, sources[0], provider.TypeGo, "00001_users_table.go", 1)
-		assertSource(t, sources[1], provider.TypeGo, "", 2)
+		assertSource(t, sources[0], goose.TypeGo, "", 1)
+		assertSource(t, sources[1], goose.TypeGo, "", 2)
 		// Apply migration 1
 		res, err := p.UpByOne(ctx)
 		check.NoError(t, err)
-		assertResult(t, res, newSource(provider.TypeGo, "00001_users_table.go", 1), "up", false)
+		assertResult(t, res, newSource(goose.TypeGo, "", 1), "up", false)
 		check.Number(t, countUser(db), 0)
 		check.Bool(t, tableExists(t, db, "users"), true)
 		// Apply migration 2
 		res, err = p.UpByOne(ctx)
 		check.NoError(t, err)
-		assertResult(t, res, newSource(provider.TypeGo, "", 2), "up", false)
+		assertResult(t, res, newSource(goose.TypeGo, "", 2), "up", false)
 		check.Number(t, countUser(db), 3)
 		// Rollback migration 2
 		res, err = p.Down(ctx)
 		check.NoError(t, err)
-		assertResult(t, res, newSource(provider.TypeGo, "", 2), "down", false)
+		assertResult(t, res, newSource(goose.TypeGo, "", 2), "down", false)
 		check.Number(t, countUser(db), 0)
 		// Rollback migration 1
 		res, err = p.Down(ctx)
 		check.NoError(t, err)
-		assertResult(t, res, newSource(provider.TypeGo, "00001_users_table.go", 1), "down", false)
+		assertResult(t, res, newSource(goose.TypeGo, "", 1), "down", false)
 		// Check table does not exist
 		check.Bool(t, tableExists(t, db, "users"), false)
 	})
@@ -818,12 +829,12 @@ func TestLockModeAdvisorySession(t *testing.T) {
 	check.NoError(t, err)
 	t.Cleanup(cleanup)
 
-	newProvider := func() *provider.Provider {
+	newProvider := func() *goose.Provider {
 		sessionLocker, err := lock.NewPostgresSessionLocker()
 		check.NoError(t, err)
-		p, err := provider.NewProvider(database.DialectPostgres, db, os.DirFS("../../testdata/migrations"),
-			provider.WithSessionLocker(sessionLocker), // Use advisory session lock mode.
-			provider.WithVerbose(testing.Verbose()),
+		p, err := goose.NewProvider(database.DialectPostgres, db, os.DirFS("testdata/migrations"),
+			goose.WithSessionLocker(sessionLocker), // Use advisory session lock mode.
+			goose.WithVerbose(testing.Verbose()),
 		)
 		check.NoError(t, err)
 		return p
@@ -891,7 +902,7 @@ func TestLockModeAdvisorySession(t *testing.T) {
 			for {
 				result, err := provider1.UpByOne(context.Background())
 				if err != nil {
-					if errors.Is(err, provider.ErrNoNextVersion) {
+					if errors.Is(err, goose.ErrNoNextVersion) {
 						return nil
 					}
 					return err
@@ -907,7 +918,7 @@ func TestLockModeAdvisorySession(t *testing.T) {
 			for {
 				result, err := provider2.UpByOne(context.Background())
 				if err != nil {
-					if errors.Is(err, provider.ErrNoNextVersion) {
+					if errors.Is(err, goose.ErrNoNextVersion) {
 						return nil
 					}
 					return err
@@ -993,7 +1004,7 @@ func TestLockModeAdvisorySession(t *testing.T) {
 			for {
 				result, err := provider1.Down(context.Background())
 				if err != nil {
-					if errors.Is(err, provider.ErrNoNextVersion) {
+					if errors.Is(err, goose.ErrNoNextVersion) {
 						return nil
 					}
 					return err
@@ -1009,7 +1020,7 @@ func TestLockModeAdvisorySession(t *testing.T) {
 			for {
 				result, err := provider2.Down(context.Background())
 				if err != nil {
-					if errors.Is(err, provider.ErrNoNextVersion) {
+					if errors.Is(err, goose.ErrNoNextVersion) {
 						return nil
 					}
 					return err
@@ -1068,14 +1079,14 @@ func randomAlphaNumeric(length int) string {
 	return string(b)
 }
 
-func newProviderWithDB(t *testing.T, opts ...provider.ProviderOption) (*provider.Provider, *sql.DB) {
+func newProviderWithDB(t *testing.T, opts ...goose.ProviderOption) (*goose.Provider, *sql.DB) {
 	t.Helper()
 	db := newDB(t)
 	opts = append(
 		opts,
-		provider.WithVerbose(testing.Verbose()),
+		goose.WithVerbose(testing.Verbose()),
 	)
-	p, err := provider.NewProvider(database.DialectSQLite3, db, newFsys(), opts...)
+	p, err := goose.NewProvider(database.DialectSQLite3, db, newFsys(), opts...)
 	check.NoError(t, err)
 	return p, db
 }
@@ -1118,14 +1129,14 @@ func getTableNames(db *sql.DB) ([]string, error) {
 	return tables, nil
 }
 
-func assertStatus(t *testing.T, got *provider.MigrationStatus, state provider.State, source provider.Source, appliedIsZero bool) {
+func assertStatus(t *testing.T, got *goose.MigrationStatus, state goose.State, source goose.Source, appliedIsZero bool) {
 	t.Helper()
 	check.Equal(t, got.State, state)
 	check.Equal(t, got.Source, source)
 	check.Bool(t, got.AppliedAt.IsZero(), appliedIsZero)
 }
 
-func assertResult(t *testing.T, got *provider.MigrationResult, source provider.Source, direction string, isEmpty bool) {
+func assertResult(t *testing.T, got *goose.MigrationResult, source goose.Source, direction string, isEmpty bool) {
 	t.Helper()
 	check.Bool(t, got != nil, true)
 	check.Equal(t, got.Source, source)
@@ -1135,21 +1146,15 @@ func assertResult(t *testing.T, got *provider.MigrationResult, source provider.S
 	check.Bool(t, got.Duration > 0, true)
 }
 
-func assertSource(t *testing.T, got provider.Source, typ provider.MigrationType, name string, version int64) {
+func assertSource(t *testing.T, got goose.Source, typ goose.MigrationType, name string, version int64) {
 	t.Helper()
 	check.Equal(t, got.Type, typ)
 	check.Equal(t, got.Path, name)
 	check.Equal(t, got.Version, version)
-	switch got.Type {
-	case provider.TypeGo:
-		check.Equal(t, got.Type.String(), "go")
-	case provider.TypeSQL:
-		check.Equal(t, got.Type.String(), "sql")
-	}
 }
 
-func newSource(t provider.MigrationType, fullpath string, version int64) provider.Source {
-	return provider.Source{
+func newSource(t goose.MigrationType, fullpath string, version int64) goose.Source {
+	return goose.Source{
 		Type:    t,
 		Path:    fullpath,
 		Version: version,

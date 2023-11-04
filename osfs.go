@@ -18,3 +18,11 @@ func (osFS) Stat(name string) (fs.FileInfo, error) { return os.Stat(filepath.Fro
 func (osFS) ReadFile(name string) ([]byte, error) { return os.ReadFile(filepath.FromSlash(name)) }
 
 func (osFS) Glob(pattern string) ([]string, error) { return filepath.Glob(filepath.FromSlash(pattern)) }
+
+type noopFS struct{}
+
+var _ fs.FS = noopFS{}
+
+func (f noopFS) Open(name string) (fs.File, error) {
+	return nil, os.ErrNotExist
+}

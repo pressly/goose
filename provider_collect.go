@@ -1,40 +1,18 @@
-package provider
+package goose
 
 import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
-
-	"github.com/pressly/goose/v3"
 )
 
 // fileSources represents a collection of migration files on the filesystem.
 type fileSources struct {
 	sqlSources []Source
 	goSources  []Source
-}
-
-// TODO(mf): remove?
-func (s *fileSources) lookup(t MigrationType, version int64) *Source {
-	switch t {
-	case TypeGo:
-		for _, source := range s.goSources {
-			if source.Version == version {
-				return &source
-			}
-		}
-	case TypeSQL:
-		for _, source := range s.sqlSources {
-			if source.Version == version {
-				return &source
-			}
-		}
-	}
-	return nil
 }
 
 // collectFilesystemSources scans the file system for migration files that have a numeric prefix
@@ -46,7 +24,12 @@ func (s *fileSources) lookup(t MigrationType, version int64) *Source {
 //
 // This function DOES NOT parse SQL migrations or merge registered Go migrations. It only collects
 // migration sources from the filesystem.
-func collectFilesystemSources(fsys fs.FS, strict bool, excludes map[string]bool) (*fileSources, error) {
+func collectFilesystemSources(
+	fsys fs.FS,
+	strict bool,
+	excludePaths map[string]bool,
+	excludeVersions map[int64]bool,
+) (*fileSources, error) {
 	if fsys == nil {
 		return new(fileSources), nil
 	}
@@ -62,8 +45,11 @@ func collectFilesystemSources(fsys fs.FS, strict bool, excludes map[string]bool)
 		}
 		for _, fullpath := range files {
 			base := filepath.Base(fullpath)
-			// Skip explicit excludes or Go test files.
-			if excludes[base] || strings.HasSuffix(base, "_test.go") {
+			if strings.HasSuffix(base, "_test.go") {
+				continue
+			}
+			if excludePaths[base] {
+				// TODO(mf): log this?
 				continue
 			}
 			// If the filename has a valid looking version of the form: NUMBER_.{sql,go}, then use
@@ -71,11 +57,15 @@ func collectFilesystemSources(fsys fs.FS, strict bool, excludes map[string]bool)
 			// filenames, but still have versioned migrations within the same directory. For
 			// example, a user could have a helpers.go file which contains unexported helper
 			// functions for migrations.
-			version, err := goose.NumericComponent(base)
+			version, err := NumericComponent(base)
 			if err != nil {
 				if strict {
 					return nil, fmt.Errorf("failed to parse numeric component from %q: %w", base, err)
 				}
+				continue
+			}
+			if excludeVersions[version] {
+				// TODO: log this?
 				continue
 			}
 			// Ensure there are no duplicate versions.
@@ -101,7 +91,7 @@ func collectFilesystemSources(fsys fs.FS, strict bool, excludes map[string]bool)
 				})
 			default:
 				// Should never happen since we already filtered out all other file types.
-				return nil, fmt.Errorf("unknown migration type: %s", base)
+				return nil, fmt.Errorf("invalid file extension: %q", base)
 			}
 			// Add the version to the lookup map.
 			versionToBaseLookup[version] = base
@@ -110,15 +100,25 @@ func collectFilesystemSources(fsys fs.FS, strict bool, excludes map[string]bool)
 	return sources, nil
 }
 
-func merge(sources *fileSources, registerd map[int64]*goMigration) ([]*migration, error) {
-	var migrations []*migration
-	migrationLookup := make(map[int64]*migration)
+func newSQLMigration(source Source) *Migration {
+	return &Migration{
+		Type:      source.Type,
+		Version:   source.Version,
+		Source:    source.Path,
+		construct: true,
+		Next:      -1, Previous: -1,
+		sql: sqlMigration{
+			Parsed: false, // SQL migrations are parsed lazily.
+		},
+	}
+}
+
+func merge(sources *fileSources, registerd map[int64]*Migration) ([]*Migration, error) {
+	var migrations []*Migration
+	migrationLookup := make(map[int64]*Migration)
 	// Add all SQL migrations to the list of migrations.
 	for _, source := range sources.sqlSources {
-		m := &migration{
-			Source: source,
-			SQL:    nil, // SQL migrations are parsed lazily.
-		}
+		m := newSQLMigration(source)
 		migrations = append(migrations, m)
 		migrationLookup[source.Version] = m
 	}
@@ -147,38 +147,24 @@ func merge(sources *fileSources, registerd map[int64]*goMigration) ([]*migration
 	// wholesale as part of migrations. This allows users to build a custom binary that only embeds
 	// the SQL migration files.
 	for version, r := range registerd {
-		fullpath := r.fullpath
-		if fullpath == "" {
-			if s := sources.lookup(TypeGo, version); s != nil {
-				fullpath = s.Path
-			}
-		}
 		// Ensure there are no duplicate versions.
 		if existing, ok := migrationLookup[version]; ok {
-			fullpath := r.fullpath
+			fullpath := r.Source
 			if fullpath == "" {
 				fullpath = "manually registered (no source)"
 			}
 			return nil, fmt.Errorf("found duplicate migration version %d:\n\texisting:%v\n\tcurrent:%v",
 				version,
-				existing.Source.Path,
+				existing.Source,
 				fullpath,
 			)
 		}
-		m := &migration{
-			Source: Source{
-				Type:    TypeGo,
-				Path:    fullpath, // May be empty if migration was registered manually.
-				Version: version,
-			},
-			Go: r,
-		}
-		migrations = append(migrations, m)
-		migrationLookup[version] = m
+		migrations = append(migrations, r)
+		migrationLookup[version] = r
 	}
 	// Sort migrations by version in ascending order.
 	sort.Slice(migrations, func(i, j int) bool {
-		return migrations[i].Source.Version < migrations[j].Source.Version
+		return migrations[i].Version < migrations[j].Version
 	})
 	return migrations, nil
 }
@@ -202,12 +188,4 @@ func unregisteredError(unregistered []string) error {
 	b.WriteString("\n")
 
 	return errors.New(b.String())
-}
-
-type noopFS struct{}
-
-var _ fs.FS = noopFS{}
-
-func (f noopFS) Open(name string) (fs.File, error) {
-	return nil, os.ErrNotExist
 }
