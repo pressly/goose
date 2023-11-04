@@ -15,7 +15,7 @@ import (
 func TestGoMigrationByOne(t *testing.T) {
 	t.Parallel()
 
-	goose.SetDialect("sqlite3")
+	check.NoError(t, goose.SetDialect("sqlite3"))
 	db, err := sql.Open("sqlite", ":memory:")
 	check.NoError(t, err)
 	dir := "testdata"
