@@ -3,18 +3,18 @@ module github.com/pressly/goose/v3
 go 1.19
 
 require (
-	github.com/ClickHouse/clickhouse-go/v2 v2.14.3
+	github.com/ClickHouse/clickhouse-go/v2 v2.15.0
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/jackc/pgx/v5 v5.4.3
 	github.com/microsoft/go-mssqldb v1.6.0
 	github.com/ory/dockertest/v3 v3.10.0
 	github.com/sethvargo/go-retry v0.2.4
 	github.com/vertica/vertica-sql-go v1.3.3
-	github.com/ydb-platform/ydb-go-sdk/v3 v3.53.4
+	github.com/ydb-platform/ydb-go-sdk/v3 v3.54.1
 	github.com/ziutek/mymysql v1.5.4
 	go.uber.org/multierr v1.11.0
 	golang.org/x/sync v0.4.0
-	modernc.org/sqlite v1.26.0
+	modernc.org/sqlite v1.27.0
 )
 
 require (
@@ -84,7 +84,7 @@ require (
 	lukechampine.com/uint128 v1.3.0 // indirect
 	modernc.org/cc/v3 v3.41.0 // indirect
 	modernc.org/ccgo/v3 v3.16.15 // indirect
-	modernc.org/libc v1.28.0 // indirect
+	modernc.org/libc v1.29.0 // indirect
 	modernc.org/mathutil v1.6.0 // indirect
 	modernc.org/memory v1.7.2 // indirect
 	modernc.org/opt v0.1.3 // indirect
