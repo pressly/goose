@@ -59,6 +59,8 @@ func runMigration(ctx context.Context, db database.DBTxConn, m *Migration, direc
 	return fmt.Errorf("invalid migration type: %q", m.Type)
 }
 
+// runGo is a helper function that runs the given Go functions in the given direction. It must only
+// be called after the migration has been initialized.
 func runGo(ctx context.Context, db database.DBTxConn, m *Migration, direction bool) error {
 	switch db := db.(type) {
 	case *sql.Conn:
