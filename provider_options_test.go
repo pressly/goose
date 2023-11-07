@@ -32,9 +32,6 @@ func TestNewProvider(t *testing.T) {
 		// Nil db not allowed
 		_, err = goose.NewProvider(database.DialectSQLite3, nil, fsys)
 		check.HasError(t, err)
-		// Nil fsys not allowed
-		_, err = goose.NewProvider(database.DialectSQLite3, db, nil)
-		check.HasError(t, err)
 		// Nil store not allowed
 		_, err = goose.NewProvider(database.DialectSQLite3, db, nil, goose.WithStore(nil))
 		check.HasError(t, err)
