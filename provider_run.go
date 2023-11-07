@@ -164,7 +164,7 @@ func (p *Provider) runMigrations(
 				Version: m.Version,
 			},
 			Direction: direction.String(),
-			Empty:     m.isEmpty(direction.ToBool()),
+			Empty:     isEmpty(m, direction.ToBool()),
 		}
 		start := time.Now()
 		if err := p.runIndividually(ctx, conn, m, direction.ToBool()); err != nil {
@@ -191,13 +191,13 @@ func (p *Provider) runIndividually(
 	m *Migration,
 	direction bool,
 ) error {
-	useTx, err := m.useTx(direction)
+	useTx, err := useTx(m, direction)
 	if err != nil {
 		return err
 	}
 	if useTx {
 		return beginTx(ctx, conn, func(tx *sql.Tx) error {
-			if err := m.apply(ctx, tx, direction); err != nil {
+			if err := runMigration(ctx, tx, m, direction); err != nil {
 				return err
 			}
 			return p.maybeInsertOrDelete(ctx, tx, m.Version, direction)
@@ -211,19 +211,16 @@ func (p *Provider) runIndividually(
 		// acquire a connection from the pool.
 		//
 		// TODO(mf): we can detect this scenario and return a more helpful error message.
-		if err := m.apply(ctx, p.db, direction); err != nil {
+		if err := runMigration(ctx, p.db, m, direction); err != nil {
 			return err
 		}
 		return p.maybeInsertOrDelete(ctx, p.db, m.Version, direction)
 	case TypeSQL:
-		if err := m.apply(ctx, conn, direction); err != nil {
+		if err := runMigration(ctx, conn, m, direction); err != nil {
 			return err
 		}
 		return p.maybeInsertOrDelete(ctx, conn, m.Version, direction)
 	}
-	//
-	// This should never happen!!
-	//
 	return fmt.Errorf("failed to run individual migration: neither sql or go: %v", m)
 }
 

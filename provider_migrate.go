@@ -8,7 +8,7 @@ import (
 	"github.com/pressly/goose/v3/database"
 )
 
-func (m *Migration) useTx(direction bool) (bool, error) {
+func useTx(m *Migration, direction bool) (bool, error) {
 	switch m.Type {
 	case TypeGo:
 		if m.goUp.Mode == 0 || m.goDown.Mode == 0 {
@@ -27,7 +27,7 @@ func (m *Migration) useTx(direction bool) (bool, error) {
 	return false, fmt.Errorf("invalid migration type: %q", m.Type)
 }
 
-func (m *Migration) isEmpty(direction bool) bool {
+func isEmpty(m *Migration, direction bool) bool {
 	switch m.Type {
 	case TypeGo:
 		if direction {
@@ -43,7 +43,7 @@ func (m *Migration) isEmpty(direction bool) bool {
 	return true
 }
 
-func (m *Migration) apply(ctx context.Context, db database.DBTxConn, direction bool) error {
+func runMigration(ctx context.Context, db database.DBTxConn, m *Migration, direction bool) error {
 	switch m.Type {
 	case TypeGo:
 		return runGo(ctx, db, m, direction)
