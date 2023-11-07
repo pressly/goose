@@ -191,7 +191,11 @@ func (p *Provider) runIndividually(
 	m *Migration,
 	direction bool,
 ) error {
-	if m.useTx(direction) {
+	useTx, err := m.useTx(direction)
+	if err != nil {
+		return err
+	}
+	if useTx {
 		return beginTx(ctx, conn, func(tx *sql.Tx) error {
 			if err := m.apply(ctx, tx, direction); err != nil {
 				return err

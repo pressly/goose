@@ -8,21 +8,23 @@ import (
 	"github.com/pressly/goose/v3/database"
 )
 
-func (m *Migration) useTx(direction bool) bool {
+func (m *Migration) useTx(direction bool) (bool, error) {
 	switch m.Type {
 	case TypeGo:
-		if direction && m.goUp.Mode == TransactionEnabled {
-			return true
+		if m.goUp.Mode == 0 || m.goDown.Mode == 0 {
+			return false, fmt.Errorf("go migrations must have a mode set")
 		}
-		if !direction && m.goDown.Mode == TransactionEnabled {
-			return true
+		if direction {
+			return m.goUp.Mode == TransactionEnabled, nil
 		}
-		return false
+		return m.goDown.Mode == TransactionEnabled, nil
 	case TypeSQL:
-		return m.sql.UseTx
+		if !m.sql.Parsed {
+			return false, fmt.Errorf("sql migrations must be parsed")
+		}
+		return m.sql.UseTx, nil
 	}
-	// This should never happen.
-	panic(fmt.Sprintf("invalid migration type: %q", m.Type))
+	return false, fmt.Errorf("invalid migration type: %q", m.Type)
 }
 
 func (m *Migration) isEmpty(direction bool) bool {
@@ -38,8 +40,7 @@ func (m *Migration) isEmpty(direction bool) bool {
 		}
 		return len(m.sql.Down) == 0
 	}
-	// This should never happen.
-	panic(fmt.Sprintf("invalid migration type: %q", m.Type))
+	return true
 }
 
 func (m *Migration) apply(ctx context.Context, db database.DBTxConn, direction bool) error {
@@ -52,8 +53,7 @@ func (m *Migration) apply(ctx context.Context, db database.DBTxConn, direction b
 		}
 		return runSQL(ctx, db, m.sql.Down)
 	}
-	// This should never happen.
-	panic(fmt.Sprintf("invalid migration type: %q", m.Type))
+	return fmt.Errorf("invalid migration type: %q", m.Type)
 }
 
 func runGo(ctx context.Context, db database.DBTxConn, m *Migration, direction bool) error {
