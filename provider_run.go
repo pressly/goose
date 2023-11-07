@@ -210,7 +210,8 @@ func (p *Provider) runIndividually(
 		// acquired on the database. In this case, the migration will block forever unable to
 		// acquire a connection from the pool.
 		//
-		// TODO(mf): we can detect this scenario and return a more helpful error message.
+		// For now, we guard against this scenario by checking the max open connections and
+		// returning an error in the prepareMigration function.
 		if err := runMigration(ctx, p.db, m, direction); err != nil {
 			return err
 		}

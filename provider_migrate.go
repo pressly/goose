@@ -8,6 +8,8 @@ import (
 	"github.com/pressly/goose/v3/database"
 )
 
+// useTx is a helper function that returns true if the migration should be run in a transaction. It
+// must only be called after the migration has been parsed and initialized.
 func useTx(m *Migration, direction bool) (bool, error) {
 	switch m.Type {
 	case TypeGo:
@@ -24,9 +26,11 @@ func useTx(m *Migration, direction bool) (bool, error) {
 		}
 		return m.sql.UseTx, nil
 	}
-	return false, fmt.Errorf("invalid migration type: %q", m.Type)
+	return false, fmt.Errorf("use tx: invalid migration type: %q", m.Type)
 }
 
+// isEmpty is a helper function that returns true if the migration has no functions or no statements
+// to execute. It must only be called after the migration has been parsed and initialized.
 func isEmpty(m *Migration, direction bool) bool {
 	switch m.Type {
 	case TypeGo:
@@ -43,15 +47,14 @@ func isEmpty(m *Migration, direction bool) bool {
 	return true
 }
 
+// runMigration is a helper function that runs the migration in the given direction. It must only be
+// called after the migration has been parsed and initialized.
 func runMigration(ctx context.Context, db database.DBTxConn, m *Migration, direction bool) error {
 	switch m.Type {
 	case TypeGo:
 		return runGo(ctx, db, m, direction)
 	case TypeSQL:
-		if direction {
-			return runSQL(ctx, db, m.sql.Up)
-		}
-		return runSQL(ctx, db, m.sql.Down)
+		return runSQL(ctx, db, m, direction)
 	}
 	return fmt.Errorf("invalid migration type: %q", m.Type)
 }
@@ -80,7 +83,18 @@ func runGo(ctx context.Context, db database.DBTxConn, m *Migration, direction bo
 	return fmt.Errorf("invalid database connection type: %T", db)
 }
 
-func runSQL(ctx context.Context, db database.DBTxConn, statements []string) error {
+// runSQL is a helper function that runs the given SQL statements in the given direction. It must
+// only be called after the migration has been parsed.
+func runSQL(ctx context.Context, db database.DBTxConn, m *Migration, direction bool) error {
+	if !m.sql.Parsed {
+		return fmt.Errorf("sql migrations must be parsed")
+	}
+	var statements []string
+	if direction {
+		statements = m.sql.Up
+	} else {
+		statements = m.sql.Down
+	}
 	for _, stmt := range statements {
 		if _, err := db.ExecContext(ctx, stmt); err != nil {
 			return err
