@@ -15,6 +15,9 @@ var (
 
 	// ErrNoMigrations is returned by [NewProvider] when no migrations are found.
 	ErrNoMigrations = errors.New("no migrations found")
+
+	// errInvalidVersion is returned when a migration version is invalid.
+	errInvalidVersion = errors.New("version must be greater than 0")
 )
 
 // PartialError is returned when a migration fails, but some migrations already got applied.

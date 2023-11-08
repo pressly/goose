@@ -2,7 +2,13 @@ package database
 
 import (
 	"context"
+	"errors"
 	"time"
+)
+
+var (
+	// ErrVersionNotFound must be returned by [GetMigration] when a migration version is not found.
+	ErrVersionNotFound = errors.New("version not found")
 )
 
 // Store is an interface that defines methods for managing database migrations and versioning. By
@@ -24,8 +30,8 @@ type Store interface {
 	// Delete deletes a version id from the version table.
 	Delete(ctx context.Context, db DBTxConn, version int64) error
 
-	// GetMigration retrieves a single migration by version id. This method may return the raw sql
-	// error if the query fails so the caller can assert for errors such as [sql.ErrNoRows].
+	// GetMigration retrieves a single migration by version id. If the query succeeds, but the
+	// version is not found, this method must return [ErrVersionNotFound].
 	GetMigration(ctx context.Context, db DBTxConn, version int64) (*GetMigrationResult, error)
 
 	// ListMigrations retrieves all migrations sorted in descending order by id or timestamp. If

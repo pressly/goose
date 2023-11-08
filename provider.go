@@ -8,6 +8,8 @@ import (
 	"io/fs"
 	"math"
 	"sort"
+	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/pressly/goose/v3/database"
@@ -15,22 +17,23 @@ import (
 	"go.uber.org/multierr"
 )
 
-// Provider is a goose migration goose.
+// Provider is a goose migration provider.
 type Provider struct {
 	// mu protects all accesses to the provider and must be held when calling operations on the
 	// database.
 	mu sync.Mutex
 
 	db    *sql.DB
-	fsys  fs.FS
-	cfg   config
 	store database.Store
+
+	fsys fs.FS
+	cfg  config
 
 	// migrations are ordered by version in ascending order.
 	migrations []*Migration
 }
 
-// NewProvider returns a new goose goose.
+// NewProvider returns a new goose provider.
 //
 // The caller is responsible for matching the database dialect with the database/sql driver. For
 // example, if the database dialect is "postgres", the database/sql driver could be
@@ -38,12 +41,12 @@ type Provider struct {
 // constant backed by a default [database.Store] implementation. For more advanced use cases, such
 // as using a custom table name or supplying a custom store implementation, see [WithStore].
 //
-// fsys is the filesystem used to read the migration files, but may be nil. Most users will want to
-// use [os.DirFS], os.DirFS("path/to/migrations"), to read migrations from the local filesystem.
+// fsys is the filesystem used to read migration files, but may be nil. Most users will want to use
+// [os.DirFS], os.DirFS("path/to/migrations"), to read migrations from the local filesystem.
 // However, it is possible to use a different "filesystem", such as [embed.FS] or filter out
 // migrations using [fs.Sub].
 //
-// See [ProviderOption] for more information on configuring the goose.
+// See [ProviderOption] for more information on configuring the provider.
 //
 // Unless otherwise specified, all methods on Provider are safe for concurrent use.
 //
@@ -71,7 +74,7 @@ func NewProvider(dialect database.Dialect, db *sql.DB, fsys fs.FS, opts ...Provi
 		return nil, errors.New("dialect must not be empty")
 	}
 	if dialect != "" && cfg.store != nil {
-		return nil, errors.New("cannot set both dialect and custom store")
+		return nil, errors.New("dialect must be empty when using a custom store implementation")
 	}
 	var store database.Store
 	if dialect != "" {
@@ -98,29 +101,29 @@ func newProvider(
 ) (*Provider, error) {
 	// Collect migrations from the filesystem and merge with registered migrations.
 	//
-	// Note, neither of these functions parse SQL migrations by default. SQL migrations are parsed
-	// lazily.
-	//
-	// TODO(mf): we should expose a way to parse SQL migrations eagerly. This would allow us to
-	// return an error if there are any SQL parsing errors. This adds a bit overhead to startup
-	// though, so we should make it optional.
+	// Note, we don't parse SQL migrations here. They are parsed lazily when required.
+
+	// feat(mf): we could add a flag to parse SQL migrations eagerly. This would allow us to return
+	// an error if there are any SQL parsing errors. This adds a bit overhead to startup though, so
+	// we should make it optional.
 	filesystemSources, err := collectFilesystemSources(fsys, false, cfg.excludePaths, cfg.excludeVersions)
 	if err != nil {
 		return nil, err
 	}
 	versionToGoMigration := make(map[int64]*Migration)
-	// Add user-registered Go migrations.
+	// Add user-registered Go migrations from the provider.
 	for version, m := range cfg.registered {
 		versionToGoMigration[version] = m
 	}
-	// Add init() functions. This is a bit ugly because we need to convert from the old Migration
-	// struct to the new goMigration struct.
+	// Add globally registered Go migrations.
 	for version, m := range global {
 		if _, ok := versionToGoMigration[version]; ok {
-			return nil, fmt.Errorf("global go migration with version %d already registered with provider", version)
+			return nil, fmt.Errorf("global go migration with version %d previously registered with provider", version)
 		}
 		versionToGoMigration[version] = m
 	}
+	// At this point we have all registered unique Go migrations (if any). We need to merge them
+	// with SQL migrations from the filesystem.
 	migrations, err := merge(filesystemSources, versionToGoMigration)
 	if err != nil {
 		return nil, err
@@ -143,19 +146,20 @@ func (p *Provider) Status(ctx context.Context) ([]*MigrationStatus, error) {
 	return p.status(ctx)
 }
 
-// GetDBVersion returns the max version from the database, regardless of the applied order. For
-// example, if migrations 1,4,2,3 were applied, this method returns 4. If no migrations have been
-// applied, it returns 0.
+// GetDBVersion returns the highest version recorded in the database, regardless of the order in
+// which migrations were applied. For example, if migrations were applied out of order (1,4,2,3),
+// this method returns 4. If no migrations have been applied, it returns 0.
 func (p *Provider) GetDBVersion(ctx context.Context) (int64, error) {
-	return p.getDBVersion(ctx)
+	return p.getDBMaxVersion(ctx)
 }
 
-// ListSources returns a list of all available migration sources the provider is aware of, sorted in
-// ascending order by version.
-func (p *Provider) ListSources() []Source {
-	sources := make([]Source, 0, len(p.migrations))
+// ListSources returns a list of all migration sources known to the provider, sorted in ascending
+// order by version. The path field may be empty for manually registered migrations, such as Go
+// migrations registered using the [WithGoMigrations] option.
+func (p *Provider) ListSources() []*Source {
+	sources := make([]*Source, 0, len(p.migrations))
 	for _, m := range p.migrations {
-		sources = append(sources, Source{
+		sources = append(sources, &Source{
 			Type:    m.Type,
 			Path:    m.Source,
 			Version: m.Version,
@@ -169,31 +173,43 @@ func (p *Provider) Ping(ctx context.Context) error {
 	return p.db.PingContext(ctx)
 }
 
-// Close closes the database connection.
+// Close closes the database connection initially supplied to the provider.
 func (p *Provider) Close() error {
 	return p.db.Close()
 }
 
-// ApplyVersion applies exactly one migration by version. If there is no source for the specified
-// version, this method returns [ErrVersionNotFound]. If the migration has been applied already,
-// this method returns [ErrAlreadyApplied].
+// ApplyVersion applies exactly one migration for the specified version. If there is no migration
+// available for the specified version, this method returns [ErrVersionNotFound]. If the migration
+// has already been applied, this method returns [ErrAlreadyApplied].
 //
-// When direction is true, the up migration is executed, and when direction is false, the down
-// migration is executed.
+// The direction parameter determines the migration direction: true for up migration and false for
+// down migration.
 func (p *Provider) ApplyVersion(ctx context.Context, version int64, direction bool) (*MigrationResult, error) {
-	if version < 1 {
-		return nil, fmt.Errorf("invalid version: must be greater than zero: %d", version)
+	res, err := p.apply(ctx, version, direction)
+	if err != nil {
+		return nil, err
 	}
-	return p.apply(ctx, version, direction)
+	// This should never happen, we must return exactly one result.
+	if len(res) != 1 {
+		versions := make([]string, 0, len(res))
+		for _, r := range res {
+			versions = append(versions, strconv.FormatInt(r.Source.Version, 10))
+		}
+		return nil, fmt.Errorf(
+			"unexpected number of migrations applied running apply, expecting exactly one result: %v",
+			strings.Join(versions, ","),
+		)
+	}
+	return res[0], nil
 }
 
-// Up applies all [StatePending] migrations. If there are no new migrations to apply, this method
-// returns empty list and nil error.
+// Up applies all pending migrations. If there are no new migrations to apply, this method returns
+// empty list and nil error.
 func (p *Provider) Up(ctx context.Context) ([]*MigrationResult, error) {
 	return p.up(ctx, false, math.MaxInt64)
 }
 
-// UpByOne applies the next available migration. If there are no migrations to apply, this method
+// UpByOne applies the next pending migration. If there is no next migration to apply, this method
 // returns [ErrNoNextVersion]. The returned list will always have exactly one migration result.
 func (p *Provider) UpByOne(ctx context.Context) (*MigrationResult, error) {
 	res, err := p.up(ctx, true, math.MaxInt64)
@@ -203,27 +219,35 @@ func (p *Provider) UpByOne(ctx context.Context) (*MigrationResult, error) {
 	if len(res) == 0 {
 		return nil, ErrNoNextVersion
 	}
-	// This should never happen. We should always have exactly one result and test for this.
-	if len(res) > 1 {
-		return nil, fmt.Errorf("unexpected number of migrations returned running up-by-one: %d", len(res))
+	// This should never happen, we must return exactly one result.
+	if len(res) != 1 {
+		versions := make([]string, 0, len(res))
+		for _, r := range res {
+			versions = append(versions, strconv.FormatInt(r.Source.Version, 10))
+		}
+		return nil, fmt.Errorf(
+			"unexpected number of migrations applied running up-by-one, expecting exactly one result: %v",
+			strings.Join(versions, ","),
+		)
 	}
 	return res[0], nil
 }
 
-// UpTo applies all available migrations up to, and including, the specified version. If there are
-// no migrations to apply, this method returns empty list and nil error.
+// UpTo applies all pending migrations up to, and including, the specified version. If there are no
+// migrations to apply, this method returns empty list and nil error.
 //
-// For instance, if there are three new migrations (9,10,11) and the current database version is 8
+// For example, if there are three new migrations (9,10,11) and the current database version is 8
 // with a requested version of 10, only versions 9,10 will be applied.
 func (p *Provider) UpTo(ctx context.Context, version int64) ([]*MigrationResult, error) {
-	if version < 1 {
-		return nil, fmt.Errorf("invalid version: must be greater than zero: %d", version)
-	}
 	return p.up(ctx, false, version)
 }
 
-// Down rolls back the most recently applied migration. If there are no migrations to apply, this
+// Down rolls back the most recently applied migration. If there are no migrations to rollback, this
 // method returns [ErrNoNextVersion].
+//
+// Note, migrations are rolled back in the order they were applied. And not in the reverse order of
+// the migration version. This only applies in scenarios where migrations are allowed to be applied
+// out of order.
 func (p *Provider) Down(ctx context.Context) (*MigrationResult, error) {
 	res, err := p.down(ctx, true, 0)
 	if err != nil {
@@ -232,16 +256,28 @@ func (p *Provider) Down(ctx context.Context) (*MigrationResult, error) {
 	if len(res) == 0 {
 		return nil, ErrNoNextVersion
 	}
-	if len(res) > 1 {
-		return nil, fmt.Errorf("unexpected number of migrations returned running down: %d", len(res))
+	// This should never happen, we must return exactly one result.
+	if len(res) != 1 {
+		versions := make([]string, 0, len(res))
+		for _, r := range res {
+			versions = append(versions, strconv.FormatInt(r.Source.Version, 10))
+		}
+		return nil, fmt.Errorf(
+			"unexpected number of migrations applied running down, expecting exactly one result: %v",
+			strings.Join(versions, ","),
+		)
 	}
 	return res[0], nil
 }
 
 // DownTo rolls back all migrations down to, but not including, the specified version.
 //
-// For instance, if the current database version is 11,10,9... and the requested version is 9, only
+// For example, if the current database version is 11,10,9... and the requested version is 9, only
 // migrations 11, 10 will be rolled back.
+//
+// Note, migrations are rolled back in the order they were applied. And not in the reverse order of
+// the migration version. This only applies in scenarios where migrations are allowed to be applied
+// out of order.
 func (p *Provider) DownTo(ctx context.Context, version int64) ([]*MigrationResult, error) {
 	if version < 0 {
 		return nil, fmt.Errorf("invalid version: must be a valid number or zero: %d", version)
@@ -253,11 +289,11 @@ func (p *Provider) DownTo(ctx context.Context, version int64) ([]*MigrationResul
 
 func (p *Provider) up(
 	ctx context.Context,
-	upByOne bool,
+	byOne bool,
 	version int64,
 ) (_ []*MigrationResult, retErr error) {
 	if version < 1 {
-		return nil, errors.New("version must be greater than zero")
+		return nil, errInvalidVersion
 	}
 	conn, cleanup, err := p.initialize(ctx)
 	if err != nil {
@@ -266,11 +302,15 @@ func (p *Provider) up(
 	defer func() {
 		retErr = multierr.Append(retErr, cleanup())
 	}()
+
 	if len(p.migrations) == 0 {
 		return nil, nil
 	}
 	var apply []*Migration
 	if p.cfg.disableVersioning {
+		if byOne {
+			return nil, errors.New("up-by-one not supported when versioning is disabled")
+		}
 		apply = p.migrations
 	} else {
 		// optimize(mf): Listing all migrations from the database isn't great. This is only required
@@ -289,18 +329,12 @@ func (p *Provider) up(
 			return nil, err
 		}
 	}
-	// feat(mf): this is where can (optionally) group multiple migrations to be run in a single
-	// transaction. The default is to apply each migration sequentially on its own.
-	// https://github.com/pressly/goose/issues/222
-	//
-	// Careful, we can't use a single transaction for all migrations because some may have to be run
-	// in their own transaction.
-	return p.runMigrations(ctx, conn, apply, sqlparser.DirectionUp, upByOne)
+	return p.runMigrations(ctx, conn, apply, sqlparser.DirectionUp, byOne)
 }
 
 func (p *Provider) down(
 	ctx context.Context,
-	downByOne bool,
+	byOne bool,
 	version int64,
 ) (_ []*MigrationResult, retErr error) {
 	conn, cleanup, err := p.initialize(ctx)
@@ -310,16 +344,19 @@ func (p *Provider) down(
 	defer func() {
 		retErr = multierr.Append(retErr, cleanup())
 	}()
+
 	if len(p.migrations) == 0 {
 		return nil, nil
 	}
 	if p.cfg.disableVersioning {
-		downMigrations := p.migrations
-		if downByOne {
+		var downMigrations []*Migration
+		if byOne {
 			last := p.migrations[len(p.migrations)-1]
 			downMigrations = []*Migration{last}
+		} else {
+			downMigrations = p.migrations
 		}
-		return p.runMigrations(ctx, conn, downMigrations, sqlparser.DirectionDown, downByOne)
+		return p.runMigrations(ctx, conn, downMigrations, sqlparser.DirectionDown, byOne)
 	}
 	dbMigrations, err := p.store.ListMigrations(ctx, conn)
 	if err != nil {
@@ -328,10 +365,11 @@ func (p *Provider) down(
 	if len(dbMigrations) == 0 {
 		return nil, errMissingZeroVersion
 	}
+	// We never migrate the zero version down.
 	if dbMigrations[0].Version == 0 {
 		return nil, nil
 	}
-	var downMigrations []*Migration
+	var apply []*Migration
 	for _, dbMigration := range dbMigrations {
 		if dbMigration.Version <= version {
 			break
@@ -340,21 +378,23 @@ func (p *Provider) down(
 		if err != nil {
 			return nil, err
 		}
-		downMigrations = append(downMigrations, m)
+		apply = append(apply, m)
 	}
-	return p.runMigrations(ctx, conn, downMigrations, sqlparser.DirectionDown, downByOne)
+	return p.runMigrations(ctx, conn, apply, sqlparser.DirectionDown, byOne)
 }
 
 func (p *Provider) apply(
 	ctx context.Context,
 	version int64,
 	direction bool,
-) (_ *MigrationResult, retErr error) {
+) (_ []*MigrationResult, retErr error) {
+	if version < 1 {
+		return nil, errInvalidVersion
+	}
 	m, err := p.getMigration(version)
 	if err != nil {
 		return nil, err
 	}
-
 	conn, cleanup, err := p.initialize(ctx)
 	if err != nil {
 		return nil, err
@@ -364,27 +404,19 @@ func (p *Provider) apply(
 	}()
 
 	result, err := p.store.GetMigration(ctx, conn, version)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	if err != nil && !errors.Is(err, database.ErrVersionNotFound) {
 		return nil, err
 	}
-	// If the migration has already been applied, return an error, unless the migration is being
-	// applied in the opposite direction. In that case, we allow the migration to be applied again.
+	// If the migration has already been applied, return an error. But, if the migration is being
+	// rolled back, we allow the individual migration to be applied again.
 	if result != nil && direction {
 		return nil, fmt.Errorf("version %d: %w", version, ErrAlreadyApplied)
 	}
-
 	d := sqlparser.DirectionDown
 	if direction {
 		d = sqlparser.DirectionUp
 	}
-	results, err := p.runMigrations(ctx, conn, []*Migration{m}, d, true)
-	if err != nil {
-		return nil, err
-	}
-	if len(results) == 0 {
-		return nil, fmt.Errorf("version %d: %w", version, ErrAlreadyApplied)
-	}
-	return results[0], nil
+	return p.runMigrations(ctx, conn, []*Migration{m}, d, true)
 }
 
 func (p *Provider) status(ctx context.Context) (_ []*MigrationStatus, retErr error) {
@@ -396,13 +428,10 @@ func (p *Provider) status(ctx context.Context) (_ []*MigrationStatus, retErr err
 		retErr = multierr.Append(retErr, cleanup())
 	}()
 
-	// TODO(mf): add support for limit and order. Also would be nice to refactor the list query to
-	// support limiting the set.
-
 	status := make([]*MigrationStatus, 0, len(p.migrations))
 	for _, m := range p.migrations {
 		migrationStatus := &MigrationStatus{
-			Source: Source{
+			Source: &Source{
 				Type:    m.Type,
 				Path:    m.Source,
 				Version: m.Version,
@@ -410,7 +439,7 @@ func (p *Provider) status(ctx context.Context) (_ []*MigrationStatus, retErr err
 			State: StatePending,
 		}
 		dbResult, err := p.store.GetMigration(ctx, conn, m.Version)
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		if err != nil && !errors.Is(err, database.ErrVersionNotFound) {
 			return nil, err
 		}
 		if dbResult != nil {
@@ -423,7 +452,7 @@ func (p *Provider) status(ctx context.Context) (_ []*MigrationStatus, retErr err
 	return status, nil
 }
 
-func (p *Provider) getDBVersion(ctx context.Context) (_ int64, retErr error) {
+func (p *Provider) getDBMaxVersion(ctx context.Context) (_ int64, retErr error) {
 	conn, cleanup, err := p.initialize(ctx)
 	if err != nil {
 		return 0, err
@@ -437,10 +466,12 @@ func (p *Provider) getDBVersion(ctx context.Context) (_ int64, retErr error) {
 		return 0, err
 	}
 	if len(res) == 0 {
-		return 0, nil
+		return 0, errMissingZeroVersion
 	}
+	// Sort in descending order.
 	sort.Slice(res, func(i, j int) bool {
 		return res[i].Version > res[j].Version
 	})
+	// Return the highest version.
 	return res[0].Version, nil
 }

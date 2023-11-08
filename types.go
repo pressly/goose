@@ -22,7 +22,7 @@ type Source struct {
 
 // MigrationResult is the result of a single migration operation.
 type MigrationResult struct {
-	Source    Source
+	Source    *Source
 	Duration  time.Duration
 	Direction string
 	// Empty indicates no action was taken during the migration, but it was still versioned. For
@@ -49,7 +49,7 @@ const (
 
 // MigrationStatus represents the status of a single migration.
 type MigrationStatus struct {
-	Source    Source
+	Source    *Source
 	State     State
 	AppliedAt time.Time
 }

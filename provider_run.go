@@ -154,11 +154,14 @@ func (p *Provider) runMigrations(
 	// following issues for more details:
 	//  - https://github.com/pressly/goose/issues/485
 	//  - https://github.com/pressly/goose/issues/222
+	//
+	// Be careful, we can't use a single transaction for all migrations because some may be marked
+	// as not using a transaction.
 
 	var results []*MigrationResult
 	for _, m := range apply {
 		current := &MigrationResult{
-			Source: Source{
+			Source: &Source{
 				Type:    m.Type,
 				Path:    m.Source,
 				Version: m.Version,
@@ -275,18 +278,20 @@ func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, err
 		if err := l.SessionLock(ctx, conn); err != nil {
 			return nil, nil, multierr.Append(err, cleanup())
 		}
+		// A lock was acquired, so we need to unlock the session when we're done. This is done by
+		// returning a cleanup function that unlocks the session and closes the connection.
 		cleanup = func() error {
 			p.mu.Unlock()
 			// Use a detached context to unlock the session. This is because the context passed to
 			// SessionLock may have been canceled, and we don't want to cancel the unlock.
 			//
-			// TODO(mf): use [context.WithoutCancel] added in go1.21
+			// TODO(mf): use context.WithoutCancel added in go1.21
 			detachedCtx := context.Background()
 			return multierr.Append(l.SessionUnlock(detachedCtx, conn), conn.Close())
 		}
 	}
 	// If versioning is enabled, ensure the version table exists. For ad-hoc migrations, we don't
-	// need the version table because there is no versioning.
+	// need the version table because no versions are being recorded.
 	if !p.cfg.disableVersioning {
 		if err := p.ensureVersionTable(ctx, conn); err != nil {
 			return nil, nil, multierr.Append(err, cleanup())
@@ -346,7 +351,7 @@ func checkMissingMigrations(
 	return missing
 }
 
-// getMigration returns the migration with the given version. If no migration is found, then
+// getMigration returns the migration for the given version. If no migration is found, then
 // ErrVersionNotFound is returned.
 func (p *Provider) getMigration(version int64) (*Migration, error) {
 	for _, m := range p.migrations {

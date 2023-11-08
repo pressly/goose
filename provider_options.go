@@ -10,7 +10,7 @@ import (
 
 const (
 	// DefaultTablename is the default name of the database table used to track history of applied
-	// migrations. It can be overridden using the [WithTableName] option when creating a new goose.
+	// migrations.
 	DefaultTablename = "goose_db_version"
 )
 
@@ -142,11 +142,11 @@ func WithAllowedMissing(b bool) ProviderOption {
 	})
 }
 
-// WithDisabledVersioning disables versioning. Disabling versioning allows applying migrations
+// WithDisableVersioning disables versioning. Disabling versioning allows applying migrations
 // without tracking the versions in the database schema table. Useful for tests, seeding a database
 // or running ad-hoc queries. By default, goose will track all versions in the database schema
 // table.
-func WithDisabledVersioning(b bool) ProviderOption {
+func WithDisableVersioning(b bool) ProviderOption {
 	return configFunc(func(c *config) error {
 		c.disableVersioning = b
 		return nil

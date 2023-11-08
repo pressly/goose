@@ -54,13 +54,13 @@ func TestProviderRun(t *testing.T) {
 		p, _ := newProviderWithDB(t)
 		_, err := p.UpTo(context.Background(), 0)
 		check.HasError(t, err)
-		check.Equal(t, err.Error(), "invalid version: must be greater than zero: 0")
+		check.Equal(t, err.Error(), "version must be greater than 0")
 		_, err = p.DownTo(context.Background(), -1)
 		check.HasError(t, err)
 		check.Equal(t, err.Error(), "invalid version: must be a valid number or zero: -1")
 		_, err = p.ApplyVersion(context.Background(), 0, true)
 		check.HasError(t, err)
-		check.Equal(t, err.Error(), "invalid version: must be greater than zero: 0")
+		check.Equal(t, err.Error(), "version must be greater than 0")
 	})
 	t.Run("up_and_down_all", func(t *testing.T) {
 		ctx := context.Background()
@@ -488,7 +488,7 @@ func TestNoVersioning(t *testing.T) {
 	)
 	p, err := goose.NewProvider(database.DialectSQLite3, db, fsys,
 		goose.WithVerbose(testing.Verbose()),
-		goose.WithDisabledVersioning(false), // This is the default.
+		goose.WithDisableVersioning(false), // This is the default.
 	)
 	check.Number(t, len(p.ListSources()), 3)
 	check.NoError(t, err)
@@ -501,7 +501,7 @@ func TestNoVersioning(t *testing.T) {
 		fsys := os.DirFS(filepath.Join("testdata", "no-versioning", "seed"))
 		p, err := goose.NewProvider(database.DialectSQLite3, db, fsys,
 			goose.WithVerbose(testing.Verbose()),
-			goose.WithDisabledVersioning(true), // Provider with no versioning.
+			goose.WithDisableVersioning(true), // Provider with no versioning.
 		)
 		check.NoError(t, err)
 		check.Number(t, len(p.ListSources()), 2)
@@ -1129,14 +1129,14 @@ func getTableNames(db *sql.DB) ([]string, error) {
 	return tables, nil
 }
 
-func assertStatus(t *testing.T, got *goose.MigrationStatus, state goose.State, source goose.Source, appliedIsZero bool) {
+func assertStatus(t *testing.T, got *goose.MigrationStatus, state goose.State, source *goose.Source, appliedIsZero bool) {
 	t.Helper()
 	check.Equal(t, got.State, state)
 	check.Equal(t, got.Source, source)
 	check.Bool(t, got.AppliedAt.IsZero(), appliedIsZero)
 }
 
-func assertResult(t *testing.T, got *goose.MigrationResult, source goose.Source, direction string, isEmpty bool) {
+func assertResult(t *testing.T, got *goose.MigrationResult, source *goose.Source, direction string, isEmpty bool) {
 	t.Helper()
 	check.Bool(t, got != nil, true)
 	check.Equal(t, got.Source, source)
@@ -1146,15 +1146,15 @@ func assertResult(t *testing.T, got *goose.MigrationResult, source goose.Source,
 	check.Bool(t, got.Duration > 0, true)
 }
 
-func assertSource(t *testing.T, got goose.Source, typ goose.MigrationType, name string, version int64) {
+func assertSource(t *testing.T, got *goose.Source, typ goose.MigrationType, name string, version int64) {
 	t.Helper()
 	check.Equal(t, got.Type, typ)
 	check.Equal(t, got.Path, name)
 	check.Equal(t, got.Version, version)
 }
 
-func newSource(t goose.MigrationType, fullpath string, version int64) goose.Source {
-	return goose.Source{
+func newSource(t goose.MigrationType, fullpath string, version int64) *goose.Source {
+	return &goose.Source{
 		Type:    t,
 		Path:    fullpath,
 		Version: version,

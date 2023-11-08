@@ -205,7 +205,7 @@ func testStore(
 	err = runConn(ctx, db, func(conn *sql.Conn) error {
 		_, err := store.GetMigration(ctx, conn, 0)
 		check.HasError(t, err)
-		check.Bool(t, errors.Is(err, sql.ErrNoRows), true)
+		check.Bool(t, errors.Is(err, database.ErrVersionNotFound), true)
 		return nil
 	})
 	check.NoError(t, err)
