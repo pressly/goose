@@ -1,4 +1,4 @@
-package provider
+package goose
 
 import (
 	"errors"
@@ -16,8 +16,8 @@ var (
 	// ErrNoMigrations is returned by [NewProvider] when no migrations are found.
 	ErrNoMigrations = errors.New("no migrations found")
 
-	// ErrNoNextVersion when the next migration version is not found.
-	ErrNoNextVersion = errors.New("no next version found")
+	// errInvalidVersion is returned when a migration version is invalid.
+	errInvalidVersion = errors.New("version must be greater than 0")
 )
 
 // PartialError is returned when a migration fails, but some migrations already got applied.

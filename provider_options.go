@@ -1,8 +1,6 @@
-package provider
+package goose
 
 import (
-	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 
@@ -12,12 +10,11 @@ import (
 
 const (
 	// DefaultTablename is the default name of the database table used to track history of applied
-	// migrations. It can be overridden using the [WithTableName] option when creating a new
-	// provider.
+	// migrations.
 	DefaultTablename = "goose_db_version"
 )
 
-// ProviderOption is a configuration option for a goose provider.
+// ProviderOption is a configuration option for a goose goose.
 type ProviderOption interface {
 	apply(*config) error
 }
@@ -84,84 +81,75 @@ func WithSessionLocker(locker lock.SessionLocker) ProviderOption {
 	})
 }
 
-// WithExcludes excludes the given file names from the list of migrations.
-//
-// If WithExcludes is called multiple times, the list of excludes is merged.
-func WithExcludes(excludes []string) ProviderOption {
+// WithExcludeNames excludes the given file name from the list of migrations. If called multiple
+// times, the list of excludes is merged.
+func WithExcludeNames(excludes []string) ProviderOption {
 	return configFunc(func(c *config) error {
 		for _, name := range excludes {
-			c.excludes[name] = true
+			if _, ok := c.excludePaths[name]; ok {
+				return fmt.Errorf("duplicate exclude file name: %s", name)
+			}
+			c.excludePaths[name] = true
 		}
 		return nil
 	})
 }
 
-// GoMigrationFunc is a user-defined Go migration, registered using the option [WithGoMigration].
-type GoMigrationFunc struct {
-	// One of the following must be set:
-	Run func(context.Context, *sql.Tx) error
-	// -- OR --
-	RunNoTx func(context.Context, *sql.DB) error
-}
-
-// WithGoMigration registers a Go migration with the given version.
-//
-// If WithGoMigration is called multiple times with the same version, an error is returned. Both up
-// and down [GoMigration] may be nil. But if set, exactly one of Run or RunNoTx functions must be
-// set.
-func WithGoMigration(version int64, up, down *GoMigrationFunc) ProviderOption {
+// WithExcludeVersions excludes the given versions from the list of migrations. If called multiple
+// times, the list of excludes is merged.
+func WithExcludeVersions(versions []int64) ProviderOption {
 	return configFunc(func(c *config) error {
-		if version < 1 {
-			return errors.New("version must be greater than zero")
-		}
-		if _, ok := c.registered[version]; ok {
-			return fmt.Errorf("go migration with version %d already registered", version)
-		}
-		// Allow nil up/down functions. This enables users to apply "no-op" migrations, while
-		// versioning them.
-		if up != nil {
-			if up.Run == nil && up.RunNoTx == nil {
-				return fmt.Errorf("go migration with version %d must have an up function", version)
+		for _, version := range versions {
+			if version < 1 {
+				return errInvalidVersion
 			}
-			if up.Run != nil && up.RunNoTx != nil {
-				return fmt.Errorf("go migration with version %d must not have both an up and upNoTx function", version)
+			if _, ok := c.excludeVersions[version]; ok {
+				return fmt.Errorf("duplicate excludes version: %d", version)
 			}
-		}
-		if down != nil {
-			if down.Run == nil && down.RunNoTx == nil {
-				return fmt.Errorf("go migration with version %d must have a down function", version)
-			}
-			if down.Run != nil && down.RunNoTx != nil {
-				return fmt.Errorf("go migration with version %d must not have both a down and downNoTx function", version)
-			}
-		}
-		c.registered[version] = &goMigration{
-			up:   up,
-			down: down,
+			c.excludeVersions[version] = true
 		}
 		return nil
 	})
 }
 
-// WithAllowedMissing allows the provider to apply missing (out-of-order) migrations. By default,
+// WithGoMigrations registers Go migrations with the provider. If a Go migration with the same
+// version has already been registered, an error will be returned.
+//
+// Go migrations must be constructed using the [NewGoMigration] function.
+func WithGoMigrations(migrations ...*Migration) ProviderOption {
+	return configFunc(func(c *config) error {
+		for _, m := range migrations {
+			if _, ok := c.registered[m.Version]; ok {
+				return fmt.Errorf("go migration with version %d already registered", m.Version)
+			}
+			if err := checkGoMigration(m); err != nil {
+				return fmt.Errorf("invalid go migration: %w", err)
+			}
+			c.registered[m.Version] = m
+		}
+		return nil
+	})
+}
+
+// WithAllowOutofOrder allows the provider to apply missing (out-of-order) migrations. By default,
 // goose will raise an error if it encounters a missing migration.
 //
-// Example: migrations 1,3 are applied and then version 2,6 are introduced. If this option is true,
-// then goose will apply 2 (missing) and 6 (new) instead of raising an error. The final order of
-// applied migrations will be: 1,3,2,6. Out-of-order migrations are always applied first, followed
-// by new migrations.
-func WithAllowedMissing(b bool) ProviderOption {
+// For example: migrations 1,3 are applied and then version 2,6 are introduced. If this option is
+// true, then goose will apply 2 (missing) and 6 (new) instead of raising an error. The final order
+// of applied migrations will be: 1,3,2,6. Out-of-order migrations are always applied first,
+// followed by new migrations.
+func WithAllowOutofOrder(b bool) ProviderOption {
 	return configFunc(func(c *config) error {
 		c.allowMissing = b
 		return nil
 	})
 }
 
-// WithDisabledVersioning disables versioning. Disabling versioning allows applying migrations
+// WithDisableVersioning disables versioning. Disabling versioning allows applying migrations
 // without tracking the versions in the database schema table. Useful for tests, seeding a database
 // or running ad-hoc queries. By default, goose will track all versions in the database schema
 // table.
-func WithDisabledVersioning(b bool) ProviderOption {
+func WithDisableVersioning(b bool) ProviderOption {
 	return configFunc(func(c *config) error {
 		c.disableVersioning = b
 		return nil
@@ -171,12 +159,13 @@ func WithDisabledVersioning(b bool) ProviderOption {
 type config struct {
 	store database.Store
 
-	verbose  bool
-	excludes map[string]bool
+	verbose         bool
+	excludePaths    map[string]bool
+	excludeVersions map[int64]bool
 
-	// Go migrations registered by the user. These will be merged/resolved with migrations from the
-	// filesystem and init() functions.
-	registered map[int64]*goMigration
+	// Go migrations registered by the user. These will be merged/resolved against the globally
+	// registered migrations.
+	registered map[int64]*Migration
 
 	// Locking options
 	lockEnabled   bool

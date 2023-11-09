@@ -66,7 +66,7 @@ func register(filename string, useTx bool, up, down *GoFunc) error {
 	// We explicitly set transaction to maintain existing behavior. Both up and down may be nil, but
 	// we know based on the register function what the user is requesting.
 	m.UseTx = useTx
-	registeredGoMigrations[v] = &m
+	registeredGoMigrations[v] = m
 	return nil
 }
 

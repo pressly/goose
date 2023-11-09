@@ -1,29 +1,14 @@
-package provider
+package goose
 
-import (
-	"fmt"
-	"time"
-)
+import "time"
 
 // MigrationType is the type of migration.
-type MigrationType int
+type MigrationType string
 
 const (
-	TypeGo MigrationType = iota + 1
-	TypeSQL
+	TypeGo  MigrationType = "go"
+	TypeSQL MigrationType = "sql"
 )
-
-func (t MigrationType) String() string {
-	switch t {
-	case TypeGo:
-		return "go"
-	case TypeSQL:
-		return "sql"
-	default:
-		// This should never happen.
-		return fmt.Sprintf("unknown (%d)", t)
-	}
-}
 
 // Source represents a single migration source.
 //
@@ -37,7 +22,7 @@ type Source struct {
 
 // MigrationResult is the result of a single migration operation.
 type MigrationResult struct {
-	Source    Source
+	Source    *Source
 	Duration  time.Duration
 	Direction string
 	// Empty indicates no action was taken during the migration, but it was still versioned. For
@@ -64,7 +49,7 @@ const (
 
 // MigrationStatus represents the status of a single migration.
 type MigrationStatus struct {
-	Source    Source
+	Source    *Source
 	State     State
 	AppliedAt time.Time
 }

@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 
@@ -100,6 +101,9 @@ func (s *store) GetMigration(
 		&result.Timestamp,
 		&result.IsApplied,
 	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("%w: %d", ErrVersionNotFound, version)
+		}
 		return nil, fmt.Errorf("failed to get migration %d: %w", version, err)
 	}
 	return &result, nil
