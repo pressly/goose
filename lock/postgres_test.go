@@ -6,7 +6,6 @@ import (
 	"errors"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/pressly/goose/v3/internal/check"
 	"github.com/pressly/goose/v3/internal/testdb"
@@ -30,8 +29,8 @@ func TestPostgresSessionLocker(t *testing.T) {
 		)
 		locker, err := lock.NewPostgresSessionLocker(
 			lock.WithLockID(lockID),
-			lock.WithLockTimeout(4*time.Second),
-			lock.WithUnlockTimeout(4*time.Second),
+			lock.WithLockTimeout(1, 4),   // 4 second timeout
+			lock.WithUnlockTimeout(1, 4), // 4 second timeout
 		)
 		check.NoError(t, err)
 		ctx := context.Background()
@@ -60,8 +59,8 @@ func TestPostgresSessionLocker(t *testing.T) {
 	})
 	t.Run("lock_close_conn_unlock", func(t *testing.T) {
 		locker, err := lock.NewPostgresSessionLocker(
-			lock.WithLockTimeout(4*time.Second),
-			lock.WithUnlockTimeout(4*time.Second),
+			lock.WithLockTimeout(1, 4),   // 4 second timeout
+			lock.WithUnlockTimeout(1, 4), // 4 second timeout
 		)
 		check.NoError(t, err)
 		ctx := context.Background()
@@ -103,10 +102,12 @@ func TestPostgresSessionLocker(t *testing.T) {
 				// Exactly one connection should acquire the lock. While the other connections
 				// should fail to acquire the lock and timeout.
 				locker, err := lock.NewPostgresSessionLocker(
-					lock.WithLockTimeout(4*time.Second),
-					lock.WithUnlockTimeout(4*time.Second),
+					lock.WithLockTimeout(1, 4),   // 4 second timeout
+					lock.WithUnlockTimeout(1, 4), // 4 second timeout
 				)
 				check.NoError(t, err)
+				// NOTE, we are not unlocking the lock, because we want to test that the lock is
+				// released when the connection is closed.
 				ch <- locker.SessionLock(ctx, conn)
 			}()
 		}
@@ -138,8 +139,8 @@ func TestPostgresSessionLocker(t *testing.T) {
 		)
 		locker, err := lock.NewPostgresSessionLocker(
 			lock.WithLockID(lockID),
-			lock.WithLockTimeout(4*time.Second),
-			lock.WithUnlockTimeout(4*time.Second),
+			lock.WithLockTimeout(1, 4),   // 4 second timeout
+			lock.WithUnlockTimeout(1, 4), // 4 second timeout
 		)
 		check.NoError(t, err)
 

@@ -830,15 +830,22 @@ func TestLockModeAdvisorySession(t *testing.T) {
 	t.Cleanup(cleanup)
 
 	newProvider := func() *goose.Provider {
-		sessionLocker, err := lock.NewPostgresSessionLocker()
-		check.NoError(t, err)
-		p, err := goose.NewProvider(database.DialectPostgres, db, os.DirFS("testdata/migrations"),
-			goose.WithSessionLocker(sessionLocker), // Use advisory session lock mode.
-			goose.WithVerbose(testing.Verbose()),
+
+		sessionLocker, err := lock.NewPostgresSessionLocker(
+			lock.WithLockTimeout(5, 60), // Timeout 5min. Try every 5s up to 60 times.
 		)
 		check.NoError(t, err)
+		p, err := goose.NewProvider(
+			database.DialectPostgres,
+			db,
+			os.DirFS("testdata/migrations"),
+			goose.WithSessionLocker(sessionLocker), // Use advisory session lock mode.
+		)
+		check.NoError(t, err)
+
 		return p
 	}
+
 	provider1 := newProvider()
 	provider2 := newProvider()
 

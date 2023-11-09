@@ -13,17 +13,25 @@ import (
 // NewPostgresSessionLocker returns a SessionLocker that utilizes PostgreSQL's exclusive
 // session-level advisory lock mechanism.
 //
-// This function creates a SessionLocker that can be used to acquire and release locks for
+// This function creates a SessionLocker that can be used to acquire and release a lock for
 // synchronization purposes. The lock acquisition is retried until it is successfully acquired or
-// until the maximum duration is reached. The default lock duration is set to 60 minutes, and the
+// until the failure threshold is reached. The default lock duration is set to 5 minutes, and the
 // default unlock duration is set to 1 minute.
+//
+// If you have long running migrations, you may want to increase the lock duration.
 //
 // See [SessionLockerOption] for options that can be used to configure the SessionLocker.
 func NewPostgresSessionLocker(opts ...SessionLockerOption) (SessionLocker, error) {
 	cfg := sessionLockerConfig{
-		lockID:        DefaultLockID,
-		lockTimeout:   DefaultLockTimeout,
-		unlockTimeout: DefaultUnlockTimeout,
+		lockID: DefaultLockID,
+		lockProbe: probe{
+			periodSeconds:    5 * time.Second,
+			failureThreshold: 60,
+		},
+		unlockProbe: probe{
+			periodSeconds:    2 * time.Second,
+			failureThreshold: 30,
+		},
 	}
 	for _, opt := range opts {
 		if err := opt.apply(&cfg); err != nil {
@@ -32,13 +40,13 @@ func NewPostgresSessionLocker(opts ...SessionLockerOption) (SessionLocker, error
 	}
 	return &postgresSessionLocker{
 		lockID: cfg.lockID,
-		retryLock: retry.WithMaxDuration(
-			cfg.lockTimeout,
-			retry.NewConstant(2*time.Second),
+		retryLock: retry.WithMaxRetries(
+			cfg.lockProbe.failureThreshold,
+			retry.NewConstant(cfg.lockProbe.periodSeconds),
 		),
-		retryUnlock: retry.WithMaxDuration(
-			cfg.unlockTimeout,
-			retry.NewConstant(2*time.Second),
+		retryUnlock: retry.WithMaxRetries(
+			cfg.unlockProbe.failureThreshold,
+			retry.NewConstant(cfg.unlockProbe.periodSeconds),
 		),
 	}, nil
 }
