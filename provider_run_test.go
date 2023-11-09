@@ -553,7 +553,7 @@ func TestAllowMissing(t *testing.T) {
 	t.Run("missing_now_allowed", func(t *testing.T) {
 		db := newDB(t)
 		p, err := goose.NewProvider(database.DialectSQLite3, db, newFsys(),
-			goose.WithAllowedMissing(false),
+			goose.WithAllowOutofOrder(false),
 		)
 		check.NoError(t, err)
 
@@ -608,7 +608,7 @@ func TestAllowMissing(t *testing.T) {
 	t.Run("missing_allowed", func(t *testing.T) {
 		db := newDB(t)
 		p, err := goose.NewProvider(database.DialectSQLite3, db, newFsys(),
-			goose.WithAllowedMissing(true),
+			goose.WithAllowOutofOrder(true),
 		)
 		check.NoError(t, err)
 

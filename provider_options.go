@@ -128,14 +128,14 @@ func WithGoMigrations(migrations ...*Migration) ProviderOption {
 	})
 }
 
-// WithAllowedMissing allows the provider to apply missing (out-of-order) migrations. By default,
+// WithAllowOutofOrder allows the provider to apply missing (out-of-order) migrations. By default,
 // goose will raise an error if it encounters a missing migration.
 //
-// Example: migrations 1,3 are applied and then version 2,6 are introduced. If this option is true,
-// then goose will apply 2 (missing) and 6 (new) instead of raising an error. The final order of
-// applied migrations will be: 1,3,2,6. Out-of-order migrations are always applied first, followed
-// by new migrations.
-func WithAllowedMissing(b bool) ProviderOption {
+// For example: migrations 1,3 are applied and then version 2,6 are introduced. If this option is
+// true, then goose will apply 2 (missing) and 6 (new) instead of raising an error. The final order
+// of applied migrations will be: 1,3,2,6. Out-of-order migrations are always applied first,
+// followed by new migrations.
+func WithAllowOutofOrder(b bool) ProviderOption {
 	return configFunc(func(c *config) error {
 		c.allowMissing = b
 		return nil
