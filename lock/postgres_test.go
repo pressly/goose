@@ -180,6 +180,7 @@ func queryPgLocks(ctx context.Context, db *sql.DB) ([]pgLock, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	var pgLocks []pgLock
 	for rows.Next() {
 		var p pgLock
