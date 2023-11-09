@@ -22,8 +22,8 @@ func AddNamedMigrationContext(filename string, up, down GoMigrationContext) {
 	if err := register(
 		filename,
 		true,
-		&GoFunc{RunTx: up},
-		&GoFunc{RunTx: down},
+		&GoFunc{RunTx: up, Mode: TransactionEnabled},
+		&GoFunc{RunTx: down, Mode: TransactionEnabled},
 	); err != nil {
 		panic(err)
 	}
@@ -44,8 +44,8 @@ func AddNamedMigrationNoTxContext(filename string, up, down GoMigrationNoTxConte
 	if err := register(
 		filename,
 		false,
-		&GoFunc{RunDB: up},
-		&GoFunc{RunDB: down},
+		&GoFunc{RunDB: up, Mode: TransactionDisabled},
+		&GoFunc{RunDB: down, Mode: TransactionDisabled},
 	); err != nil {
 		panic(err)
 	}
