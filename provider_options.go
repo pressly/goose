@@ -100,6 +100,9 @@ func WithExcludeNames(excludes []string) ProviderOption {
 func WithExcludeVersions(versions []int64) ProviderOption {
 	return configFunc(func(c *config) error {
 		for _, version := range versions {
+			if version < 1 {
+				return errInvalidVersion
+			}
 			if _, ok := c.excludeVersions[version]; ok {
 				return fmt.Errorf("duplicate excludes version: %d", version)
 			}
