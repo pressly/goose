@@ -30,18 +30,18 @@ func TestNewProvider(t *testing.T) {
 		_, err = goose.NewProvider("unknown-dialect", db, fsys)
 		check.HasError(t, err)
 		// Nil db not allowed
-		_, err = goose.NewProvider(database.DialectSQLite3, nil, fsys)
+		_, err = goose.NewProvider(goose.DialectSQLite3, nil, fsys)
 		check.HasError(t, err)
 		// Nil store not allowed
-		_, err = goose.NewProvider(database.DialectSQLite3, db, nil, goose.WithStore(nil))
+		_, err = goose.NewProvider(goose.DialectSQLite3, db, nil, goose.WithStore(nil))
 		check.HasError(t, err)
 		// Cannot set both dialect and store
-		store, err := database.NewStore(database.DialectSQLite3, "custom_table")
+		store, err := database.NewStore(goose.DialectSQLite3, "custom_table")
 		check.NoError(t, err)
-		_, err = goose.NewProvider(database.DialectSQLite3, db, nil, goose.WithStore(store))
+		_, err = goose.NewProvider(goose.DialectSQLite3, db, nil, goose.WithStore(store))
 		check.HasError(t, err)
 		// Multiple stores not allowed
-		_, err = goose.NewProvider(database.DialectSQLite3, db, nil,
+		_, err = goose.NewProvider(goose.DialectSQLite3, db, nil,
 			goose.WithStore(store),
 			goose.WithStore(store),
 		)
@@ -49,15 +49,15 @@ func TestNewProvider(t *testing.T) {
 	})
 	t.Run("valid", func(t *testing.T) {
 		// Valid dialect, db, and fsys allowed
-		_, err = goose.NewProvider(database.DialectSQLite3, db, fsys)
+		_, err = goose.NewProvider(goose.DialectSQLite3, db, fsys)
 		check.NoError(t, err)
 		// Valid dialect, db, fsys, and verbose allowed
-		_, err = goose.NewProvider(database.DialectSQLite3, db, fsys,
+		_, err = goose.NewProvider(goose.DialectSQLite3, db, fsys,
 			goose.WithVerbose(testing.Verbose()),
 		)
 		check.NoError(t, err)
 		// Custom store allowed
-		store, err := database.NewStore(database.DialectSQLite3, "custom_table")
+		store, err := database.NewStore(goose.DialectSQLite3, "custom_table")
 		check.NoError(t, err)
 		_, err = goose.NewProvider("", db, nil, goose.WithStore(store))
 		check.HasError(t, err)
