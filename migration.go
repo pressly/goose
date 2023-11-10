@@ -37,6 +37,11 @@ func NewGoMigration(version int64, up, down *GoFunc) *Migration {
 			if f.RunTx == nil && f.RunDB != nil {
 				f.Mode = TransactionDisabled
 			}
+			// Always default to TransactionEnabled if both functions are nil. This is the most
+			// common use case.
+			if f.RunDB == nil && f.RunTx == nil {
+				f.Mode = TransactionEnabled
+			}
 		}
 		return f
 	}
