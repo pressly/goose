@@ -26,7 +26,7 @@
         <link rel="alternate" type="application/rss+xml" title="RSS feed of updated content" href="../../../feed_rss_updated.xml">
       
       <link rel="icon" href="../../../assets/goose_logo_cropped.png">
-      <meta name="generator" content="mkdocs-1.4.2, mkdocs-material-9.0.11+insiders-4.30.0">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.8+insiders-4.43.0">
     
     
       
@@ -34,14 +34,17 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.b6d2c4d8.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.382dd0b9.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.2505c338.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
+
     
+    
+      
     
     
       
@@ -61,34 +64,20 @@
 
     
     
-      
-        <meta  property="og:type"  content="website" >
-      
-        <meta  property="og:title"  content="Ad-hoc migrations with no versioning - pressly/goose" >
-      
-        <meta  property="og:description"  content="Database seeding. Apply migrations with no versioning." >
-      
-        <meta  property="og:image"  content="https://pressly.github.io/goose/assets/images/social/blog/posts/2021-12-no-version-migrations.png" >
-      
-        <meta  property="og:image:type"  content="image/png" >
-      
-        <meta  property="og:image:width"  content="1200" >
-      
-        <meta  property="og:image:height"  content="630" >
-      
-        <meta  property="og:url"  content="https://pressly.github.io/goose/blog/2021/no-version-migrations/" >
-      
-        <meta  name="twitter:card"  content="summary_large_image" >
-      
-        <meta  name="twitter:title"  content="Ad-hoc migrations with no versioning - pressly/goose" >
-      
-        <meta  name="twitter:description"  content="Database seeding. Apply migrations with no versioning." >
-      
-        <meta  name="twitter:image"  content="https://pressly.github.io/goose/assets/images/social/blog/posts/2021-12-no-version-migrations.png" >
-      
-    
-    
-  </head>
+  
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Ad-hoc migrations with no versioning - pressly/goose" />
+<meta property="og:description" content="Database seeding. Apply migrations with no versioning." />
+<meta property="og:image" content="https://pressly.github.io/goose/assets/images/social/blog/2021/no-version-migrations.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:url" content="https://pressly.github.io/goose/blog/2021/no-version-migrations/" />
+<meta property="twitter:card" content="summary_large_image" />
+<meta property="twitter:title" content="Ad-hoc migrations with no versioning - pressly/goose" />
+<meta property="twitter:description" content="Database seeding. Apply migrations with no versioning." />
+<meta property="twitter:image" content="https://pressly.github.io/goose/assets/images/social/blog/2021/no-version-migrations.png" />
+</head>
   
   
     
@@ -125,6 +114,7 @@
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
+      
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
     </label>
     <div class="md-header__title" data-md-component="header-title">
@@ -144,10 +134,13 @@
       </div>
     </div>
     
+      
+    
     
     
     
       <label class="md-header__button md-icon" for="__search">
+        
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
       </label>
       <div class="md-search" data-md-component="search" role="dialog">
@@ -156,12 +149,15 @@
     <form class="md-search__form" name="search">
       <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
       <label class="md-search__icon md-icon" for="__search">
+        
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
       </label>
       <nav class="md-search__options" aria-label="Search">
         
         <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
         </button>
       </nav>
@@ -185,7 +181,7 @@
         <a href="https://github.com/pressly/goose" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
   </div>
   <div class="md-source__repository">
     pressly/goose
@@ -204,7 +200,7 @@
           
             
 <nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
-  <div class="md-tabs__inner md-grid">
+  <div class="md-grid">
     <ul class="md-tabs__list">
       
         
@@ -237,6 +233,8 @@
         <a href="../../../commands/supported/" class="md-tabs__link">
           
   
+    
+  
   CLI Commands
 
         </a>
@@ -253,8 +251,8 @@
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../" class="md-tabs__link md-tabs__link--active">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../" class="md-tabs__link">
           
   
     
@@ -303,7 +301,7 @@
       <a href="https://github.com/pressly/goose" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
   </div>
   <div class="md-source__repository">
     pressly/goose
@@ -329,9 +327,13 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    
+    
       
-        
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
         
         
         
@@ -358,7 +360,8 @@
 
             </a>
             
-              <label class="md-nav__link " for="__nav_1">
+              
+              <label class="md-nav__link " for="__nav_1" id="__nav_1_label" tabindex="">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
@@ -424,9 +427,13 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    
+    
       
-        
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
         
         
         
@@ -434,7 +441,8 @@
         
         <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
         
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
             
   
   <span class="md-ellipsis">
@@ -541,9 +549,13 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    
+    
       
-        
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
         
         
         
@@ -568,7 +580,8 @@
 
             </a>
             
-              <label class="md-nav__link " for="__nav_3">
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
@@ -601,6 +614,9 @@
       
     
     
+    
+    
+      
       
     
     <li class="md-nav__item md-nav__item--section md-nav__item--nested">
@@ -608,12 +624,12 @@
         
         
         
-        
           
         
         <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2" >
         
-          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="">
             
   
   <span class="md-ellipsis">
@@ -723,6 +739,9 @@
       
     
     
+    
+    
+      
       
     
     <li class="md-nav__item md-nav__item--section md-nav__item--nested">
@@ -730,12 +749,12 @@
         
         
         
-        
           
         
         <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_3" >
         
-          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="">
             
   
   <span class="md-ellipsis">
@@ -776,6 +795,32 @@
     
   
     Blog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../category/sql-migrations/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    
+  
+    SQL migrations
   
 
     
@@ -847,58 +892,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../category/go-migrations/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    
-  
-    Go migrations
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../category/sql-migrations/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    
-  
-    SQL migrations
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../category/testing/" class="md-nav__link">
         
   
@@ -906,6 +899,32 @@
     
   
     Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../category/go-migrations/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    
+  
+    Go migrations
   
 
     
@@ -1019,7 +1038,7 @@
     <div class="md-sidebar md-sidebar--post" data-md-component="sidebar" data-md-type="navigation">
       <div class="md-sidebar__scrollwrap">
         <div class="md-sidebar__inner md-post">
-          <nav class="md-nav">
+          <nav class="md-nav md-nav--primary">
             <div class="md-post__back">
               <div class="md-nav__title md-nav__container">
                 <a href="../../" class="md-nav__link">
@@ -1046,32 +1065,37 @@
               </div>
             
             <ul class="md-post__meta md-nav__list">
-              <li class="md-nav__item md-nav__title">
-                <div class="md-nav__link">
+              <li class="md-nav__item md-nav__item--section">
+                <div class="md-post__title">
                   <span class="md-ellipsis">
                     Metadata
                   </span>
                 </div>
+                <nav class="md-nav">
+                  <ul class="md-nav__list">
+                    <li class="md-nav__item">
+                      <div class="md-nav__link">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1m-1 11h-5v5h5v-5Z"/></svg>
+                        <time datetime="2021-12-19 00:00:00" class="md-ellipsis">Dec 19, 2021</time>
+                      </div>
+                    </li>
+                    
+                    
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9 3v15h3V3H9m3 2 4 13 3-1-4-13-3 1M5 5v13h3V5H5M3 19v2h18v-2H3Z"/></svg>
+                          <span class="md-ellipsis">
+                            in
+                            
+                              <a href="../../category/blog/">Blog</a>, 
+                              <a href="../../category/general/">General</a></span>
+                        </div>
+                      </li>
+                    
+                    
+                  </ul>
+                </nav>
               </li>
-              <li class="md-nav__item">
-                <div class="md-nav__link">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1m-1 11h-5v5h5v-5Z"/></svg>
-                  <time datetime="2021-12-19 00:00:00" class="md-ellipsis">Dec 19, 2021</time>
-                </div>
-              </li>
-              
-                <li class="md-nav__item">
-                  <div class="md-nav__link">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9 3v15h3V3H9m3 2 4 13 3-1-4-13-3 1M5 5v13h3V5H5M3 19v2h18v-2H3Z"/></svg>
-                    <span class="md-ellipsis">
-                      in
-                      
-                        <a href="../../category/blog/">Blog</a>, 
-                        <a href="../../category/general/">General</a></span>
-                  </div>
-                </li>
-              
-              
             </ul>
             
           </nav>
@@ -1082,22 +1106,21 @@
     <article class="md-content__inner md-typeset">
       
         
-  
-  
-
-
-
-
 
 
 <h1 id="ad-hoc-migrations-with-no-versioning">Ad-hoc migrations with no versioning</h1>
-<p>This post describes a new feature recently added to <code>goose</code> -- the ability to apply migrations with <strong>no versioning</strong>. A common use case is to seed a database with data <em>after</em> versioned migrations have been applied.</p>
+<p>This post describes a new feature recently added to <code>goose</code> -- the ability to apply migrations with
+<strong>no versioning</strong>. A common use case is to seed a database with data <em>after</em> versioned migrations
+have been applied.</p>
 <!-- more -->
 
-<p>If you think of versioned migrations as the blueprint for a house (the schema), then unversioned migrations are like the furnishings inside (the data).</p>
-<p>A GitHub user <a href="https://github.com/soggycactus">@soggycactus</a> stated the problem well (<a href="https://github.com/pressly/goose/issues/259#issue-956845240">#235 comment</a>):</p>
+<p>If you think of versioned migrations as the blueprint for a house (the schema), then unversioned
+migrations are like the furnishings inside (the data).</p>
+<p>A GitHub user <a href="https://github.com/soggycactus">@soggycactus</a> stated the problem well
+(<a href="https://github.com/pressly/goose/issues/259#issue-956845240">#235 comment</a>):</p>
 <blockquote>
-<p>... I always find myself creating some sort of wrapper that allows me to use goose to seed my local and development environments with test data</p>
+<p>... I always find myself creating some sort of wrapper that allows me to use goose to seed my
+local and development environments with test data</p>
 </blockquote>
 <h3 id="brief-summary">Brief Summary</h3>
 <ul>
@@ -1106,15 +1129,24 @@
 <li>add unversioned migrations to a different directory (e.g., ./schema/seed)</li>
 <li>run <code>goose</code> commands with <code>-no-versioning</code> flag using seed directory</li>
 </ul>
-<p>By adding <code>-no-versioning</code> flag (CLI) or supplying <code>WithNoVersioning()</code> option (library), we instruct <code>goose</code> to apply migrations but to ignore tracking the version in the database schema table.</p>
+<p>By adding <code>-no-versioning</code> flag (CLI) or supplying <code>WithNoVersioning()</code> option (library), we
+instruct <code>goose</code> to apply migrations but to ignore tracking the version in the database schema
+table.</p>
 <hr />
 <h3 id="but-why">But why?</h3>
-<p>A common use case is to seed an environment with data, such as local development environment or integration tests. Because we don't want this data to be applied to production, we keep it separate from the versioned migrations in a different directory.</p>
-<p><strong>Seed data</strong>: think many <code>INSERT INTO</code> statements in up migrations and <code>DELETE FROM</code> or <code>TRUNCATE</code> in down migrations.</p>
+<p>A common use case is to seed an environment with data, such as local development environment or
+integration tests. Because we don't want this data to be applied to production, we keep it separate
+from the versioned migrations in a different directory.</p>
+<p><strong>Seed data</strong>: think many <code>INSERT INTO</code> statements in up migrations and <code>DELETE FROM</code> or <code>TRUNCATE</code>
+in down migrations.</p>
 <ul>
-<li>new developer joins, spins up a database, applies versioned migrations but requires "seed" data to get started</li>
-<li>integration or end-end tests that rely on pre-existing data. It's common to have your application create data, but sometimes you just want data to be there for external tests not involving your API</li>
-<li>optimizing delicate queries on a database with pre-populated data. Avoid writing queries against an empty database</li>
+<li>new developer joins, spins up a database, applies versioned migrations but requires "seed" data to
+  get started</li>
+<li>integration or end-end tests that rely on pre-existing data. It's common to have your application
+  create data, but sometimes you just want data to be there for external tests not involving your
+  API</li>
+<li>optimizing delicate queries on a database with pre-populated data. Avoid writing queries against
+  an empty database</li>
 </ul>
 <div class="admonition info">
 <p>Remember, if your application does requires some static, pre-existing data, then just insert it along with your regular versioned schema migrations.</p>
@@ -1135,30 +1167,46 @@
 <p>Running the following command creates the desired shape of the database:</p>
 <pre><code>goose -dir ./schema/migrations up
 </code></pre>
-<p>Assuming you're using the default goose table name <code>goose_db_version</code> then querying this table will return 3 versioned migrations.</p>
-<p>Now, suppose we want to run integration tests against a database that contains pre-populated data. Running the following command applies two migrations but <strong>it does not track their version in the database</strong>.</p>
+<p>Assuming you're using the default goose table name <code>goose_db_version</code> then querying this table will
+return 3 versioned migrations.</p>
+<p>Now, suppose we want to run integration tests against a database that contains pre-populated data.
+Running the following command applies two migrations but <strong>it does not track their version in the
+database</strong>.</p>
 <pre><code>goose -dir ./schema/seed -no-versioning up
 </code></pre>
 <hr />
 <p>If you run the initial command again:</p>
 <pre><code>goose -dir ./schema/migrations up
 </code></pre>
-<p><code>goose</code> will output <em>"no new migrations found"</em>. Because <code>goose</code> knows we already applied 3 migrations, so no further work to do.</p>
-<p>But, if you run the second command again: </p>
+<p><code>goose</code> will output <em>"no new migrations found"</em>. Because <code>goose</code> knows we already applied 3
+migrations, so no further work to do.</p>
+<p>But, if you run the second command again:</p>
 <pre><code>goose -dir ./schema/seed -no-versioning up
 </code></pre>
-<p><code>goose</code> doesn't know about unversioned migrations (due to the <code>-no-versioning</code> flag) so it will apply the seed migrations once again. Depending how you wrote the migrations, this may or may not succeed.</p>
+<p><code>goose</code> doesn't know about unversioned migrations (due to the <code>-no-versioning</code> flag) so it will
+apply the seed migrations once again. Depending how you wrote the migrations, this may or may not
+succeed.</p>
 <hr />
-<p>Lastly, we're done with our integration test. The neat thing with the <code>-no-versioning</code> flag is it enables you to wipe the data without having to migrate the entire database down and up again.</p>
+<p>Lastly, we're done with our integration test. The neat thing with the <code>-no-versioning</code> flag is it
+enables you to wipe the data without having to migrate the entire database down and up again.</p>
 <p>Running the following command will apply the down migrations in your seed files, in reverse order:</p>
 <pre><code>goose -dir ./schema/seed -no-versioning down-to 0
 # or
 goose -dir ./schema/seed -no-versioning reset
 </code></pre>
-<p>These two commands are the same--applying all down migrations starting from the highest to the lowest numbered migration files in the schema directory.</p>
+<p>These two commands are the same--applying all down migrations starting from the highest to the
+lowest numbered migration files in the schema directory.</p>
 <h3 id="final-thoughts">Final Thoughts</h3>
-<p>With the <code>-no-versioning</code> flag (CLI) or <code>WithNoVersioning()</code> option (library) you now have the ability to apply arbitrary SQL statements to the database.</p>
-<p>Just remember, these operations are not tracked (versioned) and are intended to be used in development/testing environments.</p>
+<p>With the <code>-no-versioning</code> flag (CLI) or <code>WithNoVersioning()</code> option (library) you now have the
+ability to apply arbitrary SQL statements to the database.</p>
+<p>Just remember, these operations are not tracked (versioned) and are intended to be used in
+development/testing environments.</p>
+
+
+
+
+
+
 
   
   
@@ -1178,10 +1226,11 @@ goose -dir ./schema/seed -no-versioning reset
 <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
         </div>
         
-          <a href="#" class="md-top md-icon" data-md-component="top" hidden>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
-            Back to top
-          </a>
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+  Back to top
+</button>
         
       </main>
       
@@ -1208,10 +1257,11 @@ goose -dir ./schema/seed -no-versioning reset
       <div class="md-dialog__inner md-typeset"></div>
     </div>
     
-    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "navigation.tabs", "navigation.indexes", "navigation.top", "content.code.annotate", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.6c7302c4.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "navigation.tabs", "navigation.indexes", "navigation.top", "content.code.annotate", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.1e90e0fb.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.7ce0e818.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.a5ca32a6.min.js"></script>
       
     
   </body>
