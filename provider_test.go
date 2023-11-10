@@ -9,7 +9,6 @@ import (
 	"testing/fstest"
 
 	"github.com/pressly/goose/v3"
-	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/internal/check"
 	_ "modernc.org/sqlite"
 )
@@ -19,7 +18,7 @@ func TestProvider(t *testing.T) {
 	db, err := sql.Open("sqlite", filepath.Join(dir, "sql_embed.db"))
 	check.NoError(t, err)
 	t.Run("empty", func(t *testing.T) {
-		_, err := goose.NewProvider(database.DialectSQLite3, db, fstest.MapFS{})
+		_, err := goose.NewProvider(goose.DialectSQLite3, db, fstest.MapFS{})
 		check.HasError(t, err)
 		check.Bool(t, errors.Is(err, goose.ErrNoMigrations), true)
 	})
@@ -30,7 +29,7 @@ func TestProvider(t *testing.T) {
 	}
 	fsys, err := fs.Sub(mapFS, "migrations")
 	check.NoError(t, err)
-	p, err := goose.NewProvider(database.DialectSQLite3, db, fsys)
+	p, err := goose.NewProvider(goose.DialectSQLite3, db, fsys)
 	check.NoError(t, err)
 	sources := p.ListSources()
 	check.Equal(t, len(sources), 2)

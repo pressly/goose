@@ -17,7 +17,6 @@ import (
 	"testing/fstest"
 
 	"github.com/pressly/goose/v3"
-	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/internal/check"
 	"github.com/pressly/goose/v3/internal/testdb"
 	"github.com/pressly/goose/v3/lock"
@@ -321,7 +320,7 @@ INSERT INTO owners (owner_name) VALUES ('seed-user-2');
 INSERT INTO owners (owner_name) VALUES ('seed-user-3');
 `),
 		}
-		p, err := goose.NewProvider(database.DialectSQLite3, db, mapFS)
+		p, err := goose.NewProvider(goose.DialectSQLite3, db, mapFS)
 		check.NoError(t, err)
 		_, err = p.Up(ctx)
 		check.HasError(t, err)
@@ -486,7 +485,7 @@ func TestNoVersioning(t *testing.T) {
 		// These are owners created by migration files.
 		wantOwnerCount = 4
 	)
-	p, err := goose.NewProvider(database.DialectSQLite3, db, fsys,
+	p, err := goose.NewProvider(goose.DialectSQLite3, db, fsys,
 		goose.WithVerbose(testing.Verbose()),
 		goose.WithDisableVersioning(false), // This is the default.
 	)
@@ -499,7 +498,7 @@ func TestNoVersioning(t *testing.T) {
 	check.Number(t, baseVersion, 3)
 	t.Run("seed-up-down-to-zero", func(t *testing.T) {
 		fsys := os.DirFS(filepath.Join("testdata", "no-versioning", "seed"))
-		p, err := goose.NewProvider(database.DialectSQLite3, db, fsys,
+		p, err := goose.NewProvider(goose.DialectSQLite3, db, fsys,
 			goose.WithVerbose(testing.Verbose()),
 			goose.WithDisableVersioning(true), // Provider with no versioning.
 		)
@@ -552,7 +551,7 @@ func TestAllowMissing(t *testing.T) {
 
 	t.Run("missing_now_allowed", func(t *testing.T) {
 		db := newDB(t)
-		p, err := goose.NewProvider(database.DialectSQLite3, db, newFsys(),
+		p, err := goose.NewProvider(goose.DialectSQLite3, db, newFsys(),
 			goose.WithAllowOutofOrder(false),
 		)
 		check.NoError(t, err)
@@ -607,7 +606,7 @@ func TestAllowMissing(t *testing.T) {
 
 	t.Run("missing_allowed", func(t *testing.T) {
 		db := newDB(t)
-		p, err := goose.NewProvider(database.DialectSQLite3, db, newFsys(),
+		p, err := goose.NewProvider(goose.DialectSQLite3, db, newFsys(),
 			goose.WithAllowOutofOrder(true),
 		)
 		check.NoError(t, err)
@@ -723,7 +722,7 @@ func TestGoOnly(t *testing.T) {
 				&goose.GoFunc{RunTx: newTxFn("DELETE FROM users")},
 			),
 		}
-		p, err := goose.NewProvider(database.DialectSQLite3, db, nil,
+		p, err := goose.NewProvider(goose.DialectSQLite3, db, nil,
 			goose.WithGoMigrations(register...),
 		)
 		check.NoError(t, err)
@@ -779,7 +778,7 @@ func TestGoOnly(t *testing.T) {
 				&goose.GoFunc{RunDB: newDBFn("DELETE FROM users")},
 			),
 		}
-		p, err := goose.NewProvider(database.DialectSQLite3, db, nil,
+		p, err := goose.NewProvider(goose.DialectSQLite3, db, nil,
 			goose.WithGoMigrations(register...),
 		)
 		check.NoError(t, err)
@@ -836,7 +835,7 @@ func TestLockModeAdvisorySession(t *testing.T) {
 		)
 		check.NoError(t, err)
 		p, err := goose.NewProvider(
-			database.DialectPostgres,
+			goose.DialectPostgres,
 			db,
 			os.DirFS("testdata/migrations"),
 			goose.WithSessionLocker(sessionLocker), // Use advisory session lock mode.
@@ -1093,7 +1092,7 @@ func newProviderWithDB(t *testing.T, opts ...goose.ProviderOption) (*goose.Provi
 		opts,
 		goose.WithVerbose(testing.Verbose()),
 	)
-	p, err := goose.NewProvider(database.DialectSQLite3, db, newFsys(), opts...)
+	p, err := goose.NewProvider(goose.DialectSQLite3, db, newFsys(), opts...)
 	check.NoError(t, err)
 	return p, db
 }
