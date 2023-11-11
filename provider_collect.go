@@ -133,8 +133,13 @@ func merge(sources *fileSources, registerd map[int64]*Migration) ([]*Migration, 
 	// This is almost always a user error.
 	var unregistered []string
 	for _, s := range sources.goSources {
-		if _, ok := registerd[s.Version]; !ok {
+		m, ok := registerd[s.Version]
+		if !ok {
 			unregistered = append(unregistered, s.Path)
+		} else {
+			// Populate the source path for registered Go migrations that have a corresponding file
+			// on disk.
+			m.Source = s.Path
 		}
 	}
 	if len(unregistered) > 0 {
@@ -151,7 +156,7 @@ func merge(sources *fileSources, registerd map[int64]*Migration) ([]*Migration, 
 		if existing, ok := migrationLookup[version]; ok {
 			fullpath := r.Source
 			if fullpath == "" {
-				fullpath = "manually registered (no source)"
+				fullpath = "no source path"
 			}
 			return nil, fmt.Errorf("found duplicate migration version %d:\n\texisting:%v\n\tcurrent:%v",
 				version,
