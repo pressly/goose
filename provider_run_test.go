@@ -648,8 +648,10 @@ func TestAllowMissing(t *testing.T) {
 			check.Number(t, current, 6)
 		}
 
-		// The applied order in the database is expected to be: 1,2,3,5,4,6 So migrating down should
-		// be the reverse of the applied order: 6,4,5,3,2,1
+		// The applied order in the database is expected to be:
+		//      1,2,3,5,4,6
+		// So migrating down should be the reverse of the applied order:
+		//      6,4,5,3,2,1
 
 		testDownAndVersion := func(wantDBVersion, wantResultVersion int64) {
 			currentVersion, err := p.GetDBVersion(ctx)
