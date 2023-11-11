@@ -649,9 +649,9 @@ func TestAllowMissing(t *testing.T) {
 		}
 
 		// The applied order in the database is expected to be:
-		// 1,2,3,5,4,6
+		//      1,2,3,5,4,6
 		// So migrating down should be the reverse of the applied order:
-		// 6,4,5,3,2,1
+		//      6,4,5,3,2,1
 
 		testDownAndVersion := func(wantDBVersion, wantResultVersion int64) {
 			currentVersion, err := p.GetDBVersion(ctx)
@@ -664,8 +664,8 @@ func TestAllowMissing(t *testing.T) {
 		}
 
 		// This behaviour may need to change, see the following issues for more details:
-		// 	- https://github.com/pressly/goose/issues/523
-		// 	- https://github.com/pressly/goose/issues/402
+		//  - https://github.com/pressly/goose/issues/523
+		//  - https://github.com/pressly/goose/issues/402
 
 		testDownAndVersion(6, 6)
 		testDownAndVersion(5, 4) // Ensure the max db version is 5 before down.
@@ -676,6 +676,50 @@ func TestAllowMissing(t *testing.T) {
 		_, err = p.Down(ctx)
 		check.HasError(t, err)
 		check.Bool(t, errors.Is(err, goose.ErrNoNextVersion), true)
+	})
+}
+
+func TestSQLiteSharedCache(t *testing.T) {
+	t.Parallel()
+	// goose uses *sql.Conn for most operations (incl. creating the initial table), but for Go
+	// migrations when running outside a transaction we use *sql.DB. This is a problem for SQLite
+	// because it does not support shared cache mode by default and it does not see the table that
+	// was created through the initial connection. This test ensures goose works with SQLite shared
+	// cache mode.
+	//
+	// Ref: https://www.sqlite.org/inmemorydb.html
+	//
+	// "In-memory databases are allowed to use shared cache if they are opened using a URI filename.
+	// If the unadorned ":memory:" name is used to specify the in-memory database, then that
+	// database always has a private cache and is only visible to the database connection that
+	// originally opened it. However, the same in-memory database can be opened by two or more
+	// database connections as follows: file::memory:?cache=shared"
+	t.Run("shared_cache", func(t *testing.T) {
+		db, err := sql.Open("sqlite", "file::memory:?cache=shared")
+		check.NoError(t, err)
+		fsys := fstest.MapFS{"00001_a.sql": newMapFile(`-- +goose Up`)}
+		p, err := goose.NewProvider(goose.DialectSQLite3, db, fsys,
+			goose.WithGoMigrations(
+				goose.NewGoMigration(2, &goose.GoFunc{Mode: goose.TransactionDisabled}, nil),
+			),
+		)
+		check.NoError(t, err)
+		_, err = p.Up(context.Background())
+		check.NoError(t, err)
+	})
+	t.Run("no_shared_cache", func(t *testing.T) {
+		db, err := sql.Open("sqlite", "file::memory:")
+		check.NoError(t, err)
+		fsys := fstest.MapFS{"00001_a.sql": newMapFile(`-- +goose Up`)}
+		p, err := goose.NewProvider(goose.DialectSQLite3, db, fsys,
+			goose.WithGoMigrations(
+				goose.NewGoMigration(2, &goose.GoFunc{Mode: goose.TransactionDisabled}, nil),
+			),
+		)
+		check.NoError(t, err)
+		_, err = p.Up(context.Background())
+		check.HasError(t, err)
+		check.Contains(t, err.Error(), "SQL logic error: no such table: goose_db_version")
 	})
 }
 
