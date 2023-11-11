@@ -682,9 +682,18 @@ func TestAllowMissing(t *testing.T) {
 func TestSQLiteSharedCache(t *testing.T) {
 	t.Parallel()
 	// goose uses *sql.Conn for most operations (incl. creating the initial table), but for Go
-	// migrations when transaction is disabled it uses *sql.DB. This is a problem for SQLite because
-	// it does not support shared cache mode by default and it does not see the table that was
-	// created when initialized. This test ensures goose works with SQLite shared cache mode.
+	// migrations when running outside a transaction we use *sql.DB. This is a problem for SQLite
+	// because it does not support shared cache mode by default and it does not see the table that
+	// was created through the initial connection. This test ensures goose works with SQLite shared
+	// cache mode.
+	//
+	// Ref: https://www.sqlite.org/inmemorydb.html
+	//
+	// "In-memory databases are allowed to use shared cache if they are opened using a URI filename.
+	// If the unadorned ":memory:" name is used to specify the in-memory database, then that
+	// database always has a private cache and is only visible to the database connection that
+	// originally opened it. However, the same in-memory database can be opened by two or more
+	// database connections as follows: file::memory:?cache=shared"
 	t.Run("shared_cache", func(t *testing.T) {
 		db, err := sql.Open("sqlite", "file::memory:?cache=shared")
 		check.NoError(t, err)
