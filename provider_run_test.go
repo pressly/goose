@@ -724,6 +724,34 @@ func TestSQLiteSharedCache(t *testing.T) {
 	})
 }
 
+func TestGoMigrationPanic(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	const (
+		wantErrString = "panic: runtime error: index out of range [7] with length 0"
+	)
+	migration := goose.NewGoMigration(
+		1,
+		&goose.GoFunc{RunTx: func(ctx context.Context, tx *sql.Tx) error {
+			var ss []int
+			_ = ss[7]
+			return nil
+		}},
+		nil,
+	)
+	p, err := goose.NewProvider(goose.DialectSQLite3, newDB(t), nil,
+		goose.WithGoMigrations(migration), // Add a Go migration that panics.
+	)
+	check.NoError(t, err)
+	_, err = p.Up(ctx)
+	check.HasError(t, err)
+	check.Contains(t, err.Error(), wantErrString)
+	var expected *goose.PartialError
+	check.Bool(t, errors.As(err, &expected), true)
+	check.Contains(t, expected.Err.Error(), wantErrString)
+}
+
 func TestCustomStoreTableExists(t *testing.T) {
 	t.Parallel()
 
