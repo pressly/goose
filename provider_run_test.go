@@ -17,6 +17,7 @@ import (
 	"testing/fstest"
 
 	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/internal/check"
 	"github.com/pressly/goose/v3/internal/testdb"
 	"github.com/pressly/goose/v3/lock"
@@ -721,6 +722,32 @@ func TestSQLiteSharedCache(t *testing.T) {
 		check.HasError(t, err)
 		check.Contains(t, err.Error(), "SQL logic error: no such table: goose_db_version")
 	})
+}
+
+func TestCustomStoreTableExists(t *testing.T) {
+	t.Parallel()
+
+	store, err := database.NewStore(database.DialectSQLite3, goose.DefaultTablename)
+	check.NoError(t, err)
+	p, err := goose.NewProvider("", newDB(t), newFsys(),
+		goose.WithStore(&customStoreSQLite3{store}),
+	)
+	check.NoError(t, err)
+	_, err = p.Up(context.Background())
+	check.NoError(t, err)
+}
+
+type customStoreSQLite3 struct {
+	database.Store
+}
+
+func (s *customStoreSQLite3) TableExists(ctx context.Context, db database.DBTxConn, name string) (bool, error) {
+	q := `SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type='table' AND name=$1) AS table_exists`
+	var exists bool
+	if err := db.QueryRowContext(ctx, q, name).Scan(&exists); err != nil {
+		return false, err
+	}
+	return exists, nil
 }
 
 func getGooseVersionCount(db *sql.DB, gooseTable string) (int64, error) {

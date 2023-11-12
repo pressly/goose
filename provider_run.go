@@ -302,11 +302,26 @@ func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, err
 }
 
 func (p *Provider) ensureVersionTable(ctx context.Context, conn *sql.Conn) (retErr error) {
-	// feat(mf): this is where we can check if the version table exists instead of trying to fetch
-	// from a table that may not exist. https://github.com/pressly/goose/issues/461
-	res, err := p.store.GetMigration(ctx, conn, 0)
-	if err == nil && res != nil {
-		return nil
+	// existor is an interface that extends the Store interface with a method to check if the
+	// version table exists. This API is not stable and may change in the future.
+	type existor interface {
+		TableExists(context.Context, database.DBTxConn, string) (bool, error)
+	}
+	if e, ok := p.store.(existor); ok {
+		exists, err := e.TableExists(ctx, conn, p.store.Tablename())
+		if err != nil {
+			return fmt.Errorf("failed to check if version table exists: %w", err)
+		}
+		if exists {
+			return nil
+		}
+	} else {
+		// feat(mf): this is where we can check if the version table exists instead of trying to fetch
+		// from a table that may not exist. https://github.com/pressly/goose/issues/461
+		res, err := p.store.GetMigration(ctx, conn, 0)
+		if err == nil && res != nil {
+			return nil
+		}
 	}
 	return beginTx(ctx, conn, func(tx *sql.Tx) error {
 		if err := p.store.CreateVersionTable(ctx, tx); err != nil {
