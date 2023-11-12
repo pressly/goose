@@ -89,12 +89,12 @@ func (l *postgresSessionLocker) SessionUnlock(ctx context.Context, conn *sql.Con
 			return nil
 		}
 		/*
-			TODO(mf): provide users with some documentation on how they can unlock the session
+			docs(md): provide users with some documentation on how they can unlock the session
 			manually.
 
 			This is probably not an issue for 99.99% of users since pg_advisory_unlock_all() will
-			release all session level advisory locks held by the current session. This function is
-			implicitly invoked at session end, even if the client disconnects ungracefully.
+			release all session level advisory locks held by the current session. It is implicitly
+			invoked at session end, even if the client disconnects ungracefully.
 
 			Here is output from a session that has a lock held:
 

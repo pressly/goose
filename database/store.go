@@ -21,7 +21,8 @@ type Store interface {
 	Tablename() string
 
 	// CreateVersionTable creates the version table. This table is used to record applied
-	// migrations.
+	// migrations. When creating the table, the implementation must also insert a row for the
+	// initial version (0).
 	CreateVersionTable(ctx context.Context, db DBTxConn) error
 
 	// Insert inserts a version id into the version table.
@@ -35,7 +36,9 @@ type Store interface {
 	GetMigration(ctx context.Context, db DBTxConn, version int64) (*GetMigrationResult, error)
 
 	// ListMigrations retrieves all migrations sorted in descending order by id or timestamp. If
-	// there are no migrations, return empty slice with no error.
+	// there are no migrations, return empty slice with no error. Typically this method will return
+	// at least one migration, because the initial version (0) is always inserted into the version
+	// table when it is created.
 	ListMigrations(ctx context.Context, db DBTxConn) ([]*ListMigrationsResult, error)
 
 	// TODO(mf): remove this method once the Provider is public and a custom Store can be used.

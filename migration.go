@@ -391,3 +391,8 @@ func truncateDuration(d time.Duration) time.Duration {
 	}
 	return d
 }
+
+// ref returns a string that identifies the migration. This is used for logging and error messages.
+func (m *Migration) ref() string {
+	return fmt.Sprintf("(type:%s,version:%d)", m.Type, m.Version)
+}

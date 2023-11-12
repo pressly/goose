@@ -297,7 +297,7 @@ func (p *Provider) up(
 	}
 	conn, cleanup, err := p.initialize(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to initialize: %w", err)
 	}
 	defer func() {
 		retErr = multierr.Append(retErr, cleanup())
@@ -339,7 +339,7 @@ func (p *Provider) down(
 ) (_ []*MigrationResult, retErr error) {
 	conn, cleanup, err := p.initialize(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to initialize: %w", err)
 	}
 	defer func() {
 		retErr = multierr.Append(retErr, cleanup())
@@ -397,7 +397,7 @@ func (p *Provider) apply(
 	}
 	conn, cleanup, err := p.initialize(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to initialize: %w", err)
 	}
 	defer func() {
 		retErr = multierr.Append(retErr, cleanup())
@@ -422,7 +422,7 @@ func (p *Provider) apply(
 func (p *Provider) status(ctx context.Context) (_ []*MigrationStatus, retErr error) {
 	conn, cleanup, err := p.initialize(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to initialize: %w", err)
 	}
 	defer func() {
 		retErr = multierr.Append(retErr, cleanup())
@@ -455,7 +455,7 @@ func (p *Provider) status(ctx context.Context) (_ []*MigrationStatus, retErr err
 func (p *Provider) getDBMaxVersion(ctx context.Context) (_ int64, retErr error) {
 	conn, cleanup, err := p.initialize(ctx)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to initialize: %w", err)
 	}
 	defer func() {
 		retErr = multierr.Append(retErr, cleanup())

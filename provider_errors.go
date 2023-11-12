@@ -3,7 +3,6 @@ package goose
 import (
 	"errors"
 	"fmt"
-	"path/filepath"
 )
 
 var (
@@ -32,9 +31,8 @@ type PartialError struct {
 }
 
 func (e *PartialError) Error() string {
-	filename := "(file unknown)"
-	if e.Failed != nil && e.Failed.Source.Path != "" {
-		filename = fmt.Sprintf("(%s)", filepath.Base(e.Failed.Source.Path))
-	}
-	return fmt.Sprintf("partial migration error %s (%d): %v", filename, e.Failed.Source.Version, e.Err)
+	return fmt.Sprintf(
+		"partial migration error (type:%s,version:%d): %v",
+		e.Failed.Source.Type, e.Failed.Source.Version, e.Err,
+	)
 }

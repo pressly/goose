@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -43,7 +44,7 @@ func (p *Provider) resolveUpMigrations(
 	if len(missingMigrations) > 0 && !p.cfg.allowMissing {
 		var collected []string
 		for _, v := range missingMigrations {
-			collected = append(collected, fmt.Sprintf("%d", v.versionID))
+			collected = append(collected, strconv.FormatInt(v, 10))
 		}
 		msg := "migration"
 		if len(collected) > 1 {
@@ -53,8 +54,8 @@ func (p *Provider) resolveUpMigrations(
 			len(missingMigrations), msg, dbMaxVersion, strings.Join(collected, ","),
 		)
 	}
-	for _, v := range missingMigrations {
-		m, err := p.getMigration(v.versionID)
+	for _, missingVersion := range missingMigrations {
+		m, err := p.getMigration(missingVersion)
 		if err != nil {
 			return nil, err
 		}
@@ -141,7 +142,7 @@ func (p *Provider) runMigrations(
 
 	for _, m := range apply {
 		if err := p.prepareMigration(p.fsys, m, direction.ToBool()); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to prepare migration %s: %w", m.ref(), err)
 		}
 	}
 
@@ -301,11 +302,26 @@ func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, err
 }
 
 func (p *Provider) ensureVersionTable(ctx context.Context, conn *sql.Conn) (retErr error) {
-	// feat(mf): this is where we can check if the version table exists instead of trying to fetch
-	// from a table that may not exist. https://github.com/pressly/goose/issues/461
-	res, err := p.store.GetMigration(ctx, conn, 0)
-	if err == nil && res != nil {
-		return nil
+	// existor is an interface that extends the Store interface with a method to check if the
+	// version table exists. This API is not stable and may change in the future.
+	type existor interface {
+		TableExists(context.Context, database.DBTxConn, string) (bool, error)
+	}
+	if e, ok := p.store.(existor); ok {
+		exists, err := e.TableExists(ctx, conn, p.store.Tablename())
+		if err != nil {
+			return fmt.Errorf("failed to check if version table exists: %w", err)
+		}
+		if exists {
+			return nil
+		}
+	} else {
+		// feat(mf): this is where we can check if the version table exists instead of trying to fetch
+		// from a table that may not exist. https://github.com/pressly/goose/issues/461
+		res, err := p.store.GetMigration(ctx, conn, 0)
+		if err == nil && res != nil {
+			return nil
+		}
 	}
 	return beginTx(ctx, conn, func(tx *sql.Tx) error {
 		if err := p.store.CreateVersionTable(ctx, tx); err != nil {
@@ -318,16 +334,12 @@ func (p *Provider) ensureVersionTable(ctx context.Context, conn *sql.Conn) (retE
 	})
 }
 
-type missingMigration struct {
-	versionID int64
-}
-
 // checkMissingMigrations returns a list of migrations that are missing from the database. A missing
 // migration is one that has a version less than the max version in the database.
 func checkMissingMigrations(
 	dbMigrations []*database.ListMigrationsResult,
 	fsMigrations []*Migration,
-) []missingMigration {
+) []int64 {
 	existing := make(map[int64]bool)
 	var dbMaxVersion int64
 	for _, m := range dbMigrations {
@@ -336,17 +348,14 @@ func checkMissingMigrations(
 			dbMaxVersion = m.Version
 		}
 	}
-	var missing []missingMigration
+	var missing []int64
 	for _, m := range fsMigrations {
-		version := m.Version
-		if !existing[version] && version < dbMaxVersion {
-			missing = append(missing, missingMigration{
-				versionID: version,
-			})
+		if !existing[m.Version] && m.Version < dbMaxVersion {
+			missing = append(missing, m.Version)
 		}
 	}
 	sort.Slice(missing, func(i, j int) bool {
-		return missing[i].versionID < missing[j].versionID
+		return missing[i] < missing[j]
 	})
 	return missing
 }
