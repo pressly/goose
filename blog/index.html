@@ -16,7 +16,7 @@
         <link rel="prev" href="../commands/experimental/">
       
       
-        <link rel="next" href="category/blog/">
+        <link rel="next" href="category/package/">
       
       
         
@@ -610,6 +610,8 @@
       
         
       
+        
+      
     
     
     
@@ -654,6 +656,32 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="archive/2023/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    
+  
+    2023
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -735,6 +763,8 @@
       
         
       
+        
+      
     
     
     
@@ -779,6 +809,32 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="category/package/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    
+  
+    Package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -998,13 +1054,101 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2023-11-11 00:00:00">Nov 11, 2023</time></li>
+        
+          <li class="md-meta__item">
+            in
+            
+              <a href="category/package/" class="md-meta__link">Package</a>, 
+              <a href="category/blog/" class="md-meta__link">Blog</a></li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="adding-a-goose-provider"><a class="toclink" href="2023/goose-provider/">Adding a goose provider</a></h2>
+<h3 id="introduction"><a class="toclink" href="2023/goose-provider/#introduction">Introduction</a></h3>
+<p>In this post, we'll explore the new <code>Provider</code> feature recently added to the core goose package. If
+you're new to goose, it's a tool for handling database migrations, available as a standalone CLI
+tool and a package that can be used in Go applications.</p>
+<p>Requires version <strong><a href="https://github.com/pressly/goose/releases/tag/v3.16.0">v3.16.0</a></strong> and above.</p>
+<p>Adding a provider to your application is easy, here's a quick example:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">provider</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">goose</span><span class="p">.</span><span class="nx">NewProvider</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">goose</span><span class="p">.</span><span class="nx">DialectPostgres</span><span class="p">,</span><span class="w"> </span><span class="c1">// (1)!</span>
+<span class="w">  </span><span class="nx">db</span><span class="p">,</span><span class="w"> </span><span class="c1">// (2)!</span>
+<span class="w">  </span><span class="nx">os</span><span class="p">.</span><span class="nx">DirFS</span><span class="p">(</span><span class="s">&quot;migrations&quot;</span><span class="p">),</span><span class="w"> </span><span class="c1">// (3)!</span>
+<span class="p">)</span>
+
+<span class="nx">results</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">provider</span><span class="p">.</span><span class="nx">Up</span><span class="p">(</span><span class="nx">ctx</span><span class="p">)</span><span class="w"> </span><span class="c1">// (4)!</span>
+</code></pre></div>
+<ol>
+<li>
+<p>The first argument is the dialect. It is the type of database technology you're using. In this
+    case, we're using Postgres. But goose also supports:</p>
+<p>clickhouse, mssql, mysql, postgres, redshift, sqlite3, tidb, vertica, ydb,</p>
+</li>
+<li>
+<p>The second argument is the database connection. You can use any database driver you want, as
+    long as it implements the <code>database/sql</code> interface.</p>
+<p>A popular choice for Postgres is <a href="https://pkg.go.dev/github.com/jackc/pgx/v5">pgx/v5</a></p>
+</li>
+<li>
+<p>The last argument may be <code>nil</code>. Why? Because goose also supports the ability to register Go
+    functions as migrations.</p>
+<p>However, in most cases, you'll be using SQL migrations and reading them from disk. In this case,
+you'll use <a href="https://pkg.go.dev/os#DirFS">os.DirFS</a> or embed them into your binary and use
+<a href="https://pkg.go.dev/embed#FS">embed.FS</a>.</p>
+</li>
+<li>
+<p>The last step is to invoke one of the migration methods. In this case, we're running the <code>Up</code>
+    method, which will run all the migrations that haven't been run yet. Here's a list of all the
+    methods:</p>
+<div class="highlight"><pre><span></span><code><span class="w">  </span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="o">*</span><span class="nx">Provider</span><span class="p">)</span><span class="w"> </span><span class="nx">ApplyVersion</span>
+<span class="w">  </span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="o">*</span><span class="nx">Provider</span><span class="p">)</span><span class="w"> </span><span class="nx">Close</span>
+<span class="w">  </span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="o">*</span><span class="nx">Provider</span><span class="p">)</span><span class="w"> </span><span class="nx">Down</span>
+<span class="w">  </span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="o">*</span><span class="nx">Provider</span><span class="p">)</span><span class="w"> </span><span class="nx">DownTo</span>
+<span class="w">  </span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="o">*</span><span class="nx">Provider</span><span class="p">)</span><span class="w"> </span><span class="nx">GetDBVersion</span>
+<span class="w">  </span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="o">*</span><span class="nx">Provider</span><span class="p">)</span><span class="w"> </span><span class="nx">ListSources</span>
+<span class="w">  </span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="o">*</span><span class="nx">Provider</span><span class="p">)</span><span class="w"> </span><span class="nx">Ping</span>
+<span class="w">  </span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="o">*</span><span class="nx">Provider</span><span class="p">)</span><span class="w"> </span><span class="nx">Status</span>
+<span class="w">  </span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="o">*</span><span class="nx">Provider</span><span class="p">)</span><span class="w"> </span><span class="nx">Up</span>
+<span class="w">  </span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="o">*</span><span class="nx">Provider</span><span class="p">)</span><span class="w"> </span><span class="nx">UpByOne</span>
+<span class="w">  </span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="o">*</span><span class="nx">Provider</span><span class="p">)</span><span class="w"> </span><span class="nx">UpTo</span>
+</code></pre></div>
+</li>
+</ol>
+
+    <nav class="md-post__action">
+      <a href="2023/goose-provider/">
+        Continue reading
+      </a>
+    </nav>
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+      <nav class="md-post__authors md-typeset">
+        
+          <span class="md-author">
+            <img src="https://github.com/mfridman.png" alt="Mike Fridman">
+          </span>
+        
+      </nav>
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2022-12-30 00:00:00">Dec 30, 2022</time></li>
         
           <li class="md-meta__item">
             in
             
-              <a href="category/blog/" class="md-meta__link">Blog</a>, 
-              <a href="category/sql-migrations/" class="md-meta__link">SQL migrations</a></li>
+              <a href="category/sql-migrations/" class="md-meta__link">SQL migrations</a>, 
+              <a href="category/blog/" class="md-meta__link">Blog</a></li>
         
         
       </ul>
