@@ -724,6 +724,27 @@ func TestSQLiteSharedCache(t *testing.T) {
 	})
 }
 
+func TestGoMigrationPanic(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	migration := goose.NewGoMigration(
+		1,
+		&goose.GoFunc{RunTx: func(ctx context.Context, tx *sql.Tx) error { panic("something went wrong") }},
+		nil,
+	)
+	p, err := goose.NewProvider(goose.DialectSQLite3, newDB(t), nil,
+		goose.WithGoMigrations(migration), // Add a Go migration that panics.
+	)
+	check.NoError(t, err)
+	_, err = p.Up(ctx)
+	check.HasError(t, err)
+	check.Contains(t, err.Error(), "panic: something went wrong")
+	var expected *goose.PartialError
+	check.Bool(t, errors.As(err, &expected), true)
+	check.Contains(t, expected.Err.Error(), "panic: something went wrong")
+}
+
 func TestCustomStoreTableExists(t *testing.T) {
 	t.Parallel()
 

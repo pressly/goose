@@ -424,7 +424,13 @@ func runMigration(ctx context.Context, db database.DBTxConn, m *Migration, direc
 
 // runGo is a helper function that runs the given Go functions in the given direction. It must only
 // be called after the migration has been initialized.
-func runGo(ctx context.Context, db database.DBTxConn, m *Migration, direction bool) error {
+func runGo(ctx context.Context, db database.DBTxConn, m *Migration, direction bool) (retErr error) {
+	defer func() {
+		if r := recover(); r != nil {
+			retErr = fmt.Errorf("panic: %v", r)
+		}
+	}()
+
 	switch db := db.(type) {
 	case *sql.Conn:
 		return fmt.Errorf("go migrations are not supported with *sql.Conn")
