@@ -31,7 +31,7 @@ func TestProviderRun(t *testing.T) {
 		check.NoError(t, db.Close())
 		_, err := p.Up(context.Background())
 		check.HasError(t, err)
-		check.Equal(t, err.Error(), "sql: database is closed")
+		check.Equal(t, err.Error(), "failed to initialize: sql: database is closed")
 	})
 	t.Run("ping_and_close", func(t *testing.T) {
 		p, _ := newProviderWithDB(t)
@@ -324,7 +324,7 @@ INSERT INTO owners (owner_name) VALUES ('seed-user-3');
 		check.NoError(t, err)
 		_, err = p.Up(ctx)
 		check.HasError(t, err)
-		check.Contains(t, err.Error(), "partial migration error (00002_partial_error.sql) (2)")
+		check.Contains(t, err.Error(), "partial migration error (type:sql,version:2)")
 		var expected *goose.PartialError
 		check.Bool(t, errors.As(err, &expected), true)
 		// Check Err field

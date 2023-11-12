@@ -313,8 +313,8 @@ func TestCheckMissingMigrations(t *testing.T) {
 		}
 		got := checkMissingMigrations(dbMigrations, fsMigrations)
 		check.Number(t, len(got), 2)
-		check.Number(t, got[0].versionID, 2)
-		check.Number(t, got[1].versionID, 6)
+		check.Number(t, got[0], 2)
+		check.Number(t, got[1], 6)
 
 		// Sanity check.
 		check.Number(t, len(checkMissingMigrations(nil, nil)), 0)
@@ -333,8 +333,8 @@ func TestCheckMissingMigrations(t *testing.T) {
 		}
 		got := checkMissingMigrations(dbMigrations, fsMigrations)
 		check.Number(t, len(got), 2)
-		check.Number(t, got[0].versionID, 3)
-		check.Number(t, got[1].versionID, 4)
+		check.Number(t, got[0], 3)
+		check.Number(t, got[1], 4)
 	})
 }
 

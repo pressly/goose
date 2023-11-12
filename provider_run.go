@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -43,7 +44,7 @@ func (p *Provider) resolveUpMigrations(
 	if len(missingMigrations) > 0 && !p.cfg.allowMissing {
 		var collected []string
 		for _, v := range missingMigrations {
-			collected = append(collected, fmt.Sprintf("%d", v.versionID))
+			collected = append(collected, strconv.FormatInt(v, 10))
 		}
 		msg := "migration"
 		if len(collected) > 1 {
@@ -53,8 +54,8 @@ func (p *Provider) resolveUpMigrations(
 			len(missingMigrations), msg, dbMaxVersion, strings.Join(collected, ","),
 		)
 	}
-	for _, v := range missingMigrations {
-		m, err := p.getMigration(v.versionID)
+	for _, missingVersion := range missingMigrations {
+		m, err := p.getMigration(missingVersion)
 		if err != nil {
 			return nil, err
 		}
@@ -141,7 +142,7 @@ func (p *Provider) runMigrations(
 
 	for _, m := range apply {
 		if err := p.prepareMigration(p.fsys, m, direction.ToBool()); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to prepare migration %s: %w", m.ref(), err)
 		}
 	}
 
@@ -327,7 +328,7 @@ type missingMigration struct {
 func checkMissingMigrations(
 	dbMigrations []*database.ListMigrationsResult,
 	fsMigrations []*Migration,
-) []missingMigration {
+) []int64 {
 	existing := make(map[int64]bool)
 	var dbMaxVersion int64
 	for _, m := range dbMigrations {
@@ -336,17 +337,14 @@ func checkMissingMigrations(
 			dbMaxVersion = m.Version
 		}
 	}
-	var missing []missingMigration
+	var missing []int64
 	for _, m := range fsMigrations {
-		version := m.Version
-		if !existing[version] && version < dbMaxVersion {
-			missing = append(missing, missingMigration{
-				versionID: version,
-			})
+		if !existing[m.Version] && m.Version < dbMaxVersion {
+			missing = append(missing, m.Version)
 		}
 	}
 	sort.Slice(missing, func(i, j int) bool {
-		return missing[i].versionID < missing[j].versionID
+		return missing[i] < missing[j]
 	})
 	return missing
 }
