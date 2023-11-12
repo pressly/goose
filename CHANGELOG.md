@@ -6,7 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- Added YDB support
+
+## [v3.16.0] - 2023-11-12
+
+- Added YDB support. (#592)
+- Fix sqlserver query to ensure DB version. (#601)
+- Allow setting / resetting the global Go migration registry. (#602)
+  - `SetGlobalMigrations` and `ResetGlobalMigrations` functions have been added.
+  - Introduce `NewGoMigration` for constructing Go migrations.
+- Add initial implementation of `goose.NewProvider`.
+
+🎉 Read more about this new feature here:
+
+https://pressly.github.io/goose/blog/2023/goose-provider/
+
+The motivation behind the Provider was simple - to reduce global state and make goose easier to consume as an imported package.
+
+Here's a quick summary:
+
+- Avoid global state
+- Make Provider safe to use concurrently
+- Unlock (no pun intended) new features, such as database locking
+- Make logging configurable
+- Better error handling with proper return values
+- Double down on Go migrations
+- ... and more!
 
 ## [v3.15.1] - 2023-10-10
 
@@ -62,7 +86,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add new `context.Context`-aware functions and methods, for both sql and go migrations.
 - Return error when no migration files found or dir is not a directory.
 
-[Unreleased]: https://github.com/pressly/goose/compare/v3.15.1...HEAD
+[Unreleased]: https://github.com/pressly/goose/compare/v3.16.0...HEAD
+[v3.16.0]: https://github.com/pressly/goose/compare/v3.15.1...v3.16.0
 [v3.15.1]: https://github.com/pressly/goose/compare/v3.15.0...v3.15.1
 [v3.15.0]: https://github.com/pressly/goose/compare/v3.14.0...v3.15.0
 [v3.14.0]: https://github.com/pressly/goose/compare/v3.13.4...v3.14.0
