@@ -319,10 +319,6 @@ func (p *Provider) ensureVersionTable(ctx context.Context, conn *sql.Conn) (retE
 	})
 }
 
-type missingMigration struct {
-	versionID int64
-}
-
 // checkMissingMigrations returns a list of migrations that are missing from the database. A missing
 // migration is one that has a version less than the max version in the database.
 func checkMissingMigrations(
