@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
@@ -427,7 +428,7 @@ func runMigration(ctx context.Context, db database.DBTxConn, m *Migration, direc
 func runGo(ctx context.Context, db database.DBTxConn, m *Migration, direction bool) (retErr error) {
 	defer func() {
 		if r := recover(); r != nil {
-			retErr = fmt.Errorf("panic: %v", r)
+			retErr = fmt.Errorf("panic: %v\n%s", r, debug.Stack())
 		}
 	}()
 
