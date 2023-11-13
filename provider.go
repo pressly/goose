@@ -115,12 +115,14 @@ func newProvider(
 	for version, m := range cfg.registered {
 		versionToGoMigration[version] = m
 	}
-	// Add globally registered Go migrations.
-	for version, m := range global {
-		if _, ok := versionToGoMigration[version]; ok {
-			return nil, fmt.Errorf("global go migration with version %d previously registered with provider", version)
+	// Do not add globally registered Go migrations if explicitly disabled.
+	if !cfg.disableGlobalRegistry {
+		for version, m := range global {
+			if _, ok := versionToGoMigration[version]; ok {
+				return nil, fmt.Errorf("global go migration with version %d previously registered with provider", version)
+			}
+			versionToGoMigration[version] = m
 		}
-		versionToGoMigration[version] = m
 	}
 	// At this point we have all registered unique Go migrations (if any). We need to merge them
 	// with SQL migrations from the filesystem.
