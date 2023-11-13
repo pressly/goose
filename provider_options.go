@@ -131,6 +131,15 @@ func WithGoMigrations(migrations ...*Migration) ProviderOption {
 	})
 }
 
+// WithDisableGlobalRegistry prevents the provider from registering Go migrations from the global
+// registry. By default, goose will register all Go migrations including those registered globally.
+func WithDisableGlobalRegistry(b bool) ProviderOption {
+	return configFunc(func(c *config) error {
+		c.disableGlobalRegistry = b
+		return nil
+	})
+}
+
 // WithAllowOutofOrder allows the provider to apply missing (out-of-order) migrations. By default,
 // goose will raise an error if it encounters a missing migration.
 //
@@ -172,8 +181,9 @@ type config struct {
 	sessionLocker lock.SessionLocker
 
 	// Feature
-	disableVersioning bool
-	allowMissing      bool
+	disableVersioning     bool
+	allowMissing          bool
+	disableGlobalRegistry bool
 }
 
 type configFunc func(*config) error
