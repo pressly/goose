@@ -41,6 +41,10 @@ var (
 var version string
 
 func main() {
+	Main()
+}
+
+func Main() {
 	flags.Usage = usage
 	if err := flags.Parse(os.Args[1:]); err != nil {
 		log.Fatalf("failed to parse args: %v", err)
