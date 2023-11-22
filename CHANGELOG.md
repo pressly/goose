@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Standardised the MIT license (#647)
+
 ## [v3.16.0] - 2023-11-12
 
 - Added YDB support. (#592)
