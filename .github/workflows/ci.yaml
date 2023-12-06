@@ -9,7 +9,7 @@ on:
 jobs:
   test:
     name: Run unit tests
-    timeout-minutes: 10
+    timeout-minutes: 5
 
     strategy:
       matrix:

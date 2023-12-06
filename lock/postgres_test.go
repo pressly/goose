@@ -14,6 +14,10 @@ import (
 	"github.com/pressly/goose/v3/lock"
 )
 
+func TestMain(m *testing.M) {
+	testdb.WrapTestMain(m)
+}
+
 func TestPostgresSessionLocker(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
