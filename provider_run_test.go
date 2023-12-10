@@ -262,7 +262,7 @@ func TestProviderRun(t *testing.T) {
 		_, err = p.ApplyVersion(ctx, 1, true)
 		check.HasError(t, err)
 		check.Bool(t, errors.Is(err, goose.ErrAlreadyApplied), true)
-		check.Contains(t, err.Error(), "version 1: already applied")
+		check.Contains(t, err.Error(), "version 1: migration already applied")
 	})
 	t.Run("status", func(t *testing.T) {
 		ctx := context.Background()
