@@ -8,6 +8,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 - Standardised the MIT license (#647)
+- Improve provider `Apply()` errors, add `ErrNotApplied` when attempting to rollback a migration
+  that has not been previously applied. (#660)
+- Add `WithDisableGlobalRegistry` option to `NewProvider` to disable the global registry. (#645)
 
 ## [v3.16.0] - 2023-11-12
 
@@ -22,7 +25,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 https://pressly.github.io/goose/blog/2023/goose-provider/
 
-The motivation behind the Provider was simple - to reduce global state and make goose easier to consume as an imported package.
+The motivation behind the Provider was simple - to reduce global state and make goose easier to
+consume as an imported package.
 
 Here's a quick summary:
 
