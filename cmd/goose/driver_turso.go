@@ -1,5 +1,5 @@
-//go:build !no_turso
-// +build !no_turso
+//go:build !no_turso && go1.21
+// +build !no_turso,go1.21
 
 package main
 
