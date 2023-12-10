@@ -50,6 +50,8 @@ func SetDialect(s string) error {
 		d = dialect.Vertica
 	case "ydb":
 		d = dialect.Ydb
+	case "turso":
+		d = dialect.Turso
 	default:
 		return fmt.Errorf("%q: unknown dialect", s)
 	}
