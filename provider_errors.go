@@ -6,14 +6,21 @@ import (
 )
 
 var (
-	// ErrVersionNotFound when a migration version is not found.
+	// ErrVersionNotFound is returned when a specific migration version is not located.
+	// This can occur if a corresponding .sql file or a Go migration function for the
+	// specified version is missing.
 	ErrVersionNotFound = errors.New("version not found")
-
-	// ErrAlreadyApplied when a migration has already been applied.
-	ErrAlreadyApplied = errors.New("already applied")
 
 	// ErrNoMigrations is returned by [NewProvider] when no migrations are found.
 	ErrNoMigrations = errors.New("no migrations found")
+
+	// ErrAlreadyApplied indicates that the migration cannot be applied because it has already been
+	// executed. This error is returned by [Provider.Apply].
+	ErrAlreadyApplied = errors.New("migration already applied")
+
+	// ErrNotApplied indicates that the rollback cannot be performed because the migration has not
+	// yet been applied. This error is returned by [Provider.Apply].
+	ErrNotApplied = errors.New("migration not applied")
 
 	// errInvalidVersion is returned when a migration version is invalid.
 	errInvalidVersion = errors.New("version must be greater than 0")

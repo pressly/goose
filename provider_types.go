@@ -1,6 +1,10 @@
 package goose
 
-import "time"
+import (
+	"fmt"
+	"path/filepath"
+	"time"
+)
 
 // MigrationType is the type of migration.
 type MigrationType string
@@ -30,6 +34,19 @@ type MigrationResult struct {
 	Empty bool
 	// Error is only set if the migration failed.
 	Error error
+}
+
+func (m *MigrationResult) String() string {
+	state := "OK"
+	if m.Empty {
+		state = "EMPTY"
+	}
+	return fmt.Sprintf("%-6s %-4s %s (%s)",
+		state,
+		m.Direction,
+		filepath.Base(m.Source.Path),
+		truncateDuration(m.Duration),
+	)
 }
 
 // State represents the state of a migration.

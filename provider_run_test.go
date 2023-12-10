@@ -765,6 +765,20 @@ func TestCustomStoreTableExists(t *testing.T) {
 	check.NoError(t, err)
 }
 
+func TestProviderApply(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	p, err := goose.NewProvider(goose.DialectSQLite3, newDB(t), newFsys())
+	check.NoError(t, err)
+	_, err = p.ApplyVersion(ctx, 1, true)
+	check.NoError(t, err)
+	// This version has a corresponding down migration, but has never been applied.
+	_, err = p.ApplyVersion(ctx, 2, false)
+	check.HasError(t, err)
+	check.Bool(t, errors.Is(err, goose.ErrNotApplied), true)
+}
+
 type customStoreSQLite3 struct {
 	database.Store
 }
