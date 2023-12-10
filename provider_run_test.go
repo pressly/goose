@@ -262,7 +262,7 @@ func TestProviderRun(t *testing.T) {
 		_, err = p.ApplyVersion(ctx, 1, true)
 		check.HasError(t, err)
 		check.Bool(t, errors.Is(err, goose.ErrAlreadyApplied), true)
-		check.Contains(t, err.Error(), "version 1: already applied")
+		check.Contains(t, err.Error(), "version 1: migration already applied")
 	})
 	t.Run("status", func(t *testing.T) {
 		ctx := context.Background()
@@ -763,6 +763,20 @@ func TestCustomStoreTableExists(t *testing.T) {
 	check.NoError(t, err)
 	_, err = p.Up(context.Background())
 	check.NoError(t, err)
+}
+
+func TestProviderApply(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	p, err := goose.NewProvider(goose.DialectSQLite3, newDB(t), newFsys())
+	check.NoError(t, err)
+	_, err = p.ApplyVersion(ctx, 1, true)
+	check.NoError(t, err)
+	// This version has a corresponding down migration, but has never been applied.
+	_, err = p.ApplyVersion(ctx, 2, false)
+	check.HasError(t, err)
+	check.Bool(t, errors.Is(err, goose.ErrNotApplied), true)
 }
 
 type customStoreSQLite3 struct {

@@ -409,8 +409,16 @@ func (p *Provider) apply(
 	if err != nil && !errors.Is(err, database.ErrVersionNotFound) {
 		return nil, err
 	}
-	// If the migration has already been applied, return an error. But, if the migration is being
-	// rolled back, we allow the individual migration to be applied again.
+	// There are a few states here:
+	//  1. direction is up
+	//    a. migration is applied, this is an error (ErrAlreadyApplied)
+	//    b. migration is not applied, apply it
+	//  2. direction is down
+	//    a. migration is applied, rollback
+	//    b. migration is not applied, this is an error (ErrNotApplied)
+	if result == nil && !direction {
+		return nil, fmt.Errorf("version %d: %w", version, ErrNotApplied)
+	}
 	if result != nil && direction {
 		return nil, fmt.Errorf("version %d: %w", version, ErrAlreadyApplied)
 	}
