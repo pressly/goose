@@ -7,8 +7,7 @@ import (
 
 var (
 	// ErrVersionNotFound is returned when a specific migration version is not located. This can
-	// occur if a corresponding .sql file or a Go migration function for the specified version is
-	// missing.
+	// occur if a .sql file or a Go migration function for the specified version is missing.
 	ErrVersionNotFound = errors.New("version not found")
 
 	// ErrNoMigrations is returned by [NewProvider] when no migrations are found.
