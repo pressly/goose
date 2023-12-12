@@ -162,7 +162,7 @@ func (p *Provider) runMigrations(
 
 	var results []*MigrationResult
 	for _, m := range apply {
-		current := &MigrationResult{
+		result := &MigrationResult{
 			Source: &Source{
 				Type:    m.Type,
 				Path:    m.Source,
@@ -175,18 +175,25 @@ func (p *Provider) runMigrations(
 		if err := p.runIndividually(ctx, conn, m, direction.ToBool()); err != nil {
 			// TODO(mf): we should also return the pending migrations here, the remaining items in
 			// the apply slice.
-			current.Error = err
-			current.Duration = time.Since(start)
+			result.Error = err
+			result.Duration = time.Since(start)
 			return nil, &PartialError{
 				Applied: results,
-				Failed:  current,
+				Failed:  result,
 				Err:     err,
 			}
 		}
-		current.Duration = time.Since(start)
-		results = append(results, current)
-	}
+		result.Duration = time.Since(start)
+		results = append(results, result)
 
+		if p.cfg.verbose {
+			p.cfg.logger.Printf("%s\n", result)
+		}
+	}
+	if p.cfg.verbose && len(results) > 0 {
+		last := results[len(results)-1].Source.Version
+		p.cfg.logger.Printf("goose: successfully migrated database to version: %d\n", last)
+	}
 	return results, nil
 }
 
