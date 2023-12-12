@@ -1,17 +1,15 @@
-package migrationstatsos
+package migrationstats
 
 import (
 	"io"
 	"os"
 	"path/filepath"
-
-	"github.com/pressly/goose/v3/internal/migrationstats"
 )
 
 // NewFileWalker returns a new FileWalker for the given filenames.
 //
 // Filenames without a .sql or .go extension are ignored.
-func NewFileWalker(filenames ...string) migrationstats.FileWalker {
+func NewFileWalker(filenames ...string) FileWalker {
 	return &fileWalker{
 		filenames: filenames,
 	}
@@ -21,7 +19,7 @@ type fileWalker struct {
 	filenames []string
 }
 
-var _ migrationstats.FileWalker = (*fileWalker)(nil)
+var _ FileWalker = (*fileWalker)(nil)
 
 func (f *fileWalker) Walk(fn func(filename string, r io.Reader) error) error {
 	for _, filename := range f.filenames {
