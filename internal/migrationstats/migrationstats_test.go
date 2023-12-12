@@ -1,6 +1,8 @@
 package migrationstats
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -36,6 +38,47 @@ func TestParsingGoMigrations(t *testing.T) {
 			check.Equal(t, g.upFuncName, tc.wantUpName)
 		})
 	}
+}
+
+func TestGoMigrationStats(t *testing.T) {
+	t.Parallel()
+
+	base := "../../tests/gomigrations/success/testdata"
+	all, err := os.ReadDir(base)
+	check.NoError(t, err)
+	check.Equal(t, len(all), 16)
+	files := make([]string, 0, len(all))
+	for _, f := range all {
+		files = append(files, filepath.Join(base, f.Name()))
+	}
+	stats, err := GatherStats(NewFileWalker(files...), false)
+	check.NoError(t, err)
+	check.Equal(t, len(stats), 16)
+	checkGoStats(t, stats[0], "001_up_down.go", 1, 1, 1, true)
+	checkGoStats(t, stats[1], "002_up_only.go", 2, 1, 0, true)
+	checkGoStats(t, stats[2], "003_down_only.go", 3, 0, 1, true)
+	checkGoStats(t, stats[3], "004_empty.go", 4, 0, 0, true)
+	checkGoStats(t, stats[4], "005_up_down_no_tx.go", 5, 1, 1, false)
+	checkGoStats(t, stats[5], "006_up_only_no_tx.go", 6, 1, 0, false)
+	checkGoStats(t, stats[6], "007_down_only_no_tx.go", 7, 0, 1, false)
+	checkGoStats(t, stats[7], "008_empty_no_tx.go", 8, 0, 0, false)
+	checkGoStats(t, stats[8], "009_up_down_ctx.go", 9, 1, 1, true)
+	checkGoStats(t, stats[9], "010_up_only_ctx.go", 10, 1, 0, true)
+	checkGoStats(t, stats[10], "011_down_only_ctx.go", 11, 0, 1, true)
+	checkGoStats(t, stats[11], "012_empty_ctx.go", 12, 0, 0, true)
+	checkGoStats(t, stats[12], "013_up_down_no_tx_ctx.go", 13, 1, 1, false)
+	checkGoStats(t, stats[13], "014_up_only_no_tx_ctx.go", 14, 1, 0, false)
+	checkGoStats(t, stats[14], "015_down_only_no_tx_ctx.go", 15, 0, 1, false)
+	checkGoStats(t, stats[15], "016_empty_no_tx_ctx.go", 16, 0, 0, false)
+}
+
+func checkGoStats(t *testing.T, stats *Stats, filename string, version int64, upCount, downCount int, tx bool) {
+	t.Helper()
+	check.Equal(t, filepath.Base(stats.FileName), filename)
+	check.Equal(t, stats.Version, version)
+	check.Equal(t, stats.UpCount, upCount)
+	check.Equal(t, stats.DownCount, downCount)
+	check.Equal(t, stats.Tx, tx)
 }
 
 func TestParsingGoMigrationsError(t *testing.T) {

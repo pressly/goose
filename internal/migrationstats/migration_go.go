@@ -7,11 +7,14 @@ import (
 	"go/parser"
 	"go/token"
 	"io"
+	"strings"
 )
 
 const (
-	registerGoFuncName     = "AddMigration"
-	registerGoFuncNameNoTx = "AddMigrationNoTx"
+	registerGoFuncName            = "AddMigration"
+	registerGoFuncNameNoTx        = "AddMigrationNoTx"
+	registerGoFuncNameContext     = "AddMigrationContext"
+	registerGoFuncNameNoTxContext = "AddMigrationNoTxContext"
 )
 
 type goMigration struct {
@@ -72,10 +75,10 @@ func parseInitFunc(fd *ast.FuncDecl) (*goMigration, error) {
 		funcName := sel.Sel.Name
 		b := false
 		switch funcName {
-		case registerGoFuncName:
+		case registerGoFuncName, registerGoFuncNameContext:
 			b = true
 			gf.useTx = &b
-		case registerGoFuncNameNoTx:
+		case registerGoFuncNameNoTx, registerGoFuncNameNoTxContext:
 			gf.useTx = &b
 		default:
 			continue
@@ -107,11 +110,15 @@ func parseInitFunc(fd *ast.FuncDecl) (*goMigration, error) {
 	}
 	// validation
 	switch gf.name {
-	case registerGoFuncName, registerGoFuncNameNoTx:
+	case registerGoFuncName, registerGoFuncNameNoTx, registerGoFuncNameContext, registerGoFuncNameNoTxContext:
 	default:
-		return nil, fmt.Errorf("goose register function must be one of: %s or %s",
-			registerGoFuncName,
-			registerGoFuncNameNoTx,
+		return nil, fmt.Errorf("goose register function must be one of: %s",
+			strings.Join([]string{
+				registerGoFuncName,
+				registerGoFuncNameNoTx,
+				registerGoFuncNameContext,
+				registerGoFuncNameNoTxContext,
+			}, ", "),
 		)
 	}
 	if gf.useTx == nil {
