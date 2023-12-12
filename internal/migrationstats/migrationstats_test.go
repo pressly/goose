@@ -89,7 +89,7 @@ func TestParsingGoMigrationsError(t *testing.T) {
 
 	_, err = parseGoFile(strings.NewReader(wrongName))
 	check.HasError(t, err)
-	check.Contains(t, err.Error(), "AddMigration or AddMigrationNoTx")
+	check.Contains(t, err.Error(), "AddMigration, AddMigrationNoTx, AddMigrationContext, AddMigrationNoTxContext")
 }
 
 var (
