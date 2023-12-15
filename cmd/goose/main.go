@@ -37,7 +37,7 @@ var (
 	sslkey       = flags.String("ssl-key", "", "file path to SSL key in pem format (only support on mysql)")
 	noVersioning = flags.Bool("no-versioning", false, "apply migration commands with no versioning, in file order, from directory pointed to")
 	noColor      = flags.Bool("no-color", false, "disable color output (NO_COLOR env variable supported)")
-	timeout      = flags.Duration("timeout", 0, "duration that the migration should run for; e.g. 1h13m")
+	timeout      = flags.Duration("timeout", 0, "maximum allowed duration for queries to run; e.g., 1h13m")
 )
 
 var version string
@@ -92,12 +92,12 @@ func main() {
 		}
 		return
 	case "create":
-		if err := goose.Run("create", nil, *dir, args[1:]...); err != nil {
+		if err := goose.RunContext(ctx, "create", nil, *dir, args[1:]...); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
 		return
 	case "fix":
-		if err := goose.Run("fix", nil, *dir); err != nil {
+		if err := goose.RunContext(ctx, "fix", nil, *dir); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
 		return
@@ -154,6 +154,7 @@ func main() {
 		options = append(options, goose.WithNoVersioning())
 	}
 	if timeout != nil && *timeout != 0 {
+		//nolint:govet  // The context outlives the main function
 		ctx, _ = context.WithTimeout(ctx, *timeout)
 	}
 	if err := goose.RunWithOptionsContext(
