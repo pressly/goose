@@ -1,9 +1,9 @@
 -- +goose Up
 CREATE TABLE users (
-    id int NOT NULL PRIMARY KEY,
-    username text,
-    name text,
-    surname text
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT,
+    name TEXT,
+    surname TEXT
 );
 
 INSERT INTO users VALUES

@@ -2,13 +2,12 @@ package goose
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"text/template"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 type tmplVars struct {
@@ -27,10 +26,12 @@ func SetSequential(s bool) {
 
 // Create writes a new blank migration file.
 func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, migrationType string) error {
-	var version string
+	version := time.Now().UTC().Format(timestampFormat)
+
 	if sequential {
-		migrations, err := CollectMigrations(dir, minVersion, maxVersion)
-		if err != nil {
+		// always use DirFS here because it's modifying operation
+		migrations, err := collectMigrationsFS(osFS{}, dir, minVersion, maxVersion, registeredGoMigrations)
+		if err != nil && !errors.Is(err, ErrNoMigrationFiles) {
 			return err
 		}
 
@@ -44,8 +45,6 @@ func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, m
 		} else {
 			version = fmt.Sprintf(seqVersionTemplate, int64(1))
 		}
-	} else {
-		version = time.Now().UTC().Format(timestampFormat)
 	}
 
 	filename := fmt.Sprintf("%v_%v.%v", version, snakeCase(name), migrationType)
@@ -60,12 +59,12 @@ func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, m
 
 	path := filepath.Join(dir, filename)
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
-		return errors.Wrap(err, "failed to create migration file")
+		return fmt.Errorf("failed to create migration file: %w", err)
 	}
 
 	f, err := os.Create(path)
 	if err != nil {
-		return errors.Wrap(err, "failed to create migration file")
+		return fmt.Errorf("failed to create migration file: %w", err)
 	}
 	defer f.Close()
 
@@ -74,7 +73,7 @@ func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, m
 		CamelName: camelCase(name),
 	}
 	if err := tmpl.Execute(f, vars); err != nil {
-		return errors.Wrap(err, "failed to execute tmpl")
+		return fmt.Errorf("failed to execute tmpl: %w", err)
 	}
 
 	log.Printf("Created new file: %s\n", f.Name())
@@ -100,20 +99,21 @@ SELECT 'down SQL query';
 var goSQLMigrationTemplate = template.Must(template.New("goose.go-migration").Parse(`package migrations
 
 import (
+	"context"
 	"database/sql"
-	"github.com/pressly/goose"
+	"github.com/pressly/goose/v3"
 )
 
 func init() {
-	goose.AddMigration(up{{.CamelName}}, down{{.CamelName}})
+	goose.AddMigrationContext(up{{.CamelName}}, down{{.CamelName}})
 }
 
-func up{{.CamelName}}(tx *sql.Tx) error {
+func up{{.CamelName}}(ctx context.Context, tx *sql.Tx) error {
 	// This code is executed when the migration is applied.
 	return nil
 }
 
-func down{{.CamelName}}(tx *sql.Tx) error {
+func down{{.CamelName}}(ctx context.Context, tx *sql.Tx) error {
 	// This code is executed when the migration is rolled back.
 	return nil
 }

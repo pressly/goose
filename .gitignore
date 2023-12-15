@@ -1,13 +1,15 @@
 .idea
+.vscode
 .DS_Store
 *.swp
 *.test
 
 # Files output by tests
 /bin
-/*.db
 
-# We don't want to switch to Go modules, until we release v3.0.0 or later.
-/go.mod
-/go.sum
+# Local testing
+.envrc
+*.FAIL
 
+dist/
+release_notes.txt
