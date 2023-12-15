@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"math/rand"
 	"sync"
 	"testing"
 	"time"
@@ -30,8 +31,8 @@ func TestPostgresSessionLocker(t *testing.T) {
 		)
 		locker, err := lock.NewPostgresSessionLocker(
 			lock.WithLockID(lockID),
-			lock.WithLockTimeout(4*time.Second),
-			lock.WithUnlockTimeout(4*time.Second),
+			lock.WithLockTimeout(1, 4),   // 4 second timeout
+			lock.WithUnlockTimeout(1, 4), // 4 second timeout
 		)
 		check.NoError(t, err)
 		ctx := context.Background()
@@ -42,26 +43,21 @@ func TestPostgresSessionLocker(t *testing.T) {
 		})
 		err = locker.SessionLock(ctx, conn)
 		check.NoError(t, err)
-		pgLocks, err := queryPgLocks(ctx, db)
-		check.NoError(t, err)
-		check.Number(t, len(pgLocks), 1)
 		// Check that the lock was acquired.
-		check.Bool(t, pgLocks[0].granted, true)
-		// Check that the custom lock ID is the same as the one used by the locker.
-		check.Equal(t, pgLocks[0].gooseLockID, lockID)
-		check.NumberNotZero(t, pgLocks[0].pid)
-
+		exists, err := existsPgLock(ctx, db, lockID)
+		check.NoError(t, err)
+		check.Bool(t, exists, true)
 		// Check that the lock is released.
 		err = locker.SessionUnlock(ctx, conn)
 		check.NoError(t, err)
-		pgLocks, err = queryPgLocks(ctx, db)
+		exists, err = existsPgLock(ctx, db, lockID)
 		check.NoError(t, err)
-		check.Number(t, len(pgLocks), 0)
+		check.Bool(t, exists, false)
 	})
 	t.Run("lock_close_conn_unlock", func(t *testing.T) {
 		locker, err := lock.NewPostgresSessionLocker(
-			lock.WithLockTimeout(4*time.Second),
-			lock.WithUnlockTimeout(4*time.Second),
+			lock.WithLockTimeout(1, 4),   // 4 second timeout
+			lock.WithUnlockTimeout(1, 4), // 4 second timeout
 		)
 		check.NoError(t, err)
 		ctx := context.Background()
@@ -70,11 +66,9 @@ func TestPostgresSessionLocker(t *testing.T) {
 
 		err = locker.SessionLock(ctx, conn)
 		check.NoError(t, err)
-		pgLocks, err := queryPgLocks(ctx, db)
+		exists, err := existsPgLock(ctx, db, lock.DefaultLockID)
 		check.NoError(t, err)
-		check.Number(t, len(pgLocks), 1)
-		check.Bool(t, pgLocks[0].granted, true)
-		check.Equal(t, pgLocks[0].gooseLockID, lock.DefaultLockID)
+		check.Bool(t, exists, true)
 		// Simulate a connection close.
 		err = conn.Close()
 		check.NoError(t, err)
@@ -103,10 +97,12 @@ func TestPostgresSessionLocker(t *testing.T) {
 				// Exactly one connection should acquire the lock. While the other connections
 				// should fail to acquire the lock and timeout.
 				locker, err := lock.NewPostgresSessionLocker(
-					lock.WithLockTimeout(4*time.Second),
-					lock.WithUnlockTimeout(4*time.Second),
+					lock.WithLockTimeout(1, 4),   // 4 second timeout
+					lock.WithUnlockTimeout(1, 4), // 4 second timeout
 				)
 				check.NoError(t, err)
+				// NOTE, we are not unlocking the lock, because we want to test that the lock is
+				// released when the connection is closed.
 				ch <- locker.SessionLock(ctx, conn)
 			}()
 		}
@@ -125,36 +121,34 @@ func TestPostgresSessionLocker(t *testing.T) {
 			check.HasError(t, err)
 			check.Equal(t, err.Error(), "failed to acquire lock")
 		}
-		pgLocks, err := queryPgLocks(context.Background(), db)
+		exists, err := existsPgLock(context.Background(), db, lock.DefaultLockID)
 		check.NoError(t, err)
-		check.Number(t, len(pgLocks), 1)
-		check.Bool(t, pgLocks[0].granted, true)
-		check.Equal(t, pgLocks[0].gooseLockID, lock.DefaultLockID)
+		check.Bool(t, exists, true)
 	})
-	t.Run("unlock_with_different_connection", func(t *testing.T) {
+	t.Run("unlock_with_different_connection_error", func(t *testing.T) {
+		rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+		randomLockID := rng.Int63n(90000) + 10000
 		ctx := context.Background()
-		const (
-			lockID int64 = 999
-		)
 		locker, err := lock.NewPostgresSessionLocker(
-			lock.WithLockID(lockID),
-			lock.WithLockTimeout(4*time.Second),
-			lock.WithUnlockTimeout(4*time.Second),
+			lock.WithLockID(randomLockID),
+			lock.WithLockTimeout(1, 4),   // 4 second timeout
+			lock.WithUnlockTimeout(1, 4), // 4 second timeout
 		)
 		check.NoError(t, err)
 
 		conn1, err := db.Conn(ctx)
 		check.NoError(t, err)
-		t.Cleanup(func() {
-			check.NoError(t, conn1.Close())
-		})
 		err = locker.SessionLock(ctx, conn1)
 		check.NoError(t, err)
-		pgLocks, err := queryPgLocks(ctx, db)
+		t.Cleanup(func() {
+			// Defer the unlock with the same connection.
+			err = locker.SessionUnlock(ctx, conn1)
+			check.NoError(t, err)
+			check.NoError(t, conn1.Close())
+		})
+		exists, err := existsPgLock(ctx, db, randomLockID)
 		check.NoError(t, err)
-		check.Number(t, len(pgLocks), 1)
-		check.Bool(t, pgLocks[0].granted, true)
-		check.Equal(t, pgLocks[0].gooseLockID, lockID)
+		check.Bool(t, exists, true)
 		// Unlock with a different connection.
 		conn2, err := db.Conn(ctx)
 		check.NoError(t, err)
@@ -167,28 +161,12 @@ func TestPostgresSessionLocker(t *testing.T) {
 	})
 }
 
-type pgLock struct {
-	pid         int
-	granted     bool
-	gooseLockID int64
-}
-
-func queryPgLocks(ctx context.Context, db *sql.DB) ([]pgLock, error) {
-	q := `SELECT pid,granted,((classid::bigint<<32)|objid::bigint)AS goose_lock_id FROM pg_locks WHERE locktype='advisory'`
-	rows, err := db.QueryContext(ctx, q)
-	if err != nil {
-		return nil, err
+func existsPgLock(ctx context.Context, db *sql.DB, lockID int64) (bool, error) {
+	q := `SELECT EXISTS(SELECT 1 FROM pg_locks WHERE locktype='advisory' AND ((classid::bigint<<32)|objid::bigint)=$1)`
+	row := db.QueryRowContext(ctx, q, lockID)
+	var exists bool
+	if err := row.Scan(&exists); err != nil {
+		return false, err
 	}
-	var pgLocks []pgLock
-	for rows.Next() {
-		var p pgLock
-		if err = rows.Scan(&p.pid, &p.granted, &p.gooseLockID); err != nil {
-			return nil, err
-		}
-		pgLocks = append(pgLocks, p)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return pgLocks, nil
+	return exists, nil
 }

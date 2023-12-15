@@ -27,19 +27,7 @@ func (s *Sqlserver) DeleteVersion(tableName string) string {
 }
 
 func (s *Sqlserver) GetMigrationByVersion(tableName string) string {
-	q := `
-WITH Migrations AS
-(
-	SELECT tstamp, is_applied,
-	ROW_NUMBER() OVER (ORDER BY tstamp) AS 'RowNumber'
-	FROM %s
-	WHERE version_id=@p1
-)
-SELECT tstamp, is_applied
-FROM Migrations
-WHERE RowNumber BETWEEN 1 AND 2
-ORDER BY tstamp DESC
-`
+	q := `SELECT TOP 1 tstamp, is_applied FROM %s WHERE version_id=@p1 ORDER BY tstamp DESC`
 	return fmt.Sprintf(q, tableName)
 }
 

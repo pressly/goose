@@ -20,7 +20,6 @@ import (
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/internal/cfg"
 	"github.com/pressly/goose/v3/internal/migrationstats"
-	"github.com/pressly/goose/v3/internal/migrationstats/migrationstatsos"
 )
 
 var (
@@ -330,8 +329,10 @@ func printValidate(filename string, verbose bool) error {
 	if err != nil {
 		return err
 	}
-	fileWalker := migrationstatsos.NewFileWalker(filenames...)
-	stats, err := migrationstats.GatherStats(fileWalker, false)
+	stats, err := migrationstats.GatherStats(
+		migrationstats.NewFileWalker(filenames...),
+		false,
+	)
 	if err != nil {
 		return err
 	}

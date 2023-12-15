@@ -1,6 +1,7 @@
 package lock
 
 import (
+	"errors"
 	"time"
 )
 
@@ -10,11 +11,6 @@ const (
 	//
 	// crc64.Checksum([]byte("goose"), crc64.MakeTable(crc64.ECMA))
 	DefaultLockID int64 = 5887940537704921958
-
-	// Default values for the lock (time to wait for the lock to be acquired) and unlock (time to
-	// wait for the lock to be released) wait durations.
-	DefaultLockTimeout   time.Duration = 60 * time.Minute
-	DefaultUnlockTimeout time.Duration = 1 * time.Minute
 )
 
 // SessionLockerOption is used to configure a SessionLocker.
@@ -32,26 +28,65 @@ func WithLockID(lockID int64) SessionLockerOption {
 	})
 }
 
-// WithLockTimeout sets the max duration to wait for the lock to be acquired.
-func WithLockTimeout(duration time.Duration) SessionLockerOption {
+// WithLockTimeout sets the max duration to wait for the lock to be acquired. The total duration
+// will be the period times the failure threshold.
+//
+// By default, the lock timeout is 300s (5min), where the lock is retried every 5 seconds (period)
+// up to 60 times (failure threshold).
+//
+// The minimum period is 1 second, and the minimum failure threshold is 1.
+func WithLockTimeout(period, failureThreshold uint64) SessionLockerOption {
 	return sessionLockerConfigFunc(func(c *sessionLockerConfig) error {
-		c.lockTimeout = duration
+		if period < 1 {
+			return errors.New("period must be greater than 0, minimum is 1")
+		}
+		if failureThreshold < 1 {
+			return errors.New("failure threshold must be greater than 0, minimum is 1")
+		}
+		c.lockProbe = probe{
+			periodSeconds:    time.Duration(period) * time.Second,
+			failureThreshold: failureThreshold,
+		}
 		return nil
 	})
 }
 
-// WithUnlockTimeout sets the max duration to wait for the lock to be released.
-func WithUnlockTimeout(duration time.Duration) SessionLockerOption {
+// WithUnlockTimeout sets the max duration to wait for the lock to be released. The total duration
+// will be the period times the failure threshold.
+//
+// By default, the lock timeout is 60s, where the lock is retried every 2 seconds (period) up to 30
+// times (failure threshold).
+//
+// The minimum period is 1 second, and the minimum failure threshold is 1.
+func WithUnlockTimeout(period, failureThreshold uint64) SessionLockerOption {
 	return sessionLockerConfigFunc(func(c *sessionLockerConfig) error {
-		c.unlockTimeout = duration
+		if period < 1 {
+			return errors.New("period must be greater than 0, minimum is 1")
+		}
+		if failureThreshold < 1 {
+			return errors.New("failure threshold must be greater than 0, minimum is 1")
+		}
+		c.unlockProbe = probe{
+			periodSeconds:    time.Duration(period) * time.Second,
+			failureThreshold: failureThreshold,
+		}
 		return nil
 	})
 }
 
 type sessionLockerConfig struct {
-	lockID        int64
-	lockTimeout   time.Duration
-	unlockTimeout time.Duration
+	lockID      int64
+	lockProbe   probe
+	unlockProbe probe
+}
+
+// probe is used to configure how often and how many times to retry a lock or unlock operation. The
+// total timeout will be the period times the failure threshold.
+type probe struct {
+	// How often (in seconds) to perform the probe.
+	periodSeconds time.Duration
+	// Number of times to retry the probe.
+	failureThreshold uint64
 }
 
 var _ SessionLockerOption = (sessionLockerConfigFunc)(nil)
