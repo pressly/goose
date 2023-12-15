@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -100,54 +101,92 @@ func TestMigrateUpTo(t *testing.T) {
 	check.Number(t, gotVersion, upToVersion) // incorrect database version
 }
 
+func writeFile(t *testing.T, dir, name, content string) {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0644); err != nil {
+		t.Fatalf("failed to write file %q: %v", name, err)
+	}
+}
+
 func TestMigrateUpTimeout(t *testing.T) {
 	t.Parallel()
-
-	// simulate timeout
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(1))
+	if *dialect != dialectPostgres {
+		t.Skipf("skipping test for dialect: %q", *dialect)
+	}
+	// Simulate timeout midway through a set of migrations. This should leave the
+	// database in a state where it has applied some migrations, but not all.
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
+	dir := t.TempDir()
+	writeFile(t, dir, "00001_a.sql", `
+-- +goose Up
+SELECT 1;
+`)
+	writeFile(t, dir, "00002_a.sql", `
+-- +goose Up
+SELECT pg_sleep(10);
+`)
 	db, err := newDockerDB(t)
 	check.NoError(t, err)
-	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
+	migrations, err := goose.CollectMigrations(dir, 0, goose.MaxVersion)
 	check.NoError(t, err)
 	check.NumberNotZero(t, len(migrations))
-	// Apply all migrations one-by-one.
-	err = goose.UpByOneContext(ctx, db, migrationsDir)
+	// Apply all migrations.
+	err = goose.UpContext(ctx, db, dir)
 	check.HasError(t, err) // expect it to timeout.
+	check.Bool(t, errors.Is(err, context.DeadlineExceeded), true)
 
 	currentVersion, err := goose.GetDBVersion(db)
 	check.NoError(t, err)
-	check.Number(t, currentVersion, 0)
+	check.Number(t, currentVersion, 1)
 	// Validate the db migration version actually matches what goose claims it is
 	gotVersion, err := getCurrentGooseVersion(db, goose.TableName())
 	check.NoError(t, err)
-	check.Number(t, gotVersion, 0) // incorrect database version
+	check.Number(t, gotVersion, 1)
 }
 
 func TestMigrateDownTimeout(t *testing.T) {
 	t.Parallel()
-
-	// simulate timeout
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(1))
+	if *dialect != dialectPostgres {
+		t.Skipf("skipping test for dialect: %q", *dialect)
+	}
+	// Simulate timeout midway through a set of migrations. This should leave the
+	// database in a state where it has applied some migrations, but not all.
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
+	dir := t.TempDir()
+	writeFile(t, dir, "00001_a.sql", `
+-- +goose Up
+SELECT 1;
+-- +goose Down
+SELECT pg_sleep(10);
+`)
+	writeFile(t, dir, "00002_a.sql", `
+-- +goose Up
+SELECT 1;
+`)
 	db, err := newDockerDB(t)
 	check.NoError(t, err)
-	migrations, err := goose.CollectMigrations(migrationsDir, 0, goose.MaxVersion)
+	migrations, err := goose.CollectMigrations(dir, 0, goose.MaxVersion)
 	check.NoError(t, err)
 	check.NumberNotZero(t, len(migrations))
-	// Apply all migrations one-by-one.
-	err = goose.DownContext(ctx, db, migrationsDir)
+	// Apply all up migrations.
+	err = goose.UpContext(ctx, db, dir)
+	check.NoError(t, err)
+	// Applly all down migrations.
+	err = goose.DownToContext(ctx, db, dir, 0)
 	check.HasError(t, err) // expect it to timeout.
+	check.Bool(t, errors.Is(err, context.DeadlineExceeded), true)
 
 	currentVersion, err := goose.GetDBVersion(db)
 	check.NoError(t, err)
-	check.Number(t, currentVersion, 0)
+	check.Number(t, currentVersion, 1)
 	// Validate the db migration version actually matches what goose claims it is
 	gotVersion, err := getCurrentGooseVersion(db, goose.TableName())
 	check.NoError(t, err)
-	check.Number(t, gotVersion, 0) // incorrect database version
+	check.Number(t, gotVersion, 1)
 }
 
 func TestMigrateUpByOne(t *testing.T) {
