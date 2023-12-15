@@ -12,7 +12,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   that has not been previously applied. (#660)
 - Add `WithDisableGlobalRegistry` option to `NewProvider` to disable the global registry. (#645)
 - Add `-timeout` flag to CLI to set the maximum allowed duration for queries to run. Default is
-  remains no timeout.
+  remains no timeout. (#627)
+
+⚠️ Potential Breaking Change ⚠️
+
+- Update `goose create` to use UTC time instead of local time. (#242)
 
 ## [v3.16.0] - 2023-11-12
 
