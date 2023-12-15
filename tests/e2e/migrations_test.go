@@ -113,10 +113,6 @@ func TestMigrateUpTimeout(t *testing.T) {
 	if *dialect != dialectPostgres {
 		t.Skipf("skipping test for dialect: %q", *dialect)
 	}
-	// Simulate timeout midway through a set of migrations. This should leave the
-	// database in a state where it has applied some migrations, but not all.
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
 
 	dir := t.TempDir()
 	writeFile(t, dir, "00001_a.sql", `
@@ -129,6 +125,10 @@ SELECT pg_sleep(10);
 `)
 	db, err := newDockerDB(t)
 	check.NoError(t, err)
+	// Simulate timeout midway through a set of migrations. This should leave the
+	// database in a state where it has applied some migrations, but not all.
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
 	migrations, err := goose.CollectMigrations(dir, 0, goose.MaxVersion)
 	check.NoError(t, err)
 	check.NumberNotZero(t, len(migrations))
@@ -151,11 +151,6 @@ func TestMigrateDownTimeout(t *testing.T) {
 	if *dialect != dialectPostgres {
 		t.Skipf("skipping test for dialect: %q", *dialect)
 	}
-	// Simulate timeout midway through a set of migrations. This should leave the
-	// database in a state where it has applied some migrations, but not all.
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-
 	dir := t.TempDir()
 	writeFile(t, dir, "00001_a.sql", `
 -- +goose Up
@@ -169,6 +164,10 @@ SELECT 1;
 `)
 	db, err := newDockerDB(t)
 	check.NoError(t, err)
+	// Simulate timeout midway through a set of migrations. This should leave the
+	// database in a state where it has applied some migrations, but not all.
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
 	migrations, err := goose.CollectMigrations(dir, 0, goose.MaxVersion)
 	check.NoError(t, err)
 	check.NumberNotZero(t, len(migrations))
