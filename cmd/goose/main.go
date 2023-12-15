@@ -125,7 +125,7 @@ func main() {
 	case "sqlite3":
 		//  Internally uses the CGo-free port of SQLite: modernc.org/sqlite
 		driver = "sqlite"
-	case "postgres":
+	case "postgres", "redshift":
 		driver = "pgx"
 	}
 	db, err := goose.OpenDBWithDriver(driver, normalizeDBString(driver, dbstring, *certfile, *sslcert, *sslkey))
