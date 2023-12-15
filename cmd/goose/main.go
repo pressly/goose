@@ -154,8 +154,9 @@ func main() {
 		options = append(options, goose.WithNoVersioning())
 	}
 	if timeout != nil && *timeout != 0 {
-		//nolint:govet  // The context outlives the main function
-		ctx, _ = context.WithTimeout(ctx, *timeout)
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, *timeout)
+		defer cancel()
 	}
 	if err := goose.RunWithOptionsContext(
 		ctx,
