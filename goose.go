@@ -9,7 +9,7 @@ import (
 )
 
 // Deprecated: VERSION will no longer be supported in the next major release.
-const VERSION = "v3.2.0"
+const VERSION = "v3.17.0"
 
 var (
 	minVersion      = int64(0)

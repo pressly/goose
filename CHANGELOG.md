@@ -7,12 +7,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [v3.17.0] - 2023-12-15
+
 - Standardised the MIT license (#647)
 - Improve provider `Apply()` errors, add `ErrNotApplied` when attempting to rollback a migration
   that has not been previously applied. (#660)
 - Add `WithDisableGlobalRegistry` option to `NewProvider` to disable the global registry. (#645)
 - Add `-timeout` flag to CLI to set the maximum allowed duration for queries to run. Default remains
   no timeout. (#627)
+- Add optional logging in `Provider` when `WithVerbose` option is supplied. (#668)
 
 ⚠️ Potential Breaking Change ⚠️
 
@@ -98,7 +101,8 @@ Here's a quick summary:
 - Add new `context.Context`-aware functions and methods, for both sql and go migrations.
 - Return error when no migration files found or dir is not a directory.
 
-[Unreleased]: https://github.com/pressly/goose/compare/v3.16.0...HEAD
+[Unreleased]: https://github.com/pressly/goose/compare/v3.17.0...HEAD
+[v3.17.0]: https://github.com/pressly/goose/compare/v3.16.0...v3.17.0
 [v3.16.0]: https://github.com/pressly/goose/compare/v3.15.1...v3.16.0
 [v3.15.1]: https://github.com/pressly/goose/compare/v3.15.0...v3.15.1
 [v3.15.0]: https://github.com/pressly/goose/compare/v3.14.0...v3.15.0

@@ -116,8 +116,13 @@ func newProvider(
 	for version, m := range cfg.registered {
 		versionToGoMigration[version] = m
 	}
-	// Do not add globally registered Go migrations if explicitly disabled.
-	if !cfg.disableGlobalRegistry {
+	// Return an error if the global registry is explicitly disabled, but there are registered Go
+	// migrations.
+	if cfg.disableGlobalRegistry {
+		if len(global) > 0 {
+			return nil, errors.New("global registry disabled, but provider has registered go migrations")
+		}
+	} else {
 		for version, m := range global {
 			if _, ok := versionToGoMigration[version]; ok {
 				return nil, fmt.Errorf("global go migration with version %d previously registered with provider", version)
