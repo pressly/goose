@@ -121,6 +121,17 @@ func (p *Provider) prepareMigration(fsys fs.FS, m *Migration, direction bool) er
 	return fmt.Errorf("invalid migration type: %+v", m)
 }
 
+// printf is a helper function that prints the given message if verbose is enabled. It also prepends
+// the "goose: " prefix to the message.
+func (p *Provider) printf(msg string, args ...interface{}) {
+	if !strings.HasPrefix(msg, "goose:") {
+		msg = "goose: " + msg
+	}
+	if p.cfg.verbose {
+		p.cfg.logger.Printf(msg, args...)
+	}
+}
+
 // runMigrations runs migrations sequentially in the given direction. If the migrations list is
 // empty, return nil without error.
 func (p *Provider) runMigrations(
@@ -131,6 +142,15 @@ func (p *Provider) runMigrations(
 	byOne bool,
 ) ([]*MigrationResult, error) {
 	if len(migrations) == 0 {
+		if !p.cfg.disableVersioning {
+			// No need to print this message if versioning is disabled because there are no
+			// migrations being tracked in the goose version table.
+			maxVersion, err := p.getDBMaxVersion(ctx, conn)
+			if err != nil {
+				return nil, err
+			}
+			p.printf("no migrations to run, current version: %d", maxVersion)
+		}
 		return nil, nil
 	}
 	apply := migrations
@@ -185,14 +205,14 @@ func (p *Provider) runMigrations(
 		}
 		result.Duration = time.Since(start)
 		results = append(results, result)
-
-		if p.cfg.verbose {
-			p.cfg.logger.Printf("%s\n", result)
-		}
+		p.printf("%s", result)
 	}
-	if p.cfg.verbose && len(results) > 0 {
-		last := results[len(results)-1].Source.Version
-		p.cfg.logger.Printf("goose: successfully migrated database to version: %d\n", last)
+	if !p.cfg.disableVersioning && !byOne {
+		maxVersion, err := p.getDBMaxVersion(ctx, conn)
+		if err != nil {
+			return nil, err
+		}
+		p.printf("successfully migrated database, current version: %d", maxVersion)
 	}
 	return results, nil
 }
