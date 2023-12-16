@@ -62,6 +62,7 @@ func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption
 		registered:      make(map[int64]*Migration),
 		excludePaths:    make(map[string]bool),
 		excludeVersions: make(map[int64]bool),
+		logger:          &stdLogger{},
 	}
 	for _, opt := range opts {
 		if err := opt.apply(&cfg); err != nil {
@@ -152,7 +153,7 @@ func (p *Provider) Status(ctx context.Context) ([]*MigrationStatus, error) {
 // which migrations were applied. For example, if migrations were applied out of order (1,4,2,3),
 // this method returns 4. If no migrations have been applied, it returns 0.
 func (p *Provider) GetDBVersion(ctx context.Context) (int64, error) {
-	return p.getDBMaxVersion(ctx)
+	return p.getDBMaxVersion(ctx, nil)
 }
 
 // ListSources returns a list of all migration sources known to the provider, sorted in ascending
@@ -369,6 +370,7 @@ func (p *Provider) down(
 	}
 	// We never migrate the zero version down.
 	if dbMigrations[0].Version == 0 {
+		p.printf("no migrations to run, current version: 0")
 		return nil, nil
 	}
 	var apply []*Migration
@@ -413,14 +415,14 @@ func (p *Provider) apply(
 	//  1. direction is up
 	//    a. migration is applied, this is an error (ErrAlreadyApplied)
 	//    b. migration is not applied, apply it
+	if direction && result != nil {
+		return nil, fmt.Errorf("version %d: %w", version, ErrAlreadyApplied)
+	}
 	//  2. direction is down
 	//    a. migration is applied, rollback
 	//    b. migration is not applied, this is an error (ErrNotApplied)
-	if result == nil && !direction {
+	if !direction && result == nil {
 		return nil, fmt.Errorf("version %d: %w", version, ErrNotApplied)
-	}
-	if result != nil && direction {
-		return nil, fmt.Errorf("version %d: %w", version, ErrAlreadyApplied)
 	}
 	d := sqlparser.DirectionDown
 	if direction {
@@ -462,15 +464,23 @@ func (p *Provider) status(ctx context.Context) (_ []*MigrationStatus, retErr err
 	return status, nil
 }
 
-func (p *Provider) getDBMaxVersion(ctx context.Context) (_ int64, retErr error) {
-	conn, cleanup, err := p.initialize(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("failed to initialize: %w", err)
+// getDBMaxVersion returns the highest version recorded in the database, regardless of the order in
+// which migrations were applied. conn may be nil, in which case a connection is initialized.
+//
+// optimize(mf): we should only fetch the max version from the database, no need to fetch all
+// migrations only to get the max version. This means expanding the Store interface.
+func (p *Provider) getDBMaxVersion(ctx context.Context, conn *sql.Conn) (_ int64, retErr error) {
+	if conn == nil {
+		var cleanup func() error
+		var err error
+		conn, cleanup, err = p.initialize(ctx)
+		if err != nil {
+			return 0, err
+		}
+		defer func() {
+			retErr = multierr.Append(retErr, cleanup())
+		}()
 	}
-	defer func() {
-		retErr = multierr.Append(retErr, cleanup())
-	}()
-
 	res, err := p.store.ListMigrations(ctx, conn)
 	if err != nil {
 		return 0, err

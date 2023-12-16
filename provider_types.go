@@ -36,12 +36,31 @@ type MigrationResult struct {
 	Error error
 }
 
+// String returns a string representation of the migration result.
+//
+// Example down:
+//
+//	EMPTY down 00006_posts_view-copy.sql (607.83µs)
+//	OK    down 00005_posts_view.sql (646.25µs)
+//
+// Example up:
+//
+//	OK    up 00005_posts_view.sql (727.5µs)
+//	EMPTY up 00006_posts_view-copy.sql (378.33µs)
 func (m *MigrationResult) String() string {
-	state := "OK"
+	var format string
+	if m.Direction == "up" {
+		format = "%-5s %-2s %s (%s)"
+	} else {
+		format = "%-5s %-4s %s (%s)"
+	}
+	var state string
 	if m.Empty {
 		state = "EMPTY"
+	} else {
+		state = "OK"
 	}
-	return fmt.Sprintf("%-6s %-4s %s (%s)",
+	return fmt.Sprintf(format,
 		state,
 		m.Direction,
 		filepath.Base(m.Source.Path),

@@ -121,6 +121,17 @@ func (p *Provider) prepareMigration(fsys fs.FS, m *Migration, direction bool) er
 	return fmt.Errorf("invalid migration type: %+v", m)
 }
 
+// printf is a helper function that prints the given message if verbose is enabled. It also prepends
+// the "goose: " prefix to the message.
+func (p *Provider) printf(msg string, args ...interface{}) {
+	if p.cfg.verbose {
+		if !strings.HasPrefix(msg, "goose:") {
+			msg = "goose: " + msg
+		}
+		p.cfg.logger.Printf(msg, args...)
+	}
+}
+
 // runMigrations runs migrations sequentially in the given direction. If the migrations list is
 // empty, return nil without error.
 func (p *Provider) runMigrations(
@@ -131,6 +142,15 @@ func (p *Provider) runMigrations(
 	byOne bool,
 ) ([]*MigrationResult, error) {
 	if len(migrations) == 0 {
+		if !p.cfg.disableVersioning {
+			// No need to print this message if versioning is disabled because there are no
+			// migrations being tracked in the goose version table.
+			maxVersion, err := p.getDBMaxVersion(ctx, conn)
+			if err != nil {
+				return nil, err
+			}
+			p.printf("no migrations to run, current version: %d", maxVersion)
+		}
 		return nil, nil
 	}
 	apply := migrations
@@ -162,7 +182,7 @@ func (p *Provider) runMigrations(
 
 	var results []*MigrationResult
 	for _, m := range apply {
-		current := &MigrationResult{
+		result := &MigrationResult{
 			Source: &Source{
 				Type:    m.Type,
 				Path:    m.Source,
@@ -175,18 +195,25 @@ func (p *Provider) runMigrations(
 		if err := p.runIndividually(ctx, conn, m, direction.ToBool()); err != nil {
 			// TODO(mf): we should also return the pending migrations here, the remaining items in
 			// the apply slice.
-			current.Error = err
-			current.Duration = time.Since(start)
+			result.Error = err
+			result.Duration = time.Since(start)
 			return nil, &PartialError{
 				Applied: results,
-				Failed:  current,
+				Failed:  result,
 				Err:     err,
 			}
 		}
-		current.Duration = time.Since(start)
-		results = append(results, current)
+		result.Duration = time.Since(start)
+		results = append(results, result)
+		p.printf("%s", result)
 	}
-
+	if !p.cfg.disableVersioning && !byOne {
+		maxVersion, err := p.getDBMaxVersion(ctx, conn)
+		if err != nil {
+			return nil, err
+		}
+		p.printf("successfully migrated database, current version: %d", maxVersion)
+	}
 	return results, nil
 }
 
