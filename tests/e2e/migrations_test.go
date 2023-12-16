@@ -365,6 +365,8 @@ func getTableNames(db *sql.DB) (tableNames []string, _ error) {
 			return nil, err
 		}
 		return tableNames, nil
+	case dialectTurso:
+		return getTableNamesThroughQuery(db, `SELECT NAME FROM sqlite_master where type='table' and name!='sqlite_sequence' ORDER BY NAME;`)
 	default:
 		return nil, fmt.Errorf("getTableNames not supported with dialect %q", *dialect)
 	}
