@@ -124,10 +124,10 @@ func (p *Provider) prepareMigration(fsys fs.FS, m *Migration, direction bool) er
 // printf is a helper function that prints the given message if verbose is enabled. It also prepends
 // the "goose: " prefix to the message.
 func (p *Provider) printf(msg string, args ...interface{}) {
-	if !strings.HasPrefix(msg, "goose:") {
-		msg = "goose: " + msg
-	}
 	if p.cfg.verbose {
+		if !strings.HasPrefix(msg, "goose:") {
+			msg = "goose: " + msg
+		}
 		p.cfg.logger.Printf(msg, args...)
 	}
 }

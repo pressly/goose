@@ -370,7 +370,7 @@ func (p *Provider) down(
 	}
 	// We never migrate the zero version down.
 	if dbMigrations[0].Version == 0 {
-		p.printf("goose: no migrations to run, current version: 0")
+		p.printf("no migrations to run, current version: 0")
 		return nil, nil
 	}
 	var apply []*Migration
