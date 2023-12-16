@@ -97,5 +97,3 @@ retract (
 	v3.12.1 // Invalid module reference
 	v3.12.0 // Invalid module reference
 )
-
-replace github.com/vertica/vertica-sql-go => github.com/mfridman/vertica-sql-go v0.0.0-20231215043854-0783cdc9e048
