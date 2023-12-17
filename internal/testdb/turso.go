@@ -6,9 +6,9 @@ import (
 	"log"
 	"strconv"
 
-	_ "github.com/libsql/libsql-client-go/libsql"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
 
 const (
