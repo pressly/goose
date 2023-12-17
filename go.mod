@@ -6,10 +6,10 @@ require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.16.0
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/jackc/pgx/v5 v5.5.1
-	github.com/libsql/libsql-client-go v0.0.0-20231215151033-bc1f2dc4de81
 	github.com/microsoft/go-mssqldb v1.6.0
 	github.com/ory/dockertest/v3 v3.10.0
 	github.com/sethvargo/go-retry v0.2.4
+	github.com/tursodatabase/libsql-client-go v0.0.0-20231216154754-8383a53d618f
 	github.com/vertica/vertica-sql-go v1.3.3
 	github.com/ydb-platform/ydb-go-sdk/v3 v3.54.2
 	github.com/ziutek/mymysql v1.5.4

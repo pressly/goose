@@ -1,5 +1,5 @@
 package main
 
 import (
-	_ "github.com/libsql/libsql-client-go/libsql"
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
