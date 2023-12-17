@@ -1,3 +1,6 @@
+//go:build !no_libsql
+// +build !no_libsql
+
 package main
 
 import (
