@@ -119,8 +119,6 @@ func main() {
 		switch remain[0] {
 		case "drivers":
 			printDrivers()
-		case "build-tags":
-			printBuildTags()
 		}
 		return
 	}
@@ -180,21 +178,6 @@ func main() {
 	); err != nil {
 		log.Fatalf("goose run: %v", err)
 	}
-}
-
-func printBuildTags() {
-	buildTags := []string{
-		"no_clickhouse",
-		"no_libsql",
-		"no_mssql",
-		"no_mysql",
-		"no_postgres",
-		"no_sqlite3 ",
-		"no_vertica",
-		"no_ydb",
-	}
-	fmt.Println("Available build tags:")
-	fmt.Printf("  %s\n", strings.Join(buildTags, " "))
 }
 
 func printDrivers() {
