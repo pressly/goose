@@ -10,6 +10,10 @@ DB_CLICKHOUSE_PORT ?= 9001
 DB_YDB_PORT ?= 2136
 DB_TURSO_PORT ?= 8080
 
+list-build-tags:
+	@echo "Available build tags:"
+	@echo "  $$(rg -o --trim 'no_[a-zA-Z0-9_]+' ./cmd/goose --no-line-number --no-filename | sort | uniq | tr '\n' ' ')"
+
 .PHONY: dist
 dist:
 	@mkdir -p ./bin
