@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	_ "embed"
+	"database/sql"
 	"errors"
 	"flag"
 	"fmt"
@@ -110,6 +110,19 @@ func main() {
 			log.Fatalf("goose validate: %v", err)
 		}
 		return
+	case "beta":
+		remain := args[1:]
+		if len(remain) == 0 {
+			log.Println("goose beta: missing subcommand")
+			os.Exit(1)
+		}
+		switch remain[0] {
+		case "drivers":
+			printDrivers()
+		case "build-tags":
+			printBuildTags()
+		}
+		return
 	}
 
 	args = mergeArgs(args)
@@ -167,6 +180,57 @@ func main() {
 	); err != nil {
 		log.Fatalf("goose run: %v", err)
 	}
+}
+
+func printBuildTags() {
+	buildTags := []string{
+		"no_clickhouse",
+		"no_libsql",
+		"no_mssql",
+		"no_mysql",
+		"no_postgres",
+		"no_sqlite3 ",
+		"no_vertica",
+		"no_ydb",
+	}
+	fmt.Println("Available build tags:")
+	fmt.Printf("  %s\n", strings.Join(buildTags, " "))
+}
+
+func printDrivers() {
+	drivers := mergeDrivers(sql.Drivers())
+	if len(drivers) == 0 {
+		fmt.Println("No drivers found")
+		return
+	}
+	fmt.Println("Available drivers:")
+	for _, driver := range drivers {
+		fmt.Printf("  %s\n", driver)
+	}
+}
+
+// mergeDrivers merges drivers with a common prefix into a single line.
+func mergeDrivers(drivers []string) []string {
+	driverMap := make(map[string][]string)
+
+	for _, driver := range drivers {
+		parts := strings.Split(driver, "/")
+		if len(parts) > 1 {
+			// Merge drivers with a common prefix "/"
+			prefix := parts[0]
+			driverMap[prefix] = append(driverMap[prefix], driver)
+		} else {
+			// Add drivers without a prefix directly
+			driverMap[driver] = append(driverMap[driver], driver)
+		}
+	}
+	var merged []string
+	for _, versions := range driverMap {
+		sort.Strings(versions)
+		merged = append(merged, strings.Join(versions, ", "))
+	}
+	sort.Strings(merged)
+	return merged
 }
 
 func checkNoColorFromEnv() bool {
