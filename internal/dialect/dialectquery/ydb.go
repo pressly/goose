@@ -30,6 +30,11 @@ func (c *Ydb) InsertVersion(tableName string) string {
 	return fmt.Sprintf(q, tableName)
 }
 
+func (c *Ydb) GetLatestVersion(tableName string) string {
+	q := `SELECT MAX(version_id) FROM %s WHERE is_applied = true`
+	return fmt.Sprintf(q, tableName)
+}
+
 func (c *Ydb) DeleteVersion(tableName string) string {
 	q := `DELETE FROM %s WHERE version_id = $1`
 	return fmt.Sprintf(q, tableName)
