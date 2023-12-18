@@ -135,3 +135,13 @@ func (s *store) ListMigrations(
 	}
 	return migrations, nil
 }
+
+func (s *store) GetLatestVersion(ctx context.Context, db DBTxConn) (int64, error) {
+	q := s.querier.GetLatestVersion(s.tablename)
+	var maxVersionID int64
+	err := db.QueryRowContext(ctx, q).Scan(&maxVersionID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get last version: %w", err)
+	}
+	return maxVersionID, nil
+}
