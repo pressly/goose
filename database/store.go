@@ -35,6 +35,10 @@ type Store interface {
 	// version is not found, this method must return [ErrVersionNotFound].
 	GetMigration(ctx context.Context, db DBTxConn, version int64) (*GetMigrationResult, error)
 
+	// GetLatestVersion retrieves a latest version. If the query succeeds, but the
+	// version is not found, this method must return [ErrVersionNotFound].
+	GetLatestVersion(ctx context.Context, db DBTxConn) (int64, error)
+
 	// ListMigrations retrieves all migrations sorted in descending order by id or timestamp. If
 	// there are no migrations, return empty slice with no error. Typically this method will return
 	// at least one migration, because the initial version (0) is always inserted into the version
