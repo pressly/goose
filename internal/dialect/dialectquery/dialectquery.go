@@ -25,4 +25,9 @@ type Querier interface {
 	//
 	// The query should return the version_id and is_applied columns.
 	ListMigrations(tableName string) string
+
+	// GetLatestVersion returns the SQL query string to get the latest version
+	//
+	// The query should return the version_id.
+	GetLatestVersion(tableName string) string
 }
