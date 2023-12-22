@@ -283,10 +283,11 @@ language plpgsql;
 ```
 
 Goose supports environment variables substitution in SQL migrations. To use it, you need to specify
-the `-- +goose ENVSUB ON` annotation at the top of the file before queries. This will enable it for
-all the statements following it, to the end of the file.
+the `-- +goose ENVSUB ON` annotation (usually at the top of the file) before the queries you want
+substitution to be applied to. This will enable it for all the statements following it, to the end
+of the file.
 
-It is disabled by default to keep backwards compatibility with existing scripts.
+It is **disabled by default** to keep backwards compatibility with existing scripts.
 
 ## Embedded sql migrations
 
