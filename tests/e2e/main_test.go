@@ -19,6 +19,8 @@ import (
 const (
 	dialectPostgres = "postgres"
 	dialectMySQL    = "mysql"
+	dialectYdb      = "ydb"
+	dialectTurso    = "turso"
 )
 
 // Flags.
@@ -66,7 +68,7 @@ func TestMain(m *testing.M) {
 	flag.Parse()
 
 	switch *dialect {
-	case dialectPostgres, dialectMySQL:
+	case dialectPostgres, dialectMySQL, dialectYdb, dialectTurso:
 	default:
 		log.Printf("dialect not supported: %q", *dialect)
 		os.Exit(1)
@@ -111,6 +113,10 @@ func newDockerDB(t *testing.T) (*sql.DB, error) {
 		db, cleanup, err = testdb.NewPostgres(options...)
 	case dialectMySQL:
 		db, cleanup, err = testdb.NewMariaDB(options...)
+	case dialectYdb:
+		db, cleanup, err = testdb.NewYdb(options...)
+	case dialectTurso:
+		db, cleanup, err = testdb.NewTurso(options...)
 	default:
 		return nil, fmt.Errorf("unsupported dialect: %q", *dialect)
 	}

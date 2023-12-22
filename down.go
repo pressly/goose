@@ -36,7 +36,7 @@ func DownContext(ctx context.Context, db *sql.DB, dir string, opts ...OptionsFun
 	}
 	current, err := migrations.Current(currentVersion)
 	if err != nil {
-		return fmt.Errorf("no migration %v", currentVersion)
+		return fmt.Errorf("migration %v: %w", currentVersion, err)
 	}
 	return current.DownContext(ctx, db)
 }

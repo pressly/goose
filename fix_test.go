@@ -11,6 +11,9 @@ import (
 
 func TestFix(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("skip long running test")
+	}
 
 	dir := t.TempDir()
 	defer os.Remove("./bin/fix-goose") // clean up

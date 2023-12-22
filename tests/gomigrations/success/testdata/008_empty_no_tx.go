@@ -5,5 +5,5 @@ import (
 )
 
 func init() {
-	goose.AddMigration(nil, nil)
+	goose.AddMigrationNoTx(nil, nil)
 }

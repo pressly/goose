@@ -3,7 +3,23 @@ package goose
 import (
 	"fmt"
 
+	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/internal/dialect"
+)
+
+// Dialect is the type of database dialect. It is an alias for [database.Dialect].
+type Dialect = database.Dialect
+
+const (
+	DialectClickHouse Dialect = database.DialectClickHouse
+	DialectMSSQL      Dialect = database.DialectMSSQL
+	DialectMySQL      Dialect = database.DialectMySQL
+	DialectPostgres   Dialect = database.DialectPostgres
+	DialectRedshift   Dialect = database.DialectRedshift
+	DialectSQLite3    Dialect = database.DialectSQLite3
+	DialectTiDB       Dialect = database.DialectTiDB
+	DialectVertica    Dialect = database.DialectVertica
+	DialectYdB        Dialect = database.DialectYdB
 )
 
 func init() {
@@ -32,6 +48,10 @@ func SetDialect(s string) error {
 		d = dialect.Clickhouse
 	case "vertica":
 		d = dialect.Vertica
+	case "ydb":
+		d = dialect.Ydb
+	case "turso":
+		d = dialect.Turso
 	default:
 		return fmt.Errorf("%q: unknown dialect", s)
 	}

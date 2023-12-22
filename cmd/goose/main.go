@@ -1,7 +1,8 @@
 package main
 
 import (
-	_ "embed"
+	"context"
+	"database/sql"
 	"errors"
 	"flag"
 	"fmt"
@@ -19,7 +20,6 @@ import (
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/internal/cfg"
 	"github.com/pressly/goose/v3/internal/migrationstats"
-	"github.com/pressly/goose/v3/internal/migrationstats/migrationstatsos"
 )
 
 var (
@@ -36,11 +36,14 @@ var (
 	sslkey       = flags.String("ssl-key", "", "file path to SSL key in pem format (only support on mysql)")
 	noVersioning = flags.Bool("no-versioning", false, "apply migration commands with no versioning, in file order, from directory pointed to")
 	noColor      = flags.Bool("no-color", false, "disable color output (NO_COLOR env variable supported)")
+	timeout      = flags.Duration("timeout", 0, "maximum allowed duration for queries to run; e.g., 1h13m")
 )
 
 var version string
 
 func main() {
+	ctx := context.Background()
+
 	flags.Usage = usage
 	if err := flags.Parse(os.Args[1:]); err != nil {
 		log.Fatalf("failed to parse args: %v", err)
@@ -88,12 +91,12 @@ func main() {
 		}
 		return
 	case "create":
-		if err := goose.Run("create", nil, *dir, args[1:]...); err != nil {
+		if err := goose.RunContext(ctx, "create", nil, *dir, args[1:]...); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
 		return
 	case "fix":
-		if err := goose.Run("fix", nil, *dir); err != nil {
+		if err := goose.RunContext(ctx, "fix", nil, *dir); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
 		return
@@ -105,6 +108,17 @@ func main() {
 	case "validate":
 		if err := printValidate(*dir, *verbose); err != nil {
 			log.Fatalf("goose validate: %v", err)
+		}
+		return
+	case "beta":
+		remain := args[1:]
+		if len(remain) == 0 {
+			log.Println("goose beta: missing subcommand")
+			os.Exit(1)
+		}
+		switch remain[0] {
+		case "drivers":
+			printDrivers()
 		}
 		return
 	}
@@ -122,7 +136,7 @@ func main() {
 	case "sqlite3":
 		//  Internally uses the CGo-free port of SQLite: modernc.org/sqlite
 		driver = "sqlite"
-	case "postgres":
+	case "postgres", "redshift":
 		driver = "pgx"
 	}
 	db, err := goose.OpenDBWithDriver(driver, normalizeDBString(driver, dbstring, *certfile, *sslcert, *sslkey))
@@ -149,7 +163,13 @@ func main() {
 	if *noVersioning {
 		options = append(options, goose.WithNoVersioning())
 	}
-	if err := goose.RunWithOptions(
+	if timeout != nil && *timeout != 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, *timeout)
+		defer cancel()
+	}
+	if err := goose.RunWithOptionsContext(
+		ctx,
 		command,
 		db,
 		*dir,
@@ -158,6 +178,42 @@ func main() {
 	); err != nil {
 		log.Fatalf("goose run: %v", err)
 	}
+}
+
+func printDrivers() {
+	drivers := mergeDrivers(sql.Drivers())
+	if len(drivers) == 0 {
+		fmt.Println("No drivers found")
+		return
+	}
+	fmt.Println("Available drivers:")
+	for _, driver := range drivers {
+		fmt.Printf("  %s\n", driver)
+	}
+}
+
+// mergeDrivers merges drivers with a common prefix into a single line.
+func mergeDrivers(drivers []string) []string {
+	driverMap := make(map[string][]string)
+
+	for _, driver := range drivers {
+		parts := strings.Split(driver, "/")
+		if len(parts) > 1 {
+			// Merge drivers with a common prefix "/"
+			prefix := parts[0]
+			driverMap[prefix] = append(driverMap[prefix], driver)
+		} else {
+			// Add drivers without a prefix directly
+			driverMap[driver] = append(driverMap[driver], driver)
+		}
+	}
+	var merged []string
+	for _, versions := range driverMap {
+		sort.Strings(versions)
+		merged = append(merged, strings.Join(versions, ", "))
+	}
+	sort.Strings(merged)
+	return merged
 }
 
 func checkNoColorFromEnv() bool {
@@ -204,6 +260,8 @@ Drivers:
     tidb
     clickhouse
     vertica
+    ydb
+    turso
 
 Examples:
     goose sqlite3 ./foo.db status
@@ -219,12 +277,15 @@ Examples:
     goose mssql "sqlserver://user:password@dbname:1433?database=master" status
     goose clickhouse "tcp://127.0.0.1:9000" status
     goose vertica "vertica://user:password@localhost:5433/dbname?connection_load_balance=1" status
+    goose ydb "grpcs://localhost:2135/local?go_query_mode=scripting&go_fake_tx=scripting&go_query_bind=declare,numeric" status
+	goose turso "libsql://dbname.turso.io?authToken=token" status
 
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose status
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose create init sql
     GOOSE_DRIVER=postgres GOOSE_DBSTRING="user=postgres dbname=postgres sslmode=disable" goose status
     GOOSE_DRIVER=mysql GOOSE_DBSTRING="user:password@/dbname" goose status
     GOOSE_DRIVER=redshift GOOSE_DBSTRING="postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" goose status
+    GOOSE_DRIVER=turso GOOSE_DBSTRING="libsql://dbname.turso.io?authToken=token" goose status
 
 Options:
 `
@@ -318,8 +379,10 @@ func printValidate(filename string, verbose bool) error {
 	if err != nil {
 		return err
 	}
-	fileWalker := migrationstatsos.NewFileWalker(filenames...)
-	stats, err := migrationstats.GatherStats(fileWalker, false)
+	stats, err := migrationstats.GatherStats(
+		migrationstats.NewFileWalker(filenames...),
+		false,
+	)
 	if err != nil {
 		return err
 	}

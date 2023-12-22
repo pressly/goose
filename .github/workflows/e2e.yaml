@@ -14,13 +14,13 @@ jobs:
     strategy:
       max-parallel: 2
       matrix:
-        dialect: ["postgres", "mysql", "vertica", "clickhouse"]
+        dialect: ["postgres", "mysql", "vertica", "clickhouse", "ydb", "turso"]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Install Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: "stable"
       - name: Run e2e ${{ matrix.dialect }} tests

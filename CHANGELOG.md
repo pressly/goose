@@ -7,6 +7,58 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [v3.17.0] - 2023-12-15
+
+- Standardised the MIT license (#647)
+- Improve provider `Apply()` errors, add `ErrNotApplied` when attempting to rollback a migration
+  that has not been previously applied. (#660)
+- Add `WithDisableGlobalRegistry` option to `NewProvider` to disable the global registry. (#645)
+- Add `-timeout` flag to CLI to set the maximum allowed duration for queries to run. Default remains
+  no timeout. (#627)
+- Add optional logging in `Provider` when `WithVerbose` option is supplied. (#668)
+
+⚠️ Potential Breaking Change ⚠️
+
+- Update `goose create` to use UTC time instead of local time. (#242)
+
+## [v3.16.0] - 2023-11-12
+
+- Added YDB support. (#592)
+- Fix sqlserver query to ensure DB version. (#601)
+- Allow setting / resetting the global Go migration registry. (#602)
+  - `SetGlobalMigrations` and `ResetGlobalMigrations` functions have been added.
+  - Introduce `NewGoMigration` for constructing Go migrations.
+- Add initial implementation of `goose.NewProvider`.
+
+🎉 Read more about this new feature here:
+
+https://pressly.github.io/goose/blog/2023/goose-provider/
+
+The motivation behind the Provider was simple - to reduce global state and make goose easier to
+consume as an imported package.
+
+Here's a quick summary:
+
+- Avoid global state
+- Make Provider safe to use concurrently
+- Unlock (no pun intended) new features, such as database locking
+- Make logging configurable
+- Better error handling with proper return values
+- Double down on Go migrations
+- ... and more!
+
+## [v3.15.1] - 2023-10-10
+
+- Fix regression that prevented registering Go migrations that didn't have the corresponding files
+  available in the filesystem. (#588)
+  - If Go migrations have been registered globally, but there are no .go files in the filesystem,
+    **always include** them.
+  - If Go migrations have been registered, and there are .go files in the filesystem, **only
+    include** those migrations. This was the original motivation behind #553.
+  - If there are .go files in the filesystem but not registered, **raise an error**. This is to
+    prevent accidentally adding valid looking Go migration files without explicitly registering
+    them.
+
 ## [v3.15.0] - 2023-08-12
 
 - Fix `sqlparser` to avoid skipping the last statement when it's not terminated with a semicolon
@@ -49,7 +101,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add new `context.Context`-aware functions and methods, for both sql and go migrations.
 - Return error when no migration files found or dir is not a directory.
 
-[Unreleased]: https://github.com/pressly/goose/compare/v3.15.0...HEAD
+[Unreleased]: https://github.com/pressly/goose/compare/v3.17.0...HEAD
+[v3.17.0]: https://github.com/pressly/goose/compare/v3.16.0...v3.17.0
+[v3.16.0]: https://github.com/pressly/goose/compare/v3.15.1...v3.16.0
+[v3.15.1]: https://github.com/pressly/goose/compare/v3.15.0...v3.15.1
 [v3.15.0]: https://github.com/pressly/goose/compare/v3.14.0...v3.15.0
 [v3.14.0]: https://github.com/pressly/goose/compare/v3.13.4...v3.14.0
 [v3.13.4]: https://github.com/pressly/goose/compare/v3.13.1...v3.13.4

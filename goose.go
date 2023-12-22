@@ -8,8 +8,8 @@ import (
 	"strconv"
 )
 
-// Deprecated: VERSION will no longer be supported in v4.
-const VERSION = "v3.2.0"
+// Deprecated: VERSION will no longer be supported in the next major release.
+const VERSION = "v3.17.0"
 
 var (
 	minVersion      = int64(0)
@@ -39,6 +39,8 @@ func SetBaseFS(fsys fs.FS) {
 }
 
 // Run runs a goose command.
+//
+// Deprecated: Use RunContext.
 func Run(command string, db *sql.DB, dir string, args ...string) error {
 	ctx := context.Background()
 	return RunContext(ctx, command, db, dir, args...)
@@ -50,6 +52,8 @@ func RunContext(ctx context.Context, command string, db *sql.DB, dir string, arg
 }
 
 // RunWithOptions runs a goose command with options.
+//
+// Deprecated: Use RunWithOptionsContext.
 func RunWithOptions(command string, db *sql.DB, dir string, args []string, options ...OptionsFunc) error {
 	ctx := context.Background()
 	return RunWithOptionsContext(ctx, command, db, dir, args, options...)
