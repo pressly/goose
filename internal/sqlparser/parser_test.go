@@ -380,9 +380,9 @@ func TestValidUp(t *testing.T) {
 	// to the parser. Then we compare the statements against the golden files.
 	// Each golden file is equivalent to one statement.
 	//
-	// ├── 01.golden.sql
-	// ├── 02.golden.sql
-	// ├── 03.golden.sql
+	// ├── 01.up.golden.sql
+	// ├── 02.up.golden.sql
+	// ├── 03.up.golden.sql
 	// └── input.sql
 	tests := []struct {
 		Name            string
@@ -401,36 +401,36 @@ func TestValidUp(t *testing.T) {
 	for _, tc := range tests {
 		path := filepath.Join("testdata", "valid-up", tc.Name)
 		t.Run(tc.Name, func(t *testing.T) {
-			testValidUp(t, path, tc.StatementsCount)
+			testValid(t, path, tc.StatementsCount, DirectionUp)
 		})
 	}
 }
 
-func testValidUp(t *testing.T, dir string, count int) {
+func testValid(t *testing.T, dir string, count int, direction Direction) {
 	t.Helper()
 
 	f, err := os.Open(filepath.Join(dir, "input.sql"))
 	check.NoError(t, err)
 	t.Cleanup(func() { f.Close() })
-	statements, _, err := ParseSQLMigration(f, DirectionUp, debug)
+	statements, _, err := ParseSQLMigration(f, direction, debug)
 	check.NoError(t, err)
 	check.Number(t, len(statements), count)
-	compareStatements(t, dir, statements)
+	compareStatements(t, dir, statements, direction)
 }
 
-func compareStatements(t *testing.T, dir string, statements []string) {
+func compareStatements(t *testing.T, dir string, statements []string, direction Direction) {
 	t.Helper()
 
-	files, err := filepath.Glob(filepath.Join(dir, "*.golden.sql"))
+	files, err := filepath.Glob(filepath.Join(dir, fmt.Sprintf("*.%s.golden.sql", direction)))
 	check.NoError(t, err)
 	if len(statements) != len(files) {
-		t.Fatalf("mismatch between parsed statements (%d) and golden files (%d), did you check in NN.golden.sql file in %q?", len(statements), len(files), dir)
+		t.Fatalf("mismatch between parsed statements (%d) and golden files (%d), did you check in NN.{up|down}.golden.sql file in %q?", len(statements), len(files), dir)
 	}
 	for _, goldenFile := range files {
 		goldenFile = filepath.Base(goldenFile)
-		before, _, ok := cut(goldenFile, ".")
+		before, _, ok := strings.Cut(goldenFile, ".")
 		if !ok {
-			t.Fatal(`failed to cut on file delimiter ".", must be of the format NN.golden.sql`)
+			t.Fatal(`failed to cut on file delimiter ".", must be of the format NN.{up|down}.golden.sql`)
 		}
 		index, err := strconv.Atoi(before)
 		check.NoError(t, err)
@@ -458,164 +458,34 @@ func compareStatements(t *testing.T, dir string, statements []string) {
 	}
 }
 
-// copied directly from strings.Cut (go1.18) to support older Go versions.
-// In the future, replace this with the upstream function.
-func cut(s, sep string) (before, after string, found bool) {
-	if i := strings.Index(s, sep); i >= 0 {
-		return s[:i], s[i+len(sep):], true
-	}
-	return s, "", false
-}
-
 func isCIEnvironment() bool {
 	ok, _ := strconv.ParseBool(os.Getenv("CI"))
 	return ok
 }
 
-func TestEnvsubstDisabledByDefault(t *testing.T) {
-	t.Parallel()
-	// Test valid migrations with ${var} like statements are not substituted by default.
-	testMigration := `-- +goose Up
-CREATE TABLE ${PREFIX}post (
-		id int NOT NULL,
-		title text,
-		body text,
-		PRIMARY KEY(id)
-);                  -- 1st stmt
+func TestEnvsub(t *testing.T) {
+	// Do not run in parallel, as this test sets environment variables.
 
--- comment
-SELECT 2;           -- 2nd stmt
-SELECT 3; SELECT 3; -- 3rd stmt
-SELECT 4;           -- 4th stmt
+	// Test valid migrations with ${var} like statements when on are substituted for the whole
+	// migration.
+	t.Setenv("GOOSE_ENV_REGION", "us_east_")
+	t.Setenv("GOOSE_ENV_SET_BUT_EMPTY_VALUE", "")
+	t.Setenv("GOOSE_ENV_NAME", "foo")
 
--- +goose Down
--- comment
-DROP TABLE ${PREFIX}post;    -- 1st stmt
-`
-
-	// up
-	stmts, _, err := ParseSQLMigration(strings.NewReader(testMigration), DirectionUp, debug)
-	if err != nil {
-		t.Error(fmt.Errorf("unexpected error: %w", err))
+	tests := []struct {
+		Name      string
+		DownCount int
+		UpCount   int
+	}{
+		{Name: "test01", UpCount: 4, DownCount: 1},
+		{Name: "test02", UpCount: 1, DownCount: 0},
+		{Name: "test03", UpCount: 1, DownCount: 0},
 	}
-	got, want := stmts[0], `CREATE TABLE ${PREFIX}post (
-		id int NOT NULL,
-		title text,
-		body text,
-		PRIMARY KEY(id)
-);                  -- 1st stmt`
-	if got != want {
-		t.Errorf("incorrect variable substitution. \ngot  `%v` \nwant `%v`", got, want)
-	}
-
-	// down
-	stmts, _, err = ParseSQLMigration(strings.NewReader(testMigration), DirectionDown, debug)
-	if err != nil {
-		t.Error(fmt.Errorf("unexpected error: %w", err))
-	}
-	got, want = stmts[0], `DROP TABLE ${PREFIX}post;    -- 1st stmt`
-	if got != want {
-		t.Errorf("incorrect variable substitution. \ngot  `%v` \nwant `%v`", got, want)
-	}
-}
-
-func TestEnvsubstOnForTheWholeMigration(t *testing.T) {
-	t.Parallel()
-	// Test valid migrations with ${var} like statements when on are substituted for the whole migration.
-	testPrefix := "prefix_works_"
-	os.Setenv("PREFIX", testPrefix)
-	testMigration := `-- +goose ENVSUBST ON
--- +goose Up
-CREATE TABLE ${PREFIX}post (
-		id int NOT NULL,
-		title text,
-		body text,
-		PRIMARY KEY(id)
-);                  -- 1st stmt
-
--- comment
-SELECT 2;           -- 2nd stmt
-SELECT 3; SELECT 3; -- 3rd stmt
-SELECT 4;           -- 4th stmt
-
--- +goose Down
--- comment
-DROP TABLE ${PREFIX}post;    -- 1st stmt
-`
-
-	// up
-	stmts, _, err := ParseSQLMigration(strings.NewReader(testMigration), DirectionUp, debug)
-	if err != nil {
-		t.Error(fmt.Errorf("unexpected error: %w", err))
-	}
-	got, want := stmts[0], fmt.Sprintf(`CREATE TABLE %spost (
-		id int NOT NULL,
-		title text,
-		body text,
-		PRIMARY KEY(id)
-);                  -- 1st stmt`, testPrefix)
-	if got != want {
-		t.Errorf("incorrect variable substitution. \ngot  `%v` \nwant `%v`", got, want)
-	}
-
-	// down
-	stmts, _, err = ParseSQLMigration(strings.NewReader(testMigration), DirectionDown, debug)
-	if err != nil {
-		t.Error(fmt.Errorf("unexpected error: %w", err))
-	}
-	got, want = stmts[0], fmt.Sprintf(`DROP TABLE %spost;    -- 1st stmt`, testPrefix)
-	if got != want {
-		t.Errorf("incorrect variable substitution. \ngot  `%v` \nwant `%v`", got, want)
-	}
-}
-
-func TestEnvsubstOnForUpAndOfForDown(t *testing.T) {
-	t.Parallel()
-	// Test valid migrations with ${var} like statements when on are substituted until substitution is switched off.
-	testPrefix := "prefix_works_"
-	os.Setenv("PREFIX", testPrefix)
-	testMigration := `-- +goose ENVSUBST ON
--- +goose Up
-CREATE TABLE ${PREFIX}post (
-		id int NOT NULL,
-		title text,
-		body text,
-		PRIMARY KEY(id)
-);                  -- 1st stmt
-
--- comment
-SELECT 2;           -- 2nd stmt
-SELECT 3; SELECT 3; -- 3rd stmt
-SELECT 4;           -- 4th stmt
-
--- +goose Down
--- +goose ENVSUBST OFF
--- comment
-DROP TABLE ${PREFIX}post;    -- 1st stmt
-`
-
-	// up
-	stmts, _, err := ParseSQLMigration(strings.NewReader(testMigration), DirectionUp, debug)
-	if err != nil {
-		t.Error(fmt.Errorf("unexpected error: %w", err))
-	}
-	got, want := stmts[0], fmt.Sprintf(`CREATE TABLE %spost (
-		id int NOT NULL,
-		title text,
-		body text,
-		PRIMARY KEY(id)
-);                  -- 1st stmt`, testPrefix)
-	if got != want {
-		t.Errorf("incorrect variable substitution. \ngot  `%v` \nwant `%v`", got, want)
-	}
-
-	// down
-	stmts, _, err = ParseSQLMigration(strings.NewReader(testMigration), DirectionDown, debug)
-	if err != nil {
-		t.Error(fmt.Errorf("unexpected error: %w", err))
-	}
-	got, want = stmts[0], `DROP TABLE ${PREFIX}post;    -- 1st stmt`
-	if got != want {
-		t.Errorf("incorrect variable substitution. \ngot  `%v` \nwant `%v`", got, want)
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			dir := filepath.Join("testdata", "envsub", tc.Name)
+			testValid(t, dir, tc.UpCount, DirectionUp)
+			testValid(t, dir, tc.DownCount, DirectionDown)
+		})
 	}
 }

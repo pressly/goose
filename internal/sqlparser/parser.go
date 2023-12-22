@@ -7,10 +7,11 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"strings"
 	"sync"
 
-	"github.com/drone/envsubst"
+	"github.com/mfridman/interpolate"
 )
 
 type Direction string
@@ -109,7 +110,7 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 
 	stateMachine := newStateMachine(start, debug)
 	useTx = true
-	useEnvsubst := false
+	useEnvsub := false
 
 	var buf bytes.Buffer
 	for scanner.Scan() {
@@ -175,12 +176,8 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 				useTx = false
 				continue
 
-			case "+goose ENVSUBST ON":
-				useEnvsubst = true
-				continue
-
-			case "+goose ENVSUBST OFF":
-				useEnvsubst = false
+			case "+goose ENVSUB ON":
+				useEnvsub = true
 				continue
 			}
 		}
@@ -228,7 +225,7 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 		switch stateMachine.get() {
 		case gooseUp:
 			if endsWithSemicolon(line) {
-				stmt, err := processStatement(buf.String(), useEnvsubst)
+				stmt, err := processStatement(buf.String(), useEnvsub)
 				if err != nil {
 					return nil, false, err
 				}
@@ -238,7 +235,7 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 			}
 		case gooseDown:
 			if endsWithSemicolon(line) {
-				stmt, err := processStatement(buf.String(), useEnvsubst)
+				stmt, err := processStatement(buf.String(), useEnvsub)
 				if err != nil {
 					return nil, false, err
 				}
@@ -247,7 +244,7 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 				stateMachine.print("store simple Down query")
 			}
 		case gooseStatementEndUp:
-			stmt, err := processStatement(buf.String(), useEnvsubst)
+			stmt, err := processStatement(buf.String(), useEnvsub)
 			if err != nil {
 				return nil, false, err
 			}
@@ -256,7 +253,7 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 			stateMachine.print("store Up statement")
 			stateMachine.set(gooseUp)
 		case gooseStatementEndDown:
-			stmt, err := processStatement(buf.String(), useEnvsubst)
+			stmt, err := processStatement(buf.String(), useEnvsub)
 			if err != nil {
 				return nil, false, err
 			}
@@ -293,18 +290,24 @@ func missingSemicolonError(state parserState, direction Direction, s string) err
 	)
 }
 
-// processStatement interpolates variables and trims whitespaces
-func processStatement(input string, useEnvsubst bool) (string, error) {
-	if useEnvsubst {
-		var err error = nil
-		input, err = envsubst.EvalEnv(input)
+type envWrapper struct{}
+
+var _ interpolate.Env = (*envWrapper)(nil)
+
+func (e *envWrapper) Get(key string) (string, bool) {
+	return os.LookupEnv(key)
+}
+
+func processStatement(input string, useEnvsub bool) (string, error) {
+	if useEnvsub {
+		expanded, err := interpolate.Interpolate(&envWrapper{}, input)
 		if err != nil {
-			return "", fmt.Errorf("variable substitution failed: %w", err)
+			return "", fmt.Errorf("variable substitution failed: %w:\n%s", err, input)
 		}
+		return strings.TrimSpace(expanded), nil
 	}
 	// cleanupStatement trims whitespace from the given statement.
-	input = strings.TrimSpace(input)
-	return input, nil
+	return strings.TrimSpace(input), nil
 }
 
 // Checks the line to see if the line has a statement-ending semicolon

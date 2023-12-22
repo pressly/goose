@@ -6,6 +6,7 @@ require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.16.0
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/jackc/pgx/v5 v5.5.1
+	github.com/mfridman/interpolate v0.0.2
 	github.com/microsoft/go-mssqldb v1.6.0
 	github.com/ory/dockertest/v3 v3.10.0
 	github.com/sethvargo/go-retry v0.2.4

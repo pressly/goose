@@ -282,13 +282,11 @@ language plpgsql;
 -- +goose StatementEnd
 ```
 
+Goose supports environment variables substitution in SQL migrations. To use it, you need to specify
+the `-- +goose ENVSUB ON` annotation at the top of the file before queries. This will enable it for
+all the statements following it, to the end of the file.
 
-**Environment variables substitution** (using https://github.com/drone/envsubst) is disabled by default to keep the existing behavior,
-given there may be many existing scripts using `${var}` for other purposes.
-
-Can be controlled by the following annotations:
-- `-- +goose ENVSUBST ON` annotation enables it for all the statements following it, to the end of the file or until switched off
-- `-- +goose ENVSUBST OFF` annotation disables it for all the statements following it, to the end of the file or until switched on
+It is disabled by default to keep backwards compatibility with existing scripts.
 
 ## Embedded sql migrations
 
