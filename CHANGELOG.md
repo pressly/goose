@@ -7,6 +7,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Add environment variable substitution for SQL migrations. (#604)
+
+  - This feature is **disabled by default**, and can be enabled by adding an annotation to the
+    migration file:
+
+    ```sql
+    -- +goose ENVSUB ON
+    ```
+
+  - When enabled, goose will attempt to substitute environment variables in the SQL migration
+    queries. For example, if the environment variable `REGION` is set to `us_east_1`, the following SQL
+    migration will be substituted to `SELECT * FROM regions WHERE name = 'us_east_1';`
+
+    ```sql
+    -- +goose ENVSUB ON
+    -- +goose Up
+    SELECT * FROM regions WHERE name = '${REGION}';
+    ```
+
 ## [v3.17.0] - 2023-12-15
 
 - Standardised the MIT license (#647)
