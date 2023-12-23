@@ -478,7 +478,7 @@ func TestEnvsub(t *testing.T) {
 		UpCount   int
 	}{
 		{Name: "test01", UpCount: 4, DownCount: 1},
-		{Name: "test02", UpCount: 2, DownCount: 0},
+		{Name: "test02", UpCount: 3, DownCount: 0},
 		{Name: "test03", UpCount: 1, DownCount: 0},
 	}
 	for _, tc := range tests {

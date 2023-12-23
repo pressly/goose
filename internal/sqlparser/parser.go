@@ -179,6 +179,10 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 			case "+goose ENVSUB ON":
 				useEnvsub = true
 				continue
+
+			case "+goose ENVSUB OFF":
+				useEnvsub = false
+				continue
 			}
 		}
 		// Once we've started parsing a statement the buffer is no longer empty,
@@ -195,6 +199,12 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 		case gooseStatementEndDown, gooseStatementEndUp:
 			// Do not include the "+goose StatementEnd" annotation in the final statement.
 		default:
+			if useEnvsub {
+				line, err = interpolate.Interpolate(&envWrapper{}, line)
+				if err != nil {
+					return nil, false, fmt.Errorf("variable substitution failed: %w:\n%s", err, line)
+				}
+			}
 			// Write SQL line to a buffer.
 			if _, err := buf.WriteString(line + "\n"); err != nil {
 				return nil, false, fmt.Errorf("failed to write to buf: %w", err)
@@ -225,39 +235,23 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 		switch stateMachine.get() {
 		case gooseUp:
 			if endsWithSemicolon(line) {
-				stmt, err := processStatement(buf.String(), useEnvsub)
-				if err != nil {
-					return nil, false, err
-				}
-				stmts = append(stmts, stmt)
+				stmts = append(stmts, processStatement(buf.String()))
 				buf.Reset()
 				stateMachine.print("store simple Up query")
 			}
 		case gooseDown:
 			if endsWithSemicolon(line) {
-				stmt, err := processStatement(buf.String(), useEnvsub)
-				if err != nil {
-					return nil, false, err
-				}
-				stmts = append(stmts, stmt)
+				stmts = append(stmts, processStatement(buf.String()))
 				buf.Reset()
 				stateMachine.print("store simple Down query")
 			}
 		case gooseStatementEndUp:
-			stmt, err := processStatement(buf.String(), useEnvsub)
-			if err != nil {
-				return nil, false, err
-			}
-			stmts = append(stmts, stmt)
+			stmts = append(stmts, processStatement(buf.String()))
 			buf.Reset()
 			stateMachine.print("store Up statement")
 			stateMachine.set(gooseUp)
 		case gooseStatementEndDown:
-			stmt, err := processStatement(buf.String(), useEnvsub)
-			if err != nil {
-				return nil, false, err
-			}
-			stmts = append(stmts, stmt)
+			stmts = append(stmts, processStatement(buf.String()))
 			buf.Reset()
 			stateMachine.print("store Down statement")
 			stateMachine.set(gooseDown)
@@ -298,16 +292,8 @@ func (e *envWrapper) Get(key string) (string, bool) {
 	return os.LookupEnv(key)
 }
 
-func processStatement(input string, useEnvsub bool) (string, error) {
-	if useEnvsub {
-		expanded, err := interpolate.Interpolate(&envWrapper{}, input)
-		if err != nil {
-			return "", fmt.Errorf("variable substitution failed: %w:\n%s", err, input)
-		}
-		return strings.TrimSpace(expanded), nil
-	}
-	// cleanupStatement trims whitespace from the given statement.
-	return strings.TrimSpace(input), nil
+func processStatement(input string) string {
+	return strings.TrimSpace(input)
 }
 
 // Checks the line to see if the line has a statement-ending semicolon

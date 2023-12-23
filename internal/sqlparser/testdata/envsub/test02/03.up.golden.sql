@@ -1,0 +1,6 @@
+CREATE OR REPLACE FUNCTION test_func()
+RETURNS void AS $$
+BEGIN
+	RAISE NOTICE 'foo';
+END;
+$$ LANGUAGE plpgsql;
