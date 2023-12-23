@@ -282,11 +282,15 @@ language plpgsql;
 -- +goose StatementEnd
 ```
 
-Goose supports environment variable substitution in SQL migrations through annotations. To enable this feature, use the -- +goose ENVSUB ON annotation before the queries where you want substitution applied. It stays active until the -- +goose ENVSUB OFF annotation is encountered. You can use these annotations multiple times within a file.
+Goose supports environment variable substitution in SQL migrations through annotations. To enable
+this feature, use the `-- +goose ENVSUB ON` annotation before the queries where you want
+substitution applied. It stays active until the `-- +goose ENVSUB OFF` annotation is encountered.
+You can use these annotations multiple times within a file.
 
 This feature is disabled by default for backward compatibility with existing scripts.
 
-For PL/pgSQL functions or other statements where substitution is not desired, wrap the annotations explicitly around the relevant parts. For example, to exclude escaping the `**` characters:
+For `PL/pgSQL` functions or other statements where substitution is not desired, wrap the annotations
+explicitly around the relevant parts. For example, to exclude escaping the `**` characters:
 
 ```sql
 -- +goose StatementBegin
