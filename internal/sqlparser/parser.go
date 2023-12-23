@@ -200,10 +200,11 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 			// Do not include the "+goose StatementEnd" annotation in the final statement.
 		default:
 			if useEnvsub {
-				line, err = interpolate.Interpolate(&envWrapper{}, line)
+				expanded, err := interpolate.Interpolate(&envWrapper{}, line)
 				if err != nil {
 					return nil, false, fmt.Errorf("variable substitution failed: %w:\n%s", err, line)
 				}
+				line = expanded
 			}
 			// Write SQL line to a buffer.
 			if _, err := buf.WriteString(line + "\n"); err != nil {

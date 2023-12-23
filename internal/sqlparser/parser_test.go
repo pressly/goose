@@ -489,3 +489,21 @@ func TestEnvsub(t *testing.T) {
 		})
 	}
 }
+
+func TestEnvsubError(t *testing.T) {
+	t.Parallel()
+
+	s := `
+-- +goose ENVSUB ON
+-- +goose Up
+CREATE TABLE post (
+	id int NOT NULL,
+	title text,
+	${SOME_UNSET_VAR?required env var not set} text,
+	PRIMARY KEY(id)
+);
+`
+	_, _, err := ParseSQLMigration(strings.NewReader(s), DirectionUp, debug)
+	check.HasError(t, err)
+	check.Contains(t, err.Error(), "variable substitution failed: $SOME_UNSET_VAR: required env var not set:")
+}

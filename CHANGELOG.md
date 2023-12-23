@@ -17,8 +17,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     ```
 
   - When enabled, goose will attempt to substitute environment variables in the SQL migration
-    queries. For example, if the environment variable `REGION` is set to `us_east_1`, the following SQL
-    migration will be substituted to `SELECT * FROM regions WHERE name = 'us_east_1';`
+    queries until the end of the file, or until the annotation `-- +goose ENVSUB OFF` is found. For
+    example, if the environment variable `REGION` is set to `us_east_1`, the following SQL migration
+    will be substituted to `SELECT * FROM regions WHERE name = 'us_east_1';`
 
     ```sql
     -- +goose ENVSUB ON

@@ -282,12 +282,43 @@ language plpgsql;
 -- +goose StatementEnd
 ```
 
-Goose supports environment variables substitution in SQL migrations. To use it, you need to specify
-the `-- +goose ENVSUB ON` annotation (usually at the top of the file) before the queries you want
-substitution to be applied to. This will enable it for all the statements following it, to the end
-of the file.
+Goose supports environment variable substitution in SQL migrations through annotations. To enable this feature, use the -- +goose ENVSUB ON annotation before the queries where you want substitution applied. It stays active until the -- +goose ENVSUB OFF annotation is encountered. You can use these annotations multiple times within a file.
 
-It is **disabled by default** to keep backwards compatibility with existing scripts.
+This feature is disabled by default for backward compatibility with existing scripts.
+
+For PL/pgSQL functions or other statements where substitution is not desired, wrap the annotations explicitly around the relevant parts. For example, to exclude escaping the `**` characters:
+
+```sql
+-- +goose StatementBegin
+CREATE OR REPLACE FUNCTION test_func()
+RETURNS void AS $$
+-- +goose ENVSUB ON
+BEGIN
+	RAISE NOTICE '${SOME_ENV_VAR}';
+END;
+-- +goose ENVSUB OFF
+$$ LANGUAGE plpgsql;
+-- +goose StatementEnd
+```
+
+<details>
+<summary>Supported expansions (click here to expand):</summary>
+
+- `${VAR}` or $VAR - expands to the value of the environment variable `VAR`
+- `${VAR:-default}` - expands to the value of the environment variable `VAR`, or `default` if `VAR`
+  is unset or null
+- `${VAR-default}` - expands to the value of the environment variable `VAR`, or `default` if `VAR`
+  is unset
+- `${VAR?err_msg}` - expands to the value of the environment variable `VAR`, or prints `err_msg` and
+  error if `VAR` unset
+- ~~`${VAR:?err_msg}` - expands to the value of the environment variable `VAR`, or prints `err_msg`
+  and error if `VAR` unset or null.~~ **THIS IS NOT SUPPORTED**
+
+See
+[mfridman/interpolate](https://github.com/mfridman/interpolate?tab=readme-ov-file#supported-expansions)
+for more details on supported expansions.
+
+</details>
 
 ## Embedded sql migrations
 
