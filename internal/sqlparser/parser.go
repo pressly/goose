@@ -235,23 +235,23 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 		switch stateMachine.get() {
 		case gooseUp:
 			if endsWithSemicolon(line) {
-				stmts = append(stmts, processStatement(buf.String()))
+				stmts = append(stmts, cleanupStatement(buf.String()))
 				buf.Reset()
 				stateMachine.print("store simple Up query")
 			}
 		case gooseDown:
 			if endsWithSemicolon(line) {
-				stmts = append(stmts, processStatement(buf.String()))
+				stmts = append(stmts, cleanupStatement(buf.String()))
 				buf.Reset()
 				stateMachine.print("store simple Down query")
 			}
 		case gooseStatementEndUp:
-			stmts = append(stmts, processStatement(buf.String()))
+			stmts = append(stmts, cleanupStatement(buf.String()))
 			buf.Reset()
 			stateMachine.print("store Up statement")
 			stateMachine.set(gooseUp)
 		case gooseStatementEndDown:
-			stmts = append(stmts, processStatement(buf.String()))
+			stmts = append(stmts, cleanupStatement(buf.String()))
 			buf.Reset()
 			stateMachine.print("store Down statement")
 			stateMachine.set(gooseDown)
@@ -292,7 +292,7 @@ func (e *envWrapper) Get(key string) (string, bool) {
 	return os.LookupEnv(key)
 }
 
-func processStatement(input string) string {
+func cleanupStatement(input string) string {
 	return strings.TrimSpace(input)
 }
 
