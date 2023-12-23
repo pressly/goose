@@ -282,6 +282,48 @@ language plpgsql;
 -- +goose StatementEnd
 ```
 
+Goose supports environment variable substitution in SQL migrations through annotations. To enable
+this feature, use the `-- +goose ENVSUB ON` annotation before the queries where you want
+substitution applied. It stays active until the `-- +goose ENVSUB OFF` annotation is encountered.
+You can use these annotations multiple times within a file.
+
+This feature is disabled by default for backward compatibility with existing scripts.
+
+For `PL/pgSQL` functions or other statements where substitution is not desired, wrap the annotations
+explicitly around the relevant parts. For example, to exclude escaping the `**` characters:
+
+```sql
+-- +goose StatementBegin
+CREATE OR REPLACE FUNCTION test_func()
+RETURNS void AS $$
+-- +goose ENVSUB ON
+BEGIN
+	RAISE NOTICE '${SOME_ENV_VAR}';
+END;
+-- +goose ENVSUB OFF
+$$ LANGUAGE plpgsql;
+-- +goose StatementEnd
+```
+
+<details>
+<summary>Supported expansions (click here to expand):</summary>
+
+- `${VAR}` or $VAR - expands to the value of the environment variable `VAR`
+- `${VAR:-default}` - expands to the value of the environment variable `VAR`, or `default` if `VAR`
+  is unset or null
+- `${VAR-default}` - expands to the value of the environment variable `VAR`, or `default` if `VAR`
+  is unset
+- `${VAR?err_msg}` - expands to the value of the environment variable `VAR`, or prints `err_msg` and
+  error if `VAR` unset
+- ~~`${VAR:?err_msg}` - expands to the value of the environment variable `VAR`, or prints `err_msg`
+  and error if `VAR` unset or null.~~ **THIS IS NOT SUPPORTED**
+
+See
+[mfridman/interpolate](https://github.com/mfridman/interpolate?tab=readme-ov-file#supported-expansions)
+for more details on supported expansions.
+
+</details>
+
 ## Embedded sql migrations
 
 Go 1.16 introduced new feature: [compile-time embedding](https://pkg.go.dev/embed/) files into binary and
