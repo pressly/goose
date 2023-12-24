@@ -8,16 +8,84 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgconn"
+	"go.uber.org/multierr"
+	"modernc.org/sqlite"
+
 	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/internal/check"
 	"github.com/pressly/goose/v3/internal/testdb"
-	"go.uber.org/multierr"
-	"modernc.org/sqlite"
 )
 
 // The goal of this test is to verify the database store package works as expected. This test is not
 // meant to be exhaustive or test every possible database dialect. It is meant to verify the Store
 // interface works against a real database.
+func TestStoreGetLatestVersion(t *testing.T) {
+	tests := []struct {
+		name    string
+		dbFunc  func(options ...testdb.OptionsFunc) (*sql.DB, func(), error)
+		dialect database.Dialect
+	}{
+		{
+			name:    "GetLatestVersion-Ydb",
+			dbFunc:  testdb.NewYdb,
+			dialect: database.DialectYdB,
+		},
+		{
+			name:    "GetLatestVersion-Postgres",
+			dbFunc:  testdb.NewPostgres,
+			dialect: database.DialectPostgres,
+		},
+		{
+			name:    "GetLatestVersion-Vertica",
+			dbFunc:  testdb.NewVertica,
+			dialect: database.DialectVertica,
+		},
+		{
+			name:    "GetLatestVersion-Turso",
+			dbFunc:  testdb.NewTurso,
+			dialect: database.DialectTurso,
+		},
+	}
+
+	for _, tt := range tests {
+		runGetLastVersionTest(t, tt.name, tt.dbFunc, tt.dialect)
+	}
+
+	t.Run("GetLatestVersion-SQLite", func(t *testing.T) {
+		dir := t.TempDir()
+		db, err := sql.Open("sqlite", filepath.Join(dir, "sql_embed.db"))
+		check.NoError(t, err)
+		runGetLastVersionTest(t, "GetLatestVersion-SQLite", func(options ...testdb.OptionsFunc) (*sql.DB, func(), error) {
+			return db, func() {}, nil
+		}, database.DialectSQLite3)
+	})
+}
+
+func runGetLastVersionTest(t *testing.T, name string, dbFunc func(options ...testdb.OptionsFunc) (*sql.DB, func(), error), dialect database.Dialect) {
+	t.Run(name, func(t *testing.T) {
+		db, cleanup, err := dbFunc()
+		check.NoError(t, err)
+		t.Cleanup(cleanup)
+		store, err := database.NewStore(dialect, "foo")
+		check.NoError(t, err)
+		err = store.CreateVersionTable(context.Background(), db)
+		check.NoError(t, err)
+		v, err := store.GetLatestVersion(context.Background(), db)
+		check.HasError(t, err)
+		check.IsError(t, err, database.ErrVersionNotFound)
+		check.Number(t, v, -1)
+
+		err = store.Insert(context.Background(), db, database.InsertRequest{Version: 0})
+		check.NoError(t, err)
+
+		err = store.Insert(context.Background(), db, database.InsertRequest{Version: 1})
+		check.NoError(t, err)
+
+		v, err = store.GetLatestVersion(context.Background(), db)
+		check.NoError(t, err)
+		check.Number(t, v, 1)
+	})
+}
 
 func TestDialectStore(t *testing.T) {
 	t.Parallel()
