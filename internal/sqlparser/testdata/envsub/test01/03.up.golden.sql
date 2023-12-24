@@ -1,0 +1,1 @@
+SELECT 3; SELECT 3; -- 3rd stmt

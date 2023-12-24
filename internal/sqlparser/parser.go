@@ -7,8 +7,11 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"strings"
 	"sync"
+
+	"github.com/mfridman/interpolate"
 )
 
 type Direction string
@@ -107,6 +110,7 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 
 	stateMachine := newStateMachine(start, debug)
 	useTx = true
+	useEnvsub := false
 
 	var buf bytes.Buffer
 	for scanner.Scan() {
@@ -171,6 +175,14 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 			case "+goose NO TRANSACTION":
 				useTx = false
 				continue
+
+			case "+goose ENVSUB ON":
+				useEnvsub = true
+				continue
+
+			case "+goose ENVSUB OFF":
+				useEnvsub = false
+				continue
 			}
 		}
 		// Once we've started parsing a statement the buffer is no longer empty,
@@ -187,6 +199,13 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 		case gooseStatementEndDown, gooseStatementEndUp:
 			// Do not include the "+goose StatementEnd" annotation in the final statement.
 		default:
+			if useEnvsub {
+				expanded, err := interpolate.Interpolate(&envWrapper{}, line)
+				if err != nil {
+					return nil, false, fmt.Errorf("variable substitution failed: %w:\n%s", err, line)
+				}
+				line = expanded
+			}
 			// Write SQL line to a buffer.
 			if _, err := buf.WriteString(line + "\n"); err != nil {
 				return nil, false, fmt.Errorf("failed to write to buf: %w", err)
@@ -266,7 +285,14 @@ func missingSemicolonError(state parserState, direction Direction, s string) err
 	)
 }
 
-// cleanupStatement trims whitespace from the given statement.
+type envWrapper struct{}
+
+var _ interpolate.Env = (*envWrapper)(nil)
+
+func (e *envWrapper) Get(key string) (string, bool) {
+	return os.LookupEnv(key)
+}
+
 func cleanupStatement(input string) string {
 	return strings.TrimSpace(input)
 }

@@ -1,0 +1,1 @@
+SELECT 2;           -- 2nd stmt

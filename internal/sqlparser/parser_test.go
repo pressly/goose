@@ -380,9 +380,9 @@ func TestValidUp(t *testing.T) {
 	// to the parser. Then we compare the statements against the golden files.
 	// Each golden file is equivalent to one statement.
 	//
-	// ├── 01.golden.sql
-	// ├── 02.golden.sql
-	// ├── 03.golden.sql
+	// ├── 01.up.golden.sql
+	// ├── 02.up.golden.sql
+	// ├── 03.up.golden.sql
 	// └── input.sql
 	tests := []struct {
 		Name            string
@@ -401,36 +401,36 @@ func TestValidUp(t *testing.T) {
 	for _, tc := range tests {
 		path := filepath.Join("testdata", "valid-up", tc.Name)
 		t.Run(tc.Name, func(t *testing.T) {
-			testValidUp(t, path, tc.StatementsCount)
+			testValid(t, path, tc.StatementsCount, DirectionUp)
 		})
 	}
 }
 
-func testValidUp(t *testing.T, dir string, count int) {
+func testValid(t *testing.T, dir string, count int, direction Direction) {
 	t.Helper()
 
 	f, err := os.Open(filepath.Join(dir, "input.sql"))
 	check.NoError(t, err)
 	t.Cleanup(func() { f.Close() })
-	statements, _, err := ParseSQLMigration(f, DirectionUp, debug)
+	statements, _, err := ParseSQLMigration(f, direction, debug)
 	check.NoError(t, err)
 	check.Number(t, len(statements), count)
-	compareStatements(t, dir, statements)
+	compareStatements(t, dir, statements, direction)
 }
 
-func compareStatements(t *testing.T, dir string, statements []string) {
+func compareStatements(t *testing.T, dir string, statements []string, direction Direction) {
 	t.Helper()
 
-	files, err := filepath.Glob(filepath.Join(dir, "*.golden.sql"))
+	files, err := filepath.Glob(filepath.Join(dir, fmt.Sprintf("*.%s.golden.sql", direction)))
 	check.NoError(t, err)
 	if len(statements) != len(files) {
-		t.Fatalf("mismatch between parsed statements (%d) and golden files (%d), did you check in NN.golden.sql file in %q?", len(statements), len(files), dir)
+		t.Fatalf("mismatch between parsed statements (%d) and golden files (%d), did you check in NN.{up|down}.golden.sql file in %q?", len(statements), len(files), dir)
 	}
 	for _, goldenFile := range files {
 		goldenFile = filepath.Base(goldenFile)
-		before, _, ok := cut(goldenFile, ".")
+		before, _, ok := strings.Cut(goldenFile, ".")
 		if !ok {
-			t.Fatal(`failed to cut on file delimiter ".", must be of the format NN.golden.sql`)
+			t.Fatal(`failed to cut on file delimiter ".", must be of the format NN.{up|down}.golden.sql`)
 		}
 		index, err := strconv.Atoi(before)
 		check.NoError(t, err)
@@ -458,16 +458,52 @@ func compareStatements(t *testing.T, dir string, statements []string) {
 	}
 }
 
-// copied directly from strings.Cut (go1.18) to support older Go versions.
-// In the future, replace this with the upstream function.
-func cut(s, sep string) (before, after string, found bool) {
-	if i := strings.Index(s, sep); i >= 0 {
-		return s[:i], s[i+len(sep):], true
-	}
-	return s, "", false
-}
-
 func isCIEnvironment() bool {
 	ok, _ := strconv.ParseBool(os.Getenv("CI"))
 	return ok
+}
+
+func TestEnvsub(t *testing.T) {
+	// Do not run in parallel, as this test sets environment variables.
+
+	// Test valid migrations with ${var} like statements when on are substituted for the whole
+	// migration.
+	t.Setenv("GOOSE_ENV_REGION", "us_east_")
+	t.Setenv("GOOSE_ENV_SET_BUT_EMPTY_VALUE", "")
+	t.Setenv("GOOSE_ENV_NAME", "foo")
+
+	tests := []struct {
+		Name      string
+		DownCount int
+		UpCount   int
+	}{
+		{Name: "test01", UpCount: 4, DownCount: 1},
+		{Name: "test02", UpCount: 3, DownCount: 0},
+		{Name: "test03", UpCount: 1, DownCount: 0},
+	}
+	for _, tc := range tests {
+		t.Run(tc.Name, func(t *testing.T) {
+			dir := filepath.Join("testdata", "envsub", tc.Name)
+			testValid(t, dir, tc.UpCount, DirectionUp)
+			testValid(t, dir, tc.DownCount, DirectionDown)
+		})
+	}
+}
+
+func TestEnvsubError(t *testing.T) {
+	t.Parallel()
+
+	s := `
+-- +goose ENVSUB ON
+-- +goose Up
+CREATE TABLE post (
+	id int NOT NULL,
+	title text,
+	${SOME_UNSET_VAR?required env var not set} text,
+	PRIMARY KEY(id)
+);
+`
+	_, _, err := ParseSQLMigration(strings.NewReader(s), DirectionUp, debug)
+	check.HasError(t, err)
+	check.Contains(t, err.Error(), "variable substitution failed: $SOME_UNSET_VAR: required env var not set:")
 }

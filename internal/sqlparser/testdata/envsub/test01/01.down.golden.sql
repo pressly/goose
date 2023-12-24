@@ -1,0 +1,1 @@
+DROP TABLE us_east_post;    -- 1st stmt
