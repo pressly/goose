@@ -15,7 +15,7 @@ require (
 	github.com/ydb-platform/ydb-go-sdk/v3 v3.54.2
 	github.com/ziutek/mymysql v1.5.4
 	go.uber.org/multierr v1.11.0
-	golang.org/x/sync v0.5.0
+	golang.org/x/sync v0.6.0
 	modernc.org/sqlite v1.28.0
 )
 
