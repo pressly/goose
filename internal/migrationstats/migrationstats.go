@@ -5,7 +5,7 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/pressly/goose/v3"
+	"github.com/piiano/goose/v3"
 )
 
 // FileWalker walks all files for GatherStats.

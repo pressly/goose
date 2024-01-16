@@ -16,12 +16,13 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/pressly/goose/v3"
-	"github.com/pressly/goose/v3/database"
-	"github.com/pressly/goose/v3/internal/check"
-	"github.com/pressly/goose/v3/internal/testdb"
-	"github.com/pressly/goose/v3/lock"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/piiano/goose/v3"
+	"github.com/piiano/goose/v3/database"
+	"github.com/piiano/goose/v3/internal/check"
+	"github.com/piiano/goose/v3/internal/testdb"
+	"github.com/piiano/goose/v3/lock"
 )
 
 func TestProviderRun(t *testing.T) {

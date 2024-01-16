@@ -8,11 +8,12 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/pressly/goose/v3/database"
-	"github.com/pressly/goose/v3/internal/check"
-	"github.com/pressly/goose/v3/internal/testdb"
 	"go.uber.org/multierr"
 	"modernc.org/sqlite"
+
+	"github.com/piiano/goose/v3/database"
+	"github.com/piiano/goose/v3/internal/check"
+	"github.com/piiano/goose/v3/internal/testdb"
 )
 
 // The goal of this test is to verify the database store package works as expected. This test is not

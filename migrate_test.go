@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/pressly/goose/v3/internal/check"
+	"github.com/piiano/goose/v3/internal/check"
 )
 
 func TestMigrationSort(t *testing.T) {

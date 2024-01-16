@@ -6,8 +6,8 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/pressly/goose/v3/internal/check"
-	"github.com/pressly/goose/v3/internal/sqlparser"
+	"github.com/piiano/goose/v3/internal/check"
+	"github.com/piiano/goose/v3/internal/sqlparser"
 )
 
 func TestParseAllFromFS(t *testing.T) {

@@ -6,10 +6,11 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/pressly/goose/v3"
-	"github.com/pressly/goose/v3/database"
-	"github.com/pressly/goose/v3/internal/check"
 	_ "modernc.org/sqlite"
+
+	"github.com/piiano/goose/v3"
+	"github.com/piiano/goose/v3/database"
+	"github.com/piiano/goose/v3/internal/check"
 )
 
 func TestNewProvider(t *testing.T) {

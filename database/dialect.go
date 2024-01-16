@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/pressly/goose/v3/internal/dialect/dialectquery"
+	"github.com/piiano/goose/v3/internal/dialect/dialectquery"
 )
 
 // Dialect is the type of database dialect.

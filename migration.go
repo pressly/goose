@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pressly/goose/v3/internal/sqlparser"
+	"github.com/piiano/goose/v3/internal/sqlparser"
 )
 
 // NewGoMigration creates a new Go migration.

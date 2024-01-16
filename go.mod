@@ -1,4 +1,4 @@
-module github.com/pressly/goose/v3
+module github.com/piiano/goose/v3
 
 go 1.20
 

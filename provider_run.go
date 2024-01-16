@@ -12,9 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pressly/goose/v3/database"
-	"github.com/pressly/goose/v3/internal/sqlparser"
 	"go.uber.org/multierr"
+
+	"github.com/piiano/goose/v3/database"
+	"github.com/piiano/goose/v3/internal/sqlparser"
 )
 
 var (

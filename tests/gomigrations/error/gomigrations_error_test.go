@@ -3,11 +3,10 @@ package gomigrations
 import (
 	"testing"
 
-	"github.com/pressly/goose/v3"
-	"github.com/pressly/goose/v3/internal/check"
-	"github.com/pressly/goose/v3/internal/testdb"
-
-	_ "github.com/pressly/goose/v3/tests/gomigrations/error/testdata"
+	"github.com/piiano/goose/v3"
+	"github.com/piiano/goose/v3/internal/check"
+	"github.com/piiano/goose/v3/internal/testdb"
+	_ "github.com/piiano/goose/v3/tests/gomigrations/error/testdata"
 )
 
 func TestGoMigrationByOne(t *testing.T) {

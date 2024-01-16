@@ -7,8 +7,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/pressly/goose/v3"
 	_ "modernc.org/sqlite"
+
+	"github.com/piiano/goose/v3"
 )
 
 var (

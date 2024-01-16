@@ -346,7 +346,7 @@ import (
     "database/sql"
     "embed"
 
-    "github.com/pressly/goose/v3"
+    "github.com/piiano/goose/v3"
 )
 
 //go:embed migrations/*.sql
@@ -387,7 +387,7 @@ package migrations
 import (
 	"database/sql"
 
-	"github.com/pressly/goose/v3"
+	"github.com/piiano/goose/v3"
 )
 
 func init() {
