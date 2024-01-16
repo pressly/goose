@@ -108,7 +108,7 @@ func newProvider(
 	// feat(mf): we could add a flag to parse SQL migrations eagerly. This would allow us to return
 	// an error if there are any SQL parsing errors. This adds a bit overhead to startup though, so
 	// we should make it optional.
-	filesystemSources, err := collectFilesystemSources(fsys, false, cfg.excludePaths, cfg.excludeVersions)
+	filesystemSources, err := collectFilesystemSources(fsys, false, cfg.dir, cfg.excludePaths, cfg.excludeVersions)
 	if err != nil {
 		return nil, err
 	}

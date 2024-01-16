@@ -8,9 +8,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	_ "modernc.org/sqlite"
+
 	"github.com/piiano/goose/v3"
 	"github.com/piiano/goose/v3/internal/check"
-	_ "modernc.org/sqlite"
 )
 
 //go:embed testdata/migrations/*.sql

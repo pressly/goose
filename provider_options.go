@@ -165,8 +165,16 @@ func WithDisableVersioning(b bool) ProviderOption {
 	})
 }
 
+func WithDir(dir string) ProviderOption {
+	return configFunc(func(c *config) error {
+		c.dir = dir
+		return nil
+	})
+}
+
 type config struct {
 	store database.Store
+	dir   string
 
 	verbose         bool
 	excludePaths    map[string]bool

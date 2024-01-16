@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -27,6 +28,7 @@ type fileSources struct {
 func collectFilesystemSources(
 	fsys fs.FS,
 	strict bool,
+	dirpath string,
 	excludePaths map[string]bool,
 	excludeVersions map[int64]bool,
 ) (*fileSources, error) {
@@ -39,7 +41,7 @@ func collectFilesystemSources(
 		"*.sql",
 		"*.go",
 	} {
-		files, err := fs.Glob(fsys, pattern)
+		files, err := fs.Glob(fsys, path.Join(dirpath, pattern))
 		if err != nil {
 			return nil, fmt.Errorf("failed to glob pattern %q: %w", pattern, err)
 		}
