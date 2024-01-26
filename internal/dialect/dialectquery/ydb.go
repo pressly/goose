@@ -41,6 +41,8 @@ func (c *Ydb) GetMigrationByVersion(tableName string) string {
 }
 
 func (c *Ydb) ListMigrations(tableName string) string {
-	q := `SELECT version_id, is_applied FROM %s ORDER BY version_id DESC`
+	q := `
+	SELECT version_id, is_applied, tstamp AS __discard_column_tstamp 
+	FROM %s ORDER BY __discard_column_tstamp DESC`
 	return fmt.Sprintf(q, tableName)
 }
