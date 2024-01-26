@@ -33,6 +33,6 @@ func (v *Vertica) GetMigrationByVersion(tableName string) string {
 }
 
 func (v *Vertica) ListMigrations(tableName string) string {
-	q := `SELECT version_id, is_applied from %s ORDER BY id DESC`
+	q := `SELECT version_id, is_applied, tstamp from %s ORDER BY id DESC`
 	return fmt.Sprintf(q, tableName)
 }

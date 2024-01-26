@@ -33,6 +33,6 @@ func (m *Mysql) GetMigrationByVersion(tableName string) string {
 }
 
 func (m *Mysql) ListMigrations(tableName string) string {
-	q := `SELECT version_id, is_applied from %s ORDER BY id DESC`
+	q := `SELECT version_id, is_applied, tstamp from %s ORDER BY id DESC`
 	return fmt.Sprintf(q, tableName)
 }

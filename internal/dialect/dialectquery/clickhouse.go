@@ -34,6 +34,6 @@ func (c *Clickhouse) GetMigrationByVersion(tableName string) string {
 }
 
 func (c *Clickhouse) ListMigrations(tableName string) string {
-	q := `SELECT version_id, is_applied FROM %s ORDER BY version_id DESC`
+	q := `SELECT version_id, is_applied, tstamp FROM %s ORDER BY tstamp DESC`
 	return fmt.Sprintf(q, tableName)
 }

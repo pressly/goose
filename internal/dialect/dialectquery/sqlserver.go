@@ -32,6 +32,6 @@ func (s *Sqlserver) GetMigrationByVersion(tableName string) string {
 }
 
 func (s *Sqlserver) ListMigrations(tableName string) string {
-	q := `SELECT version_id, is_applied FROM %s ORDER BY id DESC`
+	q := `SELECT version_id, is_applied, tstamp FROM %s ORDER BY id DESC`
 	return fmt.Sprintf(q, tableName)
 }

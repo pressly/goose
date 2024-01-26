@@ -62,4 +62,5 @@ type GetMigrationResult struct {
 type ListMigrationsResult struct {
 	Version   int64
 	IsApplied bool
+	Timestamp time.Time
 }

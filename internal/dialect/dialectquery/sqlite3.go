@@ -32,6 +32,6 @@ func (s *Sqlite3) GetMigrationByVersion(tableName string) string {
 }
 
 func (s *Sqlite3) ListMigrations(tableName string) string {
-	q := `SELECT version_id, is_applied from %s ORDER BY id DESC`
+	q := `SELECT version_id, is_applied, tstamp from %s ORDER BY id DESC`
 	return fmt.Sprintf(q, tableName)
 }
