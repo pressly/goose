@@ -41,10 +41,6 @@ func (c *Ydb) GetMigrationByVersion(tableName string) string {
 }
 
 func (c *Ydb) ListMigrations(tableName string) string {
-	// "--!syntax_pg" enables query processing with PostgreSQL-compatible syntax.
-	// YQL by design strictly forbids the execution of SELECT statements without columns from ORDER BY clause.
-	// In PostgreSQL-compatible mode, SELECT statements can be processed without columns from ORDER BY clause.
-	q := `--!syntax_pg
-	SELECT version_id, is_applied FROM %s ORDER BY tstamp DESC`
+	q := `SELECT version_id, is_applied FROM %s ORDER BY version_id DESC`
 	return fmt.Sprintf(q, tableName)
 }
