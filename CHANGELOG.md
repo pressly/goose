@@ -27,6 +27,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     SELECT * FROM regions WHERE name = '${REGION}';
     ```
 
+- Fixed query for list migrations in YDB (#684)
+
 ## [v3.17.0] - 2023-12-15
 
 - Standardised the MIT license (#647)

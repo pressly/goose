@@ -249,8 +249,12 @@ github.com/xeipuuv/gojsonschema v1.2.0 h1:LhYJRs+L4fBtjZUfuSZIKGeVu0QRy8e5Xi7D17
 github.com/xeipuuv/gojsonschema v1.2.0/go.mod h1:anYRn/JVcOK2ZgGU+IjEV4nwlhoK5sQluxsYJ78Id3Y=
 github.com/ydb-platform/ydb-go-genproto v0.0.0-20231215113745-46f6d30f974a h1:9wx+kCrCQCdwmDe1AFW5yAHdzlo+RV7lcy6y7Zq661s=
 github.com/ydb-platform/ydb-go-genproto v0.0.0-20231215113745-46f6d30f974a/go.mod h1:Er+FePu1dNUieD+XTMDduGpQuCPssK5Q4BjF+IIXJ3I=
+github.com/ydb-platform/ydb-go-genproto v0.0.0-20240126124512-dbb0e1720dbf h1:ckwNHVo4bv2tqNkgx3W3HANh3ta1j6TR5qw08J1A7Tw=
+github.com/ydb-platform/ydb-go-genproto v0.0.0-20240126124512-dbb0e1720dbf/go.mod h1:Er+FePu1dNUieD+XTMDduGpQuCPssK5Q4BjF+IIXJ3I=
 github.com/ydb-platform/ydb-go-sdk/v3 v3.55.0 h1:KqnJX8vE4+33FXgsbigjsIOhFfJYppFsupZcw4NjBks=
 github.com/ydb-platform/ydb-go-sdk/v3 v3.55.0/go.mod h1:1UiKA9dSZM4gbFEBw2nT/7bHgWIGaCU1i8DFj0LP460=
+github.com/ydb-platform/ydb-go-sdk/v3 v3.55.1 h1:Ebo6J5AMXgJ3A438ECYotA0aK7ETqjQx9WoZvVxzKBE=
+github.com/ydb-platform/ydb-go-sdk/v3 v3.55.1/go.mod h1:udNPW8eupyH/EZocecFmaSNJacKKYjzQa7cVgX5U2nc=
 github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d/go.mod h1:rHwXgn7JulP+udvsHwJoVG1YGAP6VLg4y9I5dyZdqmA=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
