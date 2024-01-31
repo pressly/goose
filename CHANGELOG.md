@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [v3.18.0] - 2024-01-31
+
 - Add environment variable substitution for SQL migrations. (#604)
 
   - This feature is **disabled by default**, and can be enabled by adding an annotation to the
@@ -26,6 +28,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     -- +goose Up
     SELECT * FROM regions WHERE name = '${REGION}';
     ```
+
+- Add native [Turso](https://turso.tech/) support with libsql driver. (#658)
 
 - Fixed query for list migrations in YDB (#684)
 
@@ -123,7 +127,8 @@ Here's a quick summary:
 - Add new `context.Context`-aware functions and methods, for both sql and go migrations.
 - Return error when no migration files found or dir is not a directory.
 
-[Unreleased]: https://github.com/pressly/goose/compare/v3.17.0...HEAD
+[Unreleased]: https://github.com/pressly/goose/compare/v3.18.0...HEAD
+[v3.18.0]: https://github.com/pressly/goose/compare/v3.17.0...v3.18.0
 [v3.17.0]: https://github.com/pressly/goose/compare/v3.16.0...v3.17.0
 [v3.16.0]: https://github.com/pressly/goose/compare/v3.15.1...v3.16.0
 [v3.15.1]: https://github.com/pressly/goose/compare/v3.15.0...v3.15.1
