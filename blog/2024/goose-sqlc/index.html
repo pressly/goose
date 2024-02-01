@@ -1324,7 +1324,7 @@ runtime</strong>.</p>
 simple Go application that uses <code>sqlc</code> and <code>goose</code> to interact with a SQLite database.</p>
 <p>You can clone the repository, and run <code>go run ./cmd/custom-goose</code>. It should print out a list of
 users randomly added with
-<a href="https://pkg.go.dev/github.com/moby/moby@v24.0.6+incompatible/pkg/namesgenerator.">moby/moby namesgenerator</a></p>
+<a href="https://pkg.go.dev/github.com/moby/moby@v24.0.6+incompatible/pkg/namesgenerator">moby/moby namesgenerator</a>.</p>
 <h3 id="pre-requisites">Pre-requisites</h3>
 <p>Before we start, make sure you have the following installed:</p>
 <ul>
@@ -1334,12 +1334,12 @@ users randomly added with
 </ul>
 <h3 id="step-1-write-migrations">Step 1 - Write migrations</h3>
 <p>First, we need to write the database migrations themselves. We'll dump them in a
-<code>./data/sql/migrations/</code> directyory, but you can put them anywhere you like.</p>
+<code>./data/sql/migrations/</code> directory, but you can put them anywhere you like.</p>
 <p>Note, the demo repository uses a few advanced features of <code>goose</code> that are not strictly necessary,
-such as embedding SQL files in the binary (using <code>//go:embed *.sql</code>), using Go migrations, and
-building up a custom <a href="https://pressly.github.io/goose/blog/2023/goose-provider/"><code>goose.Provider</code></a>.</p>
+such as embedding SQL files in a binary (<code>//go:embed *.sql</code>), using Go migrations, and building up a
+custom <a href="https://pressly.github.io/goose/blog/2023/goose-provider/"><code>goose.Provider</code></a>.</p>
 <p>Alright, moving on. Here's an example of a migration file:</p>
-<div class="highlight"><pre><span></span><code><span class="c1">-- +goose Up</span>
+<div class="highlight"><span class="filename">data/sql/migrations/00001_users_table.sql</span><pre><span></span><code><span class="c1">-- +goose Up</span>
 <span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="p">(</span>
 <span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">INTEGER</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="n">AUTOINCREMENT</span><span class="p">,</span>
 <span class="w">    </span><span class="n">username</span><span class="w"> </span><span class="nb">text</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span>
@@ -1353,7 +1353,7 @@ building up a custom <a href="https://pressly.github.io/goose/blog/2023/goose-pr
 explain all the options (see the
 <a href="https://docs.sqlc.dev/en/latest/reference/config.html#version-2">sqlc documentation</a>), but here's a
 minimal example:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2&quot;</span>
+<div class="highlight"><span class="filename">sqlc.yaml</span><pre><span></span><code><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2&quot;</span>
 <span class="nt">sql</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">schema</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;data/sql/migrations&quot;</span><span class="w"> </span><span class="c1">#(1)!</span>
 <span class="w">    </span><span class="nt">queries</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;data/sql/queries&quot;</span><span class="w"> </span><span class="c1">#(2)!</span>
@@ -1374,7 +1374,7 @@ a <code>./data/sql/queries/</code> directory. Here's an example of a query file:
 <div class="highlight"><pre><span></span><code>data/sql/queries/
 └── users.sql
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><span class="c1">-- name: ListUsers :many</span>
+<div class="highlight"><span class="filename">data/sql/queries/users.sql</span><pre><span></span><code><span class="c1">-- name: ListUsers :many</span>
 <span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">username</span><span class="p">;</span>
 </code></pre></div>
 <p>Now, we're jumping ahead a bit, but let's imagine we mispelled <code>users</code> table as <code>usres</code> in the
@@ -1391,7 +1391,7 @@ with the generated Go code.</p>
 </code></pre></div>
 <p>And that's it! We now have a <code>gen/dbstore</code> directory with the generated Go code. Here's a snippet of
 what the generated code looks like:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">listUsers</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">`-- name: ListUsers :many</span>
+<div class="highlight"><span class="filename">gen/dbstore/users.sql.go</span><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">listUsers</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">`-- name: ListUsers :many</span>
 <span class="s">SELECT id, username FROM users ORDER BY username</span>
 <span class="s">`</span>
 
