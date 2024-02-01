@@ -13,10 +13,10 @@
         <link rel="canonical" href="https://pressly.github.io/goose/blog/category/blog/">
       
       
-        <link rel="prev" href="../package/">
+        <link rel="prev" href="../../">
       
       
-        <link rel="next" href="../sql-migrations/">
+        <link rel="next" href="../clickhouse/">
       
       
         
@@ -26,7 +26,7 @@
         <link rel="alternate" type="application/rss+xml" title="RSS feed of updated content" href="../../../feed_rss_updated.xml">
       
       <link rel="icon" href="../../../assets/goose_logo_cropped.png">
-      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.8+insiders-4.43.0">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.6+insiders-4.52.1">
     
     
       
@@ -34,7 +34,7 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.382dd0b9.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.76d06c94.min.css">
       
         
         <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -181,7 +181,7 @@
         <a href="https://github.com/pressly/goose" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
   </div>
   <div class="md-source__repository">
     pressly/goose
@@ -299,7 +299,7 @@
       <a href="https://github.com/pressly/goose" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
   </div>
   <div class="md-source__repository">
     pressly/goose
@@ -311,6 +311,7 @@
     
       
       
+  
   
   
   
@@ -383,6 +384,7 @@
   
   
   
+  
     <li class="md-nav__item">
       <a href="../../../installation/" class="md-nav__link">
         
@@ -413,6 +415,7 @@
     
       
       
+  
   
   
   
@@ -473,6 +476,7 @@
   
   
   
+  
     <li class="md-nav__item">
       <a href="../../../commands/supported/" class="md-nav__link">
         
@@ -496,6 +500,7 @@
             
               
                 
+  
   
   
   
@@ -532,6 +537,7 @@
   
   
     
+  
   
   
     
@@ -603,8 +609,11 @@
   
   
   
+  
     
     
+      
+        
       
         
       
@@ -662,6 +671,38 @@
   
   
   
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../archive/2024/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    
+  
+    2024
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
     <li class="md-nav__item">
       <a href="../../archive/2023/" class="md-nav__link">
         
@@ -688,6 +729,9 @@
   
   
   
+    
+  
+  
     <li class="md-nav__item">
       <a href="../../archive/2022/" class="md-nav__link">
         
@@ -712,6 +756,9 @@
               
                 
   
+  
+  
+    
   
   
     <li class="md-nav__item">
@@ -748,6 +795,7 @@
   
   
     
+  
   
   
     
@@ -814,32 +862,11 @@
                 
   
   
-  
-    <li class="md-nav__item">
-      <a href="../package/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
     
   
-    Package
   
-
     
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
+      
     
   
   
@@ -877,30 +904,7 @@
   
   
   
-    <li class="md-nav__item">
-      <a href="../sql-migrations/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
     
-  
-    SQL migrations
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
   
   
     <li class="md-nav__item">
@@ -929,6 +933,9 @@
   
   
   
+    
+  
+  
     <li class="md-nav__item">
       <a href="../general/" class="md-nav__link">
         
@@ -955,14 +962,17 @@
   
   
   
+    
+  
+  
     <li class="md-nav__item">
-      <a href="../testing/" class="md-nav__link">
+      <a href="../go-migrations/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
     
   
-    Testing
+    Go migrations
   
 
     
@@ -981,14 +991,75 @@
   
   
   
+    
+  
+  
     <li class="md-nav__item">
-      <a href="../go-migrations/" class="md-nav__link">
+      <a href="../package/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
     
   
-    Go migrations
+    Package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../sql-migrations/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    
+  
+    SQL migrations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../testing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
   
 
     
@@ -1064,13 +1135,184 @@
     <div class="md-post__meta md-meta">
       <ul class="md-meta__list">
         <li class="md-meta__item">
+          <time datetime="2024-02-01 00:00:00">Feb 1, 2024</time></li>
+        
+          <li class="md-meta__item">
+            in
+            
+              <a href="./" class="md-meta__link">Blog</a></li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="using-sqlc-with-goose"><a class="toclink" href="../../2024/goose-sqlc/">Using <code>sqlc</code> with <code>goose</code></a></h2>
+<p>In this post, we give you a brief introduction to <code>sqlc</code> and show you how to use it with <code>goose</code>.</p>
+<p>For those unfamiliar, <a href="https://sqlc.dev/">sqlc</a> is a SQL compiler that generates Go code from your
+SQL queries, and <a href="https://github.com/pressly/goose">goose</a> is a database migration tool for managing
+your database schema's evolution.</p>
+<p>Together, these tools can be quite powerful. They allow you to create SQL queries in a type-safe
+manner and consistently manage your database schema's evolution in a repeatable way.</p>
+<h3 id="overview"><a class="toclink" href="../../2024/goose-sqlc/#overview">Overview</a></h3>
+<p>A common question is, "What is the relationship between <code>sqlc</code> and <code>goose</code>?"</p>
+<p>To answer this, let's take a step back and <em>briefly</em> outline what <code>sqlc</code> does:</p>
+<ol>
+<li>Parses SQL statements</li>
+<li>Analyzes the SQL statements</li>
+<li>Generates type-safe Go code for applications to use those statements</li>
+</ol>
+<p>In the second step, <code>sqlc</code> requires the database schema to generate the type-safe Go code. This can
+be accomplished by either pointing <code>sqlc</code> at a database or supplying the schema files.</p>
+<p>Importantly, the schema files are the same ones you create to establish the database schema and
+apply with <code>goose</code>.</p>
+<figure>
+<p><img alt="goose up commands illustrated" src="../../../assets/goose-sqlc.png" width="400px;" /></p>
+</figure>
+<p>For a comprehensive overview of how <code>sqlc</code> works and how to use an ephemeral database for more
+robust type-analysis, refer to the
+<a href="https://sqlc.dev/posts/2023/10/24/sqlc-v1-23-0-database-backed-analyzer/">leverage Database-backed query analysis</a>
+blog post.</p>
+<p>Being able to validate and analyze SQL statements against a database schema greatly improves the
+maintainability and correctness of your application. <strong>It enables you to identify errors, like
+typos, missing columns, or incorrect types, during development and compile time rather than at
+runtime</strong>.</p>
+<h3 id="example"><a class="toclink" href="../../2024/goose-sqlc/#example">Example</a></h3>
+<p>If you just want to see the code, check out
+<a href="https://github.com/mfridman/goose-demo">mfridman/goose-demo</a>. In that repository, you will find a
+simple Go application that uses <code>sqlc</code> and <code>goose</code> to interact with a SQLite database.</p>
+<p>You can clone the repository, and run <code>go run ./cmd/custom-goose</code>. It should print out a list of
+users randomly added with
+<a href="https://pkg.go.dev/github.com/moby/moby@v24.0.6+incompatible/pkg/namesgenerator.">moby/moby namesgenerator</a></p>
+<h4 id="pre-requisites"><a class="toclink" href="../../2024/goose-sqlc/#pre-requisites">Pre-requisites</a></h4>
+<p>Before we start, make sure you have the following installed:</p>
+<ul>
+<li><a href="https://golang.org/doc/install">Go</a>, version 1.20 or later</li>
+<li><a href="https://docs.sqlc.dev/en/latest/overview/install.html">sqlc</a></li>
+<li><a href="https://pressly.github.io/goose/installation/">goose</a></li>
+</ul>
+<h4 id="step-1-write-migrations"><a class="toclink" href="../../2024/goose-sqlc/#step-1-write-migrations">Step 1 - Write migrations</a></h4>
+<p>First, we need to write the database migrations themselves. We'll dump them in a
+<code>./data/sql/migrations/</code> directyory, but you can put them anywhere you like.</p>
+<p>Note, the demo repository uses a few advanced features of <code>goose</code> that are not strictly necessary,
+such as embedding SQL files in the binary (using <code>//go:embed *.sql</code>), using Go migrations, and
+building up a custom <a href="https://pressly.github.io/goose/blog/2023/goose-provider/"><code>goose.Provider</code></a>.</p>
+<p>Alright, moving on. Here's an example of a migration file:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- +goose Up</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">INTEGER</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="n">AUTOINCREMENT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">username</span><span class="w"> </span><span class="nb">text</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span>
+<span class="p">);</span>
+
+<span class="c1">-- +goose Down</span>
+<span class="k">DROP</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">users</span><span class="p">;</span>
+</code></pre></div>
+<h4 id="step-2-prepare-a-sqlcyaml-file"><a class="toclink" href="../../2024/goose-sqlc/#step-2-prepare-a-sqlcyaml-file">Step 2 - Prepare a sqlc.yaml file</a></h4>
+<p>Next, we need to prepare a <code>sqlc.yaml</code> configuration file. It's beyond the scope of this post to
+explain all the options (see the
+<a href="https://docs.sqlc.dev/en/latest/reference/config.html#version-2">sqlc documentation</a>), but here's a
+minimal example:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2&quot;</span>
+<span class="nt">sql</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">schema</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;data/sql/migrations&quot;</span><span class="w"> </span><span class="c1">#(1)!</span>
+<span class="w">    </span><span class="nt">queries</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;data/sql/queries&quot;</span><span class="w"> </span><span class="c1">#(2)!</span>
+<span class="w">    </span><span class="nt">engine</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;sqlite&quot;</span>
+<span class="w">    </span><span class="nt">gen</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">go</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">out</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;gen/dbstore&quot;</span>
+</code></pre></div>
+<ol>
+<li>The <code>schema</code> field tells <code>sqlc</code> where to look for the database schema. In this case, we're
+    pointing it at the same directory where we put our migrations.</li>
+<li>The <code>queries</code> field tells <code>sqlc</code> where to look for the SQL query files. In this case, we're
+    pointing it at a <code>./data/sql/queries/</code> directory.</li>
+</ol>
+<h4 id="step-3-write-sql-queries"><a class="toclink" href="../../2024/goose-sqlc/#step-3-write-sql-queries">Step 3 - Write SQL queries</a></h4>
+<p>Now we can write some SQL queries that will get generated into Go code by <code>sqlc</code>. We'll dump them in
+a <code>./data/sql/queries/</code> directory. Here's an example of a query file:</p>
+<div class="highlight"><pre><span></span><code>data/sql/queries/
+└── users.sql
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1">-- name: ListUsers :many</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">username</span><span class="p">;</span>
+</code></pre></div>
+<p>Now, we're jumping ahead a bit, but let's imagine we mispelled <code>users</code> table as <code>usres</code> in the
+query.<code>sqlc</code> would catch this error much earlier than if we were to run the application and hit the
+query at runtime.</p>
+<div class="highlight"><pre><span></span><code>$<span class="w"> </span>sqlc<span class="w"> </span>generate
+<span class="c1"># package</span>
+data/sql/queries/users.sql:1:1:<span class="w"> </span>relation<span class="w"> </span><span class="s2">&quot;usres&quot;</span><span class="w"> </span>does<span class="w"> </span>not<span class="w"> </span>exist
+</code></pre></div>
+<h4 id="step-4-run-sqlc-generate"><a class="toclink" href="../../2024/goose-sqlc/#step-4-run-sqlc-generate">Step 4 - Run <code>sqlc generate</code></a></h4>
+<p>Now we can run <code>sqlc generate</code> to generate the Go code. This will create a <code>gen/dbstore</code> directory
+with the generated Go code.</p>
+<div class="highlight"><pre><span></span><code>$ sqlc generate
+</code></pre></div>
+<p>And that's it! We now have a <code>gen/dbstore</code> directory with the generated Go code. Here's a snippet of
+what the generated code looks like:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">listUsers</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">`-- name: ListUsers :many</span>
+<span class="s">SELECT id, username FROM users ORDER BY username</span>
+<span class="s">`</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">q</span><span class="w"> </span><span class="o">*</span><span class="nx">Queries</span><span class="p">)</span><span class="w"> </span><span class="nx">ListUsers</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="nx">User</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">rows</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">q</span><span class="p">.</span><span class="nx">db</span><span class="p">.</span><span class="nx">QueryContext</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">listUsers</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">defer</span><span class="w"> </span><span class="nx">rows</span><span class="p">.</span><span class="nx">Close</span><span class="p">()</span>
+<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nx">items</span><span class="w"> </span><span class="p">[]</span><span class="nx">User</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="nx">rows</span><span class="p">.</span><span class="nx">Next</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kd">var</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="nx">User</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">rows</span><span class="p">.</span><span class="nx">Scan</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">i</span><span class="p">.</span><span class="nx">ID</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">i</span><span class="p">.</span><span class="nx">Username</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="nx">items</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">items</span><span class="p">,</span><span class="w"> </span><span class="nx">i</span><span class="p">)</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">rows</span><span class="p">.</span><span class="nx">Close</span><span class="p">();</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">rows</span><span class="p">.</span><span class="nx">Err</span><span class="p">();</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">items</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Bonus, <code>sqlc</code> takes care of executing, scanning and closing the rows for you. It also takes care of
+error handling and returning the results.</p>
+<p>ps. How many times have you forgotten to close the rows?</p>
+<h3 id="wrapping-up"><a class="toclink" href="../../2024/goose-sqlc/#wrapping-up">Wrapping up</a></h3>
+<p>There's a lot more to <code>sqlc</code> and <code>goose</code> than what we've covered here, but hopefully this gives you
+a good starting point for using these tools together.</p>
+    <nav class="md-post__action">
+      <a href="../../2024/goose-sqlc/">
+        Continue reading
+      </a>
+    </nav>
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+      <nav class="md-post__authors md-typeset">
+        
+          <span class="md-author">
+            <img src="https://github.com/mfridman.png" alt="Mike Fridman">
+          </span>
+        
+      </nav>
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
           <time datetime="2023-11-11 00:00:00">Nov 11, 2023</time></li>
         
           <li class="md-meta__item">
             in
             
-              <a href="../package/" class="md-meta__link">Package</a>, 
-              <a href="./" class="md-meta__link">Blog</a></li>
+              <a href="./" class="md-meta__link">Blog</a>, 
+              <a href="../package/" class="md-meta__link">Package</a></li>
         
         
       </ul>
@@ -1157,8 +1399,8 @@ you'll use <a href="https://pkg.go.dev/os#DirFS">os.DirFS</a> or embed them into
           <li class="md-meta__item">
             in
             
-              <a href="../sql-migrations/" class="md-meta__link">SQL migrations</a>, 
-              <a href="./" class="md-meta__link">Blog</a></li>
+              <a href="./" class="md-meta__link">Blog</a>, 
+              <a href="../sql-migrations/" class="md-meta__link">SQL migrations</a></li>
         
         
       </ul>
@@ -1541,7 +1783,7 @@ now that embedding is part of the standard library it's never been easier to off
     <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "navigation.tabs", "navigation.indexes", "navigation.top", "content.code.annotate", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.1e90e0fb.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.a5ca32a6.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.b547eccd.min.js"></script>
       
     
   </body>

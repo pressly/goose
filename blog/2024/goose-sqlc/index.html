@@ -6,17 +6,15 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Database seeding. Apply migrations with no versioning.">
+        <meta name="description" content="How to use sqlc with goose">
       
       
       
-        <link rel="canonical" href="https://pressly.github.io/goose/blog/2021/no-version-migrations/">
+        <link rel="canonical" href="https://pressly.github.io/goose/blog/2024/goose-sqlc/">
       
       
-        <link rel="prev" href="../visualizing-up-down-commands/">
+        <link rel="prev" href="../../2023/goose-provider/">
       
-      
-        <link rel="next" href="../../2022/improving-clickhouse/">
       
       
         
@@ -30,7 +28,7 @@
     
     
       
-        <title>Ad-hoc migrations with no versioning - pressly/goose</title>
+        <title>Using sqlc with goose - pressly/goose</title>
       
     
     
@@ -66,17 +64,17 @@
     
   
 <meta property="og:type" content="website" />
-<meta property="og:title" content="Ad-hoc migrations with no versioning - pressly/goose" />
-<meta property="og:description" content="Database seeding. Apply migrations with no versioning." />
-<meta property="og:image" content="https://pressly.github.io/goose/assets/images/social/blog/2021/no-version-migrations.png" />
+<meta property="og:title" content="Using sqlc with goose - pressly/goose" />
+<meta property="og:description" content="How to use sqlc with goose" />
+<meta property="og:image" content="https://pressly.github.io/goose/assets/images/social/blog/2024/goose-sqlc.png" />
 <meta property="og:image:type" content="image/png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
-<meta property="og:url" content="https://pressly.github.io/goose/blog/2021/no-version-migrations/" />
+<meta property="og:url" content="https://pressly.github.io/goose/blog/2024/goose-sqlc/" />
 <meta property="twitter:card" content="summary_large_image" />
-<meta property="twitter:title" content="Ad-hoc migrations with no versioning - pressly/goose" />
-<meta property="twitter:description" content="Database seeding. Apply migrations with no versioning." />
-<meta property="twitter:image" content="https://pressly.github.io/goose/assets/images/social/blog/2021/no-version-migrations.png" />
+<meta property="twitter:title" content="Using sqlc with goose - pressly/goose" />
+<meta property="twitter:description" content="How to use sqlc with goose" />
+<meta property="twitter:image" content="https://pressly.github.io/goose/assets/images/social/blog/2024/goose-sqlc.png" />
 </head>
   
   
@@ -94,7 +92,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#ad-hoc-migrations-with-no-versioning" class="md-skip">
+        <a href="#using-sqlc-with-goose" class="md-skip">
           Skip to content
         </a>
       
@@ -127,7 +125,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Ad-hoc migrations with no versioning
+              Using sqlc with goose
             
           </span>
         </div>
@@ -1107,21 +1105,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#brief-summary" class="md-nav__link">
+  <a href="#overview" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Brief Summary
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#but-why" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        But why?
+        Overview
       
     </span>
   </a>
@@ -1137,13 +1124,74 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Example">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pre-requisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pre-requisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-1-write-migrations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 - Write migrations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-prepare-a-sqlcyaml-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 - Prepare a sqlc.yaml file
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-write-sql-queries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 - Write SQL queries
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-4-run-sqlc-generate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 - Run sqlc generate
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
-  <a href="#final-thoughts" class="md-nav__link">
+  <a href="#wrapping-up" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Final Thoughts
+        Wrapping up
       
     </span>
   </a>
@@ -1206,7 +1254,7 @@
                     <li class="md-nav__item">
                       <div class="md-nav__link">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1m-1 11h-5v5h5v-5Z"/></svg>
-                        <time datetime="2021-12-19 00:00:00" class="md-ellipsis">Dec 19, 2021</time>
+                        <time datetime="2024-02-01 00:00:00" class="md-ellipsis">Feb 1, 2024</time>
                       </div>
                     </li>
                     
@@ -1217,8 +1265,7 @@
                           <span class="md-ellipsis">
                             in
                             
-                              <a href="../../category/blog/">Blog</a>, 
-                              <a href="../../category/general/">General</a></span>
+                              <a href="../../category/blog/">Blog</a></span>
                         </div>
                       </li>
                     
@@ -1241,99 +1288,142 @@
 
 
 
-<h1 id="ad-hoc-migrations-with-no-versioning">Ad-hoc migrations with no versioning</h1>
-<p>This post describes a new feature recently added to <code>goose</code> -- the ability to apply migrations with
-<strong>no versioning</strong>. A common use case is to seed a database with data <em>after</em> versioned migrations
-have been applied.</p>
-<!-- more -->
+<h1 id="using-sqlc-with-goose">Using <code>sqlc</code> with <code>goose</code></h1>
+<p>In this post, we give you a brief introduction to <code>sqlc</code> and show you how to use it with <code>goose</code>.</p>
+<p>For those unfamiliar, <a href="https://sqlc.dev/">sqlc</a> is a SQL compiler that generates Go code from your
+SQL queries, and <a href="https://github.com/pressly/goose">goose</a> is a database migration tool for managing
+your database schema's evolution.</p>
+<p>Together, these tools can be quite powerful. They allow you to create SQL queries in a type-safe
+manner and consistently manage your database schema's evolution in a repeatable way.</p>
+<h2 id="overview">Overview</h2>
+<p>A common question is, "What is the relationship between <code>sqlc</code> and <code>goose</code>?"</p>
+<p>To answer this, let's take a step back and <em>briefly</em> outline what <code>sqlc</code> does:</p>
+<ol>
+<li>Parses SQL statements</li>
+<li>Analyzes the SQL statements</li>
+<li>Generates type-safe Go code for applications to use those statements</li>
+</ol>
+<p>In the second step, <code>sqlc</code> requires the database schema to generate the type-safe Go code. This can
+be accomplished by either pointing <code>sqlc</code> at a database or supplying the schema files.</p>
+<p>Importantly, the schema files are the same ones you create to establish the database schema and
+apply with <code>goose</code>.</p>
+<figure>
+<p><img alt="goose up commands illustrated" src="../../../assets/goose-sqlc.png" width="400px;" /></p>
+</figure>
+<p>For a comprehensive overview of how <code>sqlc</code> works and how to use an ephemeral database for more
+robust type-analysis, refer to the
+<a href="https://sqlc.dev/posts/2023/10/24/sqlc-v1-23-0-database-backed-analyzer/">leverage Database-backed query analysis</a>
+blog post.</p>
+<p>Being able to validate and analyze SQL statements against a database schema greatly improves the
+maintainability and correctness of your application. <strong>It enables you to identify errors, like
+typos, missing columns, or incorrect types, during development and compile time rather than at
+runtime</strong>.</p>
+<h2 id="example">Example</h2>
+<p>If you just want to see the code, check out
+<a href="https://github.com/mfridman/goose-demo">mfridman/goose-demo</a>. In that repository, you will find a
+simple Go application that uses <code>sqlc</code> and <code>goose</code> to interact with a SQLite database.</p>
+<p>You can clone the repository, and run <code>go run ./cmd/custom-goose</code>. It should print out a list of
+users randomly added with
+<a href="https://pkg.go.dev/github.com/moby/moby@v24.0.6+incompatible/pkg/namesgenerator.">moby/moby namesgenerator</a></p>
+<h3 id="pre-requisites">Pre-requisites</h3>
+<p>Before we start, make sure you have the following installed:</p>
+<ul>
+<li><a href="https://golang.org/doc/install">Go</a>, version 1.20 or later</li>
+<li><a href="https://docs.sqlc.dev/en/latest/overview/install.html">sqlc</a></li>
+<li><a href="https://pressly.github.io/goose/installation/">goose</a></li>
+</ul>
+<h3 id="step-1-write-migrations">Step 1 - Write migrations</h3>
+<p>First, we need to write the database migrations themselves. We'll dump them in a
+<code>./data/sql/migrations/</code> directyory, but you can put them anywhere you like.</p>
+<p>Note, the demo repository uses a few advanced features of <code>goose</code> that are not strictly necessary,
+such as embedding SQL files in the binary (using <code>//go:embed *.sql</code>), using Go migrations, and
+building up a custom <a href="https://pressly.github.io/goose/blog/2023/goose-provider/"><code>goose.Provider</code></a>.</p>
+<p>Alright, moving on. Here's an example of a migration file:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">-- +goose Up</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">INTEGER</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="n">AUTOINCREMENT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">username</span><span class="w"> </span><span class="nb">text</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span>
+<span class="p">);</span>
 
-<p>If you think of versioned migrations as the blueprint for a house (the schema), then unversioned
-migrations are like the furnishings inside (the data).</p>
-<p>A GitHub user <a href="https://github.com/soggycactus">@soggycactus</a> stated the problem well
-(<a href="https://github.com/pressly/goose/issues/259#issue-956845240">#235 comment</a>):</p>
-<blockquote>
-<p>... I always find myself creating some sort of wrapper that allows me to use goose to seed my
-local and development environments with test data</p>
-</blockquote>
-<h3 id="brief-summary">Brief Summary</h3>
-<ul>
-<li>keep versioned migrations in a dedicated directory (e.g., ./schema/migrations)</li>
-<li>continue running <code>goose</code> commands like normal: <code>goose -dir ./schema/migrations up</code></li>
-<li>add unversioned migrations to a different directory (e.g., ./schema/seed)</li>
-<li>run <code>goose</code> commands with <code>-no-versioning</code> flag using seed directory</li>
-</ul>
-<p>By adding <code>-no-versioning</code> flag (CLI) or supplying <code>WithNoVersioning()</code> option (library), we
-instruct <code>goose</code> to apply migrations but to ignore tracking the version in the database schema
-table.</p>
-<hr />
-<h3 id="but-why">But why?</h3>
-<p>A common use case is to seed an environment with data, such as local development environment or
-integration tests. Because we don't want this data to be applied to production, we keep it separate
-from the versioned migrations in a different directory.</p>
-<p><strong>Seed data</strong>: think many <code>INSERT INTO</code> statements in up migrations and <code>DELETE FROM</code> or <code>TRUNCATE</code>
-in down migrations.</p>
-<ul>
-<li>new developer joins, spins up a database, applies versioned migrations but requires "seed" data to
-  get started</li>
-<li>integration or end-end tests that rely on pre-existing data. It's common to have your application
-  create data, but sometimes you just want data to be there for external tests not involving your
-  API</li>
-<li>optimizing delicate queries on a database with pre-populated data. Avoid writing queries against
-  an empty database</li>
-</ul>
-<div class="admonition info">
-<p>Remember, if your application does requires some static, pre-existing data, then just insert it along with your regular versioned schema migrations.</p>
-</div>
-<h3 id="example">Example</h3>
-<p>Seeding integration tests and wiping data, without having to reset the database schema.</p>
-<p>Let's use an example:</p>
-<div class="highlight"><pre><span></span><code>.
-└──<span class="w"> </span>schema
-<span class="w">    </span>├──<span class="w"> </span>migrations
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>00001_add_users_table.sql
-<span class="w">    </span>│<span class="w">   </span>├──<span class="w"> </span>00002_add_posts_table.sql
-<span class="w">    </span>│<span class="w">   </span>└──<span class="w"> </span>00003_alter_users_table.sql
-<span class="w">    </span>└──<span class="w"> </span>seed
-<span class="w">        </span>├──<span class="w"> </span>00001_seed_users_table.sql
-<span class="w">        </span>└──<span class="w"> </span>00002_seed_posts_table.sql
+<span class="c1">-- +goose Down</span>
+<span class="k">DROP</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">users</span><span class="p">;</span>
 </code></pre></div>
-<p>Running the following command creates the desired shape of the database:</p>
-<pre><code>goose -dir ./schema/migrations up
-</code></pre>
-<p>Assuming you're using the default goose table name <code>goose_db_version</code> then querying this table will
-return 3 versioned migrations.</p>
-<p>Now, suppose we want to run integration tests against a database that contains pre-populated data.
-Running the following command applies two migrations but <strong>it does not track their version in the
-database</strong>.</p>
-<pre><code>goose -dir ./schema/seed -no-versioning up
-</code></pre>
-<hr />
-<p>If you run the initial command again:</p>
-<pre><code>goose -dir ./schema/migrations up
-</code></pre>
-<p><code>goose</code> will output <em>"no new migrations found"</em>. Because <code>goose</code> knows we already applied 3
-migrations, so no further work to do.</p>
-<p>But, if you run the second command again:</p>
-<pre><code>goose -dir ./schema/seed -no-versioning up
-</code></pre>
-<p><code>goose</code> doesn't know about unversioned migrations (due to the <code>-no-versioning</code> flag) so it will
-apply the seed migrations once again. Depending how you wrote the migrations, this may or may not
-succeed.</p>
-<hr />
-<p>Lastly, we're done with our integration test. The neat thing with the <code>-no-versioning</code> flag is it
-enables you to wipe the data without having to migrate the entire database down and up again.</p>
-<p>Running the following command will apply the down migrations in your seed files, in reverse order:</p>
-<pre><code>goose -dir ./schema/seed -no-versioning down-to 0
-# or
-goose -dir ./schema/seed -no-versioning reset
-</code></pre>
-<p>These two commands are the same--applying all down migrations starting from the highest to the
-lowest numbered migration files in the schema directory.</p>
-<h3 id="final-thoughts">Final Thoughts</h3>
-<p>With the <code>-no-versioning</code> flag (CLI) or <code>WithNoVersioning()</code> option (library) you now have the
-ability to apply arbitrary SQL statements to the database.</p>
-<p>Just remember, these operations are not tracked (versioned) and are intended to be used in
-development/testing environments.</p>
+<h3 id="step-2-prepare-a-sqlcyaml-file">Step 2 - Prepare a sqlc.yaml file</h3>
+<p>Next, we need to prepare a <code>sqlc.yaml</code> configuration file. It's beyond the scope of this post to
+explain all the options (see the
+<a href="https://docs.sqlc.dev/en/latest/reference/config.html#version-2">sqlc documentation</a>), but here's a
+minimal example:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2&quot;</span>
+<span class="nt">sql</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">schema</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;data/sql/migrations&quot;</span><span class="w"> </span><span class="c1">#(1)!</span>
+<span class="w">    </span><span class="nt">queries</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;data/sql/queries&quot;</span><span class="w"> </span><span class="c1">#(2)!</span>
+<span class="w">    </span><span class="nt">engine</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;sqlite&quot;</span>
+<span class="w">    </span><span class="nt">gen</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">go</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">out</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;gen/dbstore&quot;</span>
+</code></pre></div>
+<ol>
+<li>The <code>schema</code> field tells <code>sqlc</code> where to look for the database schema. In this case, we're
+    pointing it at the same directory where we put our migrations.</li>
+<li>The <code>queries</code> field tells <code>sqlc</code> where to look for the SQL query files. In this case, we're
+    pointing it at a <code>./data/sql/queries/</code> directory.</li>
+</ol>
+<h3 id="step-3-write-sql-queries">Step 3 - Write SQL queries</h3>
+<p>Now we can write some SQL queries that will get generated into Go code by <code>sqlc</code>. We'll dump them in
+a <code>./data/sql/queries/</code> directory. Here's an example of a query file:</p>
+<div class="highlight"><pre><span></span><code>data/sql/queries/
+└── users.sql
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1">-- name: ListUsers :many</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">username</span><span class="p">;</span>
+</code></pre></div>
+<p>Now, we're jumping ahead a bit, but let's imagine we mispelled <code>users</code> table as <code>usres</code> in the
+query.<code>sqlc</code> would catch this error much earlier than if we were to run the application and hit the
+query at runtime.</p>
+<div class="highlight"><pre><span></span><code>$<span class="w"> </span>sqlc<span class="w"> </span>generate
+<span class="c1"># package</span>
+data/sql/queries/users.sql:1:1:<span class="w"> </span>relation<span class="w"> </span><span class="s2">&quot;usres&quot;</span><span class="w"> </span>does<span class="w"> </span>not<span class="w"> </span>exist
+</code></pre></div>
+<h3 id="step-4-run-sqlc-generate">Step 4 - Run <code>sqlc generate</code></h3>
+<p>Now we can run <code>sqlc generate</code> to generate the Go code. This will create a <code>gen/dbstore</code> directory
+with the generated Go code.</p>
+<div class="highlight"><pre><span></span><code>$ sqlc generate
+</code></pre></div>
+<p>And that's it! We now have a <code>gen/dbstore</code> directory with the generated Go code. Here's a snippet of
+what the generated code looks like:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">listUsers</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">`-- name: ListUsers :many</span>
+<span class="s">SELECT id, username FROM users ORDER BY username</span>
+<span class="s">`</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">q</span><span class="w"> </span><span class="o">*</span><span class="nx">Queries</span><span class="p">)</span><span class="w"> </span><span class="nx">ListUsers</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="nx">User</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">rows</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">q</span><span class="p">.</span><span class="nx">db</span><span class="p">.</span><span class="nx">QueryContext</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">listUsers</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">defer</span><span class="w"> </span><span class="nx">rows</span><span class="p">.</span><span class="nx">Close</span><span class="p">()</span>
+<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nx">items</span><span class="w"> </span><span class="p">[]</span><span class="nx">User</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="nx">rows</span><span class="p">.</span><span class="nx">Next</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kd">var</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="nx">User</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">rows</span><span class="p">.</span><span class="nx">Scan</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">i</span><span class="p">.</span><span class="nx">ID</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">i</span><span class="p">.</span><span class="nx">Username</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="nx">items</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">items</span><span class="p">,</span><span class="w"> </span><span class="nx">i</span><span class="p">)</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">rows</span><span class="p">.</span><span class="nx">Close</span><span class="p">();</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">rows</span><span class="p">.</span><span class="nx">Err</span><span class="p">();</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">items</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Bonus, <code>sqlc</code> takes care of executing, scanning and closing the rows for you. It also takes care of
+error handling and returning the results.</p>
+<p>ps. How many times have you forgotten to close the rows?</p>
+<h2 id="wrapping-up">Wrapping up</h2>
+<p>There's a lot more to <code>sqlc</code> and <code>goose</code> than what we've covered here, but hopefully this gives you
+a good starting point for using these tools together.</p>
 
 
 
