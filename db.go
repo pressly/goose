@@ -12,6 +12,8 @@ func OpenDBWithDriver(driver string, dbstring string) (*sql.DB, error) {
 		return nil, err
 	}
 
+	// To avoid breaking existing consumers. An implementation detail
+	// that consumers should not care which underlying driver is used.
 	switch driver {
 	case "mssql":
 		driver = "sqlserver"
@@ -19,6 +21,11 @@ func OpenDBWithDriver(driver string, dbstring string) (*sql.DB, error) {
 		driver = "mysql"
 	case "turso":
 		driver = "libsql"
+	case "sqlite3":
+		//  Internally uses the CGo-free port of SQLite: modernc.org/sqlite
+		driver = "sqlite"
+	case "postgres", "redshift":
+		driver = "pgx"
 	}
 
 	switch driver {
