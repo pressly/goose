@@ -3,16 +3,29 @@ package cfg
 import "os"
 
 var (
-	GOOSEDRIVER       = envOr("GOOSE_DRIVER", "")
-	GOOSEDBSTRING     = envOr("GOOSE_DBSTRING", "")
-	GOOSEMIGRATIONDIR = envOr("GOOSE_MIGRATION_DIR", DefaultMigrationDir)
+	GOOSEDRIVER       = ""
+	GOOSEDBSTRING     = ""
+	GOOSEMIGRATIONDIR = DefaultMigrationDir
 	// https://no-color.org/
-	GOOSENOCOLOR = envOr("NO_COLOR", "false")
+	GOOSENOCOLOR        = "false"
+	GOOSEMIGRATIONTABLE = DefaultMigrationTable
 )
 
 var (
-	DefaultMigrationDir = "."
+	DefaultMigrationDir   = "."
+	DefaultMigrationTable = "goose_db_version"
 )
+
+// Load reads the config values from environment,
+// allowing them to be loaded first from file pointed by `-env-file` argument
+func Load() {
+	GOOSEDRIVER = envOr("GOOSE_DRIVER", GOOSEDRIVER)
+	GOOSEDBSTRING = envOr("GOOSE_DBSTRING", GOOSEDBSTRING)
+	GOOSEMIGRATIONDIR = envOr("GOOSE_MIGRATION_DIR", GOOSEMIGRATIONDIR)
+	// https://no-color.org/
+	GOOSENOCOLOR = envOr("NO_COLOR", GOOSENOCOLOR)
+	GOOSEMIGRATIONTABLE = envOr("GOOSE_MIGRATION_TABLE", GOOSEMIGRATIONTABLE)
+}
 
 // An EnvVar is an environment variable Name=Value.
 type EnvVar struct {
@@ -26,6 +39,7 @@ func List() []EnvVar {
 		{Name: "GOOSE_DBSTRING", Value: GOOSEDBSTRING},
 		{Name: "GOOSE_MIGRATION_DIR", Value: GOOSEMIGRATIONDIR},
 		{Name: "NO_COLOR", Value: GOOSENOCOLOR},
+		{Name: "GOOSE_MIGRATION_TABLE", Value: GOOSEMIGRATIONTABLE},
 	}
 }
 
