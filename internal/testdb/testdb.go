@@ -26,3 +26,8 @@ func NewVertica(options ...OptionsFunc) (db *sql.DB, cleanup func(), err error) 
 func NewYdb(options ...OptionsFunc) (db *sql.DB, cleanup func(), err error) {
 	return newYdb(options...)
 }
+
+// NewDuckDB opens a DuckDB database file. Returns a db connection and a cleanup function.
+func NewDuckDB(options ...OptionsFunc) (db *sql.DB, cleanup func(), err error) {
+	return newDuckDB(options...)
+}
