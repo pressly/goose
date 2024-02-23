@@ -1,4 +1,4 @@
--- +goose Up
+    -- +goose UP
 CREATE TABLE emp (
     empname text,
     salary integer,
@@ -6,7 +6,7 @@ CREATE TABLE emp (
     last_user text
 );
 
--- +goose StatementBegin
+-- +goose statementBegin
 CREATE FUNCTION emp_stamp() RETURNS trigger AS $emp_stamp$
     BEGIN
         -- Check that empname and salary are given
