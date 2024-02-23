@@ -507,3 +507,64 @@ CREATE TABLE post (
 	check.HasError(t, err)
 	check.Contains(t, err.Error(), "variable substitution failed: $SOME_UNSET_VAR: required env var not set:")
 }
+
+func Test_extractAnnotation(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    annotation
+		wantErr func(t *testing.T, err error)
+	}{
+		{
+			name:    "Up",
+			input:   "-- +goose Up",
+			want:    annotationUp,
+			wantErr: check.NoError,
+		},
+		{
+			name:    "Down",
+			input:   "-- +goose Down",
+			want:    annotationDown,
+			wantErr: check.NoError,
+		},
+		{
+			name:    "StmtBegin",
+			input:   "-- +goose StatementBegin",
+			want:    annotationStatementBegin,
+			wantErr: check.NoError,
+		},
+		{
+			name:    "NoTransact",
+			input:   "-- +goose NO TRANSACTION",
+			want:    annotationNoTransaction,
+			wantErr: check.NoError,
+		},
+		{
+			name:    "Unsupported",
+			input:   "-- +goose unsupported",
+			want:    "",
+			wantErr: check.HasError,
+		},
+		{
+			name:    "Empty",
+			input:   "-- +goose",
+			want:    "",
+			wantErr: check.HasError,
+		},
+		{
+			name:    "statement with spaces and Uppercase",
+			input:   "-- +goose   UP 	",
+			want:    annotationUp,
+			wantErr: check.NoError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := extractAnnotation(tt.input)
+			tt.wantErr(t, err)
+
+			check.Equal(t, got, tt.want)
+		})
+	}
+}

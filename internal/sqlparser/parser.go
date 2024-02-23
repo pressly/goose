@@ -121,13 +121,19 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 		if stateMachine.get() == start && strings.TrimSpace(line) == "" {
 			continue
 		}
-		// TODO(mf): validate annotations to avoid common user errors:
-		// https://github.com/pressly/goose/issues/163#issuecomment-501736725
-		if strings.HasPrefix(line, "--") {
-			cmd := strings.TrimSpace(strings.TrimPrefix(line, "--"))
+
+		// Check for annotations.
+		// All annotations must be in format: "-- +goose [annotation]"
+		if strings.HasPrefix(strings.TrimSpace(line), "--") && strings.Contains(line, "+goose") {
+			var cmd annotation
+
+			cmd, err = extractAnnotation(line)
+			if err != nil {
+				return nil, false, fmt.Errorf("failed to parse annotation line %q: %w", line, err)
+			}
 
 			switch cmd {
-			case "+goose Up":
+			case annotationUp:
 				switch stateMachine.get() {
 				case start:
 					stateMachine.set(gooseUp)
@@ -136,7 +142,7 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 				}
 				continue
 
-			case "+goose Down":
+			case annotationDown:
 				switch stateMachine.get() {
 				case gooseUp, gooseStatementEndUp:
 					// If we hit a down annotation, but the buffer is not empty, we have an unfinished SQL query from a
@@ -151,7 +157,7 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 				}
 				continue
 
-			case "+goose StatementBegin":
+			case annotationStatementBegin:
 				switch stateMachine.get() {
 				case gooseUp, gooseStatementEndUp:
 					stateMachine.set(gooseStatementBeginUp)
@@ -162,7 +168,7 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 				}
 				continue
 
-			case "+goose StatementEnd":
+			case annotationStatementEnd:
 				switch stateMachine.get() {
 				case gooseStatementBeginUp:
 					stateMachine.set(gooseStatementEndUp)
@@ -172,17 +178,20 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 					return nil, false, errors.New("'-- +goose StatementEnd' must be defined after '-- +goose StatementBegin', see https://github.com/pressly/goose#sql-migrations")
 				}
 
-			case "+goose NO TRANSACTION":
+			case annotationNoTransaction:
 				useTx = false
 				continue
 
-			case "+goose ENVSUB ON":
+			case annotationEnvsubOn:
 				useEnvsub = true
 				continue
 
-			case "+goose ENVSUB OFF":
+			case annotationEnvsubOff:
 				useEnvsub = false
 				continue
+
+			default:
+				return nil, false, fmt.Errorf("unknown annotation: %q", cmd)
 			}
 		}
 		// Once we've started parsing a statement the buffer is no longer empty,
@@ -275,6 +284,65 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 	}
 
 	return stmts, useTx, nil
+}
+
+type annotation string
+
+const (
+	annotationUp             annotation = "Up"
+	annotationDown           annotation = "Down"
+	annotationStatementBegin annotation = "StatementBegin"
+	annotationStatementEnd   annotation = "StatementEnd"
+	annotationNoTransaction  annotation = "NO TRANSACTION"
+	annotationEnvsubOn       annotation = "ENVSUB ON"
+	annotationEnvsubOff      annotation = "ENVSUB OFF"
+)
+
+var supportedAnnotations = map[annotation]struct{}{
+	annotationUp:             {},
+	annotationDown:           {},
+	annotationStatementBegin: {},
+	annotationStatementEnd:   {},
+	annotationNoTransaction:  {},
+	annotationEnvsubOn:       {},
+	annotationEnvsubOff:      {},
+}
+
+var (
+	errEmptyAnnotation   = errors.New("empty annotation")
+	errInvalidAnnotation = errors.New("invalid annotation")
+)
+
+// extractAnnotation extracts the annotation from the line.
+// All annotations must be in format: "-- +goose [annotation]"
+// Allowed annotations: Up, Down, StatementBegin, StatementEnd, NO TRANSACTION, ENVSUB ON, ENVSUB OFF
+func extractAnnotation(line string) (annotation, error) {
+	// Remove leading and trailing whitespace from line.
+	cmd := strings.TrimSpace(line)
+	// Extract the annotation from the line, by removing the leading "--"
+	cmd = strings.ReplaceAll(cmd, "--", "")
+	// Remove leading and trailing whitespace from the annotation command.
+	cmd = strings.TrimSpace(cmd)
+
+	// Extract the annotation from the line, by removing the leading "+goose"
+	cmd = strings.TrimPrefix(cmd, "+goose")
+
+	// Remove leading and trailing whitespace from the annotation command.
+	cmd = strings.TrimSpace(cmd)
+
+	if cmd == "" {
+		return "", errEmptyAnnotation
+	}
+
+	a := annotation(cmd)
+
+	for s := range supportedAnnotations {
+		if strings.ToUpper(string(s)) == strings.ToUpper(string(a)) {
+			return s, nil
+		}
+	}
+
+	return "", fmt.Errorf("%q: %w", cmd, errInvalidAnnotation)
 }
 
 func missingSemicolonError(state parserState, direction Direction, s string) error {
