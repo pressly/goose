@@ -337,7 +337,7 @@ func extractAnnotation(line string) (annotation, error) {
 	a := annotation(cmd)
 
 	for s := range supportedAnnotations {
-		if strings.ToUpper(string(s)) == strings.ToUpper(string(a)) {
+		if strings.EqualFold(string(s), string(a)) {
 			return s, nil
 		}
 	}
