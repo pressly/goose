@@ -12,21 +12,21 @@ import (
 func TestCollectFileSources(t *testing.T) {
 	t.Parallel()
 	t.Run("nil_fsys", func(t *testing.T) {
-		sources, err := collectFilesystemSources(nil, false, nil, nil)
+		sources, err := collectFilesystemSources(nil, false, nil, nil, false)
 		check.NoError(t, err)
 		check.Bool(t, sources != nil, true)
 		check.Number(t, len(sources.goSources), 0)
 		check.Number(t, len(sources.sqlSources), 0)
 	})
 	t.Run("noop_fsys", func(t *testing.T) {
-		sources, err := collectFilesystemSources(noopFS{}, false, nil, nil)
+		sources, err := collectFilesystemSources(noopFS{}, false, nil, nil, false)
 		check.NoError(t, err)
 		check.Bool(t, sources != nil, true)
 		check.Number(t, len(sources.goSources), 0)
 		check.Number(t, len(sources.sqlSources), 0)
 	})
 	t.Run("empty_fsys", func(t *testing.T) {
-		sources, err := collectFilesystemSources(fstest.MapFS{}, false, nil, nil)
+		sources, err := collectFilesystemSources(fstest.MapFS{}, false, nil, nil, false)
 		check.NoError(t, err)
 		check.Number(t, len(sources.goSources), 0)
 		check.Number(t, len(sources.sqlSources), 0)
@@ -37,19 +37,19 @@ func TestCollectFileSources(t *testing.T) {
 			"00000_foo.sql": sqlMapFile,
 		}
 		// strict disable - should not error
-		sources, err := collectFilesystemSources(mapFS, false, nil, nil)
+		sources, err := collectFilesystemSources(mapFS, false, nil, nil, false)
 		check.NoError(t, err)
 		check.Number(t, len(sources.goSources), 0)
 		check.Number(t, len(sources.sqlSources), 0)
 		// strict enabled - should error
-		_, err = collectFilesystemSources(mapFS, true, nil, nil)
+		_, err = collectFilesystemSources(mapFS, true, nil, nil, false)
 		check.HasError(t, err)
 		check.Contains(t, err.Error(), "migration version must be greater than zero")
 	})
 	t.Run("collect", func(t *testing.T) {
 		fsys, err := fs.Sub(newSQLOnlyFS(), "migrations")
 		check.NoError(t, err)
-		sources, err := collectFilesystemSources(fsys, false, nil, nil)
+		sources, err := collectFilesystemSources(fsys, false, nil, nil, false)
 		check.NoError(t, err)
 		check.Number(t, len(sources.sqlSources), 4)
 		check.Number(t, len(sources.goSources), 0)
@@ -77,6 +77,7 @@ func TestCollectFileSources(t *testing.T) {
 				"00110_qux.sql": true,
 			},
 			nil,
+			false,
 		)
 		check.NoError(t, err)
 		check.Number(t, len(sources.sqlSources), 2)
@@ -97,7 +98,7 @@ func TestCollectFileSources(t *testing.T) {
 		mapFS["migrations/not_valid.sql"] = &fstest.MapFile{Data: []byte("invalid")}
 		fsys, err := fs.Sub(mapFS, "migrations")
 		check.NoError(t, err)
-		_, err = collectFilesystemSources(fsys, true, nil, nil)
+		_, err = collectFilesystemSources(fsys, true, nil, nil, false)
 		check.HasError(t, err)
 		check.Contains(t, err.Error(), `failed to parse numeric component from "not_valid.sql"`)
 	})
@@ -109,7 +110,7 @@ func TestCollectFileSources(t *testing.T) {
 			"4_qux.sql":     sqlMapFile,
 			"5_foo_test.go": {Data: []byte(`package goose_test`)},
 		}
-		sources, err := collectFilesystemSources(mapFS, false, nil, nil)
+		sources, err := collectFilesystemSources(mapFS, false, nil, nil, false)
 		check.NoError(t, err)
 		check.Number(t, len(sources.sqlSources), 4)
 		check.Number(t, len(sources.goSources), 0)
@@ -124,7 +125,7 @@ func TestCollectFileSources(t *testing.T) {
 			"no_a_real_migration.sql":  {Data: []byte(`SELECT 1;`)},
 			"some/other/dir/2_foo.sql": {Data: []byte(`SELECT 1;`)},
 		}
-		sources, err := collectFilesystemSources(mapFS, false, nil, nil)
+		sources, err := collectFilesystemSources(mapFS, false, nil, nil, false)
 		check.NoError(t, err)
 		check.Number(t, len(sources.sqlSources), 2)
 		check.Number(t, len(sources.goSources), 1)
@@ -143,7 +144,8 @@ func TestCollectFileSources(t *testing.T) {
 			"001_foo.sql": sqlMapFile,
 			"01_bar.sql":  sqlMapFile,
 		}
-		_, err := collectFilesystemSources(mapFS, false, nil, nil)
+
+		_, err := collectFilesystemSources(mapFS, false, nil, nil, false)
 		check.HasError(t, err)
 		check.Contains(t, err.Error(), "found duplicate migration version 1")
 	})
@@ -159,7 +161,7 @@ func TestCollectFileSources(t *testing.T) {
 			t.Helper()
 			f, err := fs.Sub(mapFS, dirpath)
 			check.NoError(t, err)
-			got, err := collectFilesystemSources(f, false, nil, nil)
+			got, err := collectFilesystemSources(f, false, nil, nil, false)
 			check.NoError(t, err)
 			check.Number(t, len(got.sqlSources), len(sqlSources))
 			check.Number(t, len(got.goSources), 0)
@@ -180,6 +182,25 @@ func TestCollectFileSources(t *testing.T) {
 		})
 		assertDirpath("dir3", nil)
 	})
+	t.Run("recursive", func(t *testing.T) {
+		mapFS := fstest.MapFS{
+			"876_a.sql":           sqlMapFile,
+			"dir1/101_a.sql":      sqlMapFile,
+			"dir1/102_b.sql":      sqlMapFile,
+			"dir1/103_c.sql":      sqlMapFile,
+			"dir2/201_a.sql":      sqlMapFile,
+			"dir2/dir3/301_a.sql": sqlMapFile,
+		}
+		sources, err := collectFilesystemSources(mapFS, false, nil, nil, true)
+		check.NoError(t, err)
+		check.Equal(t, len(sources.sqlSources), 6)
+		check.Equal(t, sources.sqlSources[0].Path, "876_a.sql")
+		check.Equal(t, sources.sqlSources[1].Path, "dir1/101_a.sql")
+		check.Equal(t, sources.sqlSources[2].Path, "dir1/102_b.sql")
+		check.Equal(t, sources.sqlSources[3].Path, "dir1/103_c.sql")
+		check.Equal(t, sources.sqlSources[4].Path, "dir2/201_a.sql")
+		check.Equal(t, sources.sqlSources[5].Path, "dir2/dir3/301_a.sql")
+	})
 }
 
 func TestMerge(t *testing.T) {
@@ -195,7 +216,7 @@ func TestMerge(t *testing.T) {
 		}
 		fsys, err := fs.Sub(mapFS, "migrations")
 		check.NoError(t, err)
-		sources, err := collectFilesystemSources(fsys, false, nil, nil)
+		sources, err := collectFilesystemSources(fsys, false, nil, nil, false)
 		check.NoError(t, err)
 		check.Equal(t, len(sources.sqlSources), 1)
 		check.Equal(t, len(sources.goSources), 2)
@@ -243,7 +264,7 @@ func TestMerge(t *testing.T) {
 		}
 		fsys, err := fs.Sub(mapFS, "migrations")
 		check.NoError(t, err)
-		sources, err := collectFilesystemSources(fsys, false, nil, nil)
+		sources, err := collectFilesystemSources(fsys, false, nil, nil, false)
 		check.NoError(t, err)
 		t.Run("unregistered_all", func(t *testing.T) {
 			migrations, err := merge(sources, map[int64]*Migration{
@@ -267,7 +288,7 @@ func TestMerge(t *testing.T) {
 		}
 		fsys, err := fs.Sub(mapFS, "migrations")
 		check.NoError(t, err)
-		sources, err := collectFilesystemSources(fsys, false, nil, nil)
+		sources, err := collectFilesystemSources(fsys, false, nil, nil, false)
 		check.NoError(t, err)
 		t.Run("unregistered_all", func(t *testing.T) {
 			migrations, err := merge(sources, map[int64]*Migration{

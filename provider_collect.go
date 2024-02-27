@@ -15,6 +15,54 @@ type fileSources struct {
 	goSources  []Source
 }
 
+func checkFile(fullpath string, strict bool, excludePaths map[string]bool, excludeVersions map[int64]bool, versionToBaseLookup map[int64]string) (Source, bool, error) {
+	base := filepath.Base(fullpath)
+	if strings.HasSuffix(base, "_test.go") {
+		return Source{}, false, nil
+	}
+	if excludePaths[base] {
+		// TODO(mf): log this?
+		return Source{}, false, nil
+	}
+	// If the filename has a valid looking version of the form: NUMBER_.{sql,go}, then use
+	// that as the version. Otherwise, ignore it. This allows users to have arbitrary
+	// filenames, but still have versioned migrations within the same directory. For
+	// example, a user could have a helpers.go file which contains unexported helper
+	// functions for migrations.
+	version, err := NumericComponent(base)
+	if err != nil {
+		if strict {
+			return Source{}, false, fmt.Errorf("failed to parse numeric component from %q: %w", base, err)
+		}
+		return Source{}, false, nil
+	}
+	if excludeVersions[version] {
+		// TODO: log this?
+		return Source{}, false, nil
+	}
+	// Ensure there are no duplicate versions.
+	if existing, ok := versionToBaseLookup[version]; ok {
+		return Source{}, false, fmt.Errorf("found duplicate migration version %d:\n\texisting:%v\n\tcurrent:%v",
+			version,
+			existing,
+			base,
+		)
+	}
+	source := Source{Path: fullpath, Version: version}
+	switch filepath.Ext(base) {
+	case ".sql":
+		source.Type = TypeSQL
+	case ".go":
+		source.Type = TypeGo
+	default:
+		// Should never happen since we already filtered out all other file types.
+		return Source{}, false, fmt.Errorf("invalid file extension: %q", base)
+	}
+	// Add the version to the lookup map.
+	versionToBaseLookup[version] = base
+	return source, true, nil
+}
+
 // collectFilesystemSources scans the file system for migration files that have a numeric prefix
 // (greater than one) followed by an underscore and a file extension of either .go or .sql. fsys may
 // be nil, in which case an empty fileSources is returned.
@@ -29,6 +77,7 @@ func collectFilesystemSources(
 	strict bool,
 	excludePaths map[string]bool,
 	excludeVersions map[int64]bool,
+	recursive bool,
 ) (*fileSources, error) {
 	if fsys == nil {
 		return new(fileSources), nil
@@ -39,65 +88,69 @@ func collectFilesystemSources(
 		"*.sql",
 		"*.go",
 	} {
-		files, err := fs.Glob(fsys, pattern)
+		files, err := func() ([]string, error) {
+			if recursive {
+				var files []string
+				err := fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
+					if err != nil {
+						return err
+					}
+					if d.IsDir() {
+						subFs, err := fs.Sub(fsys, path)
+						if err != nil {
+							return err
+						}
+						dirFiles, err := fs.Glob(subFs, pattern)
+						if err != nil {
+							return err
+						}
+						for _, file := range dirFiles {
+							files = append(files, filepath.Join(path, file))
+						}
+					}
+					return nil
+				})
+				if err != nil {
+					return nil, err
+				}
+				return files, nil
+			} else {
+				files, err := fs.Glob(fsys, pattern)
+				if err != nil {
+					return nil, fmt.Errorf("failed to glob pattern %q: %w", pattern, err)
+				}
+				return files, nil
+			}
+		}()
 		if err != nil {
-			return nil, fmt.Errorf("failed to glob pattern %q: %w", pattern, err)
+			return nil, err
 		}
 		for _, fullpath := range files {
-			base := filepath.Base(fullpath)
-			if strings.HasSuffix(base, "_test.go") {
-				continue
-			}
-			if excludePaths[base] {
-				// TODO(mf): log this?
-				continue
-			}
-			// If the filename has a valid looking version of the form: NUMBER_.{sql,go}, then use
-			// that as the version. Otherwise, ignore it. This allows users to have arbitrary
-			// filenames, but still have versioned migrations within the same directory. For
-			// example, a user could have a helpers.go file which contains unexported helper
-			// functions for migrations.
-			version, err := NumericComponent(base)
+			source, isValid, err := checkFile(
+				fullpath,
+				strict,
+				excludePaths,
+				excludeVersions,
+				versionToBaseLookup,
+			)
 			if err != nil {
-				if strict {
-					return nil, fmt.Errorf("failed to parse numeric component from %q: %w", base, err)
-				}
+				return nil, err
+			}
+			if !isValid {
 				continue
 			}
-			if excludeVersions[version] {
-				// TODO: log this?
-				continue
-			}
-			// Ensure there are no duplicate versions.
-			if existing, ok := versionToBaseLookup[version]; ok {
-				return nil, fmt.Errorf("found duplicate migration version %d:\n\texisting:%v\n\tcurrent:%v",
-					version,
-					existing,
-					base,
-				)
-			}
-			switch filepath.Ext(base) {
-			case ".sql":
-				sources.sqlSources = append(sources.sqlSources, Source{
-					Type:    TypeSQL,
-					Path:    fullpath,
-					Version: version,
-				})
-			case ".go":
-				sources.goSources = append(sources.goSources, Source{
-					Type:    TypeGo,
-					Path:    fullpath,
-					Version: version,
-				})
+			switch source.Type {
+			case TypeSQL:
+				sources.sqlSources = append(sources.sqlSources, source)
+			case TypeGo:
+				sources.goSources = append(sources.goSources, source)
 			default:
-				// Should never happen since we already filtered out all other file types.
-				return nil, fmt.Errorf("invalid file extension: %q", base)
+				return nil, errors.New("unreachable")
 			}
-			// Add the version to the lookup map.
-			versionToBaseLookup[version] = base
 		}
 	}
 	return sources, nil
+
 }
 
 func newSQLMigration(source Source) *Migration {
