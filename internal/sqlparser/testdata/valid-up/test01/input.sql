@@ -1,4 +1,4 @@
-    -- +goose UP
+-- +goose UP
 CREATE TABLE emp (
     empname text,
     salary integer,

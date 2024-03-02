@@ -557,6 +557,24 @@ func Test_extractAnnotation(t *testing.T) {
 			want:    annotationUp,
 			wantErr: check.NoError,
 		},
+		{
+			name:    "statement with leading whitespace - error",
+			input:   " -- +goose   UP 	",
+			want:    "",
+			wantErr: check.HasError,
+		},
+		{
+			name:    "statement with leading \t - error",
+			input:   "\t-- +goose   UP 	",
+			want:    "",
+			wantErr: check.HasError,
+		},
+		{
+			name:    "multiple +goose annotations - error",
+			input:   "-- +goose +goose Up",
+			want:    "",
+			wantErr: check.HasError,
+		},
 	}
 
 	for _, tt := range tests {

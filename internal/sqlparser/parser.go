@@ -317,15 +317,20 @@ var (
 // All annotations must be in format: "-- +goose [annotation]"
 // Allowed annotations: Up, Down, StatementBegin, StatementEnd, NO TRANSACTION, ENVSUB ON, ENVSUB OFF
 func extractAnnotation(line string) (annotation, error) {
-	// Remove leading and trailing whitespace from line.
-	cmd := strings.TrimSpace(line)
+	// If line contains leading whitespace - return error.
+	if strings.HasPrefix(line, " ") || strings.HasPrefix(line, "\t") {
+		return "", fmt.Errorf("%q contains leading whitespace: %w", line, errInvalidAnnotation)
+	}
+
 	// Extract the annotation from the line, by removing the leading "--"
-	cmd = strings.ReplaceAll(cmd, "--", "")
-	// Remove leading and trailing whitespace from the annotation command.
-	cmd = strings.TrimSpace(cmd)
+	cmd := strings.ReplaceAll(line, "--", "")
 
 	// Extract the annotation from the line, by removing the leading "+goose"
-	cmd = strings.TrimPrefix(cmd, "+goose")
+	cmd = strings.Replace(cmd, "+goose", "", 1)
+
+	if strings.Contains(cmd, "+goose") {
+		return "", fmt.Errorf("%q contains multiple '+goose' annotations: %w", cmd, errInvalidAnnotation)
+	}
 
 	// Remove leading and trailing whitespace from the annotation command.
 	cmd = strings.TrimSpace(cmd)
@@ -342,7 +347,7 @@ func extractAnnotation(line string) (annotation, error) {
 		}
 	}
 
-	return "", fmt.Errorf("%q: %w", cmd, errInvalidAnnotation)
+	return "", fmt.Errorf("%q not supported: %w", cmd, errInvalidAnnotation)
 }
 
 func missingSemicolonError(state parserState, direction Direction, s string) error {
