@@ -3,15 +3,16 @@ package main_test
 import (
 	"context"
 	"fmt"
-	"github.com/jackc/pgx/v5/pgxpool"
-	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/ory/dockertest/v3"
-	"github.com/ory/dockertest/v3/docker"
 	main "go-pgx-migration"
 	"log"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/ory/dockertest/v3"
+	"github.com/ory/dockertest/v3/docker"
 )
 
 var pool *pgxpool.Pool
@@ -59,7 +60,14 @@ func TestMain(m *testing.M) {
 	}); err != nil {
 		log.Fatalf("Could not connect to docker %v", err)
 	}
-	os.Exit(m.Run())
+	code := m.Run()
+
+	if err := dockerPool.Purge(resource); err != nil {
+		// You should handle this error
+		log.Fatalf("Could not purge resource: %v", err)
+	}
+
+	os.Exit(code)
 }
 
 func TestMigration(t *testing.T) {
