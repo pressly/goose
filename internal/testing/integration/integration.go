@@ -34,6 +34,7 @@ func testDatabase(t *testing.T, dialect database.Dialect, db *sql.DB, migrations
 	// initialize a new goose provider
 	p, err := goose.NewProvider(dialect, db, os.DirFS(migrationsDir))
 	require.NoError(t, err)
+	require.Equal(t, len(wantFiles), len(p.ListSources()), "number of migrations")
 	// run all up migrations
 	results, err := p.Up(ctx)
 	require.NoError(t, err)
