@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/pressly/goose/v3/database"
-	"github.com/pressly/goose/v3/internal/testing/integration/testdb"
+	"github.com/pressly/goose/v3/internal/testing/testdb"
 	"github.com/stretchr/testify/require"
 )
 
