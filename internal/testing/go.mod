@@ -1,4 +1,4 @@
-module github.com/pressly/goose/v3/internal/testing/integration
+module github.com/pressly/goose/v3/internal/testing
 
 go 1.22.1
 

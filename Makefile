@@ -1,4 +1,4 @@
-GO_TEST_FLAGS ?= -race -count=1 -v -timeout=10m
+GO_TEST_FLAGS ?= -race -count=1 -v -timeout=5m
 
 # These are the default values for the test database. They can be overridden
 DB_USER ?= dbuser
@@ -44,8 +44,15 @@ test-packages-short:
 
 test-e2e: test-e2e-postgres test-e2e-mysql test-e2e-clickhouse test-e2e-vertica test-e2e-ydb test-e2e-turso test-e2e-duckdb
 
-test-e2e-postgres:
-	go test $(GO_TEST_FLAGS) ./tests/e2e -dialect=postgres
+add-gowork:
+	@[ -f go.work ] || go work init
+	@[ -f go.work.sum ] || go work use -r .
+
+remove-gowork:
+	rm -rf go.work go.work.sum
+
+test-postgres: add-gowork
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run=TestPostgres
 
 test-e2e-mysql:
 	go test $(GO_TEST_FLAGS) ./tests/e2e -dialect=mysql

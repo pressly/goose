@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/pressly/goose/v3"
@@ -12,15 +13,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func collectMigrations(t *testing.T, dir string) []string {
+type collected struct {
+	fullpath string
+	version  int64
+}
+
+func collectMigrations(t *testing.T, dir string) []collected {
 	t.Helper()
 
 	files, err := os.ReadDir(dir)
 	require.NoError(t, err)
-	all := make([]string, 0, len(files))
+	all := make([]collected, 0, len(files))
 	for _, f := range files {
 		require.False(t, f.IsDir())
-		all = append(all, f.Name())
+		v, err := goose.NumericComponent(f.Name())
+		require.NoError(t, err)
+		all = append(all, collected{
+			fullpath: filepath.Base(f.Name()),
+			version:  v,
+		})
 	}
 	return all
 }
@@ -40,7 +51,8 @@ func testDatabase(t *testing.T, dialect database.Dialect, db *sql.DB, migrations
 	require.NoError(t, err)
 	require.Equal(t, len(wantFiles), len(results), "number of migrations applied")
 	for i, r := range results {
-		require.Equal(t, wantFiles[i], r.Source.Path, "migration file")
+		require.Equal(t, wantFiles[i].fullpath, r.Source.Path, "migration file")
+		require.Equal(t, wantFiles[i].version, r.Source.Version, "migration version")
 	}
 	// check the current version
 	currentVersion, err := p.GetDBVersion(ctx)
@@ -61,7 +73,7 @@ func testDatabase(t *testing.T, dialect database.Dialect, db *sql.DB, migrations
 		if errors.Is(err, goose.ErrNoNextVersion) {
 			break
 		}
-		require.Equal(t, wantFiles[i], result.Source.Path, "migration file")
+		require.Equal(t, wantFiles[i].fullpath, result.Source.Path, "migration file")
 	}
 	// check the current version
 	currentVersion, err = p.GetDBVersion(ctx)

@@ -13,3 +13,6 @@
 
 dist/
 release_notes.txt
+
+go.work
+go.work.sum
