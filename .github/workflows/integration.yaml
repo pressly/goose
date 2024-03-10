@@ -1,4 +1,4 @@
-name: Goose end-end tests
+name: Goose integration tests
 
 on:
   push:
@@ -8,13 +8,9 @@ on:
 
 jobs:
   test:
-    name: Run e2e tests
+    name: Run integration tests
     timeout-minutes: 10
     runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 2
-      matrix:
-        dialect: ["postgres", "mysql", "vertica", "clickhouse", "ydb", "turso"]
 
     steps:
       - name: Checkout code
@@ -23,6 +19,6 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: "stable"
-      - name: Run e2e ${{ matrix.dialect }} tests
+      - name: Run full integration tests
         run: |
-          make test-e2e-${{ matrix.dialect }}
+          make integration
