@@ -15,7 +15,8 @@ func TestGoMigrationByOne(t *testing.T) {
 	tempDir := t.TempDir()
 	db, err := sql.Open("sqlite", filepath.Join(tempDir, "test.db"))
 	check.NoError(t, err)
-	goose.SetDialect(string(goose.DialectSQLite3))
+	err = goose.SetDialect(string(goose.DialectSQLite3))
+	check.NoError(t, err)
 	// Create goose table.
 	current, err := goose.EnsureDBVersion(db)
 	check.NoError(t, err)
