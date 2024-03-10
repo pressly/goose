@@ -82,7 +82,6 @@ func newVertica(opts ...OptionsFunc) (*sql.DB, func(), error) {
 	// might not be ready to accept connections yet.
 	backoff := retry.WithMaxDuration(1*time.Minute, retry.NewConstant(2*time.Second))
 	if err := retry.Do(context.Background(), backoff, func(ctx context.Context) error {
-		fmt.Println("trying to connect to vertica")
 		var err error
 		db, err = sql.Open("vertica", verticaInfo)
 		if err != nil {
