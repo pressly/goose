@@ -20,6 +20,9 @@ import (
 
 func TestPostgresSessionLocker(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
 
 	db, cleanup, err := testdb.NewPostgres()
 	require.NoError(t, err)
@@ -165,9 +168,12 @@ func TestPostgresSessionLocker(t *testing.T) {
 
 func TestPostgresProviderLocking(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
 
-	// The migrations are written in such a way that they cannot be applied concurrently, they will
-	// fail 99.9999% of the time. This test ensures that the advisory session lock mode works as
+	// The migrations are written in such a way they cannot be applied in parallel, they will fail
+	// 99.9999% of the time. This test ensures that the advisory session lock mode works as
 	// expected.
 
 	// TODO(mf): small improvement here is to use the SAME postgres instance but different databases

@@ -44,6 +44,9 @@ test-packages-short:
 
 test-e2e: test-e2e-postgres test-e2e-mysql test-e2e-clickhouse test-e2e-vertica test-e2e-ydb test-e2e-turso test-e2e-duckdb
 
+#
+# Integration-related targets
+#
 add-gowork:
 	@[ -f go.work ] || go work init
 	@[ -f go.work.sum ] || go work use -r .
@@ -51,26 +54,36 @@ add-gowork:
 remove-gowork:
 	rm -rf go.work go.work.sum
 
+test-postgres-long: add-gowork test-postgres
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='(TestPostgresProviderLocking|TestPostgresSessionLocker)'
+
 test-postgres: add-gowork
-	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run=TestPostgres
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestPostgres'
 
-test-e2e-mysql:
-	go test $(GO_TEST_FLAGS) ./tests/e2e -dialect=mysql
+test-clickhouse: add-gowork
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='(TestClickhouse|TestClickhouseRemote)'
 
-test-e2e-clickhouse:
-	go test $(GO_TEST_FLAGS) ./tests/clickhouse -test.short
+test-mysql: add-gowork
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestMySQL'
 
-test-e2e-vertica:
-	go test $(GO_TEST_FLAGS) ./tests/vertica
+test-turso: add-gowork
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestTurso'
 
-test-e2e-ydb:
-	go test $(GO_TEST_FLAGS) -parallel=1 ./tests/e2e -dialect=ydb
+test-duckdb: add-gowork
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestDuckDB'
 
-test-e2e-turso:
-	go test $(GO_TEST_FLAGS) -parallel=1 ./tests/e2e -dialect=turso
+test-vertica: add-gowork
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestVertica'
 
-test-e2e-duckdb:
-	go test $(GO_TEST_FLAGS) -parallel=1 ./tests/e2e -dialect=duckdb
+test-ydb: add-gowork
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestYDB'
+
+test-integration: add-gowork
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration/...
+
+#
+# Docker-related targets
+#
 
 docker-cleanup:
 	docker stop -t=0 $$(docker ps --filter="label=goose_test" -aq)

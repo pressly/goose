@@ -15,7 +15,7 @@ import (
 const (
 	// https://hub.docker.com/r/vertica/vertica-ce
 	VERTICA_IMAGE   = "vertica/vertica-ce"
-	VERTICA_VERSION = "23.3.0-0"
+	VERTICA_VERSION = "24.1.0-0"
 	VERTICA_DB      = "testdb"
 )
 
@@ -76,7 +76,7 @@ func newVertica(opts ...OptionsFunc) (*sql.DB, func(), error) {
 
 	var db *sql.DB
 	// Give vertica a head start since the container takes a little bit to start up.
-	time.Sleep(time.Second * 15)
+	time.Sleep(45 * time.Second)
 
 	// Exponential backoff-retry, because the application in the container
 	// might not be ready to accept connections yet.
