@@ -1,6 +1,7 @@
 package testdb
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
+	"github.com/sethvargo/go-retry"
 	_ "github.com/vertica/vertica-sql-go"
 )
 
@@ -75,21 +77,22 @@ func newVertica(opts ...OptionsFunc) (*sql.DB, func(), error) {
 	)
 
 	var db *sql.DB
-	// Give vertica a head start since the container takes a little bit to start up.
-	time.Sleep(45 * time.Second)
 
 	// Exponential backoff-retry, because the application in the container
 	// might not be ready to accept connections yet.
-	if err := pool.Retry(
-		func() error {
-			var err error
-			db, err = sql.Open("vertica", verticaInfo)
-			if err != nil {
-				return err
-			}
-			return db.Ping()
-		},
-	); err != nil {
+	backoff := retry.WithMaxDuration(1*time.Minute, retry.NewConstant(2*time.Second))
+	if err := retry.Do(context.Background(), backoff, func(ctx context.Context) error {
+		fmt.Println("trying to connect to vertica")
+		var err error
+		db, err = sql.Open("vertica", verticaInfo)
+		if err != nil {
+			return retry.RetryableError(fmt.Errorf("failed to open vertica connection: %v", err))
+		}
+		if err := db.Ping(); err != nil {
+			return retry.RetryableError(fmt.Errorf("failed to ping vertica: %v", err))
+		}
+		return nil
+	}); err != nil {
 		return nil, cleanup, fmt.Errorf("could not connect to docker database: %v", err)
 	}
 	return db, cleanup, nil
