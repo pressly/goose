@@ -1,10 +1,16 @@
 name: golangci
+
 on:
   push:
     branches:
       - master
       - main
   pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   golangci:
     name: lint
