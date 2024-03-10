@@ -21,4 +21,4 @@ jobs:
           go-version: "stable"
       - name: Run full integration tests
         run: |
-          make integration
+          make test-integration
