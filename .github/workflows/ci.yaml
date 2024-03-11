@@ -6,6 +6,10 @@ on:
       - master
   pull_request:
 
+concurrency: 
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: Run unit tests
@@ -38,3 +42,7 @@ jobs:
           go vet ./...
           go build ./...
           make test-packages
+      - name: Gorelease dry-run
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.go-version == '1.22'
+        run: |
+          goreleaser build
