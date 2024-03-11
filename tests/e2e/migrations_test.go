@@ -29,6 +29,9 @@ func TestMigrateUpWithReset(t *testing.T) {
 	currentVersion, err := goose.GetDBVersion(db)
 	check.NoError(t, err)
 	check.Number(t, currentVersion, migrations[len(migrations)-1].Version)
+	hasPending, err := goose.HasPending(db, migrationsDir)
+	check.NoError(t, err)
+	check.Bool(t, hasPending, false)
 	// Validate the db migration version actually matches what goose claims it is
 	gotVersion, err := getCurrentGooseVersion(db, goose.TableName())
 	check.NoError(t, err)
@@ -41,6 +44,9 @@ func TestMigrateUpWithReset(t *testing.T) {
 	currentVersion, err = goose.GetDBVersion(db)
 	check.NoError(t, err)
 	check.Number(t, currentVersion, 0)
+	hasPending, err = goose.HasPending(db, migrationsDir)
+	check.NoError(t, err)
+	check.Bool(t, hasPending, true)
 }
 
 func TestMigrateUpWithRedo(t *testing.T) {
@@ -55,6 +61,9 @@ func TestMigrateUpWithRedo(t *testing.T) {
 	startingVersion, err := goose.EnsureDBVersion(db)
 	check.NoError(t, err)
 	check.Number(t, startingVersion, 0)
+	hasPending, err := goose.HasPending(db, migrationsDir)
+	check.NoError(t, err)
+	check.Bool(t, hasPending, true)
 	// Migrate all
 	for _, migration := range migrations {
 		err = migration.Up(db)
@@ -75,6 +84,9 @@ func TestMigrateUpWithRedo(t *testing.T) {
 	currentVersion, err := goose.GetDBVersion(db)
 	check.NoError(t, err)
 	check.Number(t, currentVersion, maxVersion)
+	hasPending, err = goose.HasPending(db, migrationsDir)
+	check.NoError(t, err)
+	check.Bool(t, hasPending, false)
 }
 
 func TestMigrateUpTo(t *testing.T) {
@@ -259,6 +271,9 @@ func TestMigrateFull(t *testing.T) {
 		currentVersion, err := goose.GetDBVersion(db)
 		check.NoError(t, err)
 		check.Number(t, currentVersion, migrations[len(migrations)-1].Version)
+		hasPending, err := goose.HasPending(db, migrationsDir)
+		check.NoError(t, err)
+		check.Bool(t, hasPending, false)
 		// Validate the db migration version actually matches what goose claims it is
 		gotVersion, err := getCurrentGooseVersion(db, goose.TableName())
 		check.NoError(t, err)
