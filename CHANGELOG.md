@@ -7,6 +7,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [v3.19.0] - 2024-03-11
+
+- Add [duckdb](https://duckdb.org/) support
+- Fix selecting dialect for `redshift`
+- Add `GOOSE_MIGRATION_DIR` documentation
+- Bump github.com/opencontainers/runc to `v1.1.12` (security fix)
+- Update CI tests for go1.22
+- Make goose annotations case-insensitive
+  - The `goose` annotations are now case-insensitive. This means that `-- +goose Up` and `-- +goose
+up` are now equivalent. This change was made to improve the user experience and to make the
+    annotations more consistent.
+
 ## [v3.18.0] - 2024-01-31
 
 - Add environment variable substitution for SQL migrations. (#604)
@@ -127,7 +139,8 @@ Here's a quick summary:
 - Add new `context.Context`-aware functions and methods, for both sql and go migrations.
 - Return error when no migration files found or dir is not a directory.
 
-[Unreleased]: https://github.com/pressly/goose/compare/v3.18.0...HEAD
+[Unreleased]: https://github.com/pressly/goose/compare/v3.19.0...HEAD
+[v3.19.0]: https://github.com/pressly/goose/compare/v3.18.0...v3.19.0
 [v3.18.0]: https://github.com/pressly/goose/compare/v3.17.0...v3.18.0
 [v3.17.0]: https://github.com/pressly/goose/compare/v3.16.0...v3.17.0
 [v3.16.0]: https://github.com/pressly/goose/compare/v3.15.1...v3.16.0
