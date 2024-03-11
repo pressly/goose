@@ -45,4 +45,5 @@ jobs:
       - name: Gorelease dry-run
         if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.go-version == '1.22'
         run: |
+          go install github.com/goreleaser/goreleaser@latest
           goreleaser build
