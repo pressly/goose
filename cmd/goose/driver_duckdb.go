@@ -1,6 +1,5 @@
-//go:build !no_duckdb && !(windows && arm64)
-// +build !no_duckdb
-// +build !windows !arm64
+//go:build !no_duckdb && !windows && !linux && !darwin
+// +build !no_duckdb,!windows,!linux,!darwin
 
 package main
 
