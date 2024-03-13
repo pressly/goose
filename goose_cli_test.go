@@ -185,7 +185,7 @@ func buildGooseCLI(t *testing.T, lite bool) gooseBinary {
 		"-ldflags=-s -w -X main.version=" + gooseTestBinaryVersion,
 	}
 	if lite {
-		args = append(args, "-tags=no_clickhouse no_mssql no_mysql no_vertica no_postgres no_duckdb")
+		args = append(args, "-tags=no_clickhouse no_mssql no_mysql no_vertica no_postgres")
 	}
 	args = append(args, "./cmd/goose")
 	build := exec.Command("go", args...)

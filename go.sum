@@ -169,8 +169,6 @@ github.com/leodido/go-urn v1.2.0/go.mod h1:+8+nEpDfqqsY+g338gtMEUOtuK+4dEMhiQEgx
 github.com/lib/pq v0.0.0-20180327071824-d34b9ff171c2 h1:hRGSmZu7j271trc9sneMrpOW7GN5ngLm8YUZIPzf394=
 github.com/libsql/sqlite-antlr4-parser v0.0.0-20230802215326-5cb5bb604475 h1:6PfEMwfInASh9hkN83aR0j4W/eKaAZt/AURtXAXlas0=
 github.com/libsql/sqlite-antlr4-parser v0.0.0-20230802215326-5cb5bb604475/go.mod h1:20nXSmcf0nAscrzqsXeC2/tA3KkV2eCiJqYuyAgl+ss=
-github.com/marcboeker/go-duckdb v1.5.6 h1:5+hLUXRuKlqARcnW4jSsyhCwBRlu4FGjM0UTf2Yq5fw=
-github.com/marcboeker/go-duckdb v1.5.6/go.mod h1:wm91jO2GNKa6iO9NTcjXIRsW+/ykPoJbQcHSXhdAl28=
 github.com/mattn/go-isatty v0.0.12/go.mod h1:cbi8OIDigv2wuxKPP5vlRcQ1OAZbq2CE4Kysco4FUpU=
 github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWEY=
 github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
