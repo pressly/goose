@@ -7,6 +7,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [v3.19.2] - 2024-03-13
+
+- Remove duckdb support. The driver uses Cgo and we've decided to remove it until we can find a
+  better solution. If you were using duckdb with goose, please let us know by opening an issue.
+
 ## [v3.19.1] - 2024-03-11
 
 - Fix selecting dialect for `redshift`
@@ -151,7 +156,8 @@ Here's a quick summary:
 - Add new `context.Context`-aware functions and methods, for both sql and go migrations.
 - Return error when no migration files found or dir is not a directory.
 
-[Unreleased]: https://github.com/pressly/goose/compare/v3.19.1...HEAD
+[Unreleased]: https://github.com/pressly/goose/compare/v3.19.2...HEAD
+[v3.19.2]: https://github.com/pressly/goose/compare/v3.19.1...v3.19.2
 [v3.19.1]: https://github.com/pressly/goose/compare/v3.19.0...v3.19.1
 [v3.19.0]: https://github.com/pressly/goose/compare/v3.18.0...v3.19.0
 [v3.18.0]: https://github.com/pressly/goose/compare/v3.17.0...v3.18.0
