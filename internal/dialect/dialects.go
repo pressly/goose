@@ -14,5 +14,4 @@ const (
 	Vertica    Dialect = "vertica"
 	Ydb        Dialect = "ydb"
 	Turso      Dialect = "turso"
-	Duckdb     Dialect = "duckdb"
 )
