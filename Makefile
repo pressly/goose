@@ -52,6 +52,10 @@ add-gowork:
 remove-gowork:
 	rm -rf go.work go.work.sum
 
+gomod:
+	go mod tidy
+	cd ./internal/testing/integration && go mod tidy
+
 test-postgres-long: add-gowork test-postgres
 	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='(TestPostgresProviderLocking|TestPostgresSessionLocker)'
 

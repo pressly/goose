@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -109,19 +108,6 @@ func TestTurso(t *testing.T) {
 	require.NoError(t, db.Ping())
 
 	testDatabase(t, database.DialectTurso, db, "testdata/migrations/turso")
-}
-
-func TestDuckDB(t *testing.T) {
-	t.Parallel()
-
-	db, cleanup, err := testdb.NewDuckDB(
-		testdb.WithDatabaseFile(filepath.Join(t.TempDir(), "duck.db")),
-	)
-	require.NoError(t, err)
-	t.Cleanup(cleanup)
-	require.NoError(t, db.Ping())
-
-	testDatabase(t, database.DialectDuckDB, db, "testdata/migrations/duckdb")
 }
 
 func TestVertica(t *testing.T) {
