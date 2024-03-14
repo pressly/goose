@@ -67,9 +67,6 @@ test-mysql: add-gowork
 test-turso: add-gowork
 	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestTurso'
 
-test-duckdb: add-gowork
-	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestDuckDB'
-
 test-vertica: add-gowork
 	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestVertica'
 

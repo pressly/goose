@@ -42,3 +42,12 @@ jobs:
           go vet ./...
           go build ./...
           make test-packages
+      - name: Install GoReleaser
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.go-version == '1.22'
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          install-only: true
+      - name: Gorelease dry-run
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.go-version == '1.22'
+        run: |
+          goreleaser release --skip=publish --snapshot --fail-fast --clean
