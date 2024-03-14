@@ -55,4 +55,4 @@ the chosen drivers. We do not test every possible combination of operations, nor
 possible edge case. We rely on the unit tests in the goose package to cover library-specific logic.
 
 [goose_module]: https://pkg.go.dev/github.com/pressly/goose/v3
-[migrations_dir]: ./internal/testing/integration/testdata/migrations
+[migrations_dir]: ./testdata/migrations
