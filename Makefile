@@ -56,6 +56,9 @@ gomod:
 	go mod tidy
 	cd ./internal/testing/integration && go mod tidy
 
+upgrade-integration-deps:
+	cd ./internal/testing/integration && go get -u ./... && go mod tidy
+
 test-postgres-long: add-gowork test-postgres
 	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='(TestPostgresProviderLocking|TestPostgresSessionLocker)'
 
