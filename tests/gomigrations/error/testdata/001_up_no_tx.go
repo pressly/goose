@@ -11,7 +11,7 @@ func init() {
 }
 
 func up001(db *sql.DB) error {
-	q := "CREATE TABLE foo (id INT)"
+	q := "CREATE TABLE foo (id INTEGER)"
 	_, err := db.Exec(q)
 	return err
 }

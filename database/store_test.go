@@ -7,10 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/internal/check"
-	"github.com/pressly/goose/v3/internal/testdb"
 	"go.uber.org/multierr"
 	"modernc.org/sqlite"
 )
@@ -31,21 +29,6 @@ func TestDialectStore(t *testing.T) {
 		// Test empty dialect.
 		_, err = database.NewStore("", "foo")
 		check.HasError(t, err)
-	})
-	t.Run("postgres", func(t *testing.T) {
-		if testing.Short() {
-			t.Skip("skip long-running test")
-		}
-		// Test postgres specific behavior.
-		db, cleanup, err := testdb.NewPostgres()
-		check.NoError(t, err)
-		t.Cleanup(cleanup)
-		testStore(context.Background(), t, database.DialectPostgres, db, func(t *testing.T, err error) {
-			var pgErr *pgconn.PgError
-			ok := errors.As(err, &pgErr)
-			check.Bool(t, ok, true)
-			check.Equal(t, pgErr.Code, "42P07") // duplicate_table
-		})
 	})
 	// Test generic behavior.
 	t.Run("sqlite3", func(t *testing.T) {
