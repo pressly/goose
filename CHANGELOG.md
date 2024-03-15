@@ -27,15 +27,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Use [v3.19.1] instead. This was tagged but not released and does not contain release binaries.
 
-- Fix selecting dialect for `redshift`
-- Add `GOOSE_MIGRATION_DIR` documentation
-- Bump github.com/opencontainers/runc to `v1.1.12` (security fix)
-- Update CI tests for go1.22
-- Make goose annotations case-insensitive
-  - The `goose` annotations are now case-insensitive. This means that `-- +goose Up` and `-- +goose
-up` are now equivalent. This change was made to improve the user experience and to make the
-    annotations more consistent.
-
 ## [v3.18.0] - 2024-01-31
 
 - Add environment variable substitution for SQL migrations. (#604)
