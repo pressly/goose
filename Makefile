@@ -63,7 +63,7 @@ test-postgres-long: add-gowork test-postgres
 	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='(TestPostgresProviderLocking|TestPostgresSessionLocker)'
 
 test-postgres: add-gowork
-	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestPostgres'
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run="^TestPostgres$$"
 
 test-clickhouse: add-gowork
 	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='(TestClickhouse|TestClickhouseRemote)'
