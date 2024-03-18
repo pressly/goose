@@ -17,6 +17,7 @@ import (
 	"text/tabwriter"
 	"text/template"
 
+	"github.com/joho/godotenv"
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/internal/cfg"
 	"github.com/pressly/goose/v3/internal/migrationstats"
@@ -37,6 +38,7 @@ var (
 	noVersioning = flags.Bool("no-versioning", false, "apply migration commands with no versioning, in file order, from directory pointed to")
 	noColor      = flags.Bool("no-color", false, "disable color output (NO_COLOR env variable supported)")
 	timeout      = flags.Duration("timeout", 0, "maximum allowed duration for queries to run; e.g., 1h13m")
+	envFile      = flags.String("env-file", ".env", "file path to a file of environment variables")
 )
 
 var version string
@@ -77,6 +79,12 @@ func main() {
 		flags.Usage()
 		os.Exit(1)
 	}
+
+	// read the `.env` or whichever file is pointed, skipping any error
+	_ = godotenv.Load(*envFile)
+
+	// load the cfg from the environment variables
+	cfg.Load()
 
 	// The -dir option has not been set, check whether the env variable is set
 	// before defaulting to ".".
