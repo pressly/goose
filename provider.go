@@ -7,14 +7,14 @@ import (
 	"fmt"
 	"io/fs"
 	"math"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
 
+	"go.uber.org/multierr"
+
 	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/internal/sqlparser"
-	"go.uber.org/multierr"
 )
 
 // Provider is a goose migration provider.
@@ -486,17 +486,9 @@ func (p *Provider) getDBMaxVersion(ctx context.Context, conn *sql.Conn) (_ int64
 			retErr = multierr.Append(retErr, cleanup())
 		}()
 	}
-	res, err := p.store.ListMigrations(ctx, conn)
+	version, err := p.store.GetLatestVersion(ctx, conn)
 	if err != nil {
 		return 0, err
 	}
-	if len(res) == 0 {
-		return 0, errMissingZeroVersion
-	}
-	// Sort in descending order.
-	sort.Slice(res, func(i, j int) bool {
-		return res[i].Version > res[j].Version
-	})
-	// Return the highest version.
-	return res[0].Version, nil
+	return version, nil
 }

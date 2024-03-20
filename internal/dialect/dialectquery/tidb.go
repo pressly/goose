@@ -22,6 +22,11 @@ func (t *Tidb) InsertVersion(tableName string) string {
 	return fmt.Sprintf(q, tableName)
 }
 
+func (t *Tidb) GetLatestVersion(tableName string) string {
+	q := `SELECT MAX(version_id) FROM %s WHERE is_applied = true`
+	return fmt.Sprintf(q, tableName)
+}
+
 func (t *Tidb) DeleteVersion(tableName string) string {
 	q := `DELETE FROM %s WHERE version_id=?`
 	return fmt.Sprintf(q, tableName)

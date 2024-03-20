@@ -22,6 +22,11 @@ func (r *Redshift) InsertVersion(tableName string) string {
 	return fmt.Sprintf(q, tableName)
 }
 
+func (r *Redshift) GetLatestVersion(tableName string) string {
+	q := `SELECT MAX(version_id) FROM %s WHERE is_applied = true`
+	return fmt.Sprintf(q, tableName)
+}
+
 func (r *Redshift) DeleteVersion(tableName string) string {
 	q := `DELETE FROM %s WHERE version_id=$1`
 	return fmt.Sprintf(q, tableName)

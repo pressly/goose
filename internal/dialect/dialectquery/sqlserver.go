@@ -21,6 +21,11 @@ func (s *Sqlserver) InsertVersion(tableName string) string {
 	return fmt.Sprintf(q, tableName)
 }
 
+func (s *Sqlserver) GetLatestVersion(tableName string) string {
+	q := `SELECT MAX(version_id) FROM %s WHERE is_applied = true`
+	return fmt.Sprintf(q, tableName)
+}
+
 func (s *Sqlserver) DeleteVersion(tableName string) string {
 	q := `DELETE FROM %s WHERE version_id=@p1`
 	return fmt.Sprintf(q, tableName)

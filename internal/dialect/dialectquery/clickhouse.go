@@ -23,6 +23,11 @@ func (c *Clickhouse) InsertVersion(tableName string) string {
 	return fmt.Sprintf(q, tableName)
 }
 
+func (c *Clickhouse) GetLatestVersion(tableName string) string {
+	q := `SELECT MAX(version_id) FROM %s WHERE is_applied = true`
+	return fmt.Sprintf(q, tableName)
+}
+
 func (c *Clickhouse) DeleteVersion(tableName string) string {
 	q := `ALTER TABLE %s DELETE WHERE version_id = $1 SETTINGS mutations_sync = 2`
 	return fmt.Sprintf(q, tableName)
