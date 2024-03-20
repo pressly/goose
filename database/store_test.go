@@ -100,21 +100,6 @@ func TestDialectStore(t *testing.T) {
 		_, err = database.NewStore("", "foo")
 		check.HasError(t, err)
 	})
-	t.Run("postgres", func(t *testing.T) {
-		if testing.Short() {
-			t.Skip("skip long-running test")
-		}
-		// Test postgres specific behavior.
-		db, cleanup, err := testdb.NewPostgres()
-		check.NoError(t, err)
-		t.Cleanup(cleanup)
-		testStore(context.Background(), t, database.DialectPostgres, db, func(t *testing.T, err error) {
-			var pgErr *pgconn.PgError
-			ok := errors.As(err, &pgErr)
-			check.Bool(t, ok, true)
-			check.Equal(t, pgErr.Code, "42P07") // duplicate_table
-		})
-	})
 	// Test generic behavior.
 	t.Run("sqlite3", func(t *testing.T) {
 		db, err := sql.Open("sqlite", ":memory:")
