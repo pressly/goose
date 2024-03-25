@@ -3,6 +3,7 @@ package goose
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -248,7 +249,11 @@ func EnsureDBVersionContext(ctx context.Context, db *sql.DB) (int64, error) {
 // initial 0 value into it.
 func createVersionTable(ctx context.Context, db *sql.DB) error {
 	txn, err := db.BeginTx(ctx, nil)
-	if err != nil {
+	switch {
+	case err == nil:
+	case errors.Is(err, driver.ErrSkip):
+	// ignore
+	default:
 		return err
 	}
 	if err := store.CreateVersionTable(ctx, txn, TableName()); err != nil {
