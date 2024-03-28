@@ -1,4 +1,4 @@
-GO_TEST_FLAGS ?= -race -count=1 -v -timeout=10m
+GO_TEST_FLAGS ?= -race -count=1 -v -timeout=5m
 
 # These are the default values for the test database. They can be overridden
 DB_USER ?= dbuser
@@ -42,25 +42,46 @@ test-packages:
 test-packages-short:
 	go test -test.short $(GO_TEST_FLAGS) $$(go list ./... | grep -v -e /tests -e /bin -e /cmd -e /examples)
 
-test-e2e: test-e2e-postgres test-e2e-mysql test-e2e-clickhouse test-e2e-vertica test-e2e-ydb test-e2e-turso
+#
+# Integration-related targets
+#
+add-gowork:
+	@[ -f go.work ] || go work init
+	@[ -f go.work.sum ] || go work use -r .
 
-test-e2e-postgres:
-	go test $(GO_TEST_FLAGS) ./tests/e2e -dialect=postgres
+remove-gowork:
+	rm -rf go.work go.work.sum
 
-test-e2e-mysql:
-	go test $(GO_TEST_FLAGS) ./tests/e2e -dialect=mysql
+upgrade-integration-deps:
+	cd ./internal/testing && go get -u ./... && go mod tidy
 
-test-e2e-clickhouse:
-	go test $(GO_TEST_FLAGS) ./tests/clickhouse -test.short
+test-postgres-long: add-gowork test-postgres
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='(TestPostgresProviderLocking|TestPostgresSessionLocker)'
 
-test-e2e-vertica:
-	go test $(GO_TEST_FLAGS) ./tests/vertica
+test-postgres: add-gowork
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run="^TestPostgres$$"
 
-test-e2e-ydb:
-	go test $(GO_TEST_FLAGS) -parallel=1 ./tests/e2e -dialect=ydb
+test-clickhouse: add-gowork
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='(TestClickhouse|TestClickhouseRemote)'
 
-test-e2e-turso:
-	go test $(GO_TEST_FLAGS) -parallel=1 ./tests/e2e -dialect=turso
+test-mysql: add-gowork
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestMySQL'
+
+test-turso: add-gowork
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestTurso'
+
+test-vertica: add-gowork
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestVertica'
+
+test-ydb: add-gowork
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestYDB'
+
+test-integration: add-gowork
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration/...
+
+#
+# Docker-related targets
+#
 
 docker-cleanup:
 	docker stop -t=0 $$(docker ps --filter="label=goose_test" -aq)

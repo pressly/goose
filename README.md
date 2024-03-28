@@ -67,6 +67,7 @@ or
 Set environment key
 GOOSE_DRIVER=DRIVER
 GOOSE_DBSTRING=DBSTRING
+GOOSE_MIGRATION_DIR=MIGRATION_DIR
 
 Usage: goose [OPTIONS] COMMAND
 
@@ -110,7 +111,7 @@ Options:
   -certfile string
         file path to root CA's certificates in pem format (only support on mysql)
   -dir string
-        directory with migration files (default ".")
+        directory with migration files (default ".", can be set via the GOOSE_MIGRATION_DIR env variable).
   -h    print help
   -no-color
         disable color output (NO_COLOR env variable supported)

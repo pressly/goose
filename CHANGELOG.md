@@ -7,6 +7,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [v3.19.2] - 2024-03-13
+
+- Remove duckdb support. The driver uses Cgo and we've decided to remove it until we can find a
+  better solution. If you were using duckdb with goose, please let us know by opening an issue.
+
+## [v3.19.1] - 2024-03-11
+
+- Fix selecting dialect for `redshift`
+- Add `GOOSE_MIGRATION_DIR` documentation
+- Bump github.com/opencontainers/runc to `v1.1.12` (security fix)
+- Update CI tests for go1.22
+- Make goose annotations case-insensitive
+  - All `-- +goose` annotations are now case-insensitive. This means that `-- +goose Up` and `--
++goose up` are now equivalent. This change was made to improve the user experience and to make the
+    annotations more consistent.
+
+## [v3.19.0] - 2024-03-11
+
+- Use [v3.19.1] instead. This was tagged but not released and does not contain release binaries.
+
+## [v3.18.0] - 2024-01-31
+
 - Add environment variable substitution for SQL migrations. (#604)
 
   - This feature is **disabled by default**, and can be enabled by adding an annotation to the
@@ -26,6 +48,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     -- +goose Up
     SELECT * FROM regions WHERE name = '${REGION}';
     ```
+
+- Add native [Turso](https://turso.tech/) support with libsql driver. (#658)
+
+- Fixed query for list migrations in YDB (#684)
 
 ## [v3.17.0] - 2023-12-15
 
@@ -121,7 +147,11 @@ Here's a quick summary:
 - Add new `context.Context`-aware functions and methods, for both sql and go migrations.
 - Return error when no migration files found or dir is not a directory.
 
-[Unreleased]: https://github.com/pressly/goose/compare/v3.17.0...HEAD
+[Unreleased]: https://github.com/pressly/goose/compare/v3.19.2...HEAD
+[v3.19.2]: https://github.com/pressly/goose/compare/v3.19.1...v3.19.2
+[v3.19.1]: https://github.com/pressly/goose/compare/v3.19.0...v3.19.1
+[v3.19.0]: https://github.com/pressly/goose/compare/v3.18.0...v3.19.0
+[v3.18.0]: https://github.com/pressly/goose/compare/v3.17.0...v3.18.0
 [v3.17.0]: https://github.com/pressly/goose/compare/v3.16.0...v3.17.0
 [v3.16.0]: https://github.com/pressly/goose/compare/v3.15.1...v3.16.0
 [v3.15.1]: https://github.com/pressly/goose/compare/v3.15.0...v3.15.1

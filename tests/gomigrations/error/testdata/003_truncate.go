@@ -11,7 +11,7 @@ func init() {
 }
 
 func up003(tx *sql.Tx) error {
-	q := "TRUNCATE TABLE foo"
+	q := "DELETE FROM foo"
 	_, err := tx.Exec(q)
 	return err
 }
