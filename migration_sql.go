@@ -36,10 +36,27 @@ func runSQLMigration(
 
 		for _, query := range statements {
 			verboseInfo("Executing statement: %s\n", clearStatement(query))
-			if _, err := tx.ExecContext(ctx, query); err != nil {
+			rows, err := tx.QueryContext(ctx, query)
+			if err != nil {
 				verboseInfo("Rollback transaction")
 				_ = tx.Rollback()
 				return fmt.Errorf("failed to execute SQL query %q: %w", clearStatement(query), err)
+			}
+			defer rows.Close()
+			columns, err := rows.Columns()
+			if err != nil {
+				return fmt.Errorf("failed to get columns: %w", err)
+			}
+			values := make([]interface{}, len(columns))
+			valuePtrs := make([]interface{}, len(columns))
+			for i := 0; i < len(columns); i++ {
+				valuePtrs[i] = &values[i]
+			}
+			for rows.Next() {
+				if err := rows.Scan(valuePtrs...); err != nil {
+					return fmt.Errorf("failed to scan row: %w", err)
+				}
+				verboseInfo("Returned row: %v", values)
 			}
 		}
 
