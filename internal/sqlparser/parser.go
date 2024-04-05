@@ -256,12 +256,18 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 				stateMachine.print("store simple Down query")
 			}
 		case gooseStatementEndUp:
-			stmts = append(stmts, cleanupStatement(buf.String()))
+			parts := strings.Split(buf.String(), ";")
+			for _, part := range parts[:len(parts)-1] {
+				stmts = append(stmts, cleanupStatement(part))
+			}
 			buf.Reset()
 			stateMachine.print("store Up statement")
 			stateMachine.set(gooseUp)
 		case gooseStatementEndDown:
-			stmts = append(stmts, cleanupStatement(buf.String()))
+			parts := strings.Split(buf.String(), ";")
+			for _, part := range parts[:len(parts)-1] {
+				stmts = append(stmts, cleanupStatement(part))
+			}
 			buf.Reset()
 			stateMachine.print("store Down statement")
 			stateMachine.set(gooseDown)
