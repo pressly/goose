@@ -94,6 +94,7 @@ docker-postgres:
 		-p $(DB_POSTGRES_PORT):5432 \
 		-l goose_test \
 		postgres:14-alpine -c log_statement=all
+	@echo "Connection string: postgres://$(DB_USER):$(DB_PASSWORD)@localhost:$(DB_POSTGRES_PORT)/$(DB_NAME)?sslmode=disable"
 
 docker-mysql:
 	docker run --rm -d \
