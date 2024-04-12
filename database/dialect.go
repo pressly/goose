@@ -62,8 +62,6 @@ type store struct {
 
 var _ Store = (*store)(nil)
 
-func (s *store) private() {}
-
 func (s *store) Tablename() string {
 	return s.tablename
 }
