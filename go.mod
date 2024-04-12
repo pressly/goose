@@ -4,25 +4,25 @@ go 1.20
 
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.17.1
-	github.com/go-sql-driver/mysql v1.8.0
+	github.com/go-sql-driver/mysql v1.8.1
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/mfridman/interpolate v0.0.2
 	github.com/microsoft/go-mssqldb v1.7.0
 	github.com/sethvargo/go-retry v0.2.4
-	github.com/tursodatabase/libsql-client-go v0.0.0-20240220085343-4ae0eb9d0898
+	github.com/tursodatabase/libsql-client-go v0.0.0-20240411070317-a1138d155304
 	github.com/vertica/vertica-sql-go v1.3.3
 	github.com/ydb-platform/ydb-go-sdk/v3 v3.55.1
 	github.com/ziutek/mymysql v1.5.4
 	go.uber.org/multierr v1.11.0
-	golang.org/x/sync v0.6.0
-	modernc.org/sqlite v1.29.5
+	golang.org/x/sync v0.7.0
+	modernc.org/sqlite v1.29.6
 )
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/ClickHouse/ch-go v0.58.2 // indirect
 	github.com/andybalholm/brotli v1.0.6 // indirect
-	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230512164433-5d1fd1a340c9 // indirect
+	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/elastic/go-sysinfo v1.11.2 // indirect
 	github.com/elastic/go-windows v1.0.1 // indirect
@@ -40,7 +40,7 @@ require (
 	github.com/joeshaw/multierror v0.0.0-20140124173710-69b34d4ec901 // indirect
 	github.com/jonboulle/clockwork v0.4.0 // indirect
 	github.com/klauspost/compress v1.17.2 // indirect
-	github.com/libsql/sqlite-antlr4-parser v0.0.0-20230802215326-5cb5bb604475 // indirect
+	github.com/libsql/sqlite-antlr4-parser v0.0.0-20240327125255-dbf53b6cbf06 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/paulmach/orb v0.10.0 // indirect
@@ -54,7 +54,7 @@ require (
 	go.opentelemetry.io/otel v1.20.0 // indirect
 	go.opentelemetry.io/otel/trace v1.20.0 // indirect
 	golang.org/x/crypto v0.18.0 // indirect
-	golang.org/x/exp v0.0.0-20231108232855-2478ac86f678 // indirect
+	golang.org/x/exp v0.0.0-20240325151524-a685a6edb6d8 // indirect
 	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
@@ -69,7 +69,7 @@ require (
 	modernc.org/memory v1.7.2 // indirect
 	modernc.org/strutil v1.2.0 // indirect
 	modernc.org/token v1.1.0 // indirect
-	nhooyr.io/websocket v1.8.7 // indirect
+	nhooyr.io/websocket v1.8.10 // indirect
 )
 
 retract (
