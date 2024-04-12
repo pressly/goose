@@ -20,9 +20,9 @@ const (
 	DialectRedshift   Dialect = "redshift"
 	DialectSQLite3    Dialect = "sqlite3"
 	DialectTiDB       Dialect = "tidb"
+	DialectTurso      Dialect = "turso"
 	DialectVertica    Dialect = "vertica"
 	DialectYdB        Dialect = "ydb"
-	DialectTurso      Dialect = "turso"
 )
 
 // NewStore returns a new [Store] implementation for the given dialect.
@@ -109,6 +109,10 @@ func (s *store) GetMigration(
 		return nil, fmt.Errorf("failed to get migration %d: %w", version, err)
 	}
 	return &result, nil
+}
+
+func (s *store) GetLatestVersion(ctx context.Context, db DBTxConn) (int64, error) {
+	return -1, errors.New("not implemented")
 }
 
 func (s *store) ListMigrations(

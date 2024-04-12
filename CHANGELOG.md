@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Expand the `Store` interface by adding a `GetLatestVersion` method.
+
 ## [v3.19.2] - 2024-03-13
 
 - Remove duckdb support. The driver uses Cgo and we've decided to remove it until we can find a
