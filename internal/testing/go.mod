@@ -3,8 +3,8 @@ module github.com/pressly/goose/v3/internal/testing
 go 1.22.1
 
 require (
-	github.com/ClickHouse/clickhouse-go/v2 v2.22.4
-	github.com/go-sql-driver/mysql v1.8.0
+	github.com/ClickHouse/clickhouse-go/v2 v2.23.0
+	github.com/go-sql-driver/mysql v1.8.1
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/ory/dockertest/v3 v3.10.0
 	github.com/pressly/goose/v3 v3.19.2
@@ -12,8 +12,8 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/tursodatabase/libsql-client-go v0.0.0-20240220085343-4ae0eb9d0898
 	github.com/vertica/vertica-sql-go v1.3.3
-	github.com/ydb-platform/ydb-go-sdk/v3 v3.61.0
-	golang.org/x/sync v0.6.0
+	github.com/ydb-platform/ydb-go-sdk/v3 v3.64.0
+	golang.org/x/sync v0.7.0
 )
 
 require (
@@ -28,25 +28,23 @@ require (
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/containerd/continuity v0.4.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/docker/cli v26.0.0+incompatible // indirect
-	github.com/docker/docker v26.0.0+incompatible // indirect
+	github.com/docker/cli v26.0.1+incompatible // indirect
+	github.com/docker/docker v26.0.1+incompatible // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
-	github.com/elastic/go-sysinfo v1.13.1 // indirect
+	github.com/elastic/go-sysinfo v1.14.0 // indirect
 	github.com/elastic/go-windows v1.0.1 // indirect
 	github.com/go-faster/city v1.0.1 // indirect
 	github.com/go-faster/errors v0.7.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
-	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20231201235250-de7065d80cb9 // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
-	github.com/joeshaw/multierror v0.0.0-20140124173710-69b34d4ec901 // indirect
 	github.com/jonboulle/clockwork v0.4.0 // indirect
-	github.com/klauspost/compress v1.17.7 // indirect
+	github.com/klauspost/compress v1.17.8 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/libsql/sqlite-antlr4-parser v0.0.0-20240323153644-5c63f680a14e // indirect
 	github.com/mfridman/interpolate v0.0.2 // indirect
@@ -68,23 +66,23 @@ require (
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
 	github.com/ydb-platform/ydb-go-genproto v0.0.0-20240316140903-4a47abca1cca // indirect
-	go.opentelemetry.io/otel v1.24.0 // indirect
-	go.opentelemetry.io/otel/trace v1.24.0 // indirect
+	go.opentelemetry.io/otel v1.25.0 // indirect
+	go.opentelemetry.io/otel/trace v1.25.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.21.0 // indirect
-	golang.org/x/exp v0.0.0-20240325151524-a685a6edb6d8 // indirect
-	golang.org/x/mod v0.16.0 // indirect
-	golang.org/x/net v0.22.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/crypto v0.22.0 // indirect
+	golang.org/x/exp v0.0.0-20240409090435-93d18d7e34b8 // indirect
+	golang.org/x/mod v0.17.0 // indirect
+	golang.org/x/net v0.24.0 // indirect
+	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	golang.org/x/tools v0.19.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240325203815-454cdb8f5daa // indirect
-	google.golang.org/grpc v1.62.1 // indirect
+	golang.org/x/tools v0.20.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240401170217-c3f982113cda // indirect
+	google.golang.org/grpc v1.63.2 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	howett.net/plist v1.0.1 // indirect
-	nhooyr.io/websocket v1.8.10 // indirect
+	nhooyr.io/websocket v1.8.11 // indirect
 )
 
 replace github.com/tursodatabase/libsql-client-go => github.com/tursodatabase/libsql-client-go v0.0.0-20240220085343-4ae0eb9d0898
