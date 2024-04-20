@@ -51,8 +51,14 @@ func (p *Provider) resolveUpMigrations(
 		if len(collected) > 1 {
 			msg += "s"
 		}
-		return nil, fmt.Errorf("found %d missing (out-of-order) %s lower than current max (%d): [%s]",
-			len(missingMigrations), msg, dbMaxVersion, strings.Join(collected, ","),
+		var versionsMsg string
+		if len(collected) > 1 {
+			versionsMsg = "versions " + strings.Join(collected, ",")
+		} else {
+			versionsMsg = "version " + collected[0]
+		}
+		return nil, fmt.Errorf("found %d missing (out-of-order) %s lower than current max (%d): %s",
+			len(missingMigrations), msg, dbMaxVersion, versionsMsg,
 		)
 	}
 	for _, missingVersion := range missingMigrations {

@@ -480,8 +480,8 @@ func (p *Provider) hasPending(ctx context.Context) (_ bool, retErr error) {
 		}
 		return false, nil
 	}
-	// If missing migrations are not allowed, we can optimize this by checking the last migration
-	// version in the database.
+	// If missing migrations are not allowed, we can optimize this by only checking whether the last
+	// migration this provider knows about is applied.
 	last := p.migrations[len(p.migrations)-1]
 	if _, err := p.store.GetMigration(ctx, conn, last.Version); err != nil {
 		if errors.Is(err, database.ErrVersionNotFound) {
