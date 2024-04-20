@@ -291,6 +291,25 @@ func beginTx(ctx context.Context, conn *sql.Conn, fn func(tx *sql.Tx) error) (re
 	return tx.Commit()
 }
 
+func (p *Provider) initializeWithoutSessionLocker(ctx context.Context) (*sql.Conn, func() error, error) {
+	p.mu.Lock()
+	conn, err := p.db.Conn(ctx)
+	if err != nil {
+		p.mu.Unlock()
+		return nil, nil, err
+	}
+	cleanup := func() error {
+		p.mu.Unlock()
+		return conn.Close()
+	}
+	if !p.cfg.disableVersioning {
+		if err := p.ensureVersionTable(ctx, conn); err != nil {
+			return nil, nil, multierr.Append(err, cleanup())
+		}
+	}
+	return conn, cleanup, nil
+}
+
 func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, error) {
 	p.mu.Lock()
 	conn, err := p.db.Conn(ctx)
@@ -320,7 +339,7 @@ func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, err
 		}
 	}
 	// If versioning is enabled, ensure the version table exists. For ad-hoc migrations, we don't
-	// need the version table because no versions are being recorded.
+	// need the version table because no versions are being tracked.
 	if !p.cfg.disableVersioning {
 		if err := p.ensureVersionTable(ctx, conn); err != nil {
 			return nil, nil, multierr.Append(err, cleanup())
@@ -330,12 +349,14 @@ func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, err
 }
 
 func (p *Provider) ensureVersionTable(ctx context.Context, conn *sql.Conn) (retErr error) {
-	// existor is an interface that extends the Store interface with a method to check if the
-	// version table exists. This API is not stable and may change in the future.
-	type existor interface {
+	// existor is an interface that extends the Store interface with a to check if the version table
+	// existor. This API is not stable and may change in the future.
+	//
+	// TODO(mf): move this to the database package so it sits alongside the Store interface, update
+	// this issue (https://github.com/pressly/goose/issues/461) and add a note in the documentation.
+	if e, ok := p.store.(interface {
 		TableExists(context.Context, database.DBTxConn, string) (bool, error)
-	}
-	if e, ok := p.store.(existor); ok {
+	}); ok {
 		exists, err := e.TableExists(ctx, conn, p.store.Tablename())
 		if err != nil {
 			return fmt.Errorf("failed to check if version table exists: %w", err)
@@ -344,8 +365,11 @@ func (p *Provider) ensureVersionTable(ctx context.Context, conn *sql.Conn) (retE
 			return nil
 		}
 	} else {
-		// feat(mf): this is where we can check if the version table exists instead of trying to fetch
-		// from a table that may not exist. https://github.com/pressly/goose/issues/461
+		// This is the default behavior for all existing implementations of the Store interface. We
+		// need to check if the version table exists by querying for the initial version.
+		//
+		// Unfortunately, this is not ideal because we query a table that may not exist, which
+		// raises a warning in some databases. This is also why it is run in isolation.
 		res, err := p.store.GetMigration(ctx, conn, 0)
 		if err == nil && res != nil {
 			return nil
@@ -354,9 +378,6 @@ func (p *Provider) ensureVersionTable(ctx context.Context, conn *sql.Conn) (retE
 	return beginTx(ctx, conn, func(tx *sql.Tx) error {
 		if err := p.store.CreateVersionTable(ctx, tx); err != nil {
 			return err
-		}
-		if p.cfg.disableVersioning {
-			return nil
 		}
 		return p.store.Insert(ctx, tx, database.InsertRequest{Version: 0})
 	})

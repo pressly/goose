@@ -49,8 +49,6 @@ type Provider struct {
 // See [ProviderOption] for more information on configuring the provider.
 //
 // Unless otherwise specified, all methods on Provider are safe for concurrent use.
-//
-// Experimental: This API is experimental and may change in the future.
 func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption) (*Provider, error) {
 	if db == nil {
 		return nil, errors.New("db must not be nil")
@@ -152,6 +150,14 @@ func newProvider(
 // filesystem. The returned items are ordered by version, in ascending order.
 func (p *Provider) Status(ctx context.Context) ([]*MigrationStatus, error) {
 	return p.status(ctx)
+}
+
+// HasPending returns true if there are pending migrations to apply, otherwise false.
+//
+// Important, this method does not use a SessionLocker, which enables callers to check for pending
+// migrations without blocking or being blocked by other operations.
+func (p *Provider) HasPending(ctx context.Context) (bool, error) {
+	return p.hasPending(ctx)
 }
 
 // GetDBVersion returns the highest version recorded in the database, regardless of the order in
@@ -434,6 +440,56 @@ func (p *Provider) apply(
 		d = sqlparser.DirectionUp
 	}
 	return p.runMigrations(ctx, conn, []*Migration{m}, d, true)
+}
+
+func (p *Provider) hasPending(ctx context.Context) (_ bool, retErr error) {
+	conn, cleanup, err := p.initializeWithoutSessionLocker(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to initialize: %w", err)
+	}
+	defer func() {
+		retErr = multierr.Append(retErr, cleanup())
+	}()
+
+	if len(p.migrations) == 0 {
+		return false, nil
+	}
+	// If versioning is disabled, we always have pending migrations.
+	if p.cfg.disableVersioning {
+		return true, nil
+	}
+	if p.cfg.allowMissing {
+		// List all migrations from the database.
+		dbMigrations, err := p.store.ListMigrations(ctx, conn)
+		if err != nil {
+			return false, err
+		}
+		// If there are no migrations in the database, we have pending migrations.
+		if len(dbMigrations) == 0 {
+			return true, nil
+		}
+		applied := make(map[int64]bool, len(dbMigrations))
+		for _, m := range dbMigrations {
+			applied[m.Version] = true
+		}
+		// Iterate over all migrations and check if any are missing.
+		for _, m := range p.migrations {
+			if !applied[m.Version] {
+				return true, nil
+			}
+		}
+		return false, nil
+	}
+	// If missing migrations are not allowed, we can optimize this by checking the last migration
+	// version in the database.
+	last := p.migrations[len(p.migrations)-1]
+	if _, err := p.store.GetMigration(ctx, conn, last.Version); err != nil {
+		if errors.Is(err, database.ErrVersionNotFound) {
+			return true, nil
+		}
+		return false, err
+	}
+	return false, nil
 }
 
 func (p *Provider) status(ctx context.Context) (_ []*MigrationStatus, retErr error) {

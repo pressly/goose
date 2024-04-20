@@ -775,6 +775,53 @@ func TestProviderApply(t *testing.T) {
 	check.Bool(t, errors.Is(err, goose.ErrNotApplied), true)
 }
 
+func TestHasPending(t *testing.T) {
+	t.Parallel()
+	t.Run("allow_out_of_order", func(t *testing.T) {
+		ctx := context.Background()
+		p, err := goose.NewProvider(goose.DialectSQLite3, newDB(t), newFsys(),
+			goose.WithAllowOutofOrder(true),
+		)
+		check.NoError(t, err)
+		// Some migrations have been applied out of order.
+		_, err = p.ApplyVersion(ctx, 1, true)
+		check.NoError(t, err)
+		p.ApplyVersion(ctx, 3, true)
+		check.NoError(t, err)
+		hasPending, err := p.HasPending(ctx)
+		check.NoError(t, err)
+		check.Bool(t, hasPending, true)
+		// Apply the missing migration.
+		_, err = p.Up(ctx)
+		check.NoError(t, err)
+		// All migrations have been applied.
+		hasPending, err = p.HasPending(ctx)
+		check.NoError(t, err)
+		check.Bool(t, hasPending, false)
+	})
+	t.Run("disallow_out_of_order", func(t *testing.T) {
+		ctx := context.Background()
+		p, err := goose.NewProvider(goose.DialectSQLite3, newDB(t), newFsys(),
+			goose.WithAllowOutofOrder(false),
+		)
+		check.NoError(t, err)
+		// Some migrations have been applied.
+		_, err = p.ApplyVersion(ctx, 1, true)
+		check.NoError(t, err)
+		p.ApplyVersion(ctx, 2, true)
+		check.NoError(t, err)
+		hasPending, err := p.HasPending(ctx)
+		check.NoError(t, err)
+		check.Bool(t, hasPending, true)
+		_, err = p.Up(ctx)
+		check.NoError(t, err)
+		// All migrations have been applied.
+		hasPending, err = p.HasPending(ctx)
+		check.NoError(t, err)
+		check.Bool(t, hasPending, false)
+	})
+}
+
 type customStoreSQLite3 struct {
 	database.Store
 }
