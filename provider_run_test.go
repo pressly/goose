@@ -786,7 +786,7 @@ func TestHasPending(t *testing.T) {
 		// Some migrations have been applied out of order.
 		_, err = p.ApplyVersion(ctx, 1, true)
 		check.NoError(t, err)
-		p.ApplyVersion(ctx, 3, true)
+		_, err = p.ApplyVersion(ctx, 3, true)
 		check.NoError(t, err)
 		hasPending, err := p.HasPending(ctx)
 		check.NoError(t, err)
@@ -808,7 +808,7 @@ func TestHasPending(t *testing.T) {
 		// Some migrations have been applied.
 		_, err = p.ApplyVersion(ctx, 1, true)
 		check.NoError(t, err)
-		p.ApplyVersion(ctx, 2, true)
+		_, err = p.ApplyVersion(ctx, 2, true)
 		check.NoError(t, err)
 		hasPending, err := p.HasPending(ctx)
 		check.NoError(t, err)
