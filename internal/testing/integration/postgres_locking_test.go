@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v3/internal/check"
 	"github.com/pressly/goose/v3/internal/testing/testdb"
 	"github.com/pressly/goose/v3/lock"
 	"github.com/stretchr/testify/require"
@@ -404,6 +405,40 @@ func TestPostgresProviderLocking(t *testing.T) {
 			require.Equal(t, applied[i], sources[i].Version)
 		}
 	})
+}
+
+func TestPostgresHasPending(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
+
+	db, cleanup, err := testdb.NewPostgres()
+	require.NoError(t, err)
+	t.Cleanup(cleanup)
+
+	workers := 15
+	var g errgroup.Group
+	boolCh := make(chan bool, workers)
+	for i := 0; i < workers; i++ {
+		g.Go(func() error {
+			p, err := goose.NewProvider(goose.DialectPostgres, db, os.DirFS("testdata/migrations/postgres"))
+			check.NoError(t, err)
+			hasPending, err := p.HasPending(context.Background())
+			if err != nil {
+				return err
+			}
+			boolCh <- hasPending
+			return nil
+
+		})
+	}
+	check.NoError(t, g.Wait())
+	close(boolCh)
+	// expect all values to be true
+	for hasPending := range boolCh {
+		check.Bool(t, hasPending, true)
+	}
 }
 
 func existsPgLock(ctx context.Context, db *sql.DB, lockID int64) (bool, error) {

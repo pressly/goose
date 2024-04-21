@@ -14,6 +14,7 @@ import (
 
 	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/internal/sqlparser"
+	"github.com/sethvargo/go-retry"
 	"go.uber.org/multierr"
 )
 
@@ -336,39 +337,54 @@ func (p *Provider) initialize(ctx context.Context, useSessionLocker bool) (*sql.
 	return conn, cleanup, nil
 }
 
-func (p *Provider) ensureVersionTable(ctx context.Context, conn *sql.Conn) (retErr error) {
-	// existor is an interface that extends the Store interface with a to check if the version table
-	// existor. This API is not stable and may change in the future.
+func (p *Provider) ensureVersionTable(
+	ctx context.Context,
+	conn *sql.Conn,
+) (retErr error) {
+	// There are 2 optimizations here:
+	//  - 1. We create the version table once per Provider instance.
+	//  - 2. We retry the operation a few times in case the table is being created concurrently.
 	//
-	// TODO(mf): move this to the database package so it sits alongside the Store interface, update
-	// this issue (https://github.com/pressly/goose/issues/461) and add a note in the documentation.
-	if e, ok := p.store.(interface {
-		TableExists(context.Context, database.DBTxConn, string) (bool, error)
-	}); ok {
-		exists, err := e.TableExists(ctx, conn, p.store.Tablename())
-		if err != nil {
-			return fmt.Errorf("failed to check if version table exists: %w", err)
-		}
-		if exists {
-			return nil
-		}
-	} else {
-		// This is the default behavior for all existing implementations of the Store interface. We
-		// need to check if the version table exists by querying for the initial version.
-		//
-		// Unfortunately, this is not ideal because we query a table that may not exist, which
-		// raises a warning in some databases. This is also why it is run in isolation.
-		res, err := p.store.GetMigration(ctx, conn, 0)
-		if err == nil && res != nil {
-			return nil
-		}
-	}
-	return beginTx(ctx, conn, func(tx *sql.Tx) error {
-		if err := p.store.CreateVersionTable(ctx, tx); err != nil {
-			return err
-		}
-		return p.store.Insert(ctx, tx, database.InsertRequest{Version: 0})
+	// Re. item 2, some goose operations, such as HasPending, will not respect a SessionLocker. And
+	// so when goose is run for the first time in an environment with multiple instances, it is
+	// possible that multiple instances will try to create the version table at the same time. This
+	// is why we retry a few times. Best case, the table is created and we move on. Worst case, we
+	// thrash the database a bit, but eventually the table will be created.
+	p.versionTableOnce.Do(func() {
+		b := retry.NewConstant(1 * time.Second)
+		b = retry.WithMaxRetries(3, b)
+		retry.Do(ctx, b, func(ctx context.Context) error {
+			if e, ok := p.store.(interface {
+				TableExists(context.Context, database.DBTxConn, string) (bool, error)
+			}); ok {
+				exists, err := e.TableExists(ctx, conn, p.store.Tablename())
+				if err != nil {
+					return fmt.Errorf("failed to check if version table exists: %w", err)
+				}
+				if exists {
+					retErr = nil
+					return nil
+				}
+			} else {
+				// This chicken-and-egg behavior is the fallback for all existing implementations of
+				// the Store interface. We check if the version table exists by querying for the
+				// initial version, but the table may not exist yet. It's important this runs
+				// outside of a transaction to avoid failing the transaction.
+				if res, err := p.store.GetMigration(ctx, conn, 0); err == nil && res != nil {
+					retErr = nil
+					return nil
+				}
+			}
+			retErr = beginTx(ctx, conn, func(tx *sql.Tx) error {
+				if err := p.store.CreateVersionTable(ctx, tx); err != nil {
+					return err
+				}
+				return p.store.Insert(ctx, tx, database.InsertRequest{Version: 0})
+			})
+			return retry.RetryableError(retErr)
+		})
 	})
+	return retErr
 }
 
 // checkMissingMigrations returns a list of migrations that are missing from the database. A missing

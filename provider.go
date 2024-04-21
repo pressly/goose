@@ -23,8 +23,9 @@ type Provider struct {
 	// database.
 	mu sync.Mutex
 
-	db    *sql.DB
-	store database.Store
+	db               *sql.DB
+	store            database.Store
+	versionTableOnce sync.Once
 
 	fsys fs.FS
 	cfg  config
