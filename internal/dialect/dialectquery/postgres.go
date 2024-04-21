@@ -36,3 +36,7 @@ func (p *Postgres) ListMigrations(tableName string) string {
 	q := `SELECT version_id, is_applied from %s ORDER BY id DESC`
 	return fmt.Sprintf(q, tableName)
 }
+
+func (p *Postgres) TableExists(tableName string) string {
+	return `SELECT EXISTS ( SELECT FROM pg_tables WHERE tablename = $1)`
+}

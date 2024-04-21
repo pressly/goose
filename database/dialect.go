@@ -51,13 +51,13 @@ func NewStore(dialect Dialect, tablename string) (Store, error) {
 	}
 	return &store{
 		tablename: tablename,
-		querier:   querier,
+		querier:   dialectquery.NewQueryController(querier),
 	}, nil
 }
 
 type store struct {
 	tablename string
-	querier   dialectquery.Querier
+	querier   *dialectquery.QueryController
 }
 
 var _ Store = (*store)(nil)
@@ -136,4 +136,16 @@ func (s *store) ListMigrations(
 		return nil, err
 	}
 	return migrations, nil
+}
+
+func (s *store) TableExists(ctx context.Context, db DBTxConn, name string) (bool, error) {
+	q := s.querier.TableExists(s.tablename)
+	if q == "" {
+		return false, ErrNotSupported
+	}
+	var exists bool
+	if err := db.QueryRowContext(ctx, q, name).Scan(&exists); err != nil {
+		return false, fmt.Errorf("failed to check if table exists: %w", err)
+	}
+	return exists, nil
 }

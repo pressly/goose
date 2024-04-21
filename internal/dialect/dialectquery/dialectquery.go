@@ -26,3 +26,45 @@ type Querier interface {
 	// The query should return the version_id and is_applied columns.
 	ListMigrations(tableName string) string
 }
+
+type QueryController struct {
+	querier Querier
+}
+
+// NewQueryController returns a new QueryController that wraps the given Querier.
+func NewQueryController(querier Querier) *QueryController {
+	return &QueryController{querier: querier}
+}
+
+// Optional methods
+
+func (c *QueryController) TableExists(tableName string) string {
+	if t, ok := c.querier.(interface {
+		TableExists(string) string
+	}); ok {
+		return t.TableExists(tableName)
+	}
+	return ""
+}
+
+// Default methods
+
+func (c *QueryController) CreateTable(tableName string) string {
+	return c.querier.CreateTable(tableName)
+}
+
+func (c *QueryController) InsertVersion(tableName string) string {
+	return c.querier.InsertVersion(tableName)
+}
+
+func (c *QueryController) DeleteVersion(tableName string) string {
+	return c.querier.DeleteVersion(tableName)
+}
+
+func (c *QueryController) GetMigrationByVersion(tableName string) string {
+	return c.querier.GetMigrationByVersion(tableName)
+}
+
+func (c *QueryController) ListMigrations(tableName string) string {
+	return c.querier.ListMigrations(tableName)
+}
