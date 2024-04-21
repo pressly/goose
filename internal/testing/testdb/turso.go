@@ -14,7 +14,7 @@ import (
 const (
 	// ghcr.io/tursodatabase/libsql-server:v0.23.7
 	TURSO_IMAGE   = "ghcr.io/tursodatabase/libsql-server"
-	TURSO_VERSION = "v0.23.7"
+	TURSO_VERSION = "v0.24.7"
 	TURSO_PORT    = "8080"
 )
 
