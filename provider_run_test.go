@@ -791,7 +791,7 @@ func TestHasPending(t *testing.T) {
 		hasPending, err := p.HasPending(ctx)
 		check.NoError(t, err)
 		check.Bool(t, hasPending, true)
-		// Apply the missing migration.
+		// Apply the missing migrations.
 		_, err = p.Up(ctx)
 		check.NoError(t, err)
 		// All migrations have been applied.

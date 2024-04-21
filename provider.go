@@ -29,7 +29,8 @@ type Provider struct {
 	fsys fs.FS
 	cfg  config
 
-	// migrations are ordered by version in ascending order.
+	// migrations are ordered by version in ascending order. This list will never be empty and
+	// contains all migrations known to the provider.
 	migrations []*Migration
 }
 
@@ -220,11 +221,18 @@ func (p *Provider) ApplyVersion(ctx context.Context, version int64, direction bo
 // Up applies all pending migrations. If there are no new migrations to apply, this method returns
 // empty list and nil error.
 func (p *Provider) Up(ctx context.Context) ([]*MigrationResult, error) {
+	hasPending, err := p.hasPending(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !hasPending {
+		return nil, nil
+	}
 	return p.up(ctx, false, math.MaxInt64)
 }
 
 // UpByOne applies the next pending migration. If there is no next migration to apply, this method
-// returns [ErrNoNextVersion]. The returned list will always have exactly one migration result.
+// returns [ErrNoNextVersion].
 func (p *Provider) UpByOne(ctx context.Context) (*MigrationResult, error) {
 	res, err := p.up(ctx, true, math.MaxInt64)
 	if err != nil {
@@ -253,6 +261,13 @@ func (p *Provider) UpByOne(ctx context.Context) (*MigrationResult, error) {
 // For example, if there are three new migrations (9,10,11) and the current database version is 8
 // with a requested version of 10, only versions 9,10 will be applied.
 func (p *Provider) UpTo(ctx context.Context, version int64) ([]*MigrationResult, error) {
+	hasPending, err := p.hasPending(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !hasPending {
+		return nil, nil
+	}
 	return p.up(ctx, false, version)
 }
 
@@ -309,7 +324,7 @@ func (p *Provider) up(
 	if version < 1 {
 		return nil, errInvalidVersion
 	}
-	conn, cleanup, err := p.initialize(ctx)
+	conn, cleanup, err := p.initialize(ctx, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize: %w", err)
 	}
@@ -351,7 +366,7 @@ func (p *Provider) down(
 	byOne bool,
 	version int64,
 ) (_ []*MigrationResult, retErr error) {
-	conn, cleanup, err := p.initialize(ctx)
+	conn, cleanup, err := p.initialize(ctx, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize: %w", err)
 	}
@@ -410,7 +425,7 @@ func (p *Provider) apply(
 	if err != nil {
 		return nil, err
 	}
-	conn, cleanup, err := p.initialize(ctx)
+	conn, cleanup, err := p.initialize(ctx, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize: %w", err)
 	}
@@ -443,7 +458,7 @@ func (p *Provider) apply(
 }
 
 func (p *Provider) hasPending(ctx context.Context) (_ bool, retErr error) {
-	conn, cleanup, err := p.initializeWithoutSessionLocker(ctx)
+	conn, cleanup, err := p.initialize(ctx, false)
 	if err != nil {
 		return false, fmt.Errorf("failed to initialize: %w", err)
 	}
@@ -451,9 +466,6 @@ func (p *Provider) hasPending(ctx context.Context) (_ bool, retErr error) {
 		retErr = multierr.Append(retErr, cleanup())
 	}()
 
-	if len(p.migrations) == 0 {
-		return false, nil
-	}
 	// If versioning is disabled, we always have pending migrations.
 	if p.cfg.disableVersioning {
 		return true, nil
@@ -493,7 +505,7 @@ func (p *Provider) hasPending(ctx context.Context) (_ bool, retErr error) {
 }
 
 func (p *Provider) status(ctx context.Context) (_ []*MigrationStatus, retErr error) {
-	conn, cleanup, err := p.initialize(ctx)
+	conn, cleanup, err := p.initialize(ctx, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize: %w", err)
 	}
@@ -534,7 +546,7 @@ func (p *Provider) getDBMaxVersion(ctx context.Context, conn *sql.Conn) (_ int64
 	if conn == nil {
 		var cleanup func() error
 		var err error
-		conn, cleanup, err = p.initialize(ctx)
+		conn, cleanup, err = p.initialize(ctx, true)
 		if err != nil {
 			return 0, err
 		}

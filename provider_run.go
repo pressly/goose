@@ -297,26 +297,7 @@ func beginTx(ctx context.Context, conn *sql.Conn, fn func(tx *sql.Tx) error) (re
 	return tx.Commit()
 }
 
-func (p *Provider) initializeWithoutSessionLocker(ctx context.Context) (*sql.Conn, func() error, error) {
-	p.mu.Lock()
-	conn, err := p.db.Conn(ctx)
-	if err != nil {
-		p.mu.Unlock()
-		return nil, nil, err
-	}
-	cleanup := func() error {
-		p.mu.Unlock()
-		return conn.Close()
-	}
-	if !p.cfg.disableVersioning {
-		if err := p.ensureVersionTable(ctx, conn); err != nil {
-			return nil, nil, multierr.Append(err, cleanup())
-		}
-	}
-	return conn, cleanup, nil
-}
-
-func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, error) {
+func (p *Provider) initialize(ctx context.Context, useSessionLocker bool) (*sql.Conn, func() error, error) {
 	p.mu.Lock()
 	conn, err := p.db.Conn(ctx)
 	if err != nil {
@@ -328,7 +309,8 @@ func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, err
 		p.mu.Unlock()
 		return conn.Close()
 	}
-	if l := p.cfg.sessionLocker; l != nil && p.cfg.lockEnabled {
+	if useSessionLocker && p.cfg.sessionLocker != nil && p.cfg.lockEnabled {
+		l := p.cfg.sessionLocker
 		if err := l.SessionLock(ctx, conn); err != nil {
 			return nil, nil, multierr.Append(err, cleanup())
 		}
