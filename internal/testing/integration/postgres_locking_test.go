@@ -4,11 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"math/rand"
 	"os"
 	"sort"
 	"sync"
 	"testing"
+	"testing/fstest"
 	"time"
 
 	"github.com/pressly/goose/v3"
@@ -418,27 +420,103 @@ func TestPostgresHasPending(t *testing.T) {
 	t.Cleanup(cleanup)
 
 	workers := 15
-	var g errgroup.Group
-	boolCh := make(chan bool, workers)
-	for i := 0; i < workers; i++ {
-		g.Go(func() error {
-			p, err := goose.NewProvider(goose.DialectPostgres, db, os.DirFS("testdata/migrations/postgres"))
-			check.NoError(t, err)
-			hasPending, err := p.HasPending(context.Background())
-			if err != nil {
-				return err
-			}
-			boolCh <- hasPending
-			return nil
 
-		})
+	run := func(want bool) {
+		var g errgroup.Group
+		boolCh := make(chan bool, workers)
+		for i := 0; i < workers; i++ {
+			g.Go(func() error {
+				p, err := goose.NewProvider(goose.DialectPostgres, db, os.DirFS("testdata/migrations/postgres"))
+				check.NoError(t, err)
+				hasPending, err := p.HasPending(context.Background())
+				if err != nil {
+					return err
+				}
+				boolCh <- hasPending
+				return nil
+
+			})
+		}
+		check.NoError(t, g.Wait())
+		close(boolCh)
+		// expect all values to be true
+		for hasPending := range boolCh {
+			check.Bool(t, hasPending, want)
+		}
 	}
-	check.NoError(t, g.Wait())
-	close(boolCh)
-	// expect all values to be true
-	for hasPending := range boolCh {
+	t.Run("concurrent_has_pending", func(t *testing.T) {
+		run(true)
+	})
+
+	// apply all migrations
+	p, err := goose.NewProvider(goose.DialectPostgres, db, os.DirFS("testdata/migrations/postgres"))
+	check.NoError(t, err)
+	_, err = p.Up(context.Background())
+	check.NoError(t, err)
+
+	t.Run("concurrent_no_pending", func(t *testing.T) {
+		run(false)
+	})
+
+	// Add a new migration file
+	last := p.ListSources()[len(p.ListSources())-1]
+	newVersion := fmt.Sprintf("%d_new_migration.sql", last.Version+1)
+	fsys := fstest.MapFS{
+		newVersion: &fstest.MapFile{Data: []byte(`
+-- +goose Up
+SELECT pg_sleep_for('2 seconds');
+`)},
+	}
+	// Create a new provider with the new migration file
+	sessionLocker, err := lock.NewPostgresSessionLocker(lock.WithLockTimeout(5, 60)) // Timeout 5min. Try every 5s up to 60 times.
+	require.NoError(t, err)
+	newProvider, err := goose.NewProvider(goose.DialectPostgres, db, fsys, goose.WithSessionLocker(sessionLocker))
+	check.NoError(t, err)
+	check.Number(t, len(newProvider.ListSources()), 1)
+	oldProvider := p
+	check.Number(t, len(oldProvider.ListSources()), 6)
+
+	var g errgroup.Group
+	g.Go(func() error {
+		hasPending, err := newProvider.HasPending(context.Background())
+		if err != nil {
+			return err
+		}
 		check.Bool(t, hasPending, true)
-	}
+		return nil
+	})
+	g.Go(func() error {
+		hasPending, err := oldProvider.HasPending(context.Background())
+		if err != nil {
+			return err
+		}
+		check.Bool(t, hasPending, false)
+		return nil
+	})
+	check.NoError(t, g.Wait())
+
+	// A new provider is running in the background with a session lock to simulate a long running
+	// migration. If older instances come up, they should not have any pending migrations and not be
+	// affected by the long running migration. Test the following scenario:
+	// https://github.com/pressly/goose/pull/507#discussion_r1266498077
+	g.Go(func() error {
+		_, err := newProvider.Up(context.Background())
+		check.NoError(t, err)
+		return nil
+	})
+	hasPending, err := oldProvider.HasPending(context.Background())
+	check.NoError(t, err)
+	check.Bool(t, hasPending, false)
+	// Wait for the long running migration to finish
+	check.NoError(t, g.Wait())
+	// Check that the new migration was applied
+	hasPending, err = newProvider.HasPending(context.Background())
+	check.NoError(t, err)
+	check.Bool(t, hasPending, false)
+	// The max version should be the new migration
+	currentVersion, err := newProvider.GetDBVersion(context.Background())
+	check.NoError(t, err)
+	check.Number(t, currentVersion, last.Version+1)
 }
 
 func existsPgLock(ctx context.Context, db *sql.DB, lockID int64) (bool, error) {
