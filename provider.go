@@ -24,7 +24,7 @@ type Provider struct {
 	mu sync.Mutex
 
 	db    *sql.DB
-	store database.Store
+	store *database.StoreController
 
 	fsys fs.FS
 	cfg  config
@@ -143,7 +143,7 @@ func newProvider(
 		db:         db,
 		fsys:       fsys,
 		cfg:        cfg,
-		store:      store,
+		store:      database.NewStoreController(store),
 		migrations: migrations,
 	}, nil
 }
