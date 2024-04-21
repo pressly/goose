@@ -351,40 +351,47 @@ func (p *Provider) ensureVersionTable(
 	// is why we retry a few times. Best case, the table is created and we move on. Worst case, we
 	// thrash the database a bit, but eventually the table will be created.
 	p.versionTableOnce.Do(func() {
-		b := retry.NewConstant(1 * time.Second)
-		b = retry.WithMaxRetries(3, b)
-		retry.Do(ctx, b, func(ctx context.Context) error {
-			if e, ok := p.store.(interface {
-				TableExists(context.Context, database.DBTxConn, string) (bool, error)
-			}); ok {
-				exists, err := e.TableExists(ctx, conn, p.store.Tablename())
-				if err != nil {
-					return fmt.Errorf("failed to check if version table exists: %w", err)
-				}
-				if exists {
-					retErr = nil
-					return nil
-				}
-			} else {
-				// This chicken-and-egg behavior is the fallback for all existing implementations of
-				// the Store interface. We check if the version table exists by querying for the
-				// initial version, but the table may not exist yet. It's important this runs
-				// outside of a transaction to avoid failing the transaction.
-				if res, err := p.store.GetMigration(ctx, conn, 0); err == nil && res != nil {
-					retErr = nil
-					return nil
-				}
-			}
-			retErr = beginTx(ctx, conn, func(tx *sql.Tx) error {
-				if err := p.store.CreateVersionTable(ctx, tx); err != nil {
-					return err
-				}
-				return p.store.Insert(ctx, tx, database.InsertRequest{Version: 0})
-			})
-			return retry.RetryableError(retErr)
-		})
+		retErr = p.tryEnsureVersionTable(ctx, conn)
 	})
 	return retErr
+}
+
+func (p *Provider) tryEnsureVersionTable(ctx context.Context, conn *sql.Conn) error {
+	b := retry.NewConstant(1 * time.Second)
+	b = retry.WithMaxRetries(3, b)
+	return retry.Do(ctx, b, func(ctx context.Context) error {
+		if e, ok := p.store.(interface {
+			TableExists(context.Context, database.DBTxConn, string) (bool, error)
+		}); ok {
+			exists, err := e.TableExists(ctx, conn, p.store.Tablename())
+			if err != nil {
+				return fmt.Errorf("failed to check if version table exists: %w", err)
+			}
+			if exists {
+				return nil
+			}
+		} else {
+			// This chicken-and-egg behavior is the fallback for all existing implementations of
+			// the Store interface. We check if the version table exists by querying for the
+			// initial version, but the table may not exist yet. It's important this runs
+			// outside of a transaction to avoid failing the transaction.
+			if res, err := p.store.GetMigration(ctx, conn, 0); err == nil && res != nil {
+				return nil
+			}
+		}
+		if err := beginTx(ctx, conn, func(tx *sql.Tx) error {
+			if err := p.store.CreateVersionTable(ctx, tx); err != nil {
+				return err
+			}
+			return p.store.Insert(ctx, tx, database.InsertRequest{Version: 0})
+		}); err != nil {
+			// Mark the error as retryable so we can try again. It's possible that another
+			// instance is creating the table at the same time and the checks above will succeed
+			// on the next iteration.
+			return retry.RetryableError(fmt.Errorf("failed to create version table: %w", err))
+		}
+		return nil
+	})
 }
 
 // checkMissingMigrations returns a list of migrations that are missing from the database. A missing
