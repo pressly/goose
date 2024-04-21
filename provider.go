@@ -153,9 +153,9 @@ func (p *Provider) Status(ctx context.Context) ([]*MigrationStatus, error) {
 	return p.status(ctx)
 }
 
-// HasPending returns true if there are pending migrations to apply, otherwise false.
+// HasPending returns true if there are pending migrations to apply, otherwise, it returns false.
 //
-// Important, this method does not use a SessionLocker, which enables callers to check for pending
+// Note, this method does not use a SessionLocker. This allows callers to check for pending
 // migrations without blocking or being blocked by other operations.
 func (p *Provider) HasPending(ctx context.Context) (bool, error) {
 	return p.hasPending(ctx)
@@ -221,7 +221,7 @@ func (p *Provider) ApplyVersion(ctx context.Context, version int64, direction bo
 // Up applies all pending migrations. If there are no new migrations to apply, this method returns
 // empty list and nil error.
 func (p *Provider) Up(ctx context.Context) ([]*MigrationResult, error) {
-	hasPending, err := p.hasPending(ctx)
+	hasPending, err := p.HasPending(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -261,7 +261,7 @@ func (p *Provider) UpByOne(ctx context.Context) (*MigrationResult, error) {
 // For example, if there are three new migrations (9,10,11) and the current database version is 8
 // with a requested version of 10, only versions 9,10 will be applied.
 func (p *Provider) UpTo(ctx context.Context, version int64) ([]*MigrationResult, error) {
-	hasPending, err := p.hasPending(ctx)
+	hasPending, err := p.HasPending(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -492,8 +492,8 @@ func (p *Provider) hasPending(ctx context.Context) (_ bool, retErr error) {
 		}
 		return false, nil
 	}
-	// If missing migrations are not allowed, we can optimize this by only checking whether the last
-	// migration this provider knows about is applied.
+	// If out-of-order migrations are not allowed, we can optimize this by only checking whether the
+	// last migration the provider knows about is applied.
 	last := p.migrations[len(p.migrations)-1]
 	if _, err := p.store.GetMigration(ctx, conn, last.Version); err != nil {
 		if errors.Is(err, database.ErrVersionNotFound) {
