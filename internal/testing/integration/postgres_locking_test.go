@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"hash/crc64"
 	"math/rand"
 	"os"
 	"sort"
@@ -464,11 +465,12 @@ func TestPostgresHasPending(t *testing.T) {
 	fsys := fstest.MapFS{
 		newVersion: &fstest.MapFile{Data: []byte(`
 -- +goose Up
-SELECT pg_sleep_for('2 seconds');
+SELECT pg_sleep_for('4 seconds');
 `)},
 	}
+	lockID := int64(crc64.Checksum([]byte(t.Name()), crc64.MakeTable(crc64.ECMA)))
 	// Create a new provider with the new migration file
-	sessionLocker, err := lock.NewPostgresSessionLocker(lock.WithLockTimeout(5, 60)) // Timeout 5min. Try every 5s up to 60 times.
+	sessionLocker, err := lock.NewPostgresSessionLocker(lock.WithLockTimeout(1, 10), lock.WithLockID(lockID)) // Timeout 5min. Try every 1s up to 10 times.
 	require.NoError(t, err)
 	newProvider, err := goose.NewProvider(goose.DialectPostgres, db, fsys, goose.WithSessionLocker(sessionLocker))
 	check.NoError(t, err)
@@ -501,9 +503,12 @@ SELECT pg_sleep_for('2 seconds');
 	// https://github.com/pressly/goose/pull/507#discussion_r1266498077
 	g.Go(func() error {
 		_, err := newProvider.Up(context.Background())
-		check.NoError(t, err)
-		return nil
+		return err
 	})
+	time.Sleep(1 * time.Second)
+	isLocked, err := existsPgLock(context.Background(), db, lockID)
+	check.NoError(t, err)
+	check.Bool(t, isLocked, true)
 	hasPending, err := oldProvider.HasPending(context.Background())
 	check.NoError(t, err)
 	check.Bool(t, hasPending, false)
