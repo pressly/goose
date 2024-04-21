@@ -345,11 +345,12 @@ func (p *Provider) ensureVersionTable(
 	//  - 1. We create the version table once per Provider instance.
 	//  - 2. We retry the operation a few times in case the table is being created concurrently.
 	//
-	// Re. item 2, some goose operations, such as HasPending, will not respect a SessionLocker. And
-	// so when goose is run for the first time in an environment with multiple instances, it is
-	// possible that multiple instances will try to create the version table at the same time. This
-	// is why we retry a few times. Best case, the table is created and we move on. Worst case, we
-	// thrash the database a bit, but eventually the table will be created.
+	// Regarding item 2, certain goose operations, like HasPending, don't respect a SessionLocker.
+	// So, when goose is run for the first time in a multi-instance environment, it's possible that
+	// multiple instances will try to create the version table at the same time. This is why we
+	// retry this operation a few times. Best case, the table is created by one instance and all the
+	// other instances see that change immediately. Worst case, all instances try to create the
+	// table at the same time, but only one will succeed and the others will retry.
 	p.versionTableOnce.Do(func() {
 		retErr = p.tryEnsureVersionTable(ctx, conn)
 	})
@@ -371,10 +372,10 @@ func (p *Provider) tryEnsureVersionTable(ctx context.Context, conn *sql.Conn) er
 				return nil
 			}
 		} else {
-			// This chicken-and-egg behavior is the fallback for all existing implementations of
-			// the Store interface. We check if the version table exists by querying for the
-			// initial version, but the table may not exist yet. It's important this runs
-			// outside of a transaction to avoid failing the transaction.
+			// This chicken-and-egg behavior is the fallback for all existing implementations of the
+			// Store interface. We check if the version table exists by querying for the initial
+			// version, but the table may not exist yet. It's important this runs outside of a
+			// transaction to avoid failing the transaction.
 			if res, err := p.store.GetMigration(ctx, conn, 0); err == nil && res != nil {
 				return nil
 			}
@@ -385,9 +386,9 @@ func (p *Provider) tryEnsureVersionTable(ctx context.Context, conn *sql.Conn) er
 			}
 			return p.store.Insert(ctx, tx, database.InsertRequest{Version: 0})
 		}); err != nil {
-			// Mark the error as retryable so we can try again. It's possible that another
-			// instance is creating the table at the same time and the checks above will succeed
-			// on the next iteration.
+			// Mark the error as retryable so we can try again. It's possible that another instance
+			// is creating the table at the same time and the checks above will succeed on the next
+			// iteration.
 			return retry.RetryableError(fmt.Errorf("failed to create version table: %w", err))
 		}
 		return nil
