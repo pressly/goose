@@ -14,6 +14,7 @@ import (
 
 	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/internal/sqlparser"
+	"github.com/sethvargo/go-retry"
 	"go.uber.org/multierr"
 )
 
@@ -51,8 +52,14 @@ func (p *Provider) resolveUpMigrations(
 		if len(collected) > 1 {
 			msg += "s"
 		}
-		return nil, fmt.Errorf("found %d missing (out-of-order) %s lower than current max (%d): [%s]",
-			len(missingMigrations), msg, dbMaxVersion, strings.Join(collected, ","),
+		var versionsMsg string
+		if len(collected) > 1 {
+			versionsMsg = "versions " + strings.Join(collected, ",")
+		} else {
+			versionsMsg = "version " + collected[0]
+		}
+		return nil, fmt.Errorf("found %d missing (out-of-order) %s lower than current max (%d): %s",
+			len(missingMigrations), msg, dbMaxVersion, versionsMsg,
 		)
 	}
 	for _, missingVersion := range missingMigrations {
@@ -291,7 +298,7 @@ func beginTx(ctx context.Context, conn *sql.Conn, fn func(tx *sql.Tx) error) (re
 	return tx.Commit()
 }
 
-func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, error) {
+func (p *Provider) initialize(ctx context.Context, useSessionLocker bool) (*sql.Conn, func() error, error) {
 	p.mu.Lock()
 	conn, err := p.db.Conn(ctx)
 	if err != nil {
@@ -303,7 +310,8 @@ func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, err
 		p.mu.Unlock()
 		return conn.Close()
 	}
-	if l := p.cfg.sessionLocker; l != nil && p.cfg.lockEnabled {
+	if useSessionLocker && p.cfg.sessionLocker != nil && p.cfg.lockEnabled {
+		l := p.cfg.sessionLocker
 		if err := l.SessionLock(ctx, conn); err != nil {
 			return nil, nil, multierr.Append(err, cleanup())
 		}
@@ -320,7 +328,7 @@ func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, err
 		}
 	}
 	// If versioning is enabled, ensure the version table exists. For ad-hoc migrations, we don't
-	// need the version table because no versions are being recorded.
+	// need the version table because no versions are being tracked.
 	if !p.cfg.disableVersioning {
 		if err := p.ensureVersionTable(ctx, conn); err != nil {
 			return nil, nil, multierr.Append(err, cleanup())
@@ -329,36 +337,61 @@ func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, err
 	return conn, cleanup, nil
 }
 
-func (p *Provider) ensureVersionTable(ctx context.Context, conn *sql.Conn) (retErr error) {
-	// existor is an interface that extends the Store interface with a method to check if the
-	// version table exists. This API is not stable and may change in the future.
-	type existor interface {
-		TableExists(context.Context, database.DBTxConn, string) (bool, error)
-	}
-	if e, ok := p.store.(existor); ok {
-		exists, err := e.TableExists(ctx, conn, p.store.Tablename())
-		if err != nil {
-			return fmt.Errorf("failed to check if version table exists: %w", err)
+func (p *Provider) ensureVersionTable(
+	ctx context.Context,
+	conn *sql.Conn,
+) (retErr error) {
+	// There are 2 optimizations here:
+	//  - 1. We create the version table once per Provider instance.
+	//  - 2. We retry the operation a few times in case the table is being created concurrently.
+	//
+	// Regarding item 2, certain goose operations, like HasPending, don't respect a SessionLocker.
+	// So, when goose is run for the first time in a multi-instance environment, it's possible that
+	// multiple instances will try to create the version table at the same time. This is why we
+	// retry this operation a few times. Best case, the table is created by one instance and all the
+	// other instances see that change immediately. Worst case, all instances try to create the
+	// table at the same time, but only one will succeed and the others will retry.
+	p.versionTableOnce.Do(func() {
+		retErr = p.tryEnsureVersionTable(ctx, conn)
+	})
+	return retErr
+}
+
+func (p *Provider) tryEnsureVersionTable(ctx context.Context, conn *sql.Conn) error {
+	b := retry.NewConstant(1 * time.Second)
+	b = retry.WithMaxRetries(3, b)
+	return retry.Do(ctx, b, func(ctx context.Context) error {
+		if e, ok := p.store.(interface {
+			TableExists(context.Context, database.DBTxConn, string) (bool, error)
+		}); ok {
+			exists, err := e.TableExists(ctx, conn, p.store.Tablename())
+			if err != nil {
+				return fmt.Errorf("failed to check if version table exists: %w", err)
+			}
+			if exists {
+				return nil
+			}
+		} else {
+			// This chicken-and-egg behavior is the fallback for all existing implementations of the
+			// Store interface. We check if the version table exists by querying for the initial
+			// version, but the table may not exist yet. It's important this runs outside of a
+			// transaction to avoid failing the transaction.
+			if res, err := p.store.GetMigration(ctx, conn, 0); err == nil && res != nil {
+				return nil
+			}
 		}
-		if exists {
-			return nil
+		if err := beginTx(ctx, conn, func(tx *sql.Tx) error {
+			if err := p.store.CreateVersionTable(ctx, tx); err != nil {
+				return err
+			}
+			return p.store.Insert(ctx, tx, database.InsertRequest{Version: 0})
+		}); err != nil {
+			// Mark the error as retryable so we can try again. It's possible that another instance
+			// is creating the table at the same time and the checks above will succeed on the next
+			// iteration.
+			return retry.RetryableError(fmt.Errorf("failed to create version table: %w", err))
 		}
-	} else {
-		// feat(mf): this is where we can check if the version table exists instead of trying to fetch
-		// from a table that may not exist. https://github.com/pressly/goose/issues/461
-		res, err := p.store.GetMigration(ctx, conn, 0)
-		if err == nil && res != nil {
-			return nil
-		}
-	}
-	return beginTx(ctx, conn, func(tx *sql.Tx) error {
-		if err := p.store.CreateVersionTable(ctx, tx); err != nil {
-			return err
-		}
-		if p.cfg.disableVersioning {
-			return nil
-		}
-		return p.store.Insert(ctx, tx, database.InsertRequest{Version: 0})
+		return nil
 	})
 }
 

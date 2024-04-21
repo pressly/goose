@@ -23,13 +23,15 @@ type Provider struct {
 	// database.
 	mu sync.Mutex
 
-	db    *sql.DB
-	store database.Store
+	db               *sql.DB
+	store            database.Store
+	versionTableOnce sync.Once
 
 	fsys fs.FS
 	cfg  config
 
-	// migrations are ordered by version in ascending order.
+	// migrations are ordered by version in ascending order. This list will never be empty and
+	// contains all migrations known to the provider.
 	migrations []*Migration
 }
 
@@ -49,8 +51,6 @@ type Provider struct {
 // See [ProviderOption] for more information on configuring the provider.
 //
 // Unless otherwise specified, all methods on Provider are safe for concurrent use.
-//
-// Experimental: This API is experimental and may change in the future.
 func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption) (*Provider, error) {
 	if db == nil {
 		return nil, errors.New("db must not be nil")
@@ -154,6 +154,14 @@ func (p *Provider) Status(ctx context.Context) ([]*MigrationStatus, error) {
 	return p.status(ctx)
 }
 
+// HasPending returns true if there are pending migrations to apply, otherwise, it returns false.
+//
+// Note, this method will not use a SessionLocker if one is configured. This allows callers to check
+// for pending migrations without blocking or being blocked by other operations.
+func (p *Provider) HasPending(ctx context.Context) (bool, error) {
+	return p.hasPending(ctx)
+}
+
 // GetDBVersion returns the highest version recorded in the database, regardless of the order in
 // which migrations were applied. For example, if migrations were applied out of order (1,4,2,3),
 // this method returns 4. If no migrations have been applied, it returns 0.
@@ -214,12 +222,26 @@ func (p *Provider) ApplyVersion(ctx context.Context, version int64, direction bo
 // Up applies all pending migrations. If there are no new migrations to apply, this method returns
 // empty list and nil error.
 func (p *Provider) Up(ctx context.Context) ([]*MigrationResult, error) {
+	hasPending, err := p.HasPending(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !hasPending {
+		return nil, nil
+	}
 	return p.up(ctx, false, math.MaxInt64)
 }
 
 // UpByOne applies the next pending migration. If there is no next migration to apply, this method
-// returns [ErrNoNextVersion]. The returned list will always have exactly one migration result.
+// returns [ErrNoNextVersion].
 func (p *Provider) UpByOne(ctx context.Context) (*MigrationResult, error) {
+	hasPending, err := p.HasPending(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !hasPending {
+		return nil, ErrNoNextVersion
+	}
 	res, err := p.up(ctx, true, math.MaxInt64)
 	if err != nil {
 		return nil, err
@@ -247,6 +269,13 @@ func (p *Provider) UpByOne(ctx context.Context) (*MigrationResult, error) {
 // For example, if there are three new migrations (9,10,11) and the current database version is 8
 // with a requested version of 10, only versions 9,10 will be applied.
 func (p *Provider) UpTo(ctx context.Context, version int64) ([]*MigrationResult, error) {
+	hasPending, err := p.HasPending(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !hasPending {
+		return nil, nil
+	}
 	return p.up(ctx, false, version)
 }
 
@@ -303,7 +332,7 @@ func (p *Provider) up(
 	if version < 1 {
 		return nil, errInvalidVersion
 	}
-	conn, cleanup, err := p.initialize(ctx)
+	conn, cleanup, err := p.initialize(ctx, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize: %w", err)
 	}
@@ -345,7 +374,7 @@ func (p *Provider) down(
 	byOne bool,
 	version int64,
 ) (_ []*MigrationResult, retErr error) {
-	conn, cleanup, err := p.initialize(ctx)
+	conn, cleanup, err := p.initialize(ctx, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize: %w", err)
 	}
@@ -404,7 +433,7 @@ func (p *Provider) apply(
 	if err != nil {
 		return nil, err
 	}
-	conn, cleanup, err := p.initialize(ctx)
+	conn, cleanup, err := p.initialize(ctx, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize: %w", err)
 	}
@@ -436,8 +465,55 @@ func (p *Provider) apply(
 	return p.runMigrations(ctx, conn, []*Migration{m}, d, true)
 }
 
+func (p *Provider) hasPending(ctx context.Context) (_ bool, retErr error) {
+	conn, cleanup, err := p.initialize(ctx, false)
+	if err != nil {
+		return false, fmt.Errorf("failed to initialize: %w", err)
+	}
+	defer func() {
+		retErr = multierr.Append(retErr, cleanup())
+	}()
+
+	// If versioning is disabled, we always have pending migrations.
+	if p.cfg.disableVersioning {
+		return true, nil
+	}
+	if p.cfg.allowMissing {
+		// List all migrations from the database.
+		dbMigrations, err := p.store.ListMigrations(ctx, conn)
+		if err != nil {
+			return false, err
+		}
+		// If there are no migrations in the database, we have pending migrations.
+		if len(dbMigrations) == 0 {
+			return true, nil
+		}
+		applied := make(map[int64]bool, len(dbMigrations))
+		for _, m := range dbMigrations {
+			applied[m.Version] = true
+		}
+		// Iterate over all migrations and check if any are missing.
+		for _, m := range p.migrations {
+			if !applied[m.Version] {
+				return true, nil
+			}
+		}
+		return false, nil
+	}
+	// If out-of-order migrations are not allowed, we can optimize this by only checking whether the
+	// last migration the provider knows about is applied.
+	last := p.migrations[len(p.migrations)-1]
+	if _, err := p.store.GetMigration(ctx, conn, last.Version); err != nil {
+		if errors.Is(err, database.ErrVersionNotFound) {
+			return true, nil
+		}
+		return false, err
+	}
+	return false, nil
+}
+
 func (p *Provider) status(ctx context.Context) (_ []*MigrationStatus, retErr error) {
-	conn, cleanup, err := p.initialize(ctx)
+	conn, cleanup, err := p.initialize(ctx, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize: %w", err)
 	}
@@ -478,7 +554,7 @@ func (p *Provider) getDBMaxVersion(ctx context.Context, conn *sql.Conn) (_ int64
 	if conn == nil {
 		var cleanup func() error
 		var err error
-		conn, cleanup, err = p.initialize(ctx)
+		conn, cleanup, err = p.initialize(ctx, true)
 		if err != nil {
 			return 0, err
 		}

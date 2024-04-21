@@ -42,6 +42,14 @@ test-packages:
 test-packages-short:
 	go test -test.short $(GO_TEST_FLAGS) $$(go list ./... | grep -v -e /tests -e /bin -e /cmd -e /examples)
 
+coverage-short:
+	go test ./ -test.short  $(GO_TEST_FLAGS) -cover -coverprofile=coverage.out
+	go tool cover -html=coverage.out
+
+coverage:
+	go test ./ $(GO_TEST_FLAGS) -cover -coverprofile=coverage.out
+	go tool cover -html=coverage.out
+
 #
 # Integration-related targets
 #
