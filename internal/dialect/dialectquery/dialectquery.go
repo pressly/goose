@@ -22,6 +22,8 @@ type Querier interface {
 	ListMigrations(tableName string) string
 }
 
+var _ Querier = (*QueryController)(nil)
+
 type QueryController struct {
 	querier Querier
 }

@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 )
 
@@ -33,11 +34,11 @@ func NewStoreController(store Store) *StoreController {
 // TableExists is an optional method that checks if the version table exists in the database. It is
 // recommended to implement this method if the database supports it, as it can be used to optimize
 // certain operations.
-func (c *StoreController) TableExists(ctx context.Context, db DBTxConn) (bool, error) {
+func (c *StoreController) TableExists(ctx context.Context, db *sql.Conn) (bool, error) {
 	if t, ok := c.store.(interface {
-		TableExists(context.Context, DBTxConn, string) (bool, error)
+		TableExists(ctx context.Context, db *sql.Conn) (bool, error)
 	}); ok {
-		return t.TableExists(ctx, db, c.Tablename())
+		return t.TableExists(ctx, db)
 	}
 	return false, ErrNotSupported
 }

@@ -138,13 +138,13 @@ func (s *store) ListMigrations(
 	return migrations, nil
 }
 
-func (s *store) TableExists(ctx context.Context, db DBTxConn, name string) (bool, error) {
+func (s *store) TableExists(ctx context.Context, db DBTxConn) (bool, error) {
 	q := s.querier.TableExists(s.tablename)
 	if q == "" {
 		return false, ErrNotSupported
 	}
 	var exists bool
-	if err := db.QueryRowContext(ctx, q, name).Scan(&exists); err != nil {
+	if err := db.QueryRowContext(ctx, q, s.tablename).Scan(&exists); err != nil {
 		return false, fmt.Errorf("failed to check if table exists: %w", err)
 	}
 	return exists, nil

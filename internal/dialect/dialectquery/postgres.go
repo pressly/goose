@@ -37,6 +37,6 @@ func (p *Postgres) ListMigrations(tableName string) string {
 	return fmt.Sprintf(q, tableName)
 }
 
-func (p *Postgres) TableExists(tableName string) string {
+func (p *Postgres) TableExists(_ string) string {
 	return `SELECT EXISTS ( SELECT FROM pg_tables WHERE tablename = $1)`
 }

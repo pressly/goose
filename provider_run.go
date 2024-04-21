@@ -330,15 +330,19 @@ func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, err
 }
 
 func (p *Provider) ensureVersionTable(ctx context.Context, conn *sql.Conn) (retErr error) {
-	if ok, err := p.store.TableExists(ctx, conn); err != nil && !errors.Is(err, database.ErrNotSupported) {
+	ok, err := p.store.TableExists(ctx, conn)
+	if err != nil && !errors.Is(err, database.ErrNotSupported) {
 		return err
-	} else if ok {
+	}
+	if ok {
 		return nil
 	}
-	// Fall back to the default behavior if the Store does not implement TableExists.
-	res, err := p.store.GetMigration(ctx, conn, 0)
-	if err == nil && res != nil {
-		return nil
+	if errors.Is(err, database.ErrNotSupported) {
+		// Fall back to the default behavior if the Store does not implement TableExists.
+		res, err := p.store.GetMigration(ctx, conn, 0)
+		if err == nil && res != nil {
+			return nil
+		}
 	}
 	return beginTx(ctx, conn, func(tx *sql.Tx) error {
 		if err := p.store.CreateVersionTable(ctx, tx); err != nil {
