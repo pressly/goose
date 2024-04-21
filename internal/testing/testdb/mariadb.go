@@ -15,7 +15,7 @@ import (
 const (
 	// https://hub.docker.com/_/mariadb
 	MARIADB_IMAGE   = "mariadb"
-	MARIADB_VERSION = "10"
+	MARIADB_VERSION = "11"
 
 	MARIADB_DB       = "testdb"
 	MARIADB_USER     = "tester"
