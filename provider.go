@@ -235,6 +235,13 @@ func (p *Provider) Up(ctx context.Context) ([]*MigrationResult, error) {
 // UpByOne applies the next pending migration. If there is no next migration to apply, this method
 // returns [ErrNoNextVersion].
 func (p *Provider) UpByOne(ctx context.Context) (*MigrationResult, error) {
+	hasPending, err := p.HasPending(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !hasPending {
+		return nil, ErrNoNextVersion
+	}
 	res, err := p.up(ctx, true, math.MaxInt64)
 	if err != nil {
 		return nil, err
