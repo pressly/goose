@@ -7,7 +7,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-- Expand the `Store` interface by adding a `GetLatestVersion` method.
+## [v3.20.0]
+
+- Expand the `Store` interface by adding a `GetLatestVersion` method and make the interface public.
+- Add a (non-blocking) method to check if there are pending migrations to the `goose.Provider`
+  (#751):
+
+```go
+func (p *Provider) HasPending(context.Context) (bool, error) {}
+```
+
+The underlying implementation **does not respect the `SessionLocker`** (if one is enabled) and can
+be used to check for pending migrations without blocking or being blocked by other operations.
+
+- The methods `.Up`, `.UpByOne`, and `.UpTo` from `goose.Provider` will invoke `.HasPending` before
+  acquiring a lock with `SessionLocker` (if enabled). This addresses an edge case in
+  Kubernetes-style deployments where newer pods with long-running migrations prevent older pods -
+  which have all known migrations applied - from starting up due to an advisory lock. For more
+  details, refer to https://github.com/pressly/goose/pull/507#discussion_r1266498077 and #751.
+- Move integration tests to `./internal/testing` and make it a separate Go module. This will allow
+  us to have a cleaner top-level go.mod file and avoid imports unrelated to the goose project. See
+  [integration/README.md](https://github.com/pressly/goose/blob/d0641b5bfb3bd5d38d95fe7a63d7ddf2d282234d/internal/testing/integration/README.md)
+  for more details. This shouldn't affect users of the goose library.
 
 ## [v3.19.2] - 2024-03-13
 
@@ -149,7 +170,8 @@ Here's a quick summary:
 - Add new `context.Context`-aware functions and methods, for both sql and go migrations.
 - Return error when no migration files found or dir is not a directory.
 
-[Unreleased]: https://github.com/pressly/goose/compare/v3.19.2...HEAD
+[Unreleased]: https://github.com/pressly/goose/compare/v3.20.0...HEAD
+[v3.20.0]: https://github.com/pressly/goose/compare/v3.19.2...v3.20.0
 [v3.19.2]: https://github.com/pressly/goose/compare/v3.19.1...v3.19.2
 [v3.19.1]: https://github.com/pressly/goose/compare/v3.19.0...v3.19.1
 [v3.19.0]: https://github.com/pressly/goose/compare/v3.18.0...v3.19.0
