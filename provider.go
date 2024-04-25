@@ -162,6 +162,15 @@ func (p *Provider) HasPending(ctx context.Context) (bool, error) {
 	return p.hasPending(ctx)
 }
 
+// CheckPending returns the current database version and the target version to migrate to. If there
+// are no pending migrations, the target version will be the same as the current version.
+//
+// Note, this method will not use a SessionLocker if one is configured. This allows callers to check
+// for pending migrations without blocking or being blocked by other operations.
+func (p *Provider) CheckPending(ctx context.Context) (current, target int64, err error) {
+	return p.checkPending(ctx)
+}
+
 // GetDBVersion returns the highest version recorded in the database, regardless of the order in
 // which migrations were applied. For example, if migrations were applied out of order (1,4,2,3),
 // this method returns 4. If no migrations have been applied, it returns 0.
@@ -463,6 +472,41 @@ func (p *Provider) apply(
 		d = sqlparser.DirectionUp
 	}
 	return p.runMigrations(ctx, conn, []*Migration{m}, d, true)
+}
+
+func (p *Provider) checkPending(ctx context.Context) (current, target int64, retErr error) {
+	conn, cleanup, err := p.initialize(ctx, false)
+	if err != nil {
+		return -1, -1, fmt.Errorf("failed to initialize: %w", err)
+	}
+	defer func() {
+		retErr = multierr.Append(retErr, cleanup())
+	}()
+
+	// If versioning is disabled, we always have pending migrations and the target version is the
+	// last migration.
+	if p.cfg.disableVersioning {
+		return -1, p.migrations[len(p.migrations)-1].Version, nil
+	}
+	// optimize(mf): we should only fetch the max version from the database, no need to fetch all
+	// migrations only to get the max version when we're not using out-of-order migrations.
+	res, err := p.store.ListMigrations(ctx, conn)
+	if err != nil {
+		return -1, -1, err
+	}
+	versions := make([]int64, 0, len(res))
+	for _, m := range res {
+		versions = append(versions, m.Version)
+	}
+	sort.Slice(versions, func(i, j int) bool {
+		return versions[i] < versions[j]
+	})
+	if len(versions) == 0 {
+		current = -1
+	} else {
+		current = versions[len(versions)-1]
+	}
+	return current, p.migrations[len(p.migrations)-1].Version, nil
 }
 
 func (p *Provider) hasPending(ctx context.Context) (_ bool, retErr error) {

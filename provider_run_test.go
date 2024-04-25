@@ -775,7 +775,7 @@ func TestProviderApply(t *testing.T) {
 	check.Bool(t, errors.Is(err, goose.ErrNotApplied), true)
 }
 
-func TestHasPending(t *testing.T) {
+func TestPending(t *testing.T) {
 	t.Parallel()
 	t.Run("allow_out_of_order", func(t *testing.T) {
 		ctx := context.Background()
@@ -791,6 +791,10 @@ func TestHasPending(t *testing.T) {
 		hasPending, err := p.HasPending(ctx)
 		check.NoError(t, err)
 		check.Bool(t, hasPending, true)
+		current, target, err := p.CheckPending(ctx)
+		check.NoError(t, err)
+		check.Number(t, current, 3)
+		check.Number(t, target, p.ListSources()[len(p.ListSources())-1].Version)
 		// Apply the missing migrations.
 		_, err = p.Up(ctx)
 		check.NoError(t, err)
@@ -798,6 +802,9 @@ func TestHasPending(t *testing.T) {
 		hasPending, err = p.HasPending(ctx)
 		check.NoError(t, err)
 		check.Bool(t, hasPending, false)
+		current, target, err = p.CheckPending(ctx)
+		check.NoError(t, err)
+		check.Number(t, current, target)
 	})
 	t.Run("disallow_out_of_order", func(t *testing.T) {
 		ctx := context.Background()
@@ -813,12 +820,19 @@ func TestHasPending(t *testing.T) {
 		hasPending, err := p.HasPending(ctx)
 		check.NoError(t, err)
 		check.Bool(t, hasPending, true)
+		current, target, err := p.CheckPending(ctx)
+		check.NoError(t, err)
+		check.Number(t, current, 2)
+		check.Number(t, target, p.ListSources()[len(p.ListSources())-1].Version)
 		_, err = p.Up(ctx)
 		check.NoError(t, err)
 		// All migrations have been applied.
 		hasPending, err = p.HasPending(ctx)
 		check.NoError(t, err)
 		check.Bool(t, hasPending, false)
+		current, target, err = p.CheckPending(ctx)
+		check.NoError(t, err)
+		check.Number(t, current, target)
 	})
 }
 
