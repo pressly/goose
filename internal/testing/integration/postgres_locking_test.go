@@ -410,30 +410,37 @@ func TestPostgresProviderLocking(t *testing.T) {
 	})
 }
 
-func TestPostgresHasPending(t *testing.T) {
+func TestPostgresPending(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
 		t.Skip("skipping test in short mode.")
 	}
+	const testDir = "testdata/migrations/postgres"
 
 	db, cleanup, err := testdb.NewPostgres()
 	require.NoError(t, err)
 	t.Cleanup(cleanup)
 
+	files, err := os.ReadDir(testDir)
+	require.NoError(t, err)
+
 	workers := 15
 
-	run := func(want bool) {
+	run := func(t *testing.T, want bool, wantCurrent, wantTarget int) {
+		t.Helper()
 		var g errgroup.Group
 		boolCh := make(chan bool, workers)
 		for i := 0; i < workers; i++ {
 			g.Go(func() error {
-				p, err := goose.NewProvider(goose.DialectPostgres, db, os.DirFS("testdata/migrations/postgres"))
+				p, err := goose.NewProvider(goose.DialectPostgres, db, os.DirFS(testDir))
 				check.NoError(t, err)
 				hasPending, err := p.HasPending(context.Background())
-				if err != nil {
-					return err
-				}
+				check.NoError(t, err)
 				boolCh <- hasPending
+				current, target, err := p.CheckPending(context.Background())
+				check.NoError(t, err)
+				check.Number(t, current, int64(wantCurrent))
+				check.Number(t, target, int64(wantTarget))
 				return nil
 
 			})
@@ -446,7 +453,7 @@ func TestPostgresHasPending(t *testing.T) {
 		}
 	}
 	t.Run("concurrent_has_pending", func(t *testing.T) {
-		run(true)
+		run(t, true, 0, len(files))
 	})
 
 	// apply all migrations
@@ -456,12 +463,12 @@ func TestPostgresHasPending(t *testing.T) {
 	check.NoError(t, err)
 
 	t.Run("concurrent_no_pending", func(t *testing.T) {
-		run(false)
+		run(t, false, len(files), len(files))
 	})
 
 	// Add a new migration file
-	last := p.ListSources()[len(p.ListSources())-1]
-	newVersion := fmt.Sprintf("%d_new_migration.sql", last.Version+1)
+	lastVersion := len(files)
+	newVersion := fmt.Sprintf("%d_new_migration.sql", lastVersion+1)
 	fsys := fstest.MapFS{
 		newVersion: &fstest.MapFile{Data: []byte(`
 -- +goose Up
@@ -476,7 +483,7 @@ SELECT pg_sleep_for('4 seconds');
 	check.NoError(t, err)
 	check.Number(t, len(newProvider.ListSources()), 1)
 	oldProvider := p
-	check.Number(t, len(oldProvider.ListSources()), 6)
+	check.Number(t, len(oldProvider.ListSources()), len(files))
 
 	var g errgroup.Group
 	g.Go(func() error {
@@ -485,6 +492,12 @@ SELECT pg_sleep_for('4 seconds');
 			return err
 		}
 		check.Bool(t, hasPending, true)
+		current, target, err := newProvider.CheckPending(context.Background())
+		if err != nil {
+			return err
+		}
+		check.Number(t, current, lastVersion)
+		check.Number(t, target, lastVersion+1)
 		return nil
 	})
 	g.Go(func() error {
@@ -493,6 +506,12 @@ SELECT pg_sleep_for('4 seconds');
 			return err
 		}
 		check.Bool(t, hasPending, false)
+		current, target, err := oldProvider.CheckPending(context.Background())
+		if err != nil {
+			return err
+		}
+		check.Number(t, current, lastVersion)
+		check.Number(t, target, lastVersion)
 		return nil
 	})
 	check.NoError(t, g.Wait())
@@ -512,16 +531,24 @@ SELECT pg_sleep_for('4 seconds');
 	hasPending, err := oldProvider.HasPending(context.Background())
 	check.NoError(t, err)
 	check.Bool(t, hasPending, false)
+	current, target, err := oldProvider.CheckPending(context.Background())
+	check.NoError(t, err)
+	check.Number(t, current, lastVersion)
+	check.Number(t, target, lastVersion)
 	// Wait for the long running migration to finish
 	check.NoError(t, g.Wait())
 	// Check that the new migration was applied
 	hasPending, err = newProvider.HasPending(context.Background())
 	check.NoError(t, err)
 	check.Bool(t, hasPending, false)
+	current, target, err = newProvider.CheckPending(context.Background())
+	check.NoError(t, err)
+	check.Number(t, current, lastVersion+1)
+	check.Number(t, target, lastVersion+1)
 	// The max version should be the new migration
 	currentVersion, err := newProvider.GetDBVersion(context.Background())
 	check.NoError(t, err)
-	check.Number(t, currentVersion, last.Version+1)
+	check.Number(t, currentVersion, lastVersion+1)
 }
 
 func existsPgLock(ctx context.Context, db *sql.DB, lockID int64) (bool, error) {
