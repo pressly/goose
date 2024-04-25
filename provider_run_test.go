@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"io/fs"
 	"math"
 	"math/rand"
 	"os"
@@ -775,11 +774,12 @@ func TestProviderApply(t *testing.T) {
 	check.Bool(t, errors.Is(err, goose.ErrNotApplied), true)
 }
 
-func TestHasPending(t *testing.T) {
+func TestPending(t *testing.T) {
 	t.Parallel()
 	t.Run("allow_out_of_order", func(t *testing.T) {
 		ctx := context.Background()
-		p, err := goose.NewProvider(goose.DialectSQLite3, newDB(t), newFsys(),
+		fsys := newFsys()
+		p, err := goose.NewProvider(goose.DialectSQLite3, newDB(t), fsys,
 			goose.WithAllowOutofOrder(true),
 		)
 		check.NoError(t, err)
@@ -791,6 +791,10 @@ func TestHasPending(t *testing.T) {
 		hasPending, err := p.HasPending(ctx)
 		check.NoError(t, err)
 		check.Bool(t, hasPending, true)
+		current, target, err := p.CheckPending(ctx)
+		check.NoError(t, err)
+		check.Number(t, current, 3)
+		check.Number(t, target, len(fsys))
 		// Apply the missing migrations.
 		_, err = p.Up(ctx)
 		check.NoError(t, err)
@@ -798,10 +802,14 @@ func TestHasPending(t *testing.T) {
 		hasPending, err = p.HasPending(ctx)
 		check.NoError(t, err)
 		check.Bool(t, hasPending, false)
+		current, target, err = p.CheckPending(ctx)
+		check.NoError(t, err)
+		check.Number(t, current, target)
 	})
 	t.Run("disallow_out_of_order", func(t *testing.T) {
 		ctx := context.Background()
-		p, err := goose.NewProvider(goose.DialectSQLite3, newDB(t), newFsys(),
+		fsys := newFsys()
+		p, err := goose.NewProvider(goose.DialectSQLite3, newDB(t), fsys,
 			goose.WithAllowOutofOrder(false),
 		)
 		check.NoError(t, err)
@@ -813,12 +821,19 @@ func TestHasPending(t *testing.T) {
 		hasPending, err := p.HasPending(ctx)
 		check.NoError(t, err)
 		check.Bool(t, hasPending, true)
+		current, target, err := p.CheckPending(ctx)
+		check.NoError(t, err)
+		check.Number(t, current, 2)
+		check.Number(t, target, len(fsys))
 		_, err = p.Up(ctx)
 		check.NoError(t, err)
 		// All migrations have been applied.
 		hasPending, err = p.HasPending(ctx)
 		check.NoError(t, err)
 		check.Bool(t, hasPending, false)
+		current, target, err = p.CheckPending(ctx)
+		check.NoError(t, err)
+		check.Number(t, current, target)
 	})
 }
 
@@ -1089,7 +1104,7 @@ func newMapFile(data string) *fstest.MapFile {
 	}
 }
 
-func newFsys() fs.FS {
+func newFsys() fstest.MapFS {
 	return fstest.MapFS{
 		"00001_users_table.sql":    newMapFile(runMigration1),
 		"00002_posts_table.sql":    newMapFile(runMigration2),
