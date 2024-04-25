@@ -7,6 +7,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Add `CheckPending` method to `goose.Provider` to check if there are pending migrations, returns
+  the current (max db) version and the latest (max file) version. (#756)
+
 ## [v3.20.0]
 
 - Expand the `Store` interface by adding a `GetLatestVersion` method and make the interface public.
