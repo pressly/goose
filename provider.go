@@ -494,17 +494,17 @@ func (p *Provider) checkPending(ctx context.Context) (current, target int64, ret
 	if err != nil {
 		return -1, -1, err
 	}
-	versions := make([]int64, 0, len(res))
+	dbVersions := make([]int64, 0, len(res))
 	for _, m := range res {
-		versions = append(versions, m.Version)
+		dbVersions = append(dbVersions, m.Version)
 	}
-	sort.Slice(versions, func(i, j int) bool {
-		return versions[i] < versions[j]
+	sort.Slice(dbVersions, func(i, j int) bool {
+		return dbVersions[i] < dbVersions[j]
 	})
-	if len(versions) == 0 {
-		current = -1
+	if len(dbVersions) == 0 {
+		return -1, -1, errMissingZeroVersion
 	} else {
-		current = versions[len(versions)-1]
+		current = dbVersions[len(dbVersions)-1]
 	}
 	return current, p.migrations[len(p.migrations)-1].Version, nil
 }
