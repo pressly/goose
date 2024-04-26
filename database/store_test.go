@@ -96,9 +96,8 @@ func testStore(
 		alreadyExists(t, err)
 	}
 	// Get the latest version. There should be none.
-	version, err := store.GetLatestVersion(ctx, db)
-	check.NoError(t, err)
-	check.Number(t, version, -1)
+	_, err = store.GetLatestVersion(ctx, db)
+	check.IsError(t, err, database.ErrVersionNotFound)
 
 	// List migrations. There should be none.
 	err = runConn(ctx, db, func(conn *sql.Conn) error {
@@ -198,9 +197,8 @@ func testStore(
 	// 3. *sql.DB
 	err = store.Delete(ctx, db, 0)
 	check.NoError(t, err)
-	latest, err := store.GetLatestVersion(ctx, db)
-	check.NoError(t, err)
-	check.Number(t, latest, -1)
+	_, err = store.GetLatestVersion(ctx, db)
+	check.IsError(t, err, database.ErrVersionNotFound)
 
 	// List migrations. There should be none.
 	err = runConn(ctx, db, func(conn *sql.Conn) error {

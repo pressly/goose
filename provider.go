@@ -496,6 +496,9 @@ func (p *Provider) checkPending(ctx context.Context) (current, target int64, ret
 
 	current, err = p.store.GetLatestVersion(ctx, conn)
 	if err != nil {
+		if errors.Is(err, database.ErrVersionNotFound) {
+			return -1, target, errMissingZeroVersion
+		}
 		// TODO(mf): this was legacy behavior and should be removed on the next cleanup, all
 		// dialects should implement GetLatestVersion.
 		//
@@ -519,9 +522,6 @@ func (p *Provider) checkPending(ctx context.Context) (current, target int64, ret
 		//  return current, target, nil
 		// }
 		return -1, target, err
-	}
-	if current < 0 {
-		return -1, target, errMissingZeroVersion
 	}
 	return current, target, nil
 }
@@ -566,10 +566,10 @@ func (p *Provider) hasPending(ctx context.Context) (_ bool, retErr error) {
 	// version in the database against the latest migration version.
 	current, err := p.store.GetLatestVersion(ctx, conn)
 	if err != nil {
+		if errors.Is(err, database.ErrVersionNotFound) {
+			return false, errMissingZeroVersion
+		}
 		return false, err
-	}
-	if current < 0 {
-		return false, errMissingZeroVersion
 	}
 	return current < p.migrations[len(p.migrations)-1].Version, nil
 }
@@ -624,6 +624,9 @@ func (p *Provider) getDBMaxVersion(ctx context.Context, conn *sql.Conn) (_ int64
 
 	latest, err := p.store.GetLatestVersion(ctx, conn)
 	if err != nil {
+		if errors.Is(err, database.ErrVersionNotFound) {
+			return 0, errMissingZeroVersion
+		}
 		// TODO(mf): this was legacy behavior and should be removed on the next cleanup, all
 		// dialects should implement GetLatestVersion.
 		//
@@ -641,9 +644,6 @@ func (p *Provider) getDBMaxVersion(ctx context.Context, conn *sql.Conn) (_ int64
 		//  return res[0].Version, nil
 		// }
 		return -1, err
-	}
-	if latest < 0 {
-		return -1, errMissingZeroVersion
 	}
 	return latest, nil
 }
