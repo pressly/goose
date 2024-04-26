@@ -36,3 +36,8 @@ func (p *Postgres) ListMigrations(tableName string) string {
 	q := `SELECT version_id, is_applied from %s ORDER BY id DESC`
 	return fmt.Sprintf(q, tableName)
 }
+
+func (p *Postgres) GetLatestVersion(tableName string) string {
+	q := `SELECT max(version_id) FROM %s`
+	return fmt.Sprintf(q, tableName)
+}

@@ -110,7 +110,15 @@ func (s *store) GetMigration(
 }
 
 func (s *store) GetLatestVersion(ctx context.Context, db DBTxConn) (int64, error) {
-	return -1, errors.New("not implemented")
+	q := s.querier.GetLatestVersion(s.tablename)
+	var version sql.NullInt64
+	if err := db.QueryRowContext(ctx, q).Scan(&version); err != nil {
+		return -1, fmt.Errorf("failed to get latest version: %w", err)
+	}
+	if !version.Valid {
+		return -1, nil
+	}
+	return version.Int64, nil
 }
 
 func (s *store) ListMigrations(
