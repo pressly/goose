@@ -22,6 +22,6 @@ type Querier interface {
 	ListMigrations(tableName string) string
 
 	// GetLatestVersion returns the SQL query string to get the last version_id from the db version
-	// table.
+	// table. Returns a nullable int64 value.
 	GetLatestVersion(tableName string) string
 }
