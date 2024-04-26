@@ -591,9 +591,6 @@ func (p *Provider) status(ctx context.Context) (_ []*MigrationStatus, retErr err
 
 // getDBMaxVersion returns the highest version recorded in the database, regardless of the order in
 // which migrations were applied. conn may be nil, in which case a connection is initialized.
-//
-// optimize(mf): we should only fetch the max version from the database, no need to fetch all
-// migrations only to get the max version. This means expanding the Store interface.
 func (p *Provider) getDBMaxVersion(ctx context.Context, conn *sql.Conn) (_ int64, retErr error) {
 	if conn == nil {
 		var cleanup func() error
@@ -611,19 +608,22 @@ func (p *Provider) getDBMaxVersion(ctx context.Context, conn *sql.Conn) (_ int64
 	if err != nil && !errors.Is(err, database.ErrNotImplemented) {
 		return -1, err
 	}
-	if errors.Is(err, database.ErrNotImplemented) {
-		// Fallback to listing all migrations and returning the highest version.
-		res, err := p.store.ListMigrations(ctx, conn)
-		if err != nil {
-			return 0, err
-		}
-		if len(res) == 0 {
+	if err == nil {
+		if version >= 0 {
+			return version, nil
+		} else {
 			return 0, errMissingZeroVersion
 		}
-		// Sort in descending order.
-		sort.Slice(res, func(i, j int) bool { return res[i].Version > res[j].Version })
-		return res[0].Version, nil
 	}
-	return version, nil
-
+	// Fallback to listing all migrations and returning the highest version.
+	res, err := p.store.ListMigrations(ctx, conn)
+	if err != nil {
+		return 0, err
+	}
+	if len(res) == 0 {
+		return 0, errMissingZeroVersion
+	}
+	// Sort in descending order.
+	sort.Slice(res, func(i, j int) bool { return res[i].Version > res[j].Version })
+	return res[0].Version, nil
 }
