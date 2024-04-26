@@ -9,6 +9,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Add `CheckPending` method to `goose.Provider` to check if there are pending migrations, returns
   the current (max db) version and the latest (max file) version. (#756)
+- Clarify `GetLatestVersion` method MUST return `ErrVersionNotFound` if no latest migration is
+  found. Previously it was returning a -1 and nil error, which was inconsistent with the rest of the
+  API surface.
+
+- Add `GetLatestVersion` implementations to all existing dialects. This is an optimization to avoid
+  loading all migrations when only the latest version is needed. This uses the `max` function in SQL
+  to get the latest version_id irrespective of the order of applied migrations.
+  - Refactor existing portions of the code to use the new `GetLatestVersion` method.
 
 ## [v3.20.0]
 

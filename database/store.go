@@ -7,8 +7,12 @@ import (
 )
 
 var (
-	// ErrVersionNotFound must be returned by [GetMigration] when a migration version is not found.
+	// ErrVersionNotFound must be returned by [GetMigration] or [GetLatestVersion] when a migration
+	// does not exist.
 	ErrVersionNotFound = errors.New("version not found")
+
+	// ErrNotImplemented must be returned by methods that are not implemented.
+	ErrNotImplemented = errors.New("not implemented")
 )
 
 // Store is an interface that defines methods for tracking and managing migrations. It is used by
@@ -34,7 +38,7 @@ type Store interface {
 	// version is not found, this method must return [ErrVersionNotFound].
 	GetMigration(ctx context.Context, db DBTxConn, version int64) (*GetMigrationResult, error)
 	// GetLatestVersion retrieves the last applied migration version. If no migrations exist, this
-	// method must return -1 and no error.
+	// method must return [ErrVersionNotFound].
 	GetLatestVersion(ctx context.Context, db DBTxConn) (int64, error)
 	// ListMigrations retrieves all migrations sorted in descending order by id or timestamp. If
 	// there are no migrations, return empty slice with no error. Typically this method will return

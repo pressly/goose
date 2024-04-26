@@ -37,3 +37,8 @@ func (c *Clickhouse) ListMigrations(tableName string) string {
 	q := `SELECT version_id, is_applied FROM %s ORDER BY version_id DESC`
 	return fmt.Sprintf(q, tableName)
 }
+
+func (c *Clickhouse) GetLatestVersion(tableName string) string {
+	q := `SELECT max(version_id) FROM %s`
+	return fmt.Sprintf(q, tableName)
+}

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/fs"
 	"math"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -167,6 +166,10 @@ func (p *Provider) HasPending(ctx context.Context) (bool, error) {
 //
 // Note, this method will not use a SessionLocker if one is configured. This allows callers to check
 // for pending migrations without blocking or being blocked by other operations.
+//
+// If out-of-order migrations are enabled this method is not suitable for checking pending
+// migrations because it ONLY returns the highest version in the database. Instead, use the
+// [HasPending] method.
 func (p *Provider) CheckPending(ctx context.Context) (current, target int64, err error) {
 	return p.checkPending(ctx)
 }
@@ -483,30 +486,22 @@ func (p *Provider) checkPending(ctx context.Context) (current, target int64, ret
 		retErr = multierr.Append(retErr, cleanup())
 	}()
 
+	target = p.migrations[len(p.migrations)-1].Version
+
 	// If versioning is disabled, we always have pending migrations and the target version is the
 	// last migration.
 	if p.cfg.disableVersioning {
-		return -1, p.migrations[len(p.migrations)-1].Version, nil
+		return -1, target, nil
 	}
-	// optimize(mf): we should only fetch the max version from the database, no need to fetch all
-	// migrations only to get the max version when we're not using out-of-order migrations.
-	res, err := p.store.ListMigrations(ctx, conn)
+
+	current, err = p.store.GetLatestVersion(ctx, conn)
 	if err != nil {
-		return -1, -1, err
+		if errors.Is(err, database.ErrVersionNotFound) {
+			return -1, target, errMissingZeroVersion
+		}
+		return -1, target, err
 	}
-	dbVersions := make([]int64, 0, len(res))
-	for _, m := range res {
-		dbVersions = append(dbVersions, m.Version)
-	}
-	sort.Slice(dbVersions, func(i, j int) bool {
-		return dbVersions[i] < dbVersions[j]
-	})
-	if len(dbVersions) == 0 {
-		return -1, -1, errMissingZeroVersion
-	} else {
-		current = dbVersions[len(dbVersions)-1]
-	}
-	return current, p.migrations[len(p.migrations)-1].Version, nil
+	return current, target, nil
 }
 
 func (p *Provider) hasPending(ctx context.Context) (_ bool, retErr error) {
@@ -523,7 +518,8 @@ func (p *Provider) hasPending(ctx context.Context) (_ bool, retErr error) {
 		return true, nil
 	}
 	if p.cfg.allowMissing {
-		// List all migrations from the database.
+		// List all migrations from the database. We cannot optimize this because we need to check
+		// that EVERY migration known the provider has been applied.
 		dbMigrations, err := p.store.ListMigrations(ctx, conn)
 		if err != nil {
 			return false, err
@@ -544,16 +540,16 @@ func (p *Provider) hasPending(ctx context.Context) (_ bool, retErr error) {
 		}
 		return false, nil
 	}
-	// If out-of-order migrations are not allowed, we can optimize this by only checking whether the
-	// last migration the provider knows about is applied.
-	last := p.migrations[len(p.migrations)-1]
-	if _, err := p.store.GetMigration(ctx, conn, last.Version); err != nil {
+	// If out-of-order migrations are not allowed, we can optimize this by only checking the latest
+	// version in the database against the latest migration version.
+	current, err := p.store.GetLatestVersion(ctx, conn)
+	if err != nil {
 		if errors.Is(err, database.ErrVersionNotFound) {
-			return true, nil
+			return false, errMissingZeroVersion
 		}
 		return false, err
 	}
-	return false, nil
+	return current < p.migrations[len(p.migrations)-1].Version, nil
 }
 
 func (p *Provider) status(ctx context.Context) (_ []*MigrationStatus, retErr error) {
@@ -591,9 +587,6 @@ func (p *Provider) status(ctx context.Context) (_ []*MigrationStatus, retErr err
 
 // getDBMaxVersion returns the highest version recorded in the database, regardless of the order in
 // which migrations were applied. conn may be nil, in which case a connection is initialized.
-//
-// optimize(mf): we should only fetch the max version from the database, no need to fetch all
-// migrations only to get the max version. This means expanding the Store interface.
 func (p *Provider) getDBMaxVersion(ctx context.Context, conn *sql.Conn) (_ int64, retErr error) {
 	if conn == nil {
 		var cleanup func() error
@@ -606,17 +599,13 @@ func (p *Provider) getDBMaxVersion(ctx context.Context, conn *sql.Conn) (_ int64
 			retErr = multierr.Append(retErr, cleanup())
 		}()
 	}
-	res, err := p.store.ListMigrations(ctx, conn)
+
+	latest, err := p.store.GetLatestVersion(ctx, conn)
 	if err != nil {
-		return 0, err
+		if errors.Is(err, database.ErrVersionNotFound) {
+			return 0, errMissingZeroVersion
+		}
+		return -1, err
 	}
-	if len(res) == 0 {
-		return 0, errMissingZeroVersion
-	}
-	// Sort in descending order.
-	sort.Slice(res, func(i, j int) bool {
-		return res[i].Version > res[j].Version
-	})
-	// Return the highest version.
-	return res[0].Version, nil
+	return latest, nil
 }

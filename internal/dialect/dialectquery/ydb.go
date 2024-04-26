@@ -46,3 +46,8 @@ func (c *Ydb) ListMigrations(tableName string) string {
 	FROM %s ORDER BY __discard_column_tstamp DESC`
 	return fmt.Sprintf(q, tableName)
 }
+
+func (c *Ydb) GetLatestVersion(tableName string) string {
+	q := `SELECT MAX(version_id) FROM %s`
+	return fmt.Sprintf(q, tableName)
+}
