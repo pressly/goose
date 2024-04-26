@@ -9,6 +9,9 @@ import (
 var (
 	// ErrVersionNotFound must be returned by [GetMigration] when a migration version is not found.
 	ErrVersionNotFound = errors.New("version not found")
+
+	// ErrNotImplemented must be returned by methods that are not implemented.
+	ErrNotImplemented = errors.New("not implemented")
 )
 
 // Store is an interface that defines methods for tracking and managing migrations. It is used by
