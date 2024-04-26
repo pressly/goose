@@ -499,28 +499,6 @@ func (p *Provider) checkPending(ctx context.Context) (current, target int64, ret
 		if errors.Is(err, database.ErrVersionNotFound) {
 			return -1, target, errMissingZeroVersion
 		}
-		// TODO(mf): this was legacy behavior and should be removed on the next cleanup, all
-		// dialects should implement GetLatestVersion.
-		//
-		// if errors.Is(err, database.ErrNotImplemented) {
-		//  res, err := p.store.ListMigrations(ctx, conn)
-		//  if err != nil {
-		//      return -1, -1, err
-		//  }
-		//  dbVersions := make([]int64, 0, len(res))
-		//  for _, m := range res {
-		//      dbVersions = append(dbVersions, m.Version)
-		//  }
-		//  sort.Slice(dbVersions, func(i, j int) bool {
-		//      return dbVersions[i] < dbVersions[j]
-		//  })
-		//  if len(dbVersions) == 0 {
-		//      return -1, -1, errMissingZeroVersion
-		//  } else {
-		//      current = dbVersions[len(dbVersions)-1]
-		//  }
-		//  return current, target, nil
-		// }
 		return -1, target, err
 	}
 	return current, target, nil
@@ -627,22 +605,6 @@ func (p *Provider) getDBMaxVersion(ctx context.Context, conn *sql.Conn) (_ int64
 		if errors.Is(err, database.ErrVersionNotFound) {
 			return 0, errMissingZeroVersion
 		}
-		// TODO(mf): this was legacy behavior and should be removed on the next cleanup, all
-		// dialects should implement GetLatestVersion.
-		//
-		// if errors.Is(err, database.ErrNotImplemented) {
-		//  // Fallback to listing all migrations and returning the highest version.
-		//  res, err := p.store.ListMigrations(ctx, conn)
-		//  if err != nil {
-		//      return 0, err
-		//  }
-		//  if len(res) == 0 {
-		//      return 0, errMissingZeroVersion
-		//  }
-		//  // Sort in descending order.
-		//  sort.Slice(res, func(i, j int) bool { return res[i].Version > res[j].Version })
-		//  return res[0].Version, nil
-		// }
 		return -1, err
 	}
 	return latest, nil
