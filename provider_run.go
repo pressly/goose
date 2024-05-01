@@ -58,7 +58,7 @@ func (p *Provider) resolveUpMigrations(
 		} else {
 			versionsMsg = "version " + collected[0]
 		}
-		return nil, fmt.Errorf("found %d missing (out-of-order) %s lower than current max (%d): %s",
+		return nil, fmt.Errorf("found %d missing (out-of-order) %s lower than current database max version (%d): %s",
 			len(missingMigrations), msg, dbMaxVersion, versionsMsg,
 		)
 	}

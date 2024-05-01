@@ -517,39 +517,38 @@ func (p *Provider) hasPending(ctx context.Context) (_ bool, retErr error) {
 	if p.cfg.disableVersioning {
 		return true, nil
 	}
-	if p.cfg.allowMissing {
-		// List all migrations from the database. We cannot optimize this because we need to check
-		// that EVERY migration known the provider has been applied.
-		dbMigrations, err := p.store.ListMigrations(ctx, conn)
-		if err != nil {
-			return false, err
-		}
-		// If there are no migrations in the database, we have pending migrations.
-		if len(dbMigrations) == 0 {
-			return true, nil
-		}
-		applied := make(map[int64]bool, len(dbMigrations))
-		for _, m := range dbMigrations {
-			applied[m.Version] = true
-		}
-		// Iterate over all migrations and check if any are missing.
-		for _, m := range p.migrations {
-			if !applied[m.Version] {
-				return true, nil
-			}
-		}
-		return false, nil
-	}
-	// If out-of-order migrations are not allowed, we can optimize this by only checking the latest
-	// version in the database against the latest migration version.
-	current, err := p.store.GetLatestVersion(ctx, conn)
+
+	// List all migrations from the database. Careful, optimizations here can lead to subtle bugs.
+	// We have 2 important cases to consider:
+	//
+	//  1.  Users have enabled out-of-order migrations, in which case we need to check if any
+	//      migrations are missing and report that there are pending migrations. Do not surface an
+	//      error because this is a valid state.
+	//
+	//  2.  Users have disabled out-of-order migrations (default), in which case we need to check if all
+	//      migrations have been applied. We cannot check for the highest applied version because we lose the
+	//      ability to surface an error if an out-of-order migration was introduced. It would be silently
+	//      ignored and the user would not know that they have unapplied migrations.
+	//
+	//      Maybe we could consider adding a flag to the provider such as IgnoreMissing, which would
+	//      allow us to ignore missing migrations and only check for the highest applied version. In this case
+	//      the user would be responsible for ensuring that all migrations are applied in the correct order.
+	//
+	// optimize(mf): Ideally we could focus on optimizing the query itself, such as paginating the
+	// results, or ...
+	//
+	// Lastly, we end up duplicating this logic in the up method, which is not ideal. But we also
+	// make a gaurantee that the up method is safe to call concurrently, so we need to be careful
+	// about introducing shared state.
+	dbMigrations, err := p.store.ListMigrations(ctx, conn)
 	if err != nil {
-		if errors.Is(err, database.ErrVersionNotFound) {
-			return false, errMissingZeroVersion
-		}
 		return false, err
 	}
-	return current < p.migrations[len(p.migrations)-1].Version, nil
+	apply, err := p.resolveUpMigrations(dbMigrations, math.MaxInt64)
+	if err != nil {
+		return false, err
+	}
+	return len(apply) > 0, nil
 }
 
 func (p *Provider) status(ctx context.Context) (_ []*MigrationStatus, retErr error) {
