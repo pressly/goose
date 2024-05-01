@@ -153,7 +153,8 @@ func (p *Provider) Status(ctx context.Context) ([]*MigrationStatus, error) {
 	return p.status(ctx)
 }
 
-// HasPending returns true if there are pending migrations to apply, otherwise, it returns false.
+// HasPending returns true if there are pending migrations to apply, otherwise, it returns false. If
+// out-of-order migrations are disabled, yet some are detected, this method returns an error.
 //
 // Note, this method will not use a SessionLocker if one is configured. This allows callers to check
 // for pending migrations without blocking or being blocked by other operations.
