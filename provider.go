@@ -532,15 +532,9 @@ func (p *Provider) hasPending(ctx context.Context) (_ bool, retErr error) {
 	//      ignored and the user would not know that they have unapplied migrations.
 	//
 	//      Maybe we could consider adding a flag to the provider such as IgnoreMissing, which would
-	//      allow us to ignore missing migrations and only check for the highest applied version. In this case
-	//      the user would be responsible for ensuring that all migrations are applied in the correct order.
-	//
-	// optimize(mf): Ideally we could focus on optimizing the query itself, such as paginating the
-	// results, or ...
-	//
-	// Lastly, we end up duplicating this logic in the up method, which is not ideal. But we also
-	// make a gaurantee that the up method is safe to call concurrently, so we need to be careful
-	// about introducing shared state.
+	//      allow silently ignoring missing migrations. This would be useful for users that have built
+	//      checks that prevent missing migrations from being introduced.
+
 	dbMigrations, err := p.store.ListMigrations(ctx, conn)
 	if err != nil {
 		return false, err
