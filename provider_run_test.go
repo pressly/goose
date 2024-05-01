@@ -822,27 +822,15 @@ func TestPending(t *testing.T) {
 			check.NoError(t, err)
 			_, err = p.ApplyVersion(ctx, versionToApply, true)
 			check.NoError(t, err)
-			{
-				// TODO(mf): revisit the pending check behavior in addition to the HasPending
-				// method.
-				current, target, err := p.CheckPending(ctx)
-				check.NoError(t, err)
-				check.Number(t, current, versionToApply)
-				check.Number(t, target, len(fsys))
-
-				// TODO(mf): This is a bug in the current implementation. We should not allow this.
-				// https://github.com/pressly/goose/issues/761
-				//
-				// The goal was to optimize the pending check by only checking the latest migration,
-				// but this is not correct since the default behavior is to fail if there are
-				// missing migrations. And we can only know if there are missing migrations by
-				// checking all of them. I wish there was a better way. Maybe an "ignore missing"
-				// option for those who enforce this behavior in CI pipelines and have a way to gate
-				// this ahead of time.
-				_, err = p.HasPending(ctx)
-				check.HasError(t, err)
-				check.Contains(t, err.Error(), "missing (out-of-order) migration")
-			}
+			// TODO(mf): revisit the pending check behavior in addition to the HasPending
+			// method.
+			current, target, err := p.CheckPending(ctx)
+			check.NoError(t, err)
+			check.Number(t, current, versionToApply)
+			check.Number(t, target, len(fsys))
+			_, err = p.HasPending(ctx)
+			check.HasError(t, err)
+			check.Contains(t, err.Error(), "missing (out-of-order) migration")
 			_, err = p.Up(ctx)
 			check.HasError(t, err)
 			check.Contains(t, err.Error(), "missing (out-of-order) migration")
