@@ -9,6 +9,7 @@ require (
 	github.com/mfridman/interpolate v0.0.2
 	github.com/microsoft/go-mssqldb v1.7.0
 	github.com/sethvargo/go-retry v0.2.4
+	github.com/stretchr/testify v1.8.4
 	github.com/tursodatabase/libsql-client-go v0.0.0-20240411070317-a1138d155304
 	github.com/vertica/vertica-sql-go v1.3.3
 	github.com/ydb-platform/ydb-go-sdk/v3 v3.55.1
@@ -23,6 +24,7 @@ require (
 	github.com/ClickHouse/ch-go v0.58.2 // indirect
 	github.com/andybalholm/brotli v1.0.6 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/elastic/go-sysinfo v1.11.2 // indirect
 	github.com/elastic/go-windows v1.0.1 // indirect
@@ -46,6 +48,7 @@ require (
 	github.com/paulmach/orb v0.10.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.18 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/segmentio/asm v1.2.0 // indirect

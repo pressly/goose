@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/pressly/goose/v3/database"
+	"github.com/pressly/goose/v3/internal/gooseutil"
 	"github.com/pressly/goose/v3/internal/sqlparser"
 	"go.uber.org/multierr"
 )
@@ -374,9 +375,21 @@ func (p *Provider) up(
 		if len(dbMigrations) == 0 {
 			return nil, errMissingZeroVersion
 		}
-		apply, err = p.resolveUpMigrations(dbMigrations, version)
+		versions, err := gooseutil.UpVersions(
+			getVersionsFromMigrations(p.migrations),     // fsys versions
+			getVersionsFromListMigrations(dbMigrations), // db versions
+			version,
+			p.cfg.allowMissing,
+		)
 		if err != nil {
 			return nil, err
+		}
+		for _, v := range versions {
+			m, err := p.getMigration(v)
+			if err != nil {
+				return nil, err
+			}
+			apply = append(apply, m)
 		}
 	}
 	return p.runMigrations(ctx, conn, apply, sqlparser.DirectionUp, byOne)
@@ -539,11 +552,34 @@ func (p *Provider) hasPending(ctx context.Context) (_ bool, retErr error) {
 	if err != nil {
 		return false, err
 	}
-	apply, err := p.resolveUpMigrations(dbMigrations, math.MaxInt64)
+	apply, err := gooseutil.UpVersions(
+		getVersionsFromMigrations(p.migrations),     // fsys versions
+		getVersionsFromListMigrations(dbMigrations), // db versions
+		math.MaxInt64,
+		p.cfg.allowMissing,
+	)
 	if err != nil {
 		return false, err
 	}
 	return len(apply) > 0, nil
+}
+
+func getVersionsFromMigrations(in []*Migration) []int64 {
+	out := make([]int64, 0, len(in))
+	for _, m := range in {
+		out = append(out, m.Version)
+	}
+	return out
+
+}
+
+func getVersionsFromListMigrations(in []*database.ListMigrationsResult) []int64 {
+	out := make([]int64, 0, len(in))
+	for _, m := range in {
+		out = append(out, m.Version)
+	}
+	return out
+
 }
 
 func (p *Provider) status(ctx context.Context) (_ []*MigrationStatus, retErr error) {
