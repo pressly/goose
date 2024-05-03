@@ -4,6 +4,7 @@ package gooseutil
 
 import (
 	"fmt"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -37,9 +38,16 @@ func UpVersions(
 
 	// Get a list of migrations that are missing from the database. A missing migration is one that
 	// has a version less than the max version in the database and has not been applied.
+	//
+	// In most cases the target version is math.MaxInt64, but it can be used to specify a target
+	// version. In which case we respect the target version and only surface migrations up to and
+	// including that target.
 	var missing []int64
 	for _, v := range fsysVersions {
-		if !dbAppliedVersions[v] && v < dbMaxVersion {
+		if dbAppliedVersions[v] {
+			continue
+		}
+		if v < dbMaxVersion && v <= target {
 			missing = append(missing, v)
 		}
 	}
@@ -52,7 +60,7 @@ func UpVersions(
 	// skip 2,3. Not sure if this is a common use case, but it's possible someone may want to do
 	// this.
 	if len(missing) > 0 && !allowMissing {
-		return nil, newMissingError(missing, dbMaxVersion)
+		return nil, newMissingError(missing, dbMaxVersion, target)
 	}
 
 	var out []int64
@@ -78,6 +86,7 @@ func UpVersions(
 func newMissingError(
 	missing []int64,
 	dbMaxVersion int64,
+	target int64,
 ) error {
 	sortAscending(missing)
 
@@ -98,8 +107,13 @@ func newMissingError(
 		versionsMsg = "version " + collected[0]
 	}
 
-	return fmt.Errorf("found %d missing (out-of-order) %s lower than current database max version (%d): %s",
-		len(missing), msg, dbMaxVersion, versionsMsg,
+	desiredMsg := fmt.Sprintf("database version (%d)", dbMaxVersion)
+	if target != math.MaxInt64 {
+		desiredMsg += fmt.Sprintf(", with target version (%d)", target)
+	}
+
+	return fmt.Errorf("detected %d missing (out-of-order) %s lower than %s: %s",
+		len(missing), msg, desiredMsg, versionsMsg,
 	)
 }
 

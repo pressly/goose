@@ -56,14 +56,15 @@ func TestResolveVersions(t *testing.T) {
 		_, err = UpVersions([]int64{1, 2, 3, 4}, []int64{1 /* 2*/, 3}, math.MaxInt64, false)
 		require.Error(t, err)
 		require.Equal(t,
-			"found 1 missing (out-of-order) migration lower than current database max version (3): version 2",
+			"detected 1 missing (out-of-order) migration lower than database version (3): version 2",
 			err.Error(),
 		)
+
 		// Error: multiple missing migrations with max target
 		_, err = UpVersions([]int64{1, 2, 3, 4, 5}, []int64{ /* 1 */ 2 /* 3 */, 4, 5}, math.MaxInt64, false)
 		require.Error(t, err)
 		require.Equal(t,
-			"found 2 missing (out-of-order) migrations lower than current database max version (5): versions 1,3",
+			"detected 2 missing (out-of-order) migrations lower than database version (5): versions 1,3",
 			err.Error(),
 		)
 
@@ -77,26 +78,30 @@ func TestResolveVersions(t *testing.T) {
 			// applied, but there is 1 missing migration (3) based on the max db version. Should
 			// this return an error, or report no pending migrations?
 			//
-			// We've taken the stance that this SHOULD return an error because if users have have
-			// not opted to allow missing migrations, then they should be made aware of any missing
-			// migrations regardless of the target version. This is a bit of a gotcha, and gets even
-			// more harder to reason about when the target version equals the missing version.
-			//
-			// TL;DR: If a version is lower than the max db version and hasn't been applied, it's a
-			// missing migration!
+			// We've taken the stance that this SHOULD respect the target version and surface an
+			// error if there are missing migrations below the target version. This is because the
+			// user has explicitly requested a target version and we should respect that.
 
-			for _, n := range []int64{1, 2, 3, 4} {
-				_, err = UpVersions([]int64{1, 2, 3, 4}, []int64{1, 2 /* 3 */, 4}, n, false)
-				require.Error(t, err)
-				require.Equal(t,
-					"found 1 missing (out-of-order) migration lower than current database max version (4): version 3",
-					err.Error(),
-				)
-			}
+			got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2 */, 3}, 1, false)
+			require.NoError(t, err)
+			require.Equal(t, 0, len(got))
+			got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2 */, 3}, 2, false)
+			require.Error(t, err)
+			require.Equal(t,
+				"detected 1 missing (out-of-order) migration lower than database version (3), with target version (2): version 2",
+				err.Error(),
+			)
+			got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2 */, 3}, 3, false)
+			require.Error(t, err)
+			require.Equal(t,
+				"detected 1 missing (out-of-order) migration lower than database version (3), with target version (3): version 2",
+				err.Error(),
+			)
+
 			_, err = UpVersions([]int64{1, 2, 3, 4, 5, 6}, []int64{1 /* 2 */, 3, 4 /* 5*/, 6}, 4, false)
 			require.Error(t, err)
 			require.Equal(t,
-				"found 2 missing (out-of-order) migrations lower than current database max version (6): versions 2,5",
+				"detected 1 missing (out-of-order) migration lower than database version (6), with target version (4): version 2",
 				err.Error(),
 			)
 		})
@@ -161,29 +166,28 @@ func TestResolveVersions(t *testing.T) {
 		require.Equal(t, int64(5), got[2])
 
 		t.Run("target_lower_than_max", func(t *testing.T) {
-			got, err := UpVersions([]int64{1, 2, 3, 4}, []int64{1, 2 /* 3 */, 4}, 2, true)
+			got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2 */, 3}, 1, true)
+			require.NoError(t, err)
+			require.Equal(t, 0, len(got))
+			got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2 */, 3}, 2, true)
 			require.NoError(t, err)
 			require.Equal(t, 1, len(got))
-			require.Equal(t, int64(3), got[0]) // missing
+			require.Equal(t, int64(2), got[0]) // missing
+			got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2 */, 3}, 3, true)
+			require.NoError(t, err)
+			require.Equal(t, 1, len(got))
+			require.Equal(t, int64(2), got[0]) // missing
 
 			got, err = UpVersions([]int64{1, 2, 3, 4, 5, 6}, []int64{1 /* 2 */, 3, 4 /* 5*/, 6}, 4, true)
 			require.NoError(t, err)
-			require.Equal(t, 2, len(got))
+			require.Equal(t, 1, len(got))
 			require.Equal(t, int64(2), got[0]) // missing
-			require.Equal(t, int64(5), got[1]) // missing
-
-			for _, n := range []int64{1, 2, 3, 4} {
-				got, err = UpVersions([]int64{1, 2, 3, 4}, []int64{1, 2 /* 3 */, 4}, n, true)
-				require.NoError(t, err)
-				require.Equal(t, 1, len(got))
-				require.Equal(t, int64(3), got[0]) // missing
-			}
 		})
 	})
 
 	t.Run("sort_ascending", func(t *testing.T) {
 		got := []int64{5, 3, 4, 2, 1}
-		sortAscending(got)
+		SortAscending(got)
 		require.Equal(t, []int64{1, 2, 3, 4, 5}, got)
 	})
 }
