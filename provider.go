@@ -163,7 +163,7 @@ func (p *Provider) HasPending(ctx context.Context) (bool, error) {
 	return p.hasPending(ctx)
 }
 
-// GetVersions returns the current database version and the target version to migrate to.
+// GetVersions returns the max database version and the target version to migrate to.
 //
 // Note, this method will not use a SessionLocker if one is configured. This allows callers to check
 // for versions without blocking or being blocked by other operations.
