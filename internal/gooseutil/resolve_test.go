@@ -104,6 +104,12 @@ func TestResolveVersions(t *testing.T) {
 				"detected 1 missing (out-of-order) migration lower than database version (6), with target version (4): version 2",
 				err.Error(),
 			)
+			_, err = UpVersions([]int64{1, 2, 3, 4, 5, 6}, []int64{1 /* 2 */, 3, 4 /* 5*/, 6}, 6, false)
+			require.Error(t, err)
+			require.Equal(t,
+				"detected 2 missing (out-of-order) migrations lower than database version (6), with target version (6): versions 2,5",
+				err.Error(),
+			)
 		})
 	})
 
@@ -182,6 +188,11 @@ func TestResolveVersions(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, 1, len(got))
 			require.Equal(t, int64(2), got[0]) // missing
+			got, err = UpVersions([]int64{1, 2, 3, 4, 5, 6}, []int64{1 /* 2 */, 3, 4 /* 5*/, 6}, 6, true)
+			require.NoError(t, err)
+			require.Equal(t, 2, len(got))
+			require.Equal(t, int64(2), got[0]) // missing
+			require.Equal(t, int64(5), got[1]) // missing
 		})
 	})
 
