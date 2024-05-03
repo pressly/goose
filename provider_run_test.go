@@ -790,7 +790,7 @@ func TestPending(t *testing.T) {
 		check.NoError(t, err)
 		// Even though the latest migration HAS been applied, there are still pending out-of-order
 		// migrations.
-		current, target, err := p.CheckPending(ctx)
+		current, target, err := p.GetVersions(ctx)
 		check.NoError(t, err)
 		check.Number(t, current, 3)
 		check.Number(t, target, len(fsys))
@@ -804,7 +804,7 @@ func TestPending(t *testing.T) {
 		hasPending, err = p.HasPending(ctx)
 		check.NoError(t, err)
 		check.Bool(t, hasPending, false)
-		current, target, err = p.CheckPending(ctx)
+		current, target, err = p.GetVersions(ctx)
 		check.NoError(t, err)
 		check.Number(t, current, target)
 	})
@@ -824,7 +824,7 @@ func TestPending(t *testing.T) {
 			check.NoError(t, err)
 			// TODO(mf): revisit the pending check behavior in addition to the HasPending
 			// method.
-			current, target, err := p.CheckPending(ctx)
+			current, target, err := p.GetVersions(ctx)
 			check.NoError(t, err)
 			check.Number(t, current, versionToApply)
 			check.Number(t, target, len(fsys))
