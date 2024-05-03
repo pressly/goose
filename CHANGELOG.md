@@ -7,8 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-- Add `CheckPending` method to `goose.Provider` to check if there are pending migrations, returns
-  the current (max db) version and the latest (max file) version. (#756)
+- Add `GetVersions` method to `goose.Provider`, returns the current (max db) version and the latest
+  (max filesystem) version. (#756)
 - Clarify `GetLatestVersion` method MUST return `ErrVersionNotFound` if no latest migration is
   found. Previously it was returning a -1 and nil error, which was inconsistent with the rest of the
   API surface.

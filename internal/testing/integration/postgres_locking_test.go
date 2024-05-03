@@ -437,7 +437,7 @@ func TestPostgresPending(t *testing.T) {
 				hasPending, err := p.HasPending(context.Background())
 				check.NoError(t, err)
 				boolCh <- hasPending
-				current, target, err := p.CheckPending(context.Background())
+				current, target, err := p.GetVersions(context.Background())
 				check.NoError(t, err)
 				check.Number(t, current, int64(wantCurrent))
 				check.Number(t, target, int64(wantTarget))
@@ -492,7 +492,7 @@ SELECT pg_sleep_for('4 seconds');
 			return err
 		}
 		check.Bool(t, hasPending, true)
-		current, target, err := newProvider.CheckPending(context.Background())
+		current, target, err := newProvider.GetVersions(context.Background())
 		if err != nil {
 			return err
 		}
@@ -506,7 +506,7 @@ SELECT pg_sleep_for('4 seconds');
 			return err
 		}
 		check.Bool(t, hasPending, false)
-		current, target, err := oldProvider.CheckPending(context.Background())
+		current, target, err := oldProvider.GetVersions(context.Background())
 		if err != nil {
 			return err
 		}
@@ -531,7 +531,7 @@ SELECT pg_sleep_for('4 seconds');
 	hasPending, err := oldProvider.HasPending(context.Background())
 	check.NoError(t, err)
 	check.Bool(t, hasPending, false)
-	current, target, err := oldProvider.CheckPending(context.Background())
+	current, target, err := oldProvider.GetVersions(context.Background())
 	check.NoError(t, err)
 	check.Number(t, current, lastVersion)
 	check.Number(t, target, lastVersion)
@@ -541,7 +541,7 @@ SELECT pg_sleep_for('4 seconds');
 	hasPending, err = newProvider.HasPending(context.Background())
 	check.NoError(t, err)
 	check.Bool(t, hasPending, false)
-	current, target, err = newProvider.CheckPending(context.Background())
+	current, target, err = newProvider.GetVersions(context.Background())
 	check.NoError(t, err)
 	check.Number(t, current, lastVersion+1)
 	check.Number(t, target, lastVersion+1)

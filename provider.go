@@ -163,17 +163,12 @@ func (p *Provider) HasPending(ctx context.Context) (bool, error) {
 	return p.hasPending(ctx)
 }
 
-// CheckPending returns the current database version and the target version to migrate to. If there
-// are no pending migrations, the target version will be the same as the current version.
+// GetVersions returns the max database version and the target version to migrate to.
 //
 // Note, this method will not use a SessionLocker if one is configured. This allows callers to check
-// for pending migrations without blocking or being blocked by other operations.
-//
-// If out-of-order migrations are enabled this method is not suitable for checking pending
-// migrations because it ONLY returns the highest version in the database. Instead, use the
-// [HasPending] method.
-func (p *Provider) CheckPending(ctx context.Context) (current, target int64, err error) {
-	return p.checkPending(ctx)
+// for versions without blocking or being blocked by other operations.
+func (p *Provider) GetVersions(ctx context.Context) (current, target int64, err error) {
+	return p.getVersions(ctx)
 }
 
 // GetDBVersion returns the highest version recorded in the database, regardless of the order in
@@ -491,7 +486,7 @@ func (p *Provider) apply(
 	return p.runMigrations(ctx, conn, []*Migration{m}, d, true)
 }
 
-func (p *Provider) checkPending(ctx context.Context) (current, target int64, retErr error) {
+func (p *Provider) getVersions(ctx context.Context) (current, target int64, retErr error) {
 	conn, cleanup, err := p.initialize(ctx, false)
 	if err != nil {
 		return -1, -1, fmt.Errorf("failed to initialize: %w", err)
