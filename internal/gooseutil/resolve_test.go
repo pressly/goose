@@ -187,7 +187,7 @@ func TestResolveVersions(t *testing.T) {
 
 	t.Run("sort_ascending", func(t *testing.T) {
 		got := []int64{5, 3, 4, 2, 1}
-		SortAscending(got)
+		sortAscending(got)
 		require.Equal(t, []int64{1, 2, 3, 4, 5}, got)
 	})
 }
