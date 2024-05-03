@@ -36,7 +36,7 @@ func UpVersions(
 	}
 
 	// Get a list of migrations that are missing from the database. A missing migration is one that
-	// has a version less than the max version in the database.
+	// has a version less than the max version in the database and has not been applied.
 	var missing []int64
 	for _, v := range fsysVersions {
 		if !dbAppliedVersions[v] && v < dbMaxVersion {
