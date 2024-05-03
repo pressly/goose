@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/pressly/goose/v3/database"
+	"github.com/pressly/goose/v3/internal/gooseutil"
 	"github.com/pressly/goose/v3/internal/sqlparser"
 	"go.uber.org/multierr"
 )
@@ -153,7 +154,8 @@ func (p *Provider) Status(ctx context.Context) ([]*MigrationStatus, error) {
 	return p.status(ctx)
 }
 
-// HasPending returns true if there are pending migrations to apply, otherwise, it returns false.
+// HasPending returns true if there are pending migrations to apply, otherwise, it returns false. If
+// out-of-order migrations are disabled, yet some are detected, this method returns an error.
 //
 // Note, this method will not use a SessionLocker if one is configured. This allows callers to check
 // for pending migrations without blocking or being blocked by other operations.
@@ -373,9 +375,21 @@ func (p *Provider) up(
 		if len(dbMigrations) == 0 {
 			return nil, errMissingZeroVersion
 		}
-		apply, err = p.resolveUpMigrations(dbMigrations, version)
+		versions, err := gooseutil.UpVersions(
+			getVersionsFromMigrations(p.migrations),     // fsys versions
+			getVersionsFromListMigrations(dbMigrations), // db versions
+			version,
+			p.cfg.allowMissing,
+		)
 		if err != nil {
 			return nil, err
+		}
+		for _, v := range versions {
+			m, err := p.getMigration(v)
+			if err != nil {
+				return nil, err
+			}
+			apply = append(apply, m)
 		}
 	}
 	return p.runMigrations(ctx, conn, apply, sqlparser.DirectionUp, byOne)
@@ -517,39 +531,55 @@ func (p *Provider) hasPending(ctx context.Context) (_ bool, retErr error) {
 	if p.cfg.disableVersioning {
 		return true, nil
 	}
-	if p.cfg.allowMissing {
-		// List all migrations from the database. We cannot optimize this because we need to check
-		// that EVERY migration known the provider has been applied.
-		dbMigrations, err := p.store.ListMigrations(ctx, conn)
-		if err != nil {
-			return false, err
-		}
-		// If there are no migrations in the database, we have pending migrations.
-		if len(dbMigrations) == 0 {
-			return true, nil
-		}
-		applied := make(map[int64]bool, len(dbMigrations))
-		for _, m := range dbMigrations {
-			applied[m.Version] = true
-		}
-		// Iterate over all migrations and check if any are missing.
-		for _, m := range p.migrations {
-			if !applied[m.Version] {
-				return true, nil
-			}
-		}
-		return false, nil
-	}
-	// If out-of-order migrations are not allowed, we can optimize this by only checking the latest
-	// version in the database against the latest migration version.
-	current, err := p.store.GetLatestVersion(ctx, conn)
+
+	// List all migrations from the database. Careful, optimizations here can lead to subtle bugs.
+	// We have 2 important cases to consider:
+	//
+	//  1.  Users have enabled out-of-order migrations, in which case we need to check if any
+	//      migrations are missing and report that there are pending migrations. Do not surface an
+	//      error because this is a valid state.
+	//
+	//  2.  Users have disabled out-of-order migrations (default), in which case we need to check if all
+	//      migrations have been applied. We cannot check for the highest applied version because we lose the
+	//      ability to surface an error if an out-of-order migration was introduced. It would be silently
+	//      ignored and the user would not know that they have unapplied migrations.
+	//
+	//      Maybe we could consider adding a flag to the provider such as IgnoreMissing, which would
+	//      allow silently ignoring missing migrations. This would be useful for users that have built
+	//      checks that prevent missing migrations from being introduced.
+
+	dbMigrations, err := p.store.ListMigrations(ctx, conn)
 	if err != nil {
-		if errors.Is(err, database.ErrVersionNotFound) {
-			return false, errMissingZeroVersion
-		}
 		return false, err
 	}
-	return current < p.migrations[len(p.migrations)-1].Version, nil
+	apply, err := gooseutil.UpVersions(
+		getVersionsFromMigrations(p.migrations),     // fsys versions
+		getVersionsFromListMigrations(dbMigrations), // db versions
+		math.MaxInt64,
+		p.cfg.allowMissing,
+	)
+	if err != nil {
+		return false, err
+	}
+	return len(apply) > 0, nil
+}
+
+func getVersionsFromMigrations(in []*Migration) []int64 {
+	out := make([]int64, 0, len(in))
+	for _, m := range in {
+		out = append(out, m.Version)
+	}
+	return out
+
+}
+
+func getVersionsFromListMigrations(in []*database.ListMigrationsResult) []int64 {
+	out := make([]int64, 0, len(in))
+	for _, m := range in {
+		out = append(out, m.Version)
+	}
+	return out
+
 }
 
 func (p *Provider) status(ctx context.Context) (_ []*MigrationStatus, retErr error) {

@@ -5,7 +5,6 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/internal/check"
 )
 
@@ -284,57 +283,6 @@ func TestMerge(t *testing.T) {
 			assertMigration(t, migrations[2], newSource(TypeGo, "", 3))
 			assertMigration(t, migrations[3], newSource(TypeGo, "", 6))
 		})
-	})
-}
-
-func TestCheckMissingMigrations(t *testing.T) {
-	t.Parallel()
-
-	t.Run("db_has_max_version", func(t *testing.T) {
-		// Test case: database has migrations 1, 3, 4, 5, 7
-		// Missing migrations: 2, 6
-		// Filesystem has migrations 1, 2, 3, 4, 5, 6, 7, 8
-		dbMigrations := []*database.ListMigrationsResult{
-			{Version: 1},
-			{Version: 3},
-			{Version: 4},
-			{Version: 5},
-			{Version: 7}, // <-- database max version_id
-		}
-		fsMigrations := []*Migration{
-			newSQLMigration(Source{Version: 1}),
-			newSQLMigration(Source{Version: 2}), // missing migration
-			newSQLMigration(Source{Version: 3}),
-			newSQLMigration(Source{Version: 4}),
-			newSQLMigration(Source{Version: 5}),
-			newSQLMigration(Source{Version: 6}), // missing migration
-			newSQLMigration(Source{Version: 7}), // ----- database max version_id -----
-			newSQLMigration(Source{Version: 8}), // new migration
-		}
-		got := checkMissingMigrations(dbMigrations, fsMigrations)
-		check.Number(t, len(got), 2)
-		check.Number(t, got[0], 2)
-		check.Number(t, got[1], 6)
-
-		// Sanity check.
-		check.Number(t, len(checkMissingMigrations(nil, nil)), 0)
-		check.Number(t, len(checkMissingMigrations(dbMigrations, nil)), 0)
-		check.Number(t, len(checkMissingMigrations(nil, fsMigrations)), 0)
-	})
-	t.Run("fs_has_max_version", func(t *testing.T) {
-		dbMigrations := []*database.ListMigrationsResult{
-			{Version: 1},
-			{Version: 5},
-			{Version: 2},
-		}
-		fsMigrations := []*Migration{
-			NewGoMigration(3, nil, nil), // new migration
-			NewGoMigration(4, nil, nil), // new migration
-		}
-		got := checkMissingMigrations(dbMigrations, fsMigrations)
-		check.Number(t, len(got), 2)
-		check.Number(t, got[0], 3)
-		check.Number(t, got[1], 4)
 	})
 }
 

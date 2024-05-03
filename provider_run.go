@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"io/fs"
 	"runtime/debug"
-	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -21,66 +19,6 @@ import (
 var (
 	errMissingZeroVersion = errors.New("missing zero version migration")
 )
-
-func (p *Provider) resolveUpMigrations(
-	dbVersions []*database.ListMigrationsResult,
-	version int64,
-) ([]*Migration, error) {
-	var apply []*Migration
-	var dbMaxVersion int64
-	// dbAppliedVersions is a map of all applied migrations in the database.
-	dbAppliedVersions := make(map[int64]bool, len(dbVersions))
-	for _, m := range dbVersions {
-		dbAppliedVersions[m.Version] = true
-		if m.Version > dbMaxVersion {
-			dbMaxVersion = m.Version
-		}
-	}
-	missingMigrations := checkMissingMigrations(dbVersions, p.migrations)
-	// feat(mf): It is very possible someone may want to apply ONLY new migrations and skip missing
-	// migrations entirely. At the moment this is not supported, but leaving this comment because
-	// that's where that logic would be handled.
-	//
-	// For example, if db has 1,4 applied and 2,3,5 are new, we would apply only 5 and skip 2,3. Not
-	// sure if this is a common use case, but it's possible.
-	if len(missingMigrations) > 0 && !p.cfg.allowMissing {
-		var collected []string
-		for _, v := range missingMigrations {
-			collected = append(collected, strconv.FormatInt(v, 10))
-		}
-		msg := "migration"
-		if len(collected) > 1 {
-			msg += "s"
-		}
-		var versionsMsg string
-		if len(collected) > 1 {
-			versionsMsg = "versions " + strings.Join(collected, ",")
-		} else {
-			versionsMsg = "version " + collected[0]
-		}
-		return nil, fmt.Errorf("found %d missing (out-of-order) %s lower than current max (%d): %s",
-			len(missingMigrations), msg, dbMaxVersion, versionsMsg,
-		)
-	}
-	for _, missingVersion := range missingMigrations {
-		m, err := p.getMigration(missingVersion)
-		if err != nil {
-			return nil, err
-		}
-		apply = append(apply, m)
-	}
-	// filter all migrations with a version greater than the supplied version (min) and less than or
-	// equal to the requested version (max). Skip any migrations that have already been applied.
-	for _, m := range p.migrations {
-		if dbAppliedVersions[m.Version] {
-			continue
-		}
-		if m.Version > dbMaxVersion && m.Version <= version {
-			apply = append(apply, m)
-		}
-	}
-	return apply, nil
-}
 
 func (p *Provider) prepareMigration(fsys fs.FS, m *Migration, direction bool) error {
 	switch m.Type {
@@ -393,32 +331,6 @@ func (p *Provider) tryEnsureVersionTable(ctx context.Context, conn *sql.Conn) er
 		}
 		return nil
 	})
-}
-
-// checkMissingMigrations returns a list of migrations that are missing from the database. A missing
-// migration is one that has a version less than the max version in the database.
-func checkMissingMigrations(
-	dbMigrations []*database.ListMigrationsResult,
-	fsMigrations []*Migration,
-) []int64 {
-	existing := make(map[int64]bool)
-	var dbMaxVersion int64
-	for _, m := range dbMigrations {
-		existing[m.Version] = true
-		if m.Version > dbMaxVersion {
-			dbMaxVersion = m.Version
-		}
-	}
-	var missing []int64
-	for _, m := range fsMigrations {
-		if !existing[m.Version] && m.Version < dbMaxVersion {
-			missing = append(missing, m.Version)
-		}
-	}
-	sort.Slice(missing, func(i, j int) bool {
-		return missing[i] < missing[j]
-	})
-	return missing
 }
 
 // getMigration returns the migration for the given version. If no migration is found, then

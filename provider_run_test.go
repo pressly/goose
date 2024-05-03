@@ -788,13 +788,15 @@ func TestPending(t *testing.T) {
 		check.NoError(t, err)
 		_, err = p.ApplyVersion(ctx, 3, true)
 		check.NoError(t, err)
-		hasPending, err := p.HasPending(ctx)
-		check.NoError(t, err)
-		check.Bool(t, hasPending, true)
+		// Even though the latest migration HAS been applied, there are still pending out-of-order
+		// migrations.
 		current, target, err := p.CheckPending(ctx)
 		check.NoError(t, err)
 		check.Number(t, current, 3)
 		check.Number(t, target, len(fsys))
+		hasPending, err := p.HasPending(ctx)
+		check.NoError(t, err)
+		check.Bool(t, hasPending, true)
 		// Apply the missing migrations.
 		_, err = p.Up(ctx)
 		check.NoError(t, err)
@@ -809,31 +811,37 @@ func TestPending(t *testing.T) {
 	t.Run("disallow_out_of_order", func(t *testing.T) {
 		ctx := context.Background()
 		fsys := newFsys()
-		p, err := goose.NewProvider(goose.DialectSQLite3, newDB(t), fsys,
-			goose.WithAllowOutofOrder(false),
-		)
-		check.NoError(t, err)
-		// Some migrations have been applied.
-		_, err = p.ApplyVersion(ctx, 1, true)
-		check.NoError(t, err)
-		_, err = p.ApplyVersion(ctx, 2, true)
-		check.NoError(t, err)
-		hasPending, err := p.HasPending(ctx)
-		check.NoError(t, err)
-		check.Bool(t, hasPending, true)
-		current, target, err := p.CheckPending(ctx)
-		check.NoError(t, err)
-		check.Number(t, current, 2)
-		check.Number(t, target, len(fsys))
-		_, err = p.Up(ctx)
-		check.NoError(t, err)
-		// All migrations have been applied.
-		hasPending, err = p.HasPending(ctx)
-		check.NoError(t, err)
-		check.Bool(t, hasPending, false)
-		current, target, err = p.CheckPending(ctx)
-		check.NoError(t, err)
-		check.Number(t, current, target)
+
+		run := func(t *testing.T, versionToApply int64) {
+			p, err := goose.NewProvider(goose.DialectSQLite3, newDB(t), fsys,
+				goose.WithAllowOutofOrder(false),
+			)
+			check.NoError(t, err)
+			// Some migrations have been applied.
+			_, err = p.ApplyVersion(ctx, 1, true)
+			check.NoError(t, err)
+			_, err = p.ApplyVersion(ctx, versionToApply, true)
+			check.NoError(t, err)
+			// TODO(mf): revisit the pending check behavior in addition to the HasPending
+			// method.
+			current, target, err := p.CheckPending(ctx)
+			check.NoError(t, err)
+			check.Number(t, current, versionToApply)
+			check.Number(t, target, len(fsys))
+			_, err = p.HasPending(ctx)
+			check.HasError(t, err)
+			check.Contains(t, err.Error(), "missing (out-of-order) migration")
+			_, err = p.Up(ctx)
+			check.HasError(t, err)
+			check.Contains(t, err.Error(), "missing (out-of-order) migration")
+		}
+
+		t.Run("latest_version", func(t *testing.T) {
+			run(t, int64(len(fsys)))
+		})
+		t.Run("latest_version_minus_one", func(t *testing.T) {
+			run(t, int64(len(fsys)-1))
+		})
 	})
 }
 
