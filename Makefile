@@ -128,3 +128,8 @@ docker-turso:
 		-p $(DB_TURSO_PORT):8080 \
 		-l goose_test \
 		ghcr.io/tursodatabase/libsql-server:v0.22.10
+
+.PHONY: generate
+generate:
+	cd ./internal/testdata && \
+	find migrations/postgres -type f -exec sha256sum {} + | sha256sum | cut -c 1-32 > ./internal/testdata/migrations
