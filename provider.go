@@ -175,6 +175,9 @@ func (p *Provider) GetVersions(ctx context.Context) (current, target int64, err 
 // which migrations were applied. For example, if migrations were applied out of order (1,4,2,3),
 // this method returns 4. If no migrations have been applied, it returns 0.
 func (p *Provider) GetDBVersion(ctx context.Context) (int64, error) {
+	if p.cfg.disableVersioning {
+		return -1, errors.New("getting database version not supported when versioning is disabled")
+	}
 	return p.getDBMaxVersion(ctx, nil)
 }
 
@@ -596,13 +599,17 @@ func (p *Provider) status(ctx context.Context) (_ []*MigrationStatus, retErr err
 			},
 			State: StatePending,
 		}
-		dbResult, err := p.store.GetMigration(ctx, conn, m.Version)
-		if err != nil && !errors.Is(err, database.ErrVersionNotFound) {
-			return nil, err
-		}
-		if dbResult != nil {
-			migrationStatus.State = StateApplied
-			migrationStatus.AppliedAt = dbResult.Timestamp
+		// If versioning is disabled, we can't check the database for applied migrations, so we
+		// assume all migrations are pending.
+		if !p.cfg.disableVersioning {
+			dbResult, err := p.store.GetMigration(ctx, conn, m.Version)
+			if err != nil && !errors.Is(err, database.ErrVersionNotFound) {
+				return nil, err
+			}
+			if dbResult != nil {
+				migrationStatus.State = StateApplied
+				migrationStatus.AppliedAt = dbResult.Timestamp
+			}
 		}
 		status = append(status, migrationStatus)
 	}
