@@ -2,137 +2,147 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://pressly.github.io/goose/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pressly.github.io/goose/installation/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pressly.github.io/goose/blog/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pressly.github.io/goose/blog/2021/welcome/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pressly.github.io/goose/blog/2021/embed-sql-migrations/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pressly.github.io/goose/blog/2021/better-tests/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pressly.github.io/goose/blog/2021/out-of-order-migrations/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pressly.github.io/goose/blog/2021/no-version-migrations/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pressly.github.io/goose/blog/2021/visualizing-up-down-commands/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pressly.github.io/goose/blog/2022/improving-clickhouse/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pressly.github.io/goose/blog/2022/overview-sql-file/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pressly.github.io/goose/blog/2023/goose-provider/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pressly.github.io/goose/blog/2024/goose-sqlc/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://pressly.github.io/goose/commands/experimental/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <loc>https://pressly.github.io/goose/documentation/annotations/</loc>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://pressly.github.io/goose/commands/supported/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <loc>https://pressly.github.io/goose/documentation/cli-commands/</loc>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://pressly.github.io/goose/reference/annotations/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <loc>https://pressly.github.io/goose/documentation/custom-store/</loc>
+         <lastmod>2024-05-11</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://pressly.github.io/goose/documentation/environment-variables/</loc>
+         <lastmod>2024-05-11</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://pressly.github.io/goose/documentation/provider/</loc>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pressly.github.io/goose/blog/archive/2024/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pressly.github.io/goose/blog/archive/2023/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pressly.github.io/goose/blog/archive/2022/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pressly.github.io/goose/blog/archive/2021/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pressly.github.io/goose/blog/category/blog/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pressly.github.io/goose/blog/category/package/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pressly.github.io/goose/blog/category/sql-migrations/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pressly.github.io/goose/blog/category/clickhouse/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pressly.github.io/goose/blog/category/general/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pressly.github.io/goose/blog/category/testing/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pressly.github.io/goose/blog/category/go-migrations/</loc>
-         <lastmod>2024-04-05</lastmod>
+         <lastmod>2024-05-11</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>

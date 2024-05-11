@@ -10,34 +10,34 @@
       
       
       
-        <link rel="canonical" href="https://pressly.github.io/goose/blog/category/clickhouse/">
+        <link rel="canonical" href="https://pressly.github.io/goose/documentation/cli-commands/">
       
       
-        <link rel="prev" href="../blog/">
+        <link rel="prev" href="../provider/">
       
       
-        <link rel="next" href="../general/">
+        <link rel="next" href="../environment-variables/">
       
       
         
       
       
-        <link rel="alternate" type="application/rss+xml" title="RSS feed" href="../../../feed_rss_created.xml">
-        <link rel="alternate" type="application/rss+xml" title="RSS feed of updated content" href="../../../feed_rss_updated.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS feed" href="../../feed_rss_created.xml">
+        <link rel="alternate" type="application/rss+xml" title="RSS feed of updated content" href="../../feed_rss_updated.xml">
       
-      <link rel="icon" href="../../../assets/goose_logo_cropped.png">
+      <link rel="icon" href="../../assets/goose_logo_cropped.png">
       <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.21+insiders-4.53.8">
     
     
       
-        <title>ClickHouse - pressly/goose</title>
+        <title>Commands - pressly/goose</title>
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.d5b5f0fd.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.d5b5f0fd.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -56,9 +56,9 @@
       
     
     
-      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -66,17 +66,17 @@
     
   
 <meta property="og:type" content="website" />
-<meta property="og:title" content="ClickHouse - pressly/goose" />
+<meta property="og:title" content="Commands - pressly/goose" />
 <meta property="og:description" content="The missing goose docs." />
-<meta property="og:image" content="https://pressly.github.io/goose/assets/images/social/blog/category/clickhouse.png" />
+<meta property="og:image" content="https://pressly.github.io/goose/assets/images/social/documentation/cli-commands.png" />
 <meta property="og:image:type" content="image/png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
-<meta property="og:url" content="https://pressly.github.io/goose/blog/category/clickhouse/" />
+<meta property="og:url" content="https://pressly.github.io/goose/documentation/cli-commands/" />
 <meta property="twitter:card" content="summary_large_image" />
-<meta property="twitter:title" content="ClickHouse - pressly/goose" />
+<meta property="twitter:title" content="Commands - pressly/goose" />
 <meta property="twitter:description" content="The missing goose docs." />
-<meta property="twitter:image" content="https://pressly.github.io/goose/assets/images/social/blog/category/clickhouse.png" />
+<meta property="twitter:image" content="https://pressly.github.io/goose/assets/images/social/documentation/cli-commands.png" />
 </head>
   
   
@@ -94,7 +94,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#clickhouse" class="md-skip">
+        <a href="#commands" class="md-skip">
           Skip to content
         </a>
       
@@ -108,9 +108,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="pressly/goose" class="md-header__button md-logo" aria-label="pressly/goose" data-md-component="logo">
+    <a href="../.." title="pressly/goose" class="md-header__button md-logo" aria-label="pressly/goose" data-md-component="logo">
       
-  <img src="../../../assets/goose_logo.png" alt="logo">
+  <img src="../../assets/goose_logo.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -127,7 +127,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              ClickHouse
+              Commands
             
           </span>
         </div>
@@ -210,7 +210,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../.." class="md-tabs__link">
+        <a href="../.." class="md-tabs__link">
           
   
     
@@ -226,17 +226,21 @@
         
   
   
+    
+  
   
     
     
       
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../../documentation/annotations/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../annotations/" class="md-tabs__link">
           
   
     
@@ -255,13 +259,11 @@
         
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../../" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../blog/" class="md-tabs__link">
           
   
     
@@ -296,9 +298,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="pressly/goose" class="md-nav__button md-logo" aria-label="pressly/goose" data-md-component="logo">
+    <a href="../.." title="pressly/goose" class="md-nav__button md-logo" aria-label="pressly/goose" data-md-component="logo">
       
-  <img src="../../../assets/goose_logo.png" alt="logo">
+  <img src="../../assets/goose_logo.png" alt="logo">
 
     </a>
     pressly/goose
@@ -352,7 +354,7 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../.." class="md-nav__link ">
+            <a href="../.." class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -395,7 +397,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../installation/" class="md-nav__link">
+      <a href="../../installation/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -426,8 +428,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -442,21 +446,22 @@
     
     
       
+        
+        
+      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
         
           
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
-        
-          
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
             
   
   <span class="md-ellipsis">
@@ -473,7 +478,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -500,10 +505,13 @@
       
       
         
+          
+          
+        
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
@@ -512,7 +520,7 @@
         <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_1" >
         
           
-          <label class="md-nav__link" for="__nav_2_1" id="__nav_2_1_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_2_1" id="__nav_2_1_label" tabindex="">
             
   
   <span class="md-ellipsis">
@@ -547,7 +555,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../documentation/annotations/" class="md-nav__link">
+      <a href="../annotations/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -591,10 +599,13 @@
       
       
         
+          
+          
+        
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
@@ -603,7 +614,7 @@
         <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_2" >
         
           
-          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="">
             
   
   <span class="md-ellipsis">
@@ -638,7 +649,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../documentation/provider/" class="md-nav__link">
+      <a href="../provider/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -670,8 +681,10 @@
                 
   
   
+    
   
   
+  
     
     
       
@@ -683,20 +696,21 @@
     
       
       
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
         
           
+          
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3" >
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="">
             
   
   <span class="md-ellipsis">
@@ -713,7 +727,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -728,10 +742,36 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../../documentation/cli-commands/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -746,6 +786,164 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#commands_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commands
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Commands">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#up" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        up
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#up-by-one" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        up-by-one
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#up-to" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        up-to
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#down" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        down
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#down-to" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        down-to
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#redo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        redo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        reset
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        status
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        version
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#create" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fix
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -758,7 +956,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../documentation/environment-variables/" class="md-nav__link">
+      <a href="../environment-variables/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -802,10 +1000,13 @@
       
       
         
+          
+          
+        
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
@@ -814,7 +1015,7 @@
         <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_4" >
         
           
-          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="">
             
   
   <span class="md-ellipsis">
@@ -849,7 +1050,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../documentation/custom-store/" class="md-nav__link">
+      <a href="../custom-store/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -888,8 +1089,6 @@
       
   
   
-    
-  
   
   
     
@@ -906,24 +1105,23 @@
     
     
       
-        
-        
-      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
         
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../" class="md-nav__link ">
+            <a href="../../blog/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -940,13 +1138,13 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="">
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -981,13 +1179,10 @@
       
       
         
-          
-          
-        
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
@@ -996,7 +1191,7 @@
         <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2" >
         
           
-          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="">
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
             
   
   <span class="md-ellipsis">
@@ -1033,7 +1228,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../archive/2024/" class="md-nav__link">
+      <a href="../../blog/archive/2024/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1062,7 +1257,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../archive/2023/" class="md-nav__link">
+      <a href="../../blog/archive/2023/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1091,7 +1286,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../archive/2022/" class="md-nav__link">
+      <a href="../../blog/archive/2022/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1120,7 +1315,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../archive/2021/" class="md-nav__link">
+      <a href="../../blog/archive/2021/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1152,10 +1347,8 @@
                 
   
   
-    
   
   
-  
     
     
       
@@ -1177,21 +1370,20 @@
     
       
       
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
         
           
-          
         
-      
-    
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" checked>
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_3" >
         
           
-          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="">
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
             
   
   <span class="md-ellipsis">
@@ -1208,7 +1400,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1228,7 +1420,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../blog/" class="md-nav__link">
+      <a href="../../blog/category/blog/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1252,23 +1444,12 @@
                 
   
   
-    
-  
   
     
-      
-    
   
   
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../blog/category/clickhouse/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1283,7 +1464,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -1298,7 +1478,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../general/" class="md-nav__link">
+      <a href="../../blog/category/general/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1327,7 +1507,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../go-migrations/" class="md-nav__link">
+      <a href="../../blog/category/go-migrations/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1356,7 +1536,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../package/" class="md-nav__link">
+      <a href="../../blog/category/package/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1385,7 +1565,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../sql-migrations/" class="md-nav__link">
+      <a href="../../blog/category/sql-migrations/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1414,7 +1594,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../testing/" class="md-nav__link">
+      <a href="../../blog/category/testing/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1469,6 +1649,152 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#commands_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commands
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Commands">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#up" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        up
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#up-by-one" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        up-by-one
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#up-to" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        up-to
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#down" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        down
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#down-to" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        down-to
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#redo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        redo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        reset
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        status
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        version
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#create" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fix
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1476,82 +1802,62 @@
             
           
           
-  <div class="md-content" data-md-component="content">
-    <div class="md-content__inner">
-      <header class="md-typeset">
-        <h1 id="clickhouse">ClickHouse</h1>
-      </header>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-      <nav class="md-post__authors md-typeset">
-        
-          <span class="md-author">
-            <img src="https://github.com/mfridman.png" alt="Mike Fridman">
-          </span>
-        
-      </nav>
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2022-06-19 00:00:00">Jun 19, 2022</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../blog/" class="md-meta__link">Blog</a>, 
-              <a href="./" class="md-meta__link">ClickHouse</a></li>
-        
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="improving-clickhouse-support"><a class="toclink" href="../../2022/improving-clickhouse/">Improving ClickHouse support</a></h2>
-<p><a href="https://clickhouse.com/">ClickHouse</a> is a an open-source column-oriented database that is
-well-suited for analytical workloads. Over the past few years we've seen more and more demand for
-improved ClickHouse support in goose.</p>
-<p>To summarize:</p>
-<ul>
-<li>Upgraded to the latest <code>/v2</code> driver:
-  <a href="https://github.com/ClickHouse/clickhouse-go">ClickHouse/clickhouse-go</a></li>
-<li>Full end-end tests against the docker image:
-  <a href="https://hub.docker.com/r/clickhouse/clickhouse-server/">clickhouse/clickhouse-server</a></li>
-<li>Bug fixes and improvements</li>
-</ul>
-<div class="admonition danger">
-<p>The <code>/v2</code> driver <a href="https://github.com/ClickHouse/clickhouse-go/issues/525">changed the DSN format</a>, so be prepared for a breaking change. This is actually a good thing, because it brings the format in-line with other databases.</p>
-</div>
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
 
-    
-      <nav class="md-post__action">
-        <a href="../../2022/improving-clickhouse/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-      
-        
+
+
+<h1 id="commands">Commands</h1>
+<p>The following commands are part of the <strong>stable set</strong> of commands and will remain backwards
+compatible across minor/patch upgrades.</p>
+<div class="highlight"><pre><span></span><code>Usage:<span class="w"> </span>goose<span class="w"> </span><span class="o">[</span>flags<span class="o">]</span><span class="w"> </span>DRIVER<span class="w"> </span>DBSTRING<span class="w"> </span>&lt;command&gt;
+</code></pre></div>
+<p>Flags must come <strong>before</strong> commands, otherwise they will be interpreted as arguments to the command.</p>
+<p>Both <code>DRIVER</code> and <code>DBSTRING</code> may be set using environment variables <code>GOOSE_DRIVER</code> and
+<code>GOOSE_DBSTRING</code>. See the <a href="environment_variables.md">environment variables</a> documentation for more
+information.</p>
+<h2 id="commands_1">Commands</h2>
+<h3 id="up"><strong><code>up</code></strong></h3>
+<p>Migrate the DB to the most recent version available</p>
+<h3 id="up-by-one"><strong>up-by-one</strong></h3>
+<p>Migrate the DB up by 1</p>
+<h3 id="up-to"><strong>up-to</strong></h3>
+<p>Migrate the DB to a specific VERSION</p>
+<h3 id="down"><strong>down</strong></h3>
+<p>Roll back the version by 1</p>
+<h3 id="down-to"><strong>down-to</strong></h3>
+<p>Roll back to a specific VERSION</p>
+<h3 id="redo"><strong>redo</strong></h3>
+<p>Re-run the latest migration</p>
+<h3 id="reset"><strong>reset</strong></h3>
+<p>Roll back all migrations</p>
+<h3 id="status"><strong>status</strong></h3>
+<p>Dump the migration status for the current DB</p>
+<h3 id="version"><strong>version</strong></h3>
+<p>Print the current version of the database</p>
+<h3 id="create"><strong>create</strong></h3>
+<p>Creates new migration file with the current timestamp</p>
+<h3 id="fix"><strong>fix</strong></h3>
+<p>Apply sequential ordering to migrations</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
           
-
-
-
-<nav class="md-pagination">
-  
-</nav>
-        
-      
-    </div>
-  </div>
-
           
 <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
         </div>
@@ -1588,10 +1894,10 @@ improved ClickHouse support in goose.</p>
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "navigation.tabs", "navigation.indexes", "navigation.top", "content.code.annotate", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.1e90e0fb.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "navigation.tabs", "navigation.indexes", "navigation.top", "content.code.annotate", "content.code.copy"], "search": "../../assets/javascripts/workers/search.1e90e0fb.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.10eaffea.min.js"></script>
+      <script src="../../assets/javascripts/bundle.10eaffea.min.js"></script>
       
     
   </body>
