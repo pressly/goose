@@ -506,10 +506,9 @@ func TestNoVersioning(t *testing.T) {
 			upResult, err := p.Up(ctx)
 			check.NoError(t, err)
 			check.Number(t, len(upResult), 2)
-			// Confirm no changes to the versioned schema in the DB
-			currentVersion, err := p.GetDBVersion(ctx)
-			check.NoError(t, err)
-			check.Number(t, baseVersion, currentVersion)
+			// When versioning is disabled, we cannot track the version of the seed files.
+			_, err = p.GetDBVersion(ctx)
+			check.HasError(t, err)
 			seedOwnerCount, err := countSeedOwners(db)
 			check.NoError(t, err)
 			check.Number(t, seedOwnerCount, wantSeedOwnerCount)
@@ -519,10 +518,9 @@ func TestNoVersioning(t *testing.T) {
 			downResult, err := p.DownTo(ctx, 0)
 			check.NoError(t, err)
 			check.Number(t, len(downResult), 2)
-			// Confirm no changes to the versioned schema in the DB
-			currentVersion, err := p.GetDBVersion(ctx)
-			check.NoError(t, err)
-			check.Number(t, baseVersion, currentVersion)
+			// When versioning is disabled, we cannot track the version of the seed files.
+			_, err = p.GetDBVersion(ctx)
+			check.HasError(t, err)
 			seedOwnerCount, err := countSeedOwners(db)
 			check.NoError(t, err)
 			check.Number(t, seedOwnerCount, 0)
