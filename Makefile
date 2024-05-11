@@ -102,6 +102,7 @@ docker-postgres:
 		-p $(DB_POSTGRES_PORT):5432 \
 		-l goose_test \
 		postgres:14-alpine -c log_statement=all
+	echo "postgres://$(DB_USER):$(DB_PASSWORD)@localhost:$(DB_POSTGRES_PORT)/$(DB_NAME)?sslmode=disable"
 
 docker-mysql:
 	docker run --rm -d \
@@ -112,6 +113,7 @@ docker-mysql:
 		-p $(DB_MYSQL_PORT):3306 \
 		-l goose_test \
 		mysql:8.0.31
+	echo "mysql://$(DB_USER):$(DB_PASSWORD)@localhost:$(DB_MYSQL_PORT)/$(DB_NAME)?parseTime=true"
 
 docker-clickhouse:
 	docker run --rm -d \
@@ -122,6 +124,7 @@ docker-clickhouse:
 		-p $(DB_CLICKHOUSE_PORT):9000/tcp \
 		-l goose_test \
 		clickhouse/clickhouse-server:23-alpine
+	echo "clickhouse://$(DB_USER):$(DB_PASSWORD)@localhost:$(DB_CLICKHOUSE_PORT)/$(DB_NAME)"
 
 docker-turso:
 	docker run --rm -d \
