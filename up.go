@@ -85,7 +85,7 @@ func UpToContext(ctx context.Context, db *sql.DB, dir string, version int64, opt
 			output := fmt.Sprintf("version %d: %s", m.Version, m.Source)
 			collected = append(collected, output)
 		}
-		return fmt.Errorf("error: found %d missing migrations before current version %d:\n\t%s:",
+		return fmt.Errorf("error: found %d missing migrations before current version %d:\n\t%s",
 			len(missingMigrations), dbMaxVersion, strings.Join(collected, "\n\t"))
 	}
 	var migrationsToApply Migrations
