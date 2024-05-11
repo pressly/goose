@@ -943,10 +943,9 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Store interface">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
+</li>
+      
+        <li class="md-nav__item">
   <a href="#example" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -954,11 +953,6 @@
       
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1576,10 +1570,9 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Store interface">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
+</li>
+      
+        <li class="md-nav__item">
   <a href="#example" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1587,11 +1580,6 @@
       
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1644,19 +1632,25 @@ overview:</p>
 <span class="w">    </span><span class="c1">// Tablename is the name of the version table. This table is used to record applied migrations</span>
 <span class="w">    </span><span class="c1">// and must not be an empty string.</span>
 <span class="w">    </span><span class="nx">Tablename</span><span class="p">()</span><span class="w"> </span><span class="kt">string</span>
+
 <span class="w">    </span><span class="c1">// CreateVersionTable creates the version table, which is used to track migrations. When</span>
 <span class="w">    </span><span class="c1">// creating this table, the implementation MUST also insert a row for the initial version (0).</span>
 <span class="w">    </span><span class="nx">CreateVersionTable</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">db</span><span class="w"> </span><span class="nx">DBTxConn</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+
 <span class="w">    </span><span class="c1">// Insert a version id into the version table.</span>
 <span class="w">    </span><span class="nx">Insert</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">db</span><span class="w"> </span><span class="nx">DBTxConn</span><span class="p">,</span><span class="w"> </span><span class="nx">req</span><span class="w"> </span><span class="nx">InsertRequest</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+
 <span class="w">    </span><span class="c1">// Delete a version id from the version table.</span>
 <span class="w">    </span><span class="nx">Delete</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">db</span><span class="w"> </span><span class="nx">DBTxConn</span><span class="p">,</span><span class="w"> </span><span class="nx">version</span><span class="w"> </span><span class="kt">int64</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+
 <span class="w">    </span><span class="c1">// GetMigration retrieves a single migration by version id. If the query succeeds, but the</span>
 <span class="w">    </span><span class="c1">// version is not found, this method must return [ErrVersionNotFound].</span>
 <span class="w">    </span><span class="nx">GetMigration</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">db</span><span class="w"> </span><span class="nx">DBTxConn</span><span class="p">,</span><span class="w"> </span><span class="nx">version</span><span class="w"> </span><span class="kt">int64</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">GetMigrationResult</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+
 <span class="w">    </span><span class="c1">// GetLatestVersion retrieves the last applied migration version. If no migrations exist, this</span>
 <span class="w">    </span><span class="c1">// method must return [ErrVersionNotFound].</span>
 <span class="w">    </span><span class="nx">GetLatestVersion</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">db</span><span class="w"> </span><span class="nx">DBTxConn</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">int64</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+
 <span class="w">    </span><span class="c1">// ListMigrations retrieves all migrations sorted in descending order by id or timestamp. If</span>
 <span class="w">    </span><span class="c1">// there are no migrations, return empty slice with no error. Typically this method will return</span>
 <span class="w">    </span><span class="c1">// at least one migration, because the initial version (0) is always inserted into the version</span>
@@ -1664,7 +1658,7 @@ overview:</p>
 <span class="w">    </span><span class="nx">ListMigrations</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">db</span><span class="w"> </span><span class="nx">DBTxConn</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="o">*</span><span class="nx">ListMigrationsResult</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<h3 id="example">Example</h3>
+<h2 id="example">Example</h2>
 <p>Although a bit of a contrived example, see this
 <a href="https://github.com/mfridman/goose-demo/blob/d5bb88465b4b270fa6190326945568f30a227b06/customstore/memory/memory.go">memory store</a>
 for a reference implementation.</p>
