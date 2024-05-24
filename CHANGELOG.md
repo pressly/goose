@@ -18,6 +18,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   to get the latest version_id irrespective of the order of applied migrations.
   - Refactor existing portions of the code to use the new `GetLatestVersion` method.
 
+- Support [environ credentials](https://github.com/ydb-platform/ydb-go-sdk-auth-environ/?tab=readme-ov-file#auth-environment-variables) 
+  for YDB using parameter `use_env_credentials` in connection string. 
+  Example:
+  ```bash
+  export YDB_ACCESS_TOKEN_CREDENTIALS="my-secret-token"
+  goose ydb "grpcs://localhost:2135/local?go_query_mode=scripting&go_fake_tx=scripting&go_query_bind=declare,numeric&use_env_credentials" status
+  ```
+
 ## [v3.20.0]
 
 - Expand the `Store` interface by adding a `GetLatestVersion` method and make the interface public.

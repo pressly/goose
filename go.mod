@@ -12,7 +12,8 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/tursodatabase/libsql-client-go v0.0.0-20240416075003-747366ff79c4
 	github.com/vertica/vertica-sql-go v1.3.3
-	github.com/ydb-platform/ydb-go-sdk/v3 v3.55.1
+	github.com/ydb-platform/ydb-go-sdk-auth-environ v0.4.2
+	github.com/ydb-platform/ydb-go-sdk/v3 v3.68.1
 	github.com/ziutek/mymysql v1.5.4
 	go.uber.org/multierr v1.11.0
 	golang.org/x/sync v0.7.0
@@ -53,7 +54,10 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
-	github.com/ydb-platform/ydb-go-genproto v0.0.0-20240126124512-dbb0e1720dbf // indirect
+	github.com/yandex-cloud/go-genproto v0.0.0-20211115083454-9ca41db5ed9e // indirect
+	github.com/ydb-platform/ydb-go-genproto v0.0.0-20240316140903-4a47abca1cca // indirect
+	github.com/ydb-platform/ydb-go-yc v0.12.1 // indirect
+	github.com/ydb-platform/ydb-go-yc-metadata v0.6.1 // indirect
 	go.opentelemetry.io/otel v1.20.0 // indirect
 	go.opentelemetry.io/otel/trace v1.20.0 // indirect
 	golang.org/x/crypto v0.21.0 // indirect
@@ -61,6 +65,8 @@ require (
 	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
+	google.golang.org/genproto v0.0.0-20231030173426-d783a09b4405 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20231016165738-49dd2c1f3d0b // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231106174013-bbf56f31fb17 // indirect
 	google.golang.org/grpc v1.59.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
@@ -85,5 +91,3 @@ retract (
 // version.
 
 replace github.com/ClickHouse/clickhouse-go/v2 => github.com/ClickHouse/clickhouse-go/v2 v2.17.1
-
-replace github.com/ydb-platform/ydb-go-sdk/v3 => github.com/ydb-platform/ydb-go-sdk/v3 v3.55.1
