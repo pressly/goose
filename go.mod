@@ -76,14 +76,8 @@ require (
 )
 
 retract (
+	v3.21.0 // Invalid replace directives
 	v3.12.2 // Invalid module reference
 	v3.12.1 // Invalid module reference
 	v3.12.0 // Invalid module reference
 )
-
-// Pin these drivers to specific versions, as future versions force us to update the minimum Go
-// version.
-
-replace github.com/ClickHouse/clickhouse-go/v2 => github.com/ClickHouse/clickhouse-go/v2 v2.17.1
-
-replace github.com/ydb-platform/ydb-go-sdk/v3 => github.com/ydb-platform/ydb-go-sdk/v3 v3.55.1

@@ -7,7 +7,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [v3.21.0]
+## [v3.21.1]
 
 - Add `GetVersions` method to `goose.Provider`, returns the current (max db) version and the latest
   (max filesystem) version. (#756)
@@ -19,6 +19,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   loading all migrations when only the latest version is needed. This uses the `max` function in SQL
   to get the latest version_id irrespective of the order of applied migrations.
   - Refactor existing portions of the code to use the new `GetLatestVersion` method.
+
+## [v3.21.0]
+
+- Retracted. Broken release, please use v3.21.1 instead.
 
 ## [v3.20.0]
 
@@ -183,7 +187,8 @@ Here's a quick summary:
 - Add new `context.Context`-aware functions and methods, for both sql and go migrations.
 - Return error when no migration files found or dir is not a directory.
 
-[Unreleased]: https://github.com/pressly/goose/compare/v3.21.0...HEAD
+[Unreleased]: https://github.com/pressly/goose/compare/v3.21.1...HEAD
+[v3.21.1]: https://github.com/pressly/goose/compare/v3.20.0...v3.21.1
 [v3.21.0]: https://github.com/pressly/goose/compare/v3.20.0...v3.21.0
 [v3.20.0]: https://github.com/pressly/goose/compare/v3.19.2...v3.20.0
 [v3.19.2]: https://github.com/pressly/goose/compare/v3.19.1...v3.19.2
