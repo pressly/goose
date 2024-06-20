@@ -1,6 +1,7 @@
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 #
 # See https://goreleaser.com/customization/ for more information.
+version: 2
 project_name: goose
 
 before:
