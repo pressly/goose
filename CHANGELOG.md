@@ -7,6 +7,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Update `WithDisableGlobalRegistry` behavior (#783). If set, this will ignore globally-registered
+  migrations instead of raising an error. Specifically, the following check is removed:
+
+```go
+if len(global) > 0 {
+	return nil, errors.New("global registry disabled, but provider has registered go migrations")
+}
+```
+
+This enables creating isolated goose provider(s) in legacy environments where global migrations may
+be registered. Without updating this behavior, it would be impossible to use
+`WithDisableGlobalRegistry` in combination with `WithGoMigrations`.
+
 ## [v3.21.1]
 
 - Add `GetVersions` method to `goose.Provider`, returns the current (max db) version and the latest
