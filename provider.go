@@ -116,11 +116,11 @@ func newProvider(
 	for version, m := range cfg.registered {
 		versionToGoMigration[version] = m
 	}
-	// Skip adding global go migrations if explicitly disabled. This allows users to disable the
-	// global registry and have fully isolated go migrations scoped to the current provider.
-	if !cfg.disableGlobalRegistry {
-		// TODO(mf): should we log a warning if the global registry is disabled and there are
-		// registered go migrations?
+	// Skip adding global Go migrations if explicitly disabled.
+	if cfg.disableGlobalRegistry {
+		// TODO(mf): let's add a warn-level log here to inform users if len(global) > 0. Would like
+		// to add this once we're on go1.21 and leverage the new slog package.
+	} else {
 		for version, m := range global {
 			if _, ok := versionToGoMigration[version]; ok {
 				return nil, fmt.Errorf("global go migration conflicts with provider-registered go migration with version %d", version)
