@@ -6,7 +6,7 @@ on:
       - master
   pull_request:
 
-concurrency: 
+concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
@@ -17,7 +17,7 @@ jobs:
 
     strategy:
       matrix:
-        go-version: [oldstable, stable, "1.23.0-rc.1"]
+        go-version: [oldstable, stable]
         os: [ubuntu-latest]
 
     runs-on: ${{ matrix.os }}
