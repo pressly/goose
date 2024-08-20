@@ -1,39 +1,29 @@
-<img align="right" width="125" src="assets/goose_logo.png">
-
 # goose
 
-[![Goose CI](https://github.com/pressly/goose/actions/workflows/ci.yaml/badge.svg)](https://github.com/pressly/goose/actions/workflows/ci.yaml)
-[![Go Reference](https://pkg.go.dev/badge/github.com/pressly/goose/v3.svg)](https://pkg.go.dev/github.com/pressly/goose/v3)
-[![Go Report Card](https://goreportcard.com/badge/github.com/pressly/goose/v3)](https://goreportcard.com/report/github.com/pressly/goose/v3)
+<img align="right" width="125" src="assets/goose_logo.png">
 
-Goose is a database migration tool. Manage your database schema by creating incremental SQL changes or Go functions.
+[![Goose
+CI](https://github.com/pressly/goose/actions/workflows/ci.yaml/badge.svg)](https://github.com/pressly/goose/actions/workflows/ci.yaml)
+[![Go
+Reference](https://pkg.go.dev/badge/github.com/pressly/goose/v3.svg)](https://pkg.go.dev/github.com/pressly/goose/v3)
+[![Go Report
+Card](https://goreportcard.com/badge/github.com/pressly/goose/v3)](https://goreportcard.com/report/github.com/pressly/goose/v3)
 
-Starting with [v3.0.0](https://github.com/pressly/goose/releases/tag/v3.0.0) this project adds Go module support, but maintains backwards compatibility with older `v2.x.y` tags.
+Goose is a database migration tool. Both a CLI and a library.
 
-Goose supports [embedding SQL migrations](#embedded-sql-migrations), which means you'll need go1.16 and up. If using go1.15 or lower, then pin [v3.0.1](https://github.com/pressly/goose/releases/tag/v3.0.1).
+Manage your **database schema** by creating incremental SQL changes or Go functions.
 
-### Goals of this fork
+#### Features
 
-`github.com/pressly/goose` is a fork of `bitbucket.org/liamstask/goose` with the following changes:
-
-- No config files
-- [Default goose binary](./cmd/goose/main.go) can migrate SQL files only
-- Go migrations:
-  - We don't `go build` Go migrations functions on-the-fly
-    from within the goose binary
-  - Instead, we let you
-    [create your own custom goose binary](examples/go-migrations),
-    register your Go migration functions explicitly and run complex
-    migrations with your own `*sql.DB` connection
-  - Go migration functions let you run your code within
-    an SQL transaction, if you use the `*sql.Tx` argument
-- The goose pkg is decoupled from the binary:
-  - goose pkg doesn't register any SQL drivers anymore,
-    thus no driver `panic()` conflict within your codebase!
-  - goose pkg doesn't have any vendor dependencies anymore
-- We use timestamped migrations by default but recommend a hybrid approach of using timestamps in the development process and sequential versions in production.
-- Supports missing (out-of-order) migrations with the `-allow-missing` flag, or if using as a library supply the functional option `goose.WithAllowMissing()` to Up, UpTo or UpByOne.
-- Supports applying ad-hoc migrations without tracking them in the schema table. Useful for seeding a database after migrations have been applied. Use `-no-versioning` flag or the functional option `goose.WithNoVersioning()`.
+- Works against multiple databases:
+  - Postgres, MySQL, SQLite, YDB, ClickHouse, MSSQL, Vertica, and
+    more.
+- Supports Go migrations written as plain functions.
+- Supports [embedded](https://pkg.go.dev/embed/) migrations.
+- Out-of-order migrations.
+- Seeding data.
+- Environment variable substitution in SQL migrations.
+- ... and more.
 
 # Install
 
@@ -43,21 +33,29 @@ go install github.com/pressly/goose/v3/cmd/goose@latest
 
 This will install the `goose` binary to your `$GOPATH/bin` directory.
 
-For a lite version of the binary without DB connection dependent commands, use the exclusive build tags:
+Binary too big? Build a lite version by excluding the drivers you don't need:
 
 ```shell
 go build -tags='no_postgres no_mysql no_sqlite3 no_ydb' -o goose ./cmd/goose
+
+# Available build tags:
+#   no_clickhouse  no_libsql   no_mssql    no_mysql
+#   no_postgres    no_sqlite3  no_vertica  no_ydb
 ```
 
-For macOS users `goose` is available as a [Homebrew Formulae](https://formulae.brew.sh/formula/goose#default):
+For macOS users `goose` is available as a [Homebrew
+Formulae](https://formulae.brew.sh/formula/goose#default):
 
 ```shell
 brew install goose
 ```
 
-See the docs for more [installation instructions](https://pressly.github.io/goose/installation/).
+See [installation documentation](https://pressly.github.io/goose/installation/) for more details.
 
 # Usage
+
+<details>
+<summary>Click to show <code>goose help</code> output</summary>
 
 ```
 Usage: goose [OPTIONS] DRIVER DBSTRING COMMAND
@@ -81,6 +79,7 @@ Drivers:
     clickhouse
     vertica
     ydb
+    starrocks
 
 Examples:
     goose sqlite3 ./foo.db status
@@ -97,12 +96,14 @@ Examples:
     goose clickhouse "tcp://127.0.0.1:9000" status
     goose vertica "vertica://user:password@localhost:5433/dbname?connection_load_balance=1" status
     goose ydb "grpcs://localhost:2135/local?go_query_mode=scripting&go_fake_tx=scripting&go_query_bind=declare,numeric" status
+    goose starrocks "user:password@/dbname?parseTime=true&interpolateParams=true" status
 
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose status
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose create init sql
     GOOSE_DRIVER=postgres GOOSE_DBSTRING="user=postgres dbname=postgres sslmode=disable" goose status
     GOOSE_DRIVER=mysql GOOSE_DBSTRING="user:password@/dbname" goose status
     GOOSE_DRIVER=redshift GOOSE_DBSTRING="postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" goose status
+    GOOSE_DRIVER=clickhouse GOOSE_DBSTRING="clickhouse://user:password@qwerty.clickhouse.cloud:9440/dbname?secure=true&skip_verify=false" goose status
 
 Options:
 
@@ -145,6 +146,12 @@ Commands:
     validate             Check migration files without running them
 ```
 
+</details>
+
+Commonly used commands:
+
+[create](#create)<span>&nbsp;•&nbsp;</span> [up](#up)<span>&nbsp;•&nbsp;</span> [up-to](#up-to)<span>&nbsp;•&nbsp;</span> [down](#down)<span>&nbsp;•&nbsp;</span> [down-to](#down-to)<span>&nbsp;•&nbsp;</span> [status](#status)<span>&nbsp;•&nbsp;</span> [version](#version)
+
 ## create
 
 Create a new SQL migration.
@@ -152,9 +159,13 @@ Create a new SQL migration.
     $ goose create add_some_column sql
     $ Created new file: 20170506082420_add_some_column.sql
 
+    $ goose -s create add_some_column sql
+    $ Created new file: 00001_add_some_column.sql
+
 Edit the newly created file to define the behavior of your migration.
 
-You can also create a Go migration, if you then invoke it with [your own goose binary](#go-migrations):
+You can also create a Go migration, if you then invoke it with [your own goose
+binary](#go-migrations):
 
     $ goose create fetch_user_data go
     $ Created new file: 20170506082421_fetch_user_data.go
@@ -196,13 +207,9 @@ Roll back migrations to a specific version.
     $ goose down-to 20170506082527
     $ OK    20170506082527_alter_column.sql
 
-## redo
+Or, roll back all migrations (careful!):
 
-Roll back the most recently applied migration, then run it again.
-
-    $ goose redo
-    $ OK    003_and_again.go
-    $ OK    003_and_again.go
+    $ goose down-to 0
 
 ## status
 
@@ -217,7 +224,10 @@ Print the status of all migrations:
 
 Note: for MySQL [parseTime flag](https://github.com/go-sql-driver/mysql#parsetime) must be enabled.
 
-Note: for MySQL [`multiStatements`](https://dev.mysql.com/doc/internals/en/multi-statement.html) must be enabled. This is required when writing multiple queries separated by ';' characters in a single sql file.
+Note: for MySQL
+[`multiStatements`](https://github.com/go-sql-driver/mysql?tab=readme-ov-file#multistatements) must
+be enabled. This is required when writing multiple queries separated by ';' characters in a single
+sql file.
 
 ## version
 
@@ -248,16 +258,23 @@ DROP TABLE post;
 ```
 
 Each migration file must have exactly one `-- +goose Up` annotation. The `-- +goose Down` annotation
-is optional. If the file has both annotations, then the `-- +goose Up` annotation **must** come first.
+is optional. If the file has both annotations, then the `-- +goose Up` annotation **must** come
+first.
 
-Notice the annotations in the comments. Any statements following `-- +goose Up` will be executed as part of a forward migration, and any statements following `-- +goose Down` will be executed as part of a rollback.
+Notice the annotations in the comments. Any statements following `-- +goose Up` will be executed as
+part of a forward migration, and any statements following `-- +goose Down` will be executed as part
+of a rollback.
 
-By default, all migrations are run within a transaction. Some statements like `CREATE DATABASE`, however, cannot be run within a transaction. You may optionally add `-- +goose NO TRANSACTION` to the top of your migration
-file in order to skip transactions within that specific migration file. Both Up and Down migrations within this file will be run without transactions.
+By default, all migrations are run within a transaction. Some statements like `CREATE DATABASE`,
+however, cannot be run within a transaction. You may optionally add `-- +goose NO TRANSACTION` to
+the top of your migration file in order to skip transactions within that specific migration file.
+Both Up and Down migrations within this file will be run without transactions.
 
-By default, SQL statements are delimited by semicolons - in fact, query statements must end with a semicolon to be properly recognized by goose.
+By default, SQL statements are delimited by semicolons - in fact, query statements must end with a
+semicolon to be properly recognized by goose.
 
-More complex statements (PL/pgSQL) that have semicolons within them must be annotated with `-- +goose StatementBegin` and `-- +goose StatementEnd` to be properly recognized. For example:
+More complex statements (PL/pgSQL) that have semicolons within them must be annotated with `--
++goose StatementBegin` and `-- +goose StatementEnd` to be properly recognized. For example:
 
 ```sql
 -- +goose Up
@@ -329,14 +346,15 @@ for more details on supported expansions.
 
 ## Embedded sql migrations
 
-Go 1.16 introduced new feature: [compile-time embedding](https://pkg.go.dev/embed/) files into binary and
-corresponding [filesystem abstraction](https://pkg.go.dev/io/fs/).
+Go 1.16 introduced new feature: [compile-time embedding](https://pkg.go.dev/embed/) files into
+binary and corresponding [filesystem abstraction](https://pkg.go.dev/io/fs/).
 
-This feature can be used only for applying existing migrations. Modifying operations such as
-`fix` and `create` will continue to operate on OS filesystem even if using embedded files. This is expected
-behaviour because `io/fs` interfaces allows read-only access.
+This feature can be used only for applying existing migrations. Modifying operations such as `fix`
+and `create` will continue to operate on OS filesystem even if using embedded files. This is
+expected behaviour because `io/fs` interfaces allows read-only access.
 
-Make sure to configure the correct SQL dialect, see [dialect.go](./dialect.go) for supported SQL dialects.
+Make sure to configure the correct SQL dialect, see [dialect.go](./dialect.go) for supported SQL
+dialects.
 
 Example usage, assuming that SQL migrations are placed in the `migrations` directory:
 
@@ -371,7 +389,8 @@ func main() {
 }
 ```
 
-Note that we pass `"migrations"` as directory argument in `Up` because embedding saves directory structure.
+Note that we pass `"migrations"` as directory argument in `Up` because embedding saves directory
+structure.
 
 ## Go Migrations
 
@@ -380,7 +399,8 @@ Note that we pass `"migrations"` as directory argument in `Up` because embedding
 3. Register your migration functions
 4. Run goose command, ie. `goose.Up(db *sql.DB, dir string)`
 
-A [sample Go migration 00002_users_add_email.go file](./examples/go-migrations/00002_rename_root.go) looks like:
+A [sample Go migration 00002_users_add_email.go file](./examples/go-migrations/00002_rename_root.go)
+looks like:
 
 ```go
 package migrations
@@ -412,30 +432,34 @@ func Down(tx *sql.Tx) error {
 }
 ```
 
-Note that Go migration files must begin with a numeric value, followed by an
-underscore, and must not end with `*_test.go`.
-
-# Development
-
-This can be used to build local `goose` binaries without having the latest Go version installed locally.
-
-```bash
-DOCKER_BUILDKIT=1  docker build -f Dockerfile.local --output bin .
-```
+Note that Go migration files must begin with a numeric value, followed by an underscore, and must
+not end with `*_test.go`.
 
 # Hybrid Versioning
 
-Please, read the [versioning problem](https://github.com/pressly/goose/issues/63#issuecomment-428681694) first.
+Please, read the [versioning
+problem](https://github.com/pressly/goose/issues/63#issuecomment-428681694) first.
 
-By default, if you attempt to apply missing (out-of-order) migrations `goose` will raise an error. However, If you want to apply these missing migrations pass goose the `-allow-missing` flag, or if using as a library supply the functional option `goose.WithAllowMissing()` to Up, UpTo or UpByOne.
+By default, if you attempt to apply missing (out-of-order) migrations `goose` will raise an error.
+However, If you want to apply these missing migrations pass goose the `-allow-missing` flag, or if
+using as a library supply the functional option `goose.WithAllowMissing()` to Up, UpTo or UpByOne.
 
-However, we strongly recommend adopting a hybrid versioning approach, using both timestamps and sequential numbers. Migrations created during the development process are timestamped and sequential versions are ran on production. We believe this method will prevent the problem of conflicting versions when writing software in a team environment.
+However, we strongly recommend adopting a hybrid versioning approach, using both timestamps and
+sequential numbers. Migrations created during the development process are timestamped and sequential
+versions are ran on production. We believe this method will prevent the problem of conflicting
+versions when writing software in a team environment.
 
-To help you adopt this approach, `create` will use the current timestamp as the migration version. When you're ready to deploy your migrations in a production environment, we also provide a helpful `fix` command to convert your migrations into sequential order, while preserving the timestamp ordering. We recommend running `fix` in the CI pipeline, and only when the migrations are ready for production.
+To help you adopt this approach, `create` will use the current timestamp as the migration version.
+When you're ready to deploy your migrations in a production environment, we also provide a helpful
+`fix` command to convert your migrations into sequential order, while preserving the timestamp
+ordering. We recommend running `fix` in the CI pipeline, and only when the migrations are ready for
+production.
 
 ## Credit
 
-The gopher mascot was designed by [Renée French](https://reneefrench.blogspot.com/) / [CC 3.0.](https://creativecommons.org/licenses/by/3.0/) For more info check out the [Go Blog](https://go.dev/blog/gopher). Adapted by Ellen.
+The gopher mascot was designed by [Renée French](https://reneefrench.blogspot.com/) / [CC
+3.0.](https://creativecommons.org/licenses/by/3.0/) For more info check out the [Go
+Blog](https://go.dev/blog/gopher). Adapted by Ellen.
 
 ## License
 

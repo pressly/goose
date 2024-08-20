@@ -17,6 +17,7 @@ import (
 	"text/tabwriter"
 	"text/template"
 
+	"github.com/mfridman/xflag"
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/internal/cfg"
 	"github.com/pressly/goose/v3/internal/migrationstats"
@@ -45,7 +46,8 @@ func main() {
 	ctx := context.Background()
 
 	flags.Usage = usage
-	if err := flags.Parse(os.Args[1:]); err != nil {
+
+	if err := xflag.ParseToEnd(flags, os.Args[1:]); err != nil {
 		log.Fatalf("failed to parse args: %v", err)
 		return
 	}
@@ -277,6 +279,7 @@ Examples:
     GOOSE_DRIVER=mysql GOOSE_DBSTRING="user:password@/dbname" goose status
     GOOSE_DRIVER=redshift GOOSE_DBSTRING="postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" goose status
     GOOSE_DRIVER=turso GOOSE_DBSTRING="libsql://dbname.turso.io?authToken=token" goose status
+	GOOSE_DRIVER=clickhouse GOOSE_DBSTRING="clickhouse://user:password@qwerty.clickhouse.cloud:9440/dbname?secure=true&skip_verify=false" goose status
 
 Options:
 `
