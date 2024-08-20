@@ -40,6 +40,20 @@ func OpenDBWithDriver(driver string, dbstring string) (*sql.DB, error) {
 	switch driver {
 	case "postgres", "pgx", "sqlite3", "sqlite", "mysql", "sqlserver", "clickhouse", "vertica", "azuresql", "ydb", "libsql", "starrocks":
 		return sql.Open(driver, dbstring)
+	case "clickhouse-replicated":
+		db, err := sql.Open("clickhouse", dbstring)
+		if err != nil {
+			return nil, fmt.Errorf("open db: %w", err)
+		}
+		_, err = db.Exec("SET insert_quorum=2")
+		if err != nil {
+			return nil, fmt.Errorf("SET insert_quorum %w", err)
+		}
+		_, err = db.Exec("SET select_sequential_consistency=1")
+		if err != nil {
+			return nil, fmt.Errorf("SET select_sequential_consistency %w", err)
+		}
+		return db, nil
 	default:
 		return nil, fmt.Errorf("unsupported driver %s", driver)
 	}

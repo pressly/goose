@@ -63,6 +63,8 @@ func NewStore(d Dialect) (Store, error) {
 		querier = &dialectquery.Tidb{}
 	case Clickhouse:
 		querier = &dialectquery.Clickhouse{}
+	case ClickhouseReplicated:
+		querier = &dialectquery.ClickhouseReplicated{}
 	case Vertica:
 		querier = &dialectquery.Vertica{}
 	case Ydb:
