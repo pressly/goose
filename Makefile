@@ -12,7 +12,9 @@ DB_TURSO_PORT ?= 8080
 
 list-build-tags:
 	@echo "Available build tags:"
-	@echo "  $$(rg -o --trim 'no_[a-zA-Z0-9_]+' ./cmd/goose --no-line-number --no-filename | sort | uniq | tr '\n' ' ')"
+	@echo "$$(rg -o --trim 'no_[a-zA-Z0-9_]+' ./cmd/goose \
+		--no-line-number --no-filename | sort | uniq | \
+		xargs -n 4 | column -t | sed 's/^/  /')"
 
 .PHONY: dist
 dist:
