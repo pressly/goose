@@ -17,6 +17,7 @@ import (
 	"text/tabwriter"
 	"text/template"
 
+	"github.com/mfridman/xflag"
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/internal/cfg"
 	"github.com/pressly/goose/v3/internal/migrationstats"
@@ -45,7 +46,8 @@ func main() {
 	ctx := context.Background()
 
 	flags.Usage = usage
-	if err := flags.Parse(os.Args[1:]); err != nil {
+
+	if err := xflag.ParseToEnd(flags, os.Args[1:]); err != nil {
 		log.Fatalf("failed to parse args: %v", err)
 		return
 	}
