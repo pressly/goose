@@ -35,7 +35,6 @@ func TestProvider(t *testing.T) {
 	check.Equal(t, len(sources), 2)
 	check.Equal(t, sources[0], newSource(goose.TypeSQL, "001_foo.sql", 1))
 	check.Equal(t, sources[1], newSource(goose.TypeSQL, "002_bar.sql", 2))
-
 }
 
 var (
@@ -76,3 +75,10 @@ ALTER TABLE my_foo DROP COLUMN timestamp;
 ALTER TABLE my_foo RENAME TO foo;
 `
 )
+
+func TestPartialErrorUnwrap(t *testing.T) {
+	err := &goose.PartialError{Err: goose.ErrNoCurrentVersion}
+
+	got := errors.Is(err, goose.ErrNoCurrentVersion)
+	check.Bool(t, got, true)
+}
