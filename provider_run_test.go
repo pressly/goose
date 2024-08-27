@@ -5,13 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"io/fs"
 	"math"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"reflect"
-	"sort"
 	"sync"
 	"testing"
 	"testing/fstest"
@@ -19,9 +17,6 @@ import (
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/internal/check"
-	"github.com/pressly/goose/v3/internal/testdb"
-	"github.com/pressly/goose/v3/lock"
-	"golang.org/x/sync/errgroup"
 )
 
 func TestProviderRun(t *testing.T) {
@@ -511,10 +506,9 @@ func TestNoVersioning(t *testing.T) {
 			upResult, err := p.Up(ctx)
 			check.NoError(t, err)
 			check.Number(t, len(upResult), 2)
-			// Confirm no changes to the versioned schema in the DB
-			currentVersion, err := p.GetDBVersion(ctx)
-			check.NoError(t, err)
-			check.Number(t, baseVersion, currentVersion)
+			// When versioning is disabled, we cannot track the version of the seed files.
+			_, err = p.GetDBVersion(ctx)
+			check.HasError(t, err)
 			seedOwnerCount, err := countSeedOwners(db)
 			check.NoError(t, err)
 			check.Number(t, seedOwnerCount, wantSeedOwnerCount)
@@ -524,10 +518,9 @@ func TestNoVersioning(t *testing.T) {
 			downResult, err := p.DownTo(ctx, 0)
 			check.NoError(t, err)
 			check.Number(t, len(downResult), 2)
-			// Confirm no changes to the versioned schema in the DB
-			currentVersion, err := p.GetDBVersion(ctx)
-			check.NoError(t, err)
-			check.Number(t, baseVersion, currentVersion)
+			// When versioning is disabled, we cannot track the version of the seed files.
+			_, err = p.GetDBVersion(ctx)
+			check.HasError(t, err)
 			seedOwnerCount, err := countSeedOwners(db)
 			check.NoError(t, err)
 			check.Number(t, seedOwnerCount, 0)
@@ -779,6 +772,77 @@ func TestProviderApply(t *testing.T) {
 	check.Bool(t, errors.Is(err, goose.ErrNotApplied), true)
 }
 
+func TestPending(t *testing.T) {
+	t.Parallel()
+	t.Run("allow_out_of_order", func(t *testing.T) {
+		ctx := context.Background()
+		fsys := newFsys()
+		p, err := goose.NewProvider(goose.DialectSQLite3, newDB(t), fsys,
+			goose.WithAllowOutofOrder(true),
+		)
+		check.NoError(t, err)
+		// Some migrations have been applied out of order.
+		_, err = p.ApplyVersion(ctx, 1, true)
+		check.NoError(t, err)
+		_, err = p.ApplyVersion(ctx, 3, true)
+		check.NoError(t, err)
+		// Even though the latest migration HAS been applied, there are still pending out-of-order
+		// migrations.
+		current, target, err := p.GetVersions(ctx)
+		check.NoError(t, err)
+		check.Number(t, current, 3)
+		check.Number(t, target, len(fsys))
+		hasPending, err := p.HasPending(ctx)
+		check.NoError(t, err)
+		check.Bool(t, hasPending, true)
+		// Apply the missing migrations.
+		_, err = p.Up(ctx)
+		check.NoError(t, err)
+		// All migrations have been applied.
+		hasPending, err = p.HasPending(ctx)
+		check.NoError(t, err)
+		check.Bool(t, hasPending, false)
+		current, target, err = p.GetVersions(ctx)
+		check.NoError(t, err)
+		check.Number(t, current, target)
+	})
+	t.Run("disallow_out_of_order", func(t *testing.T) {
+		ctx := context.Background()
+		fsys := newFsys()
+
+		run := func(t *testing.T, versionToApply int64) {
+			p, err := goose.NewProvider(goose.DialectSQLite3, newDB(t), fsys,
+				goose.WithAllowOutofOrder(false),
+			)
+			check.NoError(t, err)
+			// Some migrations have been applied.
+			_, err = p.ApplyVersion(ctx, 1, true)
+			check.NoError(t, err)
+			_, err = p.ApplyVersion(ctx, versionToApply, true)
+			check.NoError(t, err)
+			// TODO(mf): revisit the pending check behavior in addition to the HasPending
+			// method.
+			current, target, err := p.GetVersions(ctx)
+			check.NoError(t, err)
+			check.Number(t, current, versionToApply)
+			check.Number(t, target, len(fsys))
+			_, err = p.HasPending(ctx)
+			check.HasError(t, err)
+			check.Contains(t, err.Error(), "missing (out-of-order) migration")
+			_, err = p.Up(ctx)
+			check.HasError(t, err)
+			check.Contains(t, err.Error(), "missing (out-of-order) migration")
+		}
+
+		t.Run("latest_version", func(t *testing.T) {
+			run(t, int64(len(fsys)))
+		})
+		t.Run("latest_version_minus_one", func(t *testing.T) {
+			run(t, int64(len(fsys)-1))
+		})
+	})
+}
+
 type customStoreSQLite3 struct {
 	database.Store
 }
@@ -924,246 +988,6 @@ func TestGoOnly(t *testing.T) {
 	})
 }
 
-func TestLockModeAdvisorySession(t *testing.T) {
-	t.Parallel()
-	if testing.Short() {
-		t.Skip("skip long running test")
-	}
-
-	// The migrations are written in such a way that they cannot be applied concurrently, they will
-	// fail 99.9999% of the time. This test ensures that the advisory session lock mode works as
-	// expected.
-
-	// TODO(mf): small improvement here is to use the SAME postgres instance but different databases
-	// created from a template. This will speed up the test.
-
-	db, cleanup, err := testdb.NewPostgres()
-	check.NoError(t, err)
-	t.Cleanup(cleanup)
-
-	newProvider := func() *goose.Provider {
-
-		sessionLocker, err := lock.NewPostgresSessionLocker(
-			lock.WithLockTimeout(5, 60), // Timeout 5min. Try every 5s up to 60 times.
-		)
-		check.NoError(t, err)
-		p, err := goose.NewProvider(
-			goose.DialectPostgres,
-			db,
-			os.DirFS("testdata/migrations"),
-			goose.WithSessionLocker(sessionLocker), // Use advisory session lock mode.
-		)
-		check.NoError(t, err)
-
-		return p
-	}
-
-	provider1 := newProvider()
-	provider2 := newProvider()
-
-	sources := provider1.ListSources()
-	maxVersion := sources[len(sources)-1].Version
-
-	// Since the lock mode is advisory session, only one of these providers is expected to apply ALL
-	// the migrations. The other provider should apply NO migrations. The test MUST fail if both
-	// providers apply migrations.
-
-	t.Run("up", func(t *testing.T) {
-		var g errgroup.Group
-		var res1, res2 int
-		g.Go(func() error {
-			ctx := context.Background()
-			results, err := provider1.Up(ctx)
-			check.NoError(t, err)
-			res1 = len(results)
-			currentVersion, err := provider1.GetDBVersion(ctx)
-			check.NoError(t, err)
-			check.Number(t, currentVersion, maxVersion)
-			return nil
-		})
-		g.Go(func() error {
-			ctx := context.Background()
-			results, err := provider2.Up(ctx)
-			check.NoError(t, err)
-			res2 = len(results)
-			currentVersion, err := provider2.GetDBVersion(ctx)
-			check.NoError(t, err)
-			check.Number(t, currentVersion, maxVersion)
-			return nil
-		})
-		check.NoError(t, g.Wait())
-		// One of the providers should have applied all migrations and the other should have applied
-		// no migrations, but with no error.
-		if res1 == 0 && res2 == 0 {
-			t.Fatal("both providers applied no migrations")
-		}
-		if res1 > 0 && res2 > 0 {
-			t.Fatal("both providers applied migrations")
-		}
-	})
-
-	// Reset the database and run the same test with the advisory lock mode, but apply migrations
-	// one-by-one.
-	{
-		_, err := provider1.DownTo(context.Background(), 0)
-		check.NoError(t, err)
-		currentVersion, err := provider1.GetDBVersion(context.Background())
-		check.NoError(t, err)
-		check.Number(t, currentVersion, 0)
-	}
-	t.Run("up_by_one", func(t *testing.T) {
-		var g errgroup.Group
-		var (
-			mu      sync.Mutex
-			applied []int64
-		)
-		g.Go(func() error {
-			for {
-				result, err := provider1.UpByOne(context.Background())
-				if err != nil {
-					if errors.Is(err, goose.ErrNoNextVersion) {
-						return nil
-					}
-					return err
-				}
-				check.NoError(t, err)
-				check.Bool(t, result != nil, true)
-				mu.Lock()
-				applied = append(applied, result.Source.Version)
-				mu.Unlock()
-			}
-		})
-		g.Go(func() error {
-			for {
-				result, err := provider2.UpByOne(context.Background())
-				if err != nil {
-					if errors.Is(err, goose.ErrNoNextVersion) {
-						return nil
-					}
-					return err
-				}
-				check.NoError(t, err)
-				check.Bool(t, result != nil, true)
-				mu.Lock()
-				applied = append(applied, result.Source.Version)
-				mu.Unlock()
-			}
-		})
-		check.NoError(t, g.Wait())
-		check.Number(t, len(applied), len(sources))
-		sort.Slice(applied, func(i, j int) bool {
-			return applied[i] < applied[j]
-		})
-		// Each migration should have been applied up exactly once.
-		for i := 0; i < len(sources); i++ {
-			check.Number(t, applied[i], sources[i].Version)
-		}
-	})
-
-	// Restore the database state by applying all migrations and run the same test with the advisory
-	// lock mode, but apply down migrations in parallel.
-	{
-		_, err := provider1.Up(context.Background())
-		check.NoError(t, err)
-		currentVersion, err := provider1.GetDBVersion(context.Background())
-		check.NoError(t, err)
-		check.Number(t, currentVersion, maxVersion)
-	}
-
-	t.Run("down_to", func(t *testing.T) {
-		var g errgroup.Group
-		var res1, res2 int
-		g.Go(func() error {
-			ctx := context.Background()
-			results, err := provider1.DownTo(ctx, 0)
-			check.NoError(t, err)
-			res1 = len(results)
-			currentVersion, err := provider1.GetDBVersion(ctx)
-			check.NoError(t, err)
-			check.Number(t, currentVersion, 0)
-			return nil
-		})
-		g.Go(func() error {
-			ctx := context.Background()
-			results, err := provider2.DownTo(ctx, 0)
-			check.NoError(t, err)
-			res2 = len(results)
-			currentVersion, err := provider2.GetDBVersion(ctx)
-			check.NoError(t, err)
-			check.Number(t, currentVersion, 0)
-			return nil
-		})
-		check.NoError(t, g.Wait())
-
-		if res1 == 0 && res2 == 0 {
-			t.Fatal("both providers applied no migrations")
-		}
-		if res1 > 0 && res2 > 0 {
-			t.Fatal("both providers applied migrations")
-		}
-	})
-
-	// Restore the database state by applying all migrations and run the same test with the advisory
-	// lock mode, but apply down migrations one-by-one.
-	{
-		_, err := provider1.Up(context.Background())
-		check.NoError(t, err)
-		currentVersion, err := provider1.GetDBVersion(context.Background())
-		check.NoError(t, err)
-		check.Number(t, currentVersion, maxVersion)
-	}
-
-	t.Run("down_by_one", func(t *testing.T) {
-		var g errgroup.Group
-		var (
-			mu      sync.Mutex
-			applied []int64
-		)
-		g.Go(func() error {
-			for {
-				result, err := provider1.Down(context.Background())
-				if err != nil {
-					if errors.Is(err, goose.ErrNoNextVersion) {
-						return nil
-					}
-					return err
-				}
-				check.NoError(t, err)
-				check.Bool(t, result != nil, true)
-				mu.Lock()
-				applied = append(applied, result.Source.Version)
-				mu.Unlock()
-			}
-		})
-		g.Go(func() error {
-			for {
-				result, err := provider2.Down(context.Background())
-				if err != nil {
-					if errors.Is(err, goose.ErrNoNextVersion) {
-						return nil
-					}
-					return err
-				}
-				check.NoError(t, err)
-				check.Bool(t, result != nil, true)
-				mu.Lock()
-				applied = append(applied, result.Source.Version)
-				mu.Unlock()
-			}
-		})
-		check.NoError(t, g.Wait())
-		check.Number(t, len(applied), len(sources))
-		sort.Slice(applied, func(i, j int) bool {
-			return applied[i] < applied[j]
-		})
-		// Each migration should have been applied down exactly once. Since this is sequential the
-		// applied down migrations should be in reverse order.
-		for i := len(sources) - 1; i >= 0; i-- {
-			check.Number(t, applied[i], sources[i].Version)
-		}
-	})
-}
-
 func newDBFn(query string) func(context.Context, *sql.DB) error {
 	return func(ctx context.Context, db *sql.DB) error {
 		_, err := db.ExecContext(ctx, query)
@@ -1286,7 +1110,7 @@ func newMapFile(data string) *fstest.MapFile {
 	}
 }
 
-func newFsys() fs.FS {
+func newFsys() fstest.MapFS {
 	return fstest.MapFS{
 		"00001_users_table.sql":    newMapFile(runMigration1),
 		"00002_posts_table.sql":    newMapFile(runMigration2),

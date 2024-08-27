@@ -36,3 +36,8 @@ func (v *Vertica) ListMigrations(tableName string) string {
 	q := `SELECT version_id, is_applied from %s ORDER BY id DESC`
 	return fmt.Sprintf(q, tableName)
 }
+
+func (v *Vertica) GetLatestVersion(tableName string) string {
+	q := `SELECT MAX(version_id) FROM %s`
+	return fmt.Sprintf(q, tableName)
+}

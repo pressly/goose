@@ -1,4 +1,4 @@
-GO_TEST_FLAGS ?= -race -count=1 -v -timeout=10m
+GO_TEST_FLAGS ?= -race -count=1 -v -timeout=5m
 
 # These are the default values for the test database. They can be overridden
 DB_USER ?= dbuser
@@ -12,7 +12,9 @@ DB_TURSO_PORT ?= 8080
 
 list-build-tags:
 	@echo "Available build tags:"
-	@echo "  $$(rg -o --trim 'no_[a-zA-Z0-9_]+' ./cmd/goose --no-line-number --no-filename | sort | uniq | tr '\n' ' ')"
+	@echo "$$(rg -o --trim 'no_[a-zA-Z0-9_]+' ./cmd/goose \
+		--no-line-number --no-filename | sort | uniq | \
+		xargs -n 4 | column -t | sed 's/^/  /')"
 
 .PHONY: dist
 dist:
@@ -42,25 +44,54 @@ test-packages:
 test-packages-short:
 	go test -test.short $(GO_TEST_FLAGS) $$(go list ./... | grep -v -e /tests -e /bin -e /cmd -e /examples)
 
-test-e2e: test-e2e-postgres test-e2e-mysql test-e2e-clickhouse test-e2e-vertica test-e2e-ydb test-e2e-turso
+coverage-short:
+	go test ./ -test.short  $(GO_TEST_FLAGS) -cover -coverprofile=coverage.out
+	go tool cover -html=coverage.out
 
-test-e2e-postgres:
-	go test $(GO_TEST_FLAGS) ./tests/e2e -dialect=postgres
+coverage:
+	go test ./ $(GO_TEST_FLAGS) -cover -coverprofile=coverage.out
+	go tool cover -html=coverage.out
 
-test-e2e-mysql:
-	go test $(GO_TEST_FLAGS) ./tests/e2e -dialect=mysql
+#
+# Integration-related targets
+#
+add-gowork:
+	@[ -f go.work ] || go work init
+	@[ -f go.work.sum ] || go work use -r .
 
-test-e2e-clickhouse:
-	go test $(GO_TEST_FLAGS) ./tests/clickhouse -test.short
+remove-gowork:
+	rm -rf go.work go.work.sum
 
-test-e2e-vertica:
-	go test $(GO_TEST_FLAGS) ./tests/vertica
+upgrade-integration-deps:
+	cd ./internal/testing && go get -u ./... && go mod tidy
 
-test-e2e-ydb:
-	go test $(GO_TEST_FLAGS) -parallel=1 ./tests/e2e -dialect=ydb
+test-postgres-long: add-gowork test-postgres
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='(TestPostgresProviderLocking|TestPostgresSessionLocker)'
 
-test-e2e-turso:
-	go test $(GO_TEST_FLAGS) -parallel=1 ./tests/e2e -dialect=turso
+test-postgres: add-gowork
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run="^TestPostgres$$"
+
+test-clickhouse: add-gowork
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='(TestClickhouse|TestClickhouseRemote)'
+
+test-mysql: add-gowork
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestMySQL'
+
+test-turso: add-gowork
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestTurso'
+
+test-vertica: add-gowork
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestVertica'
+
+test-ydb: add-gowork
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestYDB'
+
+test-integration: add-gowork
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration/...
+
+#
+# Docker-related targets
+#
 
 docker-cleanup:
 	docker stop -t=0 $$(docker ps --filter="label=goose_test" -aq)
@@ -73,6 +104,7 @@ docker-postgres:
 		-p $(DB_POSTGRES_PORT):5432 \
 		-l goose_test \
 		postgres:14-alpine -c log_statement=all
+	echo "postgres://$(DB_USER):$(DB_PASSWORD)@localhost:$(DB_POSTGRES_PORT)/$(DB_NAME)?sslmode=disable"
 
 docker-mysql:
 	docker run --rm -d \
@@ -83,6 +115,7 @@ docker-mysql:
 		-p $(DB_MYSQL_PORT):3306 \
 		-l goose_test \
 		mysql:8.0.31
+	echo "mysql://$(DB_USER):$(DB_PASSWORD)@localhost:$(DB_MYSQL_PORT)/$(DB_NAME)?parseTime=true"
 
 docker-clickhouse:
 	docker run --rm -d \
@@ -93,6 +126,7 @@ docker-clickhouse:
 		-p $(DB_CLICKHOUSE_PORT):9000/tcp \
 		-l goose_test \
 		clickhouse/clickhouse-server:23-alpine
+	echo "clickhouse://$(DB_USER):$(DB_PASSWORD)@localhost:$(DB_CLICKHOUSE_PORT)/$(DB_NAME)"
 
 docker-turso:
 	docker run --rm -d \

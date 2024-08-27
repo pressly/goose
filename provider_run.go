@@ -7,73 +7,18 @@ import (
 	"fmt"
 	"io/fs"
 	"runtime/debug"
-	"sort"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/internal/sqlparser"
+	"github.com/sethvargo/go-retry"
 	"go.uber.org/multierr"
 )
 
 var (
 	errMissingZeroVersion = errors.New("missing zero version migration")
 )
-
-func (p *Provider) resolveUpMigrations(
-	dbVersions []*database.ListMigrationsResult,
-	version int64,
-) ([]*Migration, error) {
-	var apply []*Migration
-	var dbMaxVersion int64
-	// dbAppliedVersions is a map of all applied migrations in the database.
-	dbAppliedVersions := make(map[int64]bool, len(dbVersions))
-	for _, m := range dbVersions {
-		dbAppliedVersions[m.Version] = true
-		if m.Version > dbMaxVersion {
-			dbMaxVersion = m.Version
-		}
-	}
-	missingMigrations := checkMissingMigrations(dbVersions, p.migrations)
-	// feat(mf): It is very possible someone may want to apply ONLY new migrations and skip missing
-	// migrations entirely. At the moment this is not supported, but leaving this comment because
-	// that's where that logic would be handled.
-	//
-	// For example, if db has 1,4 applied and 2,3,5 are new, we would apply only 5 and skip 2,3. Not
-	// sure if this is a common use case, but it's possible.
-	if len(missingMigrations) > 0 && !p.cfg.allowMissing {
-		var collected []string
-		for _, v := range missingMigrations {
-			collected = append(collected, strconv.FormatInt(v, 10))
-		}
-		msg := "migration"
-		if len(collected) > 1 {
-			msg += "s"
-		}
-		return nil, fmt.Errorf("found %d missing (out-of-order) %s lower than current max (%d): [%s]",
-			len(missingMigrations), msg, dbMaxVersion, strings.Join(collected, ","),
-		)
-	}
-	for _, missingVersion := range missingMigrations {
-		m, err := p.getMigration(missingVersion)
-		if err != nil {
-			return nil, err
-		}
-		apply = append(apply, m)
-	}
-	// filter all migrations with a version greater than the supplied version (min) and less than or
-	// equal to the requested version (max). Skip any migrations that have already been applied.
-	for _, m := range p.migrations {
-		if dbAppliedVersions[m.Version] {
-			continue
-		}
-		if m.Version > dbMaxVersion && m.Version <= version {
-			apply = append(apply, m)
-		}
-	}
-	return apply, nil
-}
 
 func (p *Provider) prepareMigration(fsys fs.FS, m *Migration, direction bool) error {
 	switch m.Type {
@@ -291,7 +236,7 @@ func beginTx(ctx context.Context, conn *sql.Conn, fn func(tx *sql.Tx) error) (re
 	return tx.Commit()
 }
 
-func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, error) {
+func (p *Provider) initialize(ctx context.Context, useSessionLocker bool) (*sql.Conn, func() error, error) {
 	p.mu.Lock()
 	conn, err := p.db.Conn(ctx)
 	if err != nil {
@@ -303,7 +248,8 @@ func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, err
 		p.mu.Unlock()
 		return conn.Close()
 	}
-	if l := p.cfg.sessionLocker; l != nil && p.cfg.lockEnabled {
+	if useSessionLocker && p.cfg.sessionLocker != nil && p.cfg.lockEnabled {
+		l := p.cfg.sessionLocker
 		if err := l.SessionLock(ctx, conn); err != nil {
 			return nil, nil, multierr.Append(err, cleanup())
 		}
@@ -313,14 +259,11 @@ func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, err
 			p.mu.Unlock()
 			// Use a detached context to unlock the session. This is because the context passed to
 			// SessionLock may have been canceled, and we don't want to cancel the unlock.
-			//
-			// TODO(mf): use context.WithoutCancel added in go1.21
-			detachedCtx := context.Background()
-			return multierr.Append(l.SessionUnlock(detachedCtx, conn), conn.Close())
+			return multierr.Append(l.SessionUnlock(context.WithoutCancel(ctx), conn), conn.Close())
 		}
 	}
 	// If versioning is enabled, ensure the version table exists. For ad-hoc migrations, we don't
-	// need the version table because no versions are being recorded.
+	// need the version table because no versions are being tracked.
 	if !p.cfg.disableVersioning {
 		if err := p.ensureVersionTable(ctx, conn); err != nil {
 			return nil, nil, multierr.Append(err, cleanup())
@@ -329,63 +272,62 @@ func (p *Provider) initialize(ctx context.Context) (*sql.Conn, func() error, err
 	return conn, cleanup, nil
 }
 
-func (p *Provider) ensureVersionTable(ctx context.Context, conn *sql.Conn) (retErr error) {
-	// existor is an interface that extends the Store interface with a method to check if the
-	// version table exists. This API is not stable and may change in the future.
-	type existor interface {
-		TableExists(context.Context, database.DBTxConn, string) (bool, error)
-	}
-	if e, ok := p.store.(existor); ok {
-		exists, err := e.TableExists(ctx, conn, p.store.Tablename())
-		if err != nil {
-			return fmt.Errorf("failed to check if version table exists: %w", err)
-		}
-		if exists {
-			return nil
-		}
-	} else {
-		// feat(mf): this is where we can check if the version table exists instead of trying to fetch
-		// from a table that may not exist. https://github.com/pressly/goose/issues/461
-		res, err := p.store.GetMigration(ctx, conn, 0)
-		if err == nil && res != nil {
-			return nil
-		}
-	}
-	return beginTx(ctx, conn, func(tx *sql.Tx) error {
-		if err := p.store.CreateVersionTable(ctx, tx); err != nil {
-			return err
-		}
-		if p.cfg.disableVersioning {
-			return nil
-		}
-		return p.store.Insert(ctx, tx, database.InsertRequest{Version: 0})
+func (p *Provider) ensureVersionTable(
+	ctx context.Context,
+	conn *sql.Conn,
+) (retErr error) {
+	// There are 2 optimizations here:
+	//  - 1. We create the version table once per Provider instance.
+	//  - 2. We retry the operation a few times in case the table is being created concurrently.
+	//
+	// Regarding item 2, certain goose operations, like HasPending, don't respect a SessionLocker.
+	// So, when goose is run for the first time in a multi-instance environment, it's possible that
+	// multiple instances will try to create the version table at the same time. This is why we
+	// retry this operation a few times. Best case, the table is created by one instance and all the
+	// other instances see that change immediately. Worst case, all instances try to create the
+	// table at the same time, but only one will succeed and the others will retry.
+	p.versionTableOnce.Do(func() {
+		retErr = p.tryEnsureVersionTable(ctx, conn)
 	})
+	return retErr
 }
 
-// checkMissingMigrations returns a list of migrations that are missing from the database. A missing
-// migration is one that has a version less than the max version in the database.
-func checkMissingMigrations(
-	dbMigrations []*database.ListMigrationsResult,
-	fsMigrations []*Migration,
-) []int64 {
-	existing := make(map[int64]bool)
-	var dbMaxVersion int64
-	for _, m := range dbMigrations {
-		existing[m.Version] = true
-		if m.Version > dbMaxVersion {
-			dbMaxVersion = m.Version
+func (p *Provider) tryEnsureVersionTable(ctx context.Context, conn *sql.Conn) error {
+	b := retry.NewConstant(1 * time.Second)
+	b = retry.WithMaxRetries(3, b)
+	return retry.Do(ctx, b, func(ctx context.Context) error {
+		if e, ok := p.store.(interface {
+			TableExists(context.Context, database.DBTxConn, string) (bool, error)
+		}); ok {
+			exists, err := e.TableExists(ctx, conn, p.store.Tablename())
+			if err != nil {
+				return fmt.Errorf("failed to check if version table exists: %w", err)
+			}
+			if exists {
+				return nil
+			}
+		} else {
+			// This chicken-and-egg behavior is the fallback for all existing implementations of the
+			// Store interface. We check if the version table exists by querying for the initial
+			// version, but the table may not exist yet. It's important this runs outside of a
+			// transaction to avoid failing the transaction.
+			if res, err := p.store.GetMigration(ctx, conn, 0); err == nil && res != nil {
+				return nil
+			}
 		}
-	}
-	var missing []int64
-	for _, m := range fsMigrations {
-		if !existing[m.Version] && m.Version < dbMaxVersion {
-			missing = append(missing, m.Version)
+		if err := beginTx(ctx, conn, func(tx *sql.Tx) error {
+			if err := p.store.CreateVersionTable(ctx, tx); err != nil {
+				return err
+			}
+			return p.store.Insert(ctx, tx, database.InsertRequest{Version: 0})
+		}); err != nil {
+			// Mark the error as retryable so we can try again. It's possible that another instance
+			// is creating the table at the same time and the checks above will succeed on the next
+			// iteration.
+			return retry.RetryableError(fmt.Errorf("failed to create version table: %w", err))
 		}
-	}
-	sort.Slice(missing, func(i, j int) bool {
-		return missing[i] < missing[j]
+		return nil
 	})
-	return missing
 }
 
 // getMigration returns the migration for the given version. If no migration is found, then

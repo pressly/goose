@@ -7,6 +7,79 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Update `WithDisableGlobalRegistry` behavior (#783). If set, this will ignore globally-registered
+  migrations instead of raising an error. Specifically, the following check is removed:
+
+```go
+if len(global) > 0 {
+	return nil, errors.New("global registry disabled, but provider has registered go migrations")
+}
+```
+
+This enables creating isolated goose provider(s) in legacy environments where global migrations may
+be registered. Without updating this behavior, it would be impossible to use
+`WithDisableGlobalRegistry` in combination with `WithGoMigrations`.
+
+## [v3.21.1]
+
+- Add `GetVersions` method to `goose.Provider`, returns the current (max db) version and the latest
+  (max filesystem) version. (#756)
+- Clarify `GetLatestVersion` method MUST return `ErrVersionNotFound` if no latest migration is
+  found. Previously it was returning a -1 and nil error, which was inconsistent with the rest of the
+  API surface.
+
+- Add `GetLatestVersion` implementations to all existing dialects. This is an optimization to avoid
+  loading all migrations when only the latest version is needed. This uses the `max` function in SQL
+  to get the latest version_id irrespective of the order of applied migrations.
+  - Refactor existing portions of the code to use the new `GetLatestVersion` method.
+
+## [v3.21.0]
+
+- Retracted. Broken release, please use v3.21.1 instead.
+
+## [v3.20.0]
+
+- Expand the `Store` interface by adding a `GetLatestVersion` method and make the interface public.
+- Add a (non-blocking) method to check if there are pending migrations to the `goose.Provider`
+  (#751):
+
+```go
+func (p *Provider) HasPending(context.Context) (bool, error) {}
+```
+
+The underlying implementation **does not respect the `SessionLocker`** (if one is enabled) and can
+be used to check for pending migrations without blocking or being blocked by other operations.
+
+- The methods `.Up`, `.UpByOne`, and `.UpTo` from `goose.Provider` will invoke `.HasPending` before
+  acquiring a lock with `SessionLocker` (if enabled). This addresses an edge case in
+  Kubernetes-style deployments where newer pods with long-running migrations prevent older pods -
+  which have all known migrations applied - from starting up due to an advisory lock. For more
+  details, refer to https://github.com/pressly/goose/pull/507#discussion_r1266498077 and #751.
+- Move integration tests to `./internal/testing` and make it a separate Go module. This will allow
+  us to have a cleaner top-level go.mod file and avoid imports unrelated to the goose project. See
+  [integration/README.md](https://github.com/pressly/goose/blob/d0641b5bfb3bd5d38d95fe7a63d7ddf2d282234d/internal/testing/integration/README.md)
+  for more details. This shouldn't affect users of the goose library.
+
+## [v3.19.2] - 2024-03-13
+
+- Remove duckdb support. The driver uses Cgo and we've decided to remove it until we can find a
+  better solution. If you were using duckdb with goose, please let us know by opening an issue.
+
+## [v3.19.1] - 2024-03-11
+
+- Fix selecting dialect for `redshift`
+- Add `GOOSE_MIGRATION_DIR` documentation
+- Bump github.com/opencontainers/runc to `v1.1.12` (security fix)
+- Update CI tests for go1.22
+- Make goose annotations case-insensitive
+  - All `-- +goose` annotations are now case-insensitive. This means that `-- +goose Up` and `--
++goose up` are now equivalent. This change was made to improve the user experience and to make the
+    annotations more consistent.
+
+## [v3.19.0] - 2024-03-11
+
+- Use [v3.19.1] instead. This was tagged but not released and does not contain release binaries.
+
 ## [v3.18.0] - 2024-01-31
 
 - Add environment variable substitution for SQL migrations. (#604)
@@ -127,7 +200,13 @@ Here's a quick summary:
 - Add new `context.Context`-aware functions and methods, for both sql and go migrations.
 - Return error when no migration files found or dir is not a directory.
 
-[Unreleased]: https://github.com/pressly/goose/compare/v3.18.0...HEAD
+[Unreleased]: https://github.com/pressly/goose/compare/v3.21.1...HEAD
+[v3.21.1]: https://github.com/pressly/goose/compare/v3.20.0...v3.21.1
+[v3.21.0]: https://github.com/pressly/goose/compare/v3.20.0...v3.21.0
+[v3.20.0]: https://github.com/pressly/goose/compare/v3.19.2...v3.20.0
+[v3.19.2]: https://github.com/pressly/goose/compare/v3.19.1...v3.19.2
+[v3.19.1]: https://github.com/pressly/goose/compare/v3.19.0...v3.19.1
+[v3.19.0]: https://github.com/pressly/goose/compare/v3.18.0...v3.19.0
 [v3.18.0]: https://github.com/pressly/goose/compare/v3.17.0...v3.18.0
 [v3.17.0]: https://github.com/pressly/goose/compare/v3.16.0...v3.17.0
 [v3.16.0]: https://github.com/pressly/goose/compare/v3.15.1...v3.16.0

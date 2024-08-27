@@ -1,10 +1,16 @@
 name: golangci
+
 on:
   push:
     branches:
       - master
       - main
   pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   golangci:
     name: lint
@@ -16,7 +22,7 @@ jobs:
         with:
           go-version: "stable"
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v6
         with:
           # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
           version: latest

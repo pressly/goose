@@ -1,19 +1,22 @@
 package gomigrations
 
 import (
+	"database/sql"
+	"path/filepath"
 	"testing"
 
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/internal/check"
-	"github.com/pressly/goose/v3/internal/testdb"
-
 	_ "github.com/pressly/goose/v3/tests/gomigrations/error/testdata"
+	_ "modernc.org/sqlite"
 )
 
 func TestGoMigrationByOne(t *testing.T) {
-	db, cleanup, err := testdb.NewPostgres()
+	tempDir := t.TempDir()
+	db, err := sql.Open("sqlite", filepath.Join(tempDir, "test.db"))
 	check.NoError(t, err)
-	t.Cleanup(cleanup)
+	err = goose.SetDialect(string(goose.DialectSQLite3))
+	check.NoError(t, err)
 	// Create goose table.
 	current, err := goose.EnsureDBVersion(db)
 	check.NoError(t, err)

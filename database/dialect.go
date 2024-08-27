@@ -20,9 +20,9 @@ const (
 	DialectRedshift   Dialect = "redshift"
 	DialectSQLite3    Dialect = "sqlite3"
 	DialectTiDB       Dialect = "tidb"
+	DialectTurso      Dialect = "turso"
 	DialectVertica    Dialect = "vertica"
 	DialectYdB        Dialect = "ydb"
-	DialectTurso      Dialect = "turso"
 )
 
 // NewStore returns a new [Store] implementation for the given dialect.
@@ -61,8 +61,6 @@ type store struct {
 }
 
 var _ Store = (*store)(nil)
-
-func (s *store) private() {}
 
 func (s *store) Tablename() string {
 	return s.tablename
@@ -109,6 +107,18 @@ func (s *store) GetMigration(
 		return nil, fmt.Errorf("failed to get migration %d: %w", version, err)
 	}
 	return &result, nil
+}
+
+func (s *store) GetLatestVersion(ctx context.Context, db DBTxConn) (int64, error) {
+	q := s.querier.GetLatestVersion(s.tablename)
+	var version sql.NullInt64
+	if err := db.QueryRowContext(ctx, q).Scan(&version); err != nil {
+		return -1, fmt.Errorf("failed to get latest version: %w", err)
+	}
+	if !version.Valid {
+		return -1, fmt.Errorf("latest %w", ErrVersionNotFound)
+	}
+	return version.Int64, nil
 }
 
 func (s *store) ListMigrations(
