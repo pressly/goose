@@ -8,7 +8,7 @@ var _ Querier = (*Mysql)(nil)
 
 func (m *Mysql) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (
-		id serial NOT NULL,
+		id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 		version_id bigint NOT NULL,
 		is_applied boolean NOT NULL,
 		tstamp timestamp NULL default now(),
