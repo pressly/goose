@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [v3.22.0]
+
 - Minimum Go version is now 1.21
 - Add Unwrap to PartialError (#815)
 - Allow flags anywhere on the CLI (#814)
@@ -226,7 +228,8 @@ Here's a quick summary:
 - Add new `context.Context`-aware functions and methods, for both sql and go migrations.
 - Return error when no migration files found or dir is not a directory.
 
-[Unreleased]: https://github.com/pressly/goose/compare/v3.21.1...HEAD
+[Unreleased]: https://github.com/pressly/goose/compare/v3.22.0...HEAD
+[v3.22.0]: https://github.com/pressly/goose/compare/v3.21.1...v3.22.0
 [v3.21.1]: https://github.com/pressly/goose/compare/v3.20.0...v3.21.1
 [v3.21.0]: https://github.com/pressly/goose/compare/v3.20.0...v3.21.0
 [v3.20.0]: https://github.com/pressly/goose/compare/v3.19.2...v3.20.0
