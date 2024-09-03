@@ -1,12 +1,13 @@
 module github.com/pressly/goose/v3
 
-go 1.21
+go 1.21.0
 
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.27.1
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/jackc/pgx/v5 v5.6.0
 	github.com/mfridman/interpolate v0.0.2
+	github.com/mfridman/xflag v0.0.0-20240825232106-efb77353e578
 	github.com/microsoft/go-mssqldb v1.7.2
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/stretchr/testify v1.9.0

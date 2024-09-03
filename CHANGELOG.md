@@ -9,6 +9,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Minimum Go version is now 1.21
 - Add Unwrap to PartialError (#815)
+- Allow flags anywhere on the CLI (#814)
+
+`goose` uses the default Go `flag` parsing library, which means flags **must** be defined before the
+first positional argument. We've updated this behavior to allow flags to be defined anywhere. For
+more details, see [blog post](https://mfridman.com/blog/2024/allowing-flags-anywhere-on-the-cli/).
+
 - Update `WithDisableGlobalRegistry` behavior (#783). When set, this will ignore globally-registered
   migrationse entirely instead of the previous behavior of raising an error. Specifically, the
   following check is removed:
