@@ -73,30 +73,30 @@ func newStarrocks(opts ...OptionsFunc) (*sql.DB, func(), error) {
 	)
 	var db *sql.DB
 
-	time.Sleep(20 * time.Second)
 	// Exponential backoff-retry, because the application in the container
 	// might not be ready to accept connections yet. Add an extra sleep
 	// because container take much longer to startup.
+	pool.MaxWait = time.Minute * 2
 	if err := pool.Retry(func() error {
 		var err error
 		db, err = sql.Open("mysql", dsn)
 		if err != nil {
 			return err
 		}
+
+		_, err = db.Exec("CREATE DATABASE IF NOT EXISTS " + STARROCKS_INIT_DB)
+		if err != nil {
+			return fmt.Errorf("could not create initial database: %v", err)
+		}
+		_, err = db.Exec("USE " + STARROCKS_INIT_DB)
+		if err != nil {
+			return fmt.Errorf("could not set default initial database: %v", err)
+		}
+
 		return db.Ping()
 	},
 	); err != nil {
 		return nil, cleanup, fmt.Errorf("could not connect to docker database: %v", err)
-	}
-
-	time.Sleep(30 * time.Second)
-	_, err = db.Exec("CREATE DATABASE IF NOT EXISTS " + STARROCKS_INIT_DB)
-	if err != nil {
-		return nil, cleanup, fmt.Errorf("could not create initial database: %v", err)
-	}
-	_, err = db.Exec("USE " + STARROCKS_INIT_DB)
-	if err != nil {
-		return nil, cleanup, fmt.Errorf("could not set default initial database: %v", err)
 	}
 
 	return db, cleanup, nil
