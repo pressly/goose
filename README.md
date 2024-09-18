@@ -79,6 +79,7 @@ Drivers:
     clickhouse
     vertica
     ydb
+    starrocks
 
 Examples:
     goose sqlite3 ./foo.db status
@@ -95,6 +96,7 @@ Examples:
     goose clickhouse "tcp://127.0.0.1:9000" status
     goose vertica "vertica://user:password@localhost:5433/dbname?connection_load_balance=1" status
     goose ydb "grpcs://localhost:2135/local?go_query_mode=scripting&go_fake_tx=scripting&go_query_bind=declare,numeric" status
+    goose starrocks "user:password@/dbname?parseTime=true&interpolateParams=true" status
 
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose status
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose create init sql

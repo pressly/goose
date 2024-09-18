@@ -9,6 +9,7 @@ DB_MYSQL_PORT ?= 3307
 DB_CLICKHOUSE_PORT ?= 9001
 DB_YDB_PORT ?= 2136
 DB_TURSO_PORT ?= 8080
+DB_STARROCKS_PORT ?= 9030
 
 list-build-tags:
 	@echo "Available build tags:"
@@ -85,6 +86,9 @@ test-vertica: add-gowork
 
 test-ydb: add-gowork
 	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestYDB'
+
+test-starrocks: add-gowork
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestStarrocks'
 
 test-integration: add-gowork
 	go test $(GO_TEST_FLAGS) ./internal/testing/integration/...

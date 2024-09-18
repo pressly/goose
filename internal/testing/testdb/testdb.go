@@ -26,3 +26,8 @@ func NewVertica(options ...OptionsFunc) (db *sql.DB, cleanup func(), err error) 
 func NewYdb(options ...OptionsFunc) (db *sql.DB, cleanup func(), err error) {
 	return newYdb(options...)
 }
+
+// NewStarrocks starts a Starrocks docker container. Returns db connection and a docker cleanup function.
+func NewStarrocks(options ...OptionsFunc) (db *sql.DB, cleanup func(), err error) {
+	return newStarrocks(options...)
+}
