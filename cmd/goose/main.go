@@ -10,16 +10,17 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
 	"text/tabwriter"
 	"text/template"
 
+	"github.com/mfridman/buildversion"
 	"github.com/mfridman/xflag"
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/internal/cfg"
+	"github.com/pressly/goose/v3/internal/cli"
 	"github.com/pressly/goose/v3/internal/migrationstats"
 )
 
@@ -43,6 +44,10 @@ var (
 var version string
 
 func main() {
+	if ok, err := strconv.ParseBool(os.Getenv("GOOSE_CLI")); err == nil && ok {
+		cli.Main(cli.WithVersion(buildversion.New(version)))
+		return
+	}
 	ctx := context.Background()
 
 	flags.Usage = usage
@@ -53,11 +58,7 @@ func main() {
 	}
 
 	if *versionFlag {
-		buildInfo, ok := debug.ReadBuildInfo()
-		if version == "" && ok && buildInfo != nil && buildInfo.Main.Version != "" {
-			version = buildInfo.Main.Version
-		}
-		fmt.Printf("goose version: %s\n", strings.TrimSpace(version))
+		fmt.Printf("goose version: %s\n", buildversion.New(version))
 		return
 	}
 	if *verbose {
@@ -80,8 +81,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// The -dir option has not been set, check whether the env variable is set
-	// before defaulting to ".".
+	// The -dir option has not been set, check whether the env variable is set before defaulting to
+	// ".".
 	if *dir == cfg.DefaultMigrationDir && cfg.GOOSEMIGRATIONDIR != "" {
 		*dir = cfg.GOOSEMIGRATIONDIR
 	}
@@ -380,8 +381,8 @@ func printValidate(filename string, verbose bool) error {
 	if err != nil {
 		return err
 	}
-	// TODO(mf): we should introduce a --debug flag, which allows printing
-	// more internal debug information and leave verbose for additional information.
+	// TODO(mf): we should introduce a --debug flag, which allows printing more internal debug
+	// information and leave verbose for additional information.
 	if !verbose {
 		return nil
 	}
