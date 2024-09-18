@@ -38,19 +38,25 @@ type Provider struct {
 // NewProvider returns a new goose provider.
 //
 // The caller is responsible for matching the database dialect with the database/sql driver. For
-// example, if the database dialect is "postgres", the database/sql driver could be
+// example, if the database dialect is "postgres", the driver in your application could be
 // github.com/lib/pq or github.com/jackc/pgx. Each dialect has a corresponding [database.Dialect]
-// constant backed by a default [database.Store] implementation. For more advanced use cases, such
-// as using a custom table name or supplying a custom store implementation, see [WithStore].
+// backed by a default [database.Store] implementation. Most users won't concern themselves with the
+// store and it's enough to just supply the correct dialect to match the database technology. For
+// more advanced use cases, such as using a custom table name or supplying a custom store
+// implementation, see [WithStore] option.
 //
 // fsys is the filesystem used to read migration files, but may be nil. Most users will want to use
-// [os.DirFS], os.DirFS("path/to/migrations"), to read migrations from the local filesystem.
-// However, it is possible to use a different "filesystem", such as [embed.FS] or filter out
-// migrations using [fs.Sub].
+// [os.DirFS], example: os.DirFS("path/to/migrations"), to read migrations from the local
+// filesystem. However, it is possible to use a different filesystem, such as [embed.FS] or filter
+// out migrations using [fs.Sub].
 //
-// See [ProviderOption] for more information on configuring the provider.
+// See [ProviderOption] for more info on configuring the provider.
 //
-// Unless otherwise specified, all methods on Provider are safe for concurrent use.
+// Unless otherwise specified, all methods on Provider are safe for concurrent use within the same
+// application. However, it is not safe to use goose in parallel across multiple applications unless
+// a lock implementation is provided to the provider. See [WithSessionLocker] option for more info.
+//
+// Experimental: This API is experimental and may change in the future.
 func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption) (*Provider, error) {
 	if db == nil {
 		return nil, errors.New("db must not be nil")
@@ -72,10 +78,10 @@ func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption
 	// Allow users to specify a custom store implementation, but only if they don't specify a
 	// dialect. If they specify a dialect, we'll use the default store implementation.
 	if dialect == "" && cfg.store == nil {
-		return nil, errors.New("dialect must not be empty")
+		return nil, errors.New("failed to create goose provider: dialect or store must be supplied")
 	}
 	if dialect != "" && cfg.store != nil {
-		return nil, errors.New("dialect must be empty when using a custom store implementation")
+		return nil, errors.New("failed to create goose provider: dialect and store cannot be supplied together")
 	}
 	var store database.Store
 	if dialect != "" {
