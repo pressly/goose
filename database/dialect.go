@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/pressly/goose/v3/internal/cfg"
 	"github.com/pressly/goose/v3/internal/dialect/dialectquery"
 )
 
@@ -13,17 +14,18 @@ import (
 type Dialect string
 
 const (
-	DialectClickHouse Dialect = "clickhouse"
-	DialectMSSQL      Dialect = "mssql"
-	DialectMySQL      Dialect = "mysql"
-	DialectPostgres   Dialect = "postgres"
-	DialectRedshift   Dialect = "redshift"
-	DialectSQLite3    Dialect = "sqlite3"
-	DialectTiDB       Dialect = "tidb"
-	DialectTurso      Dialect = "turso"
-	DialectVertica    Dialect = "vertica"
-	DialectYdB        Dialect = "ydb"
-	DialectStarrocks  Dialect = "starrocks"
+	DialectClickHouse           Dialect = "clickhouse"
+	DialectClickHouseReplicated Dialect = "clickhouse-replicated"
+	DialectMSSQL                Dialect = "mssql"
+	DialectMySQL                Dialect = "mysql"
+	DialectPostgres             Dialect = "postgres"
+	DialectRedshift             Dialect = "redshift"
+	DialectSQLite3              Dialect = "sqlite3"
+	DialectTiDB                 Dialect = "tidb"
+	DialectTurso                Dialect = "turso"
+	DialectVertica              Dialect = "vertica"
+	DialectYdB                  Dialect = "ydb"
+	DialectStarrocks            Dialect = "starrocks"
 )
 
 // NewStore returns a new [Store] implementation for the given dialect.
@@ -36,16 +38,19 @@ func NewStore(dialect Dialect, tablename string) (Store, error) {
 	}
 	lookup := map[Dialect]dialectquery.Querier{
 		DialectClickHouse: &dialectquery.Clickhouse{},
-		DialectMSSQL:      &dialectquery.Sqlserver{},
-		DialectMySQL:      &dialectquery.Mysql{},
-		DialectPostgres:   &dialectquery.Postgres{},
-		DialectRedshift:   &dialectquery.Redshift{},
-		DialectSQLite3:    &dialectquery.Sqlite3{},
-		DialectTiDB:       &dialectquery.Tidb{},
-		DialectVertica:    &dialectquery.Vertica{},
-		DialectYdB:        &dialectquery.Ydb{},
-		DialectTurso:      &dialectquery.Turso{},
-		DialectStarrocks:  &dialectquery.Starrocks{},
+		DialectClickHouseReplicated: &dialectquery.ClickhouseReplicated{
+			ClusterName: cfg.GOOSECLICKHOUSECLUSTERNAME,
+		},
+		DialectMSSQL:     &dialectquery.Sqlserver{},
+		DialectMySQL:     &dialectquery.Mysql{},
+		DialectPostgres:  &dialectquery.Postgres{},
+		DialectRedshift:  &dialectquery.Redshift{},
+		DialectSQLite3:   &dialectquery.Sqlite3{},
+		DialectTiDB:      &dialectquery.Tidb{},
+		DialectVertica:   &dialectquery.Vertica{},
+		DialectYdB:       &dialectquery.Ydb{},
+		DialectTurso:     &dialectquery.Turso{},
+		DialectStarrocks: &dialectquery.Starrocks{},
 	}
 	querier, ok := lookup[dialect]
 	if !ok {

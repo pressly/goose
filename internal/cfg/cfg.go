@@ -3,9 +3,10 @@ package cfg
 import "os"
 
 var (
-	GOOSEDRIVER       = envOr("GOOSE_DRIVER", "")
-	GOOSEDBSTRING     = envOr("GOOSE_DBSTRING", "")
-	GOOSEMIGRATIONDIR = envOr("GOOSE_MIGRATION_DIR", DefaultMigrationDir)
+	GOOSECLICKHOUSECLUSTERNAME = envOr("GOOSE_CLICKHOUSE_CLUSTER_NAME", "{cluster}")
+	GOOSEDRIVER                = envOr("GOOSE_DRIVER", "")
+	GOOSEDBSTRING              = envOr("GOOSE_DBSTRING", "")
+	GOOSEMIGRATIONDIR          = envOr("GOOSE_MIGRATION_DIR", DefaultMigrationDir)
 	// https://no-color.org/
 	GOOSENOCOLOR = envOr("NO_COLOR", "false")
 )
@@ -22,6 +23,7 @@ type EnvVar struct {
 
 func List() []EnvVar {
 	return []EnvVar{
+		{Name: "GOOSE_CLICKHOUSER_CLUSTER_NAME", Value: GOOSECLICKHOUSECLUSTERNAME},
 		{Name: "GOOSE_DRIVER", Value: GOOSEDRIVER},
 		{Name: "GOOSE_DBSTRING", Value: GOOSEDBSTRING},
 		{Name: "GOOSE_MIGRATION_DIR", Value: GOOSEMIGRATIONDIR},

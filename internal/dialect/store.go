@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/pressly/goose/v3/internal/cfg"
 	"github.com/pressly/goose/v3/internal/dialect/dialectquery"
 )
 
@@ -64,7 +65,9 @@ func NewStore(d Dialect) (Store, error) {
 	case Clickhouse:
 		querier = &dialectquery.Clickhouse{}
 	case ClickhouseReplicated:
-		querier = &dialectquery.ClickhouseReplicated{}
+		querier = &dialectquery.ClickhouseReplicated{
+			ClusterName: cfg.GOOSECLICKHOUSECLUSTERNAME,
+		}
 	case Vertica:
 		querier = &dialectquery.Vertica{}
 	case Ydb:

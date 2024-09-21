@@ -269,9 +269,10 @@ Examples:
     goose tidb "user:password@/dbname?parseTime=true" status
     goose mssql "sqlserver://user:password@dbname:1433?database=master" status
     goose clickhouse "tcp://127.0.0.1:9000" status
+    goose clickhouse-replicated "tcp://127.0.0.1:9000" status
     goose vertica "vertica://user:password@localhost:5433/dbname?connection_load_balance=1" status
     goose ydb "grpcs://localhost:2135/local?go_query_mode=scripting&go_fake_tx=scripting&go_query_bind=declare,numeric" status
-	goose turso "libsql://dbname.turso.io?authToken=token" status
+    goose turso "libsql://dbname.turso.io?authToken=token" status
 
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose status
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose create init sql
@@ -279,7 +280,8 @@ Examples:
     GOOSE_DRIVER=mysql GOOSE_DBSTRING="user:password@/dbname" goose status
     GOOSE_DRIVER=redshift GOOSE_DBSTRING="postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" goose status
     GOOSE_DRIVER=turso GOOSE_DBSTRING="libsql://dbname.turso.io?authToken=token" goose status
-	GOOSE_DRIVER=clickhouse GOOSE_DBSTRING="clickhouse://user:password@qwerty.clickhouse.cloud:9440/dbname?secure=true&skip_verify=false" goose status
+    GOOSE_DRIVER=clickhouse GOOSE_DBSTRING="clickhouse://user:password@qwerty.clickhouse.cloud:9440/dbname?secure=true&skip_verify=false" goose status
+    GOOSE_DRIVER=clickhouse-replicated GOOSE_CLICKHOUSE_CLUSTER_NAME=example GOOSE_DBSTRING="clickhouse://user:password@qwerty.clickhouse.cloud:9440/dbname?secure=true&skip_verify=false" goose status
 
 Options:
 `
@@ -302,23 +304,23 @@ Commands:
 )
 
 var sqlMigrationTemplate = template.Must(template.New("goose.sql-migration").Parse(`-- Thank you for giving goose a try!
--- 
+--
 -- This file was automatically created running goose init. If you're familiar with goose
 -- feel free to remove/rename this file, write some SQL and goose up. Briefly,
--- 
+--
 -- Documentation can be found here: https://pressly.github.io/goose
 --
 -- A single goose .sql file holds both Up and Down migrations.
--- 
+--
 -- All goose .sql files are expected to have a -- +goose Up annotation.
 -- The -- +goose Down annotation is optional, but recommended, and must come after the Up annotation.
--- 
--- The -- +goose NO TRANSACTION annotation may be added to the top of the file to run statements 
+--
+-- The -- +goose NO TRANSACTION annotation may be added to the top of the file to run statements
 -- outside a transaction. Both Up and Down migrations within this file will be run without a transaction.
--- 
--- More complex statements that have semicolons within them must be annotated with 
+--
+-- More complex statements that have semicolons within them must be annotated with
 -- the -- +goose StatementBegin and -- +goose StatementEnd annotations to be properly recognized.
--- 
+--
 -- Use GitHub issues for reporting bugs and requesting features, enjoy!
 
 -- +goose Up

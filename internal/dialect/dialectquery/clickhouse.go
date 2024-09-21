@@ -43,12 +43,14 @@ func (c *Clickhouse) GetLatestVersion(tableName string) string {
 	return fmt.Sprintf(q, tableName)
 }
 
-type ClickhouseReplicated struct{}
+type ClickhouseReplicated struct {
+	ClusterName string
+}
 
 var _ Querier = (*ClickhouseReplicated)(nil)
 
 func (c *ClickhouseReplicated) CreateTable(tableName string) string {
-	q := `CREATE TABLE IF NOT EXISTS %s ON CLUSTER '{cluster}' (
+	q := `CREATE TABLE IF NOT EXISTS %s ON CLUSTER '%s' (
 		version_id Int64,
 		is_applied UInt8,
 		date Date default now(),
@@ -56,7 +58,7 @@ func (c *ClickhouseReplicated) CreateTable(tableName string) string {
 	  )
 	  ENGINE = ReplicatedMergeTree()
 		ORDER BY (date)`
-	return fmt.Sprintf(q, tableName)
+	return fmt.Sprintf(q, tableName, c.ClusterName)
 }
 
 func (c *ClickhouseReplicated) InsertVersion(tableName string) string {

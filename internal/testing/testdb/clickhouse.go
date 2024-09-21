@@ -34,6 +34,7 @@ func newClickHouse(opts ...OptionsFunc) (*sql.DB, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
+
 	runOptions := &dockertest.RunOptions{
 		Repository: CLICKHOUSE_IMAGE,
 		Tag:        CLICKHOUSE_VERSION,
@@ -45,6 +46,18 @@ func newClickHouse(opts ...OptionsFunc) (*sql.DB, func(), error) {
 		},
 		Labels:       map[string]string{"goose_test": "1"},
 		PortBindings: make(map[docker.Port][]docker.PortBinding),
+	}
+	if option.network != nil {
+		runOptions.NetworkID = option.network.Network.ID
+	}
+	if len(option.name) > 0 {
+		runOptions.Name = option.name
+	}
+	if len(option.mounts) > 0 {
+		runOptions.Mounts = option.mounts
+	}
+	if len(option.env) > 0 {
+		runOptions.Env = append(runOptions.Env, option.env...)
 	}
 	// Port 8123 is used for HTTP, but we're using the TCP protocol endpoint (port 9000).
 	// Ref: https://clickhouse.com/docs/en/interfaces/http/
@@ -62,6 +75,7 @@ func newClickHouse(opts ...OptionsFunc) (*sql.DB, func(), error) {
 			config.RestartPolicy = docker.RestartPolicy{Name: "no"}
 		},
 	)
+
 	if err != nil {
 		return nil, nil, err
 	}
@@ -100,6 +114,9 @@ func clickHouseOpenDB(address string, tlsConfig *tls.Config, debug bool) *sql.DB
 		TLS: tlsConfig,
 		Settings: clickhouse.Settings{
 			"max_execution_time": 60,
+			// Next settings allows to execute queries on clickhouse replicated cluster with same manner as single node cluster
+			"insert_quorum":                 2,
+			"select_sequential_consistency": 1,
 		},
 		DialTimeout: 5 * time.Second,
 		Compression: &clickhouse.Compression{
@@ -107,8 +124,8 @@ func clickHouseOpenDB(address string, tlsConfig *tls.Config, debug bool) *sql.DB
 		},
 		Debug: debug,
 	})
-	db.SetMaxIdleConns(5)
-	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(1)
+	db.SetMaxOpenConns(1)
 	db.SetConnMaxLifetime(time.Hour)
 	return db
 }
