@@ -47,6 +47,8 @@ func SetDialect(s string) error {
 		d = dialect.Tidb
 	case "clickhouse":
 		d = dialect.Clickhouse
+	case "clickhouse-replicated":
+		d = dialect.ClickhouseReplicated
 	case "vertica":
 		d = dialect.Vertica
 	case "ydb":

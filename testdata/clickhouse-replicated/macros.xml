@@ -1,0 +1,7 @@
+<yandex>
+    <macros>
+        <cluster>goose</cluster>
+        <shard>0</shard>
+        <replica from_env="REPLICA_NAME" />
+    </macros>
+</yandex>
