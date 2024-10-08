@@ -165,6 +165,13 @@ func WithDisableVersioning(b bool) ProviderOption {
 	})
 }
 
+func WithRecursive(b bool) ProviderOption {
+	return configFunc(func(c *config) error {
+		c.recursive = b
+		return nil
+	})
+}
+
 type config struct {
 	store database.Store
 
@@ -184,6 +191,7 @@ type config struct {
 	disableVersioning     bool
 	allowMissing          bool
 	disableGlobalRegistry bool
+	recursive             bool
 
 	// Let's not expose the Logger just yet. Ideally we consolidate on the std lib slog package
 	// added in go1.21 and then expose that (if that's even necessary). For now, just use the std
