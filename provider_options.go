@@ -165,6 +165,16 @@ func WithDisableVersioning(b bool) ProviderOption {
 	})
 }
 
+// WithLogger set the logger, same behavior as with goose.SetLogger(logger)
+// Using Provider would block the ability to override the logger, which could become painful to have a proper
+// structured logging. By Default, this won't override the default logger.
+func WithLogger(l Logger) ProviderOption {
+	return configFunc(func(c *config) error {
+		c.logger = l
+		return nil
+	})
+}
+
 type config struct {
 	store database.Store
 
