@@ -6,8 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"log/slog"
+	"path/filepath"
 	"runtime/debug"
-	"strings"
 	"time"
 
 	"github.com/pressly/goose/v3/database"
@@ -66,17 +67,6 @@ func (p *Provider) prepareMigration(fsys fs.FS, m *Migration, direction bool) er
 	return fmt.Errorf("invalid migration type: %+v", m)
 }
 
-// printf is a helper function that prints the given message if verbose is enabled. It also prepends
-// the "goose: " prefix to the message.
-func (p *Provider) printf(msg string, args ...interface{}) {
-	if p.cfg.verbose {
-		if !strings.HasPrefix(msg, "goose:") {
-			msg = "goose: " + msg
-		}
-		p.cfg.logger.Printf(msg, args...)
-	}
-}
-
 // runMigrations runs migrations sequentially in the given direction. If the migrations list is
 // empty, return nil without error.
 func (p *Provider) runMigrations(
@@ -94,7 +84,7 @@ func (p *Provider) runMigrations(
 			if err != nil {
 				return nil, err
 			}
-			p.printf("no migrations to run, current version: %d", maxVersion)
+			p.cfg.logger.Info("no migrations to run", slog.Int64("current_version", maxVersion))
 		}
 		return nil, nil
 	}
@@ -150,14 +140,19 @@ func (p *Provider) runMigrations(
 		}
 		result.Duration = time.Since(start)
 		results = append(results, result)
-		p.printf("%s", result)
+		p.cfg.logger.Info("applied migration",
+			slog.String("source", filepath.Base(m.Source)),
+			slog.Any("direction", direction),
+			slog.Any("duration", result.Duration),
+			slog.Bool("empty", result.Empty),
+		)
 	}
 	if !p.cfg.disableVersioning && !byOne {
 		maxVersion, err := p.getDBMaxVersion(ctx, conn)
 		if err != nil {
 			return nil, err
 		}
-		p.printf("successfully migrated database, current version: %d", maxVersion)
+		p.cfg.logger.Info("successfully migrated database", slog.Int64("current_version", maxVersion))
 	}
 	return results, nil
 }

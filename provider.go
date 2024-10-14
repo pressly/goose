@@ -5,8 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
+	"log/slog"
 	"math"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -62,12 +65,31 @@ func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption
 		registered:      make(map[int64]*Migration),
 		excludePaths:    make(map[string]bool),
 		excludeVersions: make(map[int64]bool),
-		logger:          &stdLogger{},
 	}
 	for _, opt := range opts {
 		if err := opt.apply(&cfg); err != nil {
 			return nil, err
 		}
+	}
+	if cfg.logger == nil {
+		output := io.Discard
+		if cfg.verbose {
+			output = os.Stdout
+		}
+		replaceAttr := func(groups []string, a slog.Attr) slog.Attr {
+			if a.Key == slog.TimeKey {
+				return slog.Attr{
+					Key:   slog.TimeKey,
+					Value: slog.StringValue(a.Value.Time().Format("2006-01-02 15:04:05")),
+				}
+			}
+			return a
+		}
+		handler := slog.NewTextHandler(output, &slog.HandlerOptions{
+			Level:       slog.LevelInfo,
+			ReplaceAttr: replaceAttr,
+		})
+		cfg.logger = slog.New(handler).With(slog.String("logger", "goose"))
 	}
 	// Allow users to specify a custom store implementation, but only if they don't specify a
 	// dialect. If they specify a dialect, we'll use the default store implementation.
@@ -118,8 +140,9 @@ func newProvider(
 	}
 	// Skip adding global Go migrations if explicitly disabled.
 	if cfg.disableGlobalRegistry {
-		// TODO(mf): let's add a warn-level log here to inform users if len(global) > 0. Would like
-		// to add this once we're on go1.21 and leverage the new slog package.
+		if len(global) > 0 {
+			cfg.logger.Warn("detected global go migrations, but global go migrations are disabled", slog.Int("count", len(global)))
+		}
 	} else {
 		for version, m := range global {
 			if _, ok := versionToGoMigration[version]; ok {
@@ -434,7 +457,7 @@ func (p *Provider) down(
 	}
 	// We never migrate the zero version down.
 	if dbMigrations[0].Version == 0 {
-		p.printf("no migrations to run, current version: 0")
+		p.cfg.logger.Info("no migrations to run, current version: 0")
 		return nil, nil
 	}
 	var apply []*Migration

@@ -3,6 +3,7 @@ package goose
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/lock"
@@ -165,10 +166,20 @@ func WithDisableVersioning(b bool) ProviderOption {
 	})
 }
 
+// WithLogger sets the logger to use for logging. By default, goose will use a modified version of
+// the [slog.NewTextHandler] with a custom format.
+func WithLogger(logger *slog.Logger) ProviderOption {
+	return configFunc(func(c *config) error {
+		c.logger = logger
+		return nil
+	})
+}
+
 type config struct {
 	store database.Store
 
 	verbose         bool
+	logger          *slog.Logger
 	excludePaths    map[string]bool
 	excludeVersions map[int64]bool
 
@@ -184,11 +195,6 @@ type config struct {
 	disableVersioning     bool
 	allowMissing          bool
 	disableGlobalRegistry bool
-
-	// Let's not expose the Logger just yet. Ideally we consolidate on the std lib slog package
-	// added in go1.21 and then expose that (if that's even necessary). For now, just use the std
-	// lib log package.
-	logger Logger
 }
 
 type configFunc func(*config) error
