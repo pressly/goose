@@ -13,23 +13,23 @@ func TestCollectFileSources(t *testing.T) {
 	t.Run("nil_fsys", func(t *testing.T) {
 		sources, err := collectFilesystemSources(nil, false, nil, nil)
 		require.NoError(t, err)
-		require.True(t, sources != nil)
-		require.Equal(t, len(sources.goSources), 0)
-		require.Equal(t, len(sources.sqlSources), 0)
+		require.NotNil(t, sources)
+		require.Empty(t, sources.goSources)
+		require.Empty(t, sources.sqlSources)
 	})
 	t.Run("noop_fsys", func(t *testing.T) {
 		sources, err := collectFilesystemSources(noopFS{}, false, nil, nil)
 		require.NoError(t, err)
-		require.True(t, sources != nil)
-		require.Equal(t, len(sources.goSources), 0)
-		require.Equal(t, len(sources.sqlSources), 0)
+		require.NotNil(t, sources)
+		require.Empty(t, sources.goSources)
+		require.Empty(t, sources.sqlSources)
 	})
 	t.Run("empty_fsys", func(t *testing.T) {
 		sources, err := collectFilesystemSources(fstest.MapFS{}, false, nil, nil)
 		require.NoError(t, err)
-		require.Equal(t, len(sources.goSources), 0)
-		require.Equal(t, len(sources.sqlSources), 0)
-		require.True(t, sources != nil)
+		require.Empty(t, sources.goSources)
+		require.Empty(t, sources.sqlSources)
+		require.NotNil(t, sources)
 	})
 	t.Run("incorrect_fsys", func(t *testing.T) {
 		mapFS := fstest.MapFS{
@@ -38,8 +38,8 @@ func TestCollectFileSources(t *testing.T) {
 		// strict disable - should not error
 		sources, err := collectFilesystemSources(mapFS, false, nil, nil)
 		require.NoError(t, err)
-		require.Equal(t, len(sources.goSources), 0)
-		require.Equal(t, len(sources.sqlSources), 0)
+		require.Empty(t, sources.goSources)
+		require.Empty(t, sources.sqlSources)
 		// strict enabled - should error
 		_, err = collectFilesystemSources(mapFS, true, nil, nil)
 		require.Error(t, err)
@@ -50,8 +50,8 @@ func TestCollectFileSources(t *testing.T) {
 		require.NoError(t, err)
 		sources, err := collectFilesystemSources(fsys, false, nil, nil)
 		require.NoError(t, err)
-		require.Equal(t, len(sources.sqlSources), 4)
-		require.Equal(t, len(sources.goSources), 0)
+		require.Len(t, sources.sqlSources, 4)
+		require.Empty(t, sources.goSources)
 		expected := fileSources{
 			sqlSources: []Source{
 				newSource(TypeSQL, "00001_foo.sql", 1),
@@ -78,8 +78,8 @@ func TestCollectFileSources(t *testing.T) {
 			nil,
 		)
 		require.NoError(t, err)
-		require.Equal(t, len(sources.sqlSources), 2)
-		require.Equal(t, len(sources.goSources), 0)
+		require.Len(t, sources.sqlSources, 2)
+		require.Empty(t, sources.goSources)
 		expected := fileSources{
 			sqlSources: []Source{
 				newSource(TypeSQL, "00001_foo.sql", 1),
@@ -110,8 +110,8 @@ func TestCollectFileSources(t *testing.T) {
 		}
 		sources, err := collectFilesystemSources(mapFS, false, nil, nil)
 		require.NoError(t, err)
-		require.Equal(t, len(sources.sqlSources), 4)
-		require.Equal(t, len(sources.goSources), 0)
+		require.Len(t, sources.sqlSources, 4)
+		require.Empty(t, sources.goSources)
 	})
 	t.Run("skip_random_files", func(t *testing.T) {
 		mapFS := fstest.MapFS{
@@ -125,17 +125,17 @@ func TestCollectFileSources(t *testing.T) {
 		}
 		sources, err := collectFilesystemSources(mapFS, false, nil, nil)
 		require.NoError(t, err)
-		require.Equal(t, len(sources.sqlSources), 2)
-		require.Equal(t, len(sources.goSources), 1)
+		require.Len(t, sources.sqlSources, 2)
+		require.Len(t, sources.goSources, 1)
 		// 1
-		require.Equal(t, sources.sqlSources[0].Path, "1_foo.sql")
-		require.Equal(t, sources.sqlSources[0].Version, int64(1))
+		require.Equal(t, "1_foo.sql", sources.sqlSources[0].Path)
+		require.EqualValues(t, 1, sources.sqlSources[0].Version)
 		// 2
-		require.Equal(t, sources.sqlSources[1].Path, "5_qux.sql")
-		require.Equal(t, sources.sqlSources[1].Version, int64(5))
+		require.Equal(t, "5_qux.sql", sources.sqlSources[1].Path)
+		require.EqualValues(t, 5, sources.sqlSources[1].Version)
 		// 3
-		require.Equal(t, sources.goSources[0].Path, "4_something.go")
-		require.Equal(t, sources.goSources[0].Version, int64(4))
+		require.Equal(t, "4_something.go", sources.goSources[0].Path)
+		require.EqualValues(t, 4, sources.goSources[0].Version)
 	})
 	t.Run("duplicate_versions", func(t *testing.T) {
 		mapFS := fstest.MapFS{
@@ -161,7 +161,7 @@ func TestCollectFileSources(t *testing.T) {
 			got, err := collectFilesystemSources(f, false, nil, nil)
 			require.NoError(t, err)
 			require.Equal(t, len(got.sqlSources), len(sqlSources))
-			require.Equal(t, len(got.goSources), 0)
+			require.Empty(t, got.goSources)
 			for i := 0; i < len(got.sqlSources); i++ {
 				require.Equal(t, got.sqlSources[i], sqlSources[i])
 			}
@@ -196,8 +196,8 @@ func TestMerge(t *testing.T) {
 		require.NoError(t, err)
 		sources, err := collectFilesystemSources(fsys, false, nil, nil)
 		require.NoError(t, err)
-		require.Equal(t, len(sources.sqlSources), 1)
-		require.Equal(t, len(sources.goSources), 2)
+		require.Len(t, sources.sqlSources, 1)
+		require.Len(t, sources.goSources, 2)
 		t.Run("valid", func(t *testing.T) {
 			registered := map[int64]*Migration{
 				2: NewGoMigration(2, nil, nil),
@@ -205,7 +205,7 @@ func TestMerge(t *testing.T) {
 			}
 			migrations, err := merge(sources, registered)
 			require.NoError(t, err)
-			require.Equal(t, len(migrations), 3)
+			require.Len(t, migrations, 3)
 			assertMigration(t, migrations[0], newSource(TypeSQL, "00001_foo.sql", 1))
 			assertMigration(t, migrations[1], newSource(TypeGo, "00002_bar.go", 2))
 			assertMigration(t, migrations[2], newSource(TypeGo, "00003_baz.go", 3))
@@ -251,7 +251,7 @@ func TestMerge(t *testing.T) {
 				6: NewGoMigration(6, nil, nil),
 			})
 			require.NoError(t, err)
-			require.Equal(t, len(migrations), 5)
+			require.Len(t, migrations, 5)
 			assertMigration(t, migrations[0], newSource(TypeSQL, "00001_foo.sql", 1))
 			assertMigration(t, migrations[1], newSource(TypeSQL, "00002_bar.sql", 2))
 			assertMigration(t, migrations[2], newSource(TypeGo, "", 3))
@@ -277,7 +277,7 @@ func TestMerge(t *testing.T) {
 				6: NewGoMigration(6, nil, nil),
 			})
 			require.NoError(t, err)
-			require.Equal(t, len(migrations), 4)
+			require.Len(t, migrations, 4)
 			assertMigration(t, migrations[0], newSource(TypeSQL, "00001_foo.sql", 1))
 			assertMigration(t, migrations[1], newSource(TypeGo, "00002_bar.go", 2))
 			assertMigration(t, migrations[2], newSource(TypeGo, "", 3))
@@ -288,13 +288,13 @@ func TestMerge(t *testing.T) {
 
 func assertMigration(t *testing.T, got *Migration, want Source) {
 	t.Helper()
-	require.Equal(t, got.Type, want.Type)
-	require.Equal(t, got.Version, want.Version)
-	require.Equal(t, got.Source, want.Path)
+	require.Equal(t, want.Type, got.Type)
+	require.Equal(t, want.Version, got.Version)
+	require.Equal(t, want.Path, got.Source)
 	switch got.Type {
 	case TypeGo:
-		require.True(t, got.goUp != nil)
-		require.True(t, got.goDown != nil)
+		require.NotNil(t, got.goUp)
+		require.NotNil(t, got.goDown)
 	case TypeSQL:
 		require.False(t, got.sql.Parsed)
 	default:

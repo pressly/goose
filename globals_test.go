@@ -12,12 +12,12 @@ func TestNewGoMigration(t *testing.T) {
 	t.Run("valid_both_nil", func(t *testing.T) {
 		m := NewGoMigration(1, nil, nil)
 		// roundtrip
-		require.Equal(t, m.Version, int64(1))
-		require.Equal(t, m.Type, TypeGo)
-		require.Equal(t, m.Registered, true)
-		require.Equal(t, m.Next, int64(-1))
-		require.Equal(t, m.Previous, int64(-1))
-		require.Equal(t, m.Source, "")
+		require.EqualValues(t, 1, m.Version)
+		require.Equal(t, TypeGo, m.Type)
+		require.True(t, m.Registered)
+		require.EqualValues(t, -1, m.Next)
+		require.EqualValues(t, -1, m.Previous)
+		require.Equal(t, "", m.Source)
 		require.Nil(t, m.UpFnNoTxContext)
 		require.Nil(t, m.DownFnNoTxContext)
 		require.Nil(t, m.UpFnContext)
@@ -26,10 +26,10 @@ func TestNewGoMigration(t *testing.T) {
 		require.Nil(t, m.DownFn)
 		require.Nil(t, m.UpFnNoTx)
 		require.Nil(t, m.DownFnNoTx)
-		require.True(t, m.goUp != nil)
-		require.True(t, m.goDown != nil)
-		require.Equal(t, m.goUp.Mode, TransactionEnabled)
-		require.Equal(t, m.goDown.Mode, TransactionEnabled)
+		require.NotNil(t, m.goUp)
+		require.NotNil(t, m.goDown)
+		require.Equal(t, TransactionEnabled, m.goUp.Mode)
+		require.Equal(t, TransactionEnabled, m.goDown.Mode)
 	})
 	t.Run("all_set", func(t *testing.T) {
 		// This will eventually be an error when registering migrations.
@@ -39,14 +39,14 @@ func TestNewGoMigration(t *testing.T) {
 			&GoFunc{RunTx: func(context.Context, *sql.Tx) error { return nil }, RunDB: func(context.Context, *sql.DB) error { return nil }},
 		)
 		// check only functions
-		require.True(t, m.UpFn != nil)
-		require.True(t, m.UpFnContext != nil)
-		require.True(t, m.UpFnNoTx != nil)
-		require.True(t, m.UpFnNoTxContext != nil)
-		require.True(t, m.DownFn != nil)
-		require.True(t, m.DownFnContext != nil)
-		require.True(t, m.DownFnNoTx != nil)
-		require.True(t, m.DownFnNoTxContext != nil)
+		require.NotNil(t, m.UpFn)
+		require.NotNil(t, m.UpFnContext)
+		require.NotNil(t, m.UpFnNoTx)
+		require.NotNil(t, m.UpFnNoTxContext)
+		require.NotNil(t, m.DownFn)
+		require.NotNil(t, m.DownFnContext)
+		require.NotNil(t, m.DownFnNoTx)
+		require.NotNil(t, m.DownFnNoTxContext)
 	})
 }
 
@@ -93,12 +93,12 @@ func TestTransactionMode(t *testing.T) {
 		m := NewGoMigration(1, nil, nil)
 		err = SetGlobalMigrations(m)
 		require.NoError(t, err)
-		require.Equal(t, len(registeredGoMigrations), 1)
+		require.Len(t, registeredGoMigrations, 1)
 		registered := registeredGoMigrations[1]
-		require.True(t, registered.goUp != nil)
-		require.True(t, registered.goDown != nil)
-		require.Equal(t, registered.goUp.Mode, TransactionEnabled)
-		require.Equal(t, registered.goDown.Mode, TransactionEnabled)
+		require.NotNil(t, registered.goUp)
+		require.NotNil(t, registered.goDown)
+		require.Equal(t, TransactionEnabled, registered.goUp.Mode)
+		require.Equal(t, TransactionEnabled, registered.goDown.Mode)
 
 		migration2 := NewGoMigration(2, nil, nil)
 		// reset so we can check the default is set
@@ -131,12 +131,12 @@ func TestLegacyFunctions(t *testing.T) {
 
 	assertMigration := func(t *testing.T, m *Migration, version int64) {
 		t.Helper()
-		require.Equal(t, m.Version, version)
-		require.Equal(t, m.Type, TypeGo)
-		require.Equal(t, m.Registered, true)
-		require.Equal(t, m.Next, int64(-1))
-		require.Equal(t, m.Previous, int64(-1))
-		require.Equal(t, m.Source, "")
+		require.Equal(t, version, m.Version)
+		require.Equal(t, TypeGo, m.Type)
+		require.True(t, m.Registered)
+		require.EqualValues(t, -1, m.Next)
+		require.EqualValues(t, -1, m.Previous)
+		require.Equal(t, "", m.Source)
 	}
 
 	t.Run("all_tx", func(t *testing.T) {
@@ -145,7 +145,7 @@ func TestLegacyFunctions(t *testing.T) {
 			NewGoMigration(1, &GoFunc{RunTx: runTx}, &GoFunc{RunTx: runTx}),
 		)
 		require.NoError(t, err)
-		require.Equal(t, len(registeredGoMigrations), 1)
+		require.Len(t, registeredGoMigrations, 1)
 		m := registeredGoMigrations[1]
 		assertMigration(t, m, 1)
 		// Legacy functions.
@@ -168,7 +168,7 @@ func TestLegacyFunctions(t *testing.T) {
 			NewGoMigration(2, &GoFunc{RunDB: runDB}, &GoFunc{RunDB: runDB}),
 		)
 		require.NoError(t, err)
-		require.Equal(t, len(registeredGoMigrations), 1)
+		require.Len(t, registeredGoMigrations, 1)
 		m := registeredGoMigrations[2]
 		assertMigration(t, m, 2)
 		// Legacy functions.

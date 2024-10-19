@@ -1,0 +1,11 @@
+linters:
+  disable-all: true
+  enable:
+    - testifylint
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gofmt

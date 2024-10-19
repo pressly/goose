@@ -35,10 +35,11 @@ func TestDialectStore(t *testing.T) {
 		db, err := sql.Open("sqlite", ":memory:")
 		require.NoError(t, err)
 		testStore(context.Background(), t, database.DialectSQLite3, db, func(t *testing.T, err error) {
+			t.Helper()
 			var sqliteErr *sqlite.Error
 			ok := errors.As(err, &sqliteErr)
 			require.True(t, ok)
-			require.Equal(t, sqliteErr.Code(), 1) // Generic error (SQLITE_ERROR)
+			require.Equal(t, 1, sqliteErr.Code()) // Generic error (SQLITE_ERROR)
 			require.Contains(t, sqliteErr.Error(), "table test_goose_db_version already exists")
 		})
 	})
@@ -58,11 +59,11 @@ func TestDialectStore(t *testing.T) {
 		require.NoError(t, insert(db, 2))
 		res, err := store.ListMigrations(context.Background(), db)
 		require.NoError(t, err)
-		require.Equal(t, len(res), 3)
+		require.Len(t, res, 3)
 		// Check versions are in descending order: [2, 3, 1]
-		require.EqualValues(t, res[0].Version, 2)
-		require.EqualValues(t, res[1].Version, 3)
-		require.EqualValues(t, res[2].Version, 1)
+		require.EqualValues(t, 2, res[0].Version)
+		require.EqualValues(t, 3, res[1].Version)
+		require.EqualValues(t, 1, res[2].Version)
 	})
 }
 
@@ -103,7 +104,7 @@ func testStore(
 	err = runConn(ctx, db, func(conn *sql.Conn) error {
 		res, err := store.ListMigrations(ctx, conn)
 		require.NoError(t, err)
-		require.Equal(t, len(res), 0)
+		require.Empty(t, res, 0)
 		return nil
 	})
 	require.NoError(t, err)
@@ -125,7 +126,7 @@ func testStore(
 	err = runConn(ctx, db, func(conn *sql.Conn) error {
 		res, err := store.ListMigrations(ctx, conn)
 		require.NoError(t, err)
-		require.Equal(t, len(res), 6)
+		require.Len(t, res, 6)
 		// Check versions are in descending order.
 		for i := 0; i < 6; i++ {
 			require.EqualValues(t, res[i].Version, 5-i)
@@ -151,7 +152,7 @@ func testStore(
 	err = runConn(ctx, db, func(conn *sql.Conn) error {
 		res, err := store.ListMigrations(ctx, conn)
 		require.NoError(t, err)
-		require.Equal(t, len(res), 3)
+		require.Len(t, res, 3)
 		// Check that the remaining versions are in descending order.
 		for i := 0; i < 3; i++ {
 			require.EqualValues(t, res[i].Version, 2-i)
@@ -165,8 +166,8 @@ func testStore(
 		err = runConn(ctx, db, func(conn *sql.Conn) error {
 			res, err := store.GetMigration(ctx, conn, int64(i))
 			require.NoError(t, err)
-			require.Equal(t, res.IsApplied, true)
-			require.Equal(t, res.Timestamp.IsZero(), false)
+			require.True(t, res.IsApplied)
+			require.False(t, res.Timestamp.IsZero())
 			return nil
 		})
 		require.NoError(t, err)
@@ -180,7 +181,7 @@ func testStore(
 		require.NoError(t, err)
 		latest, err := store.GetLatestVersion(ctx, tx)
 		require.NoError(t, err)
-		require.EqualValues(t, latest, 1)
+		require.EqualValues(t, 1, latest)
 		return nil
 	})
 	require.NoError(t, err)
@@ -190,7 +191,7 @@ func testStore(
 		require.NoError(t, err)
 		latest, err := store.GetLatestVersion(ctx, conn)
 		require.NoError(t, err)
-		require.EqualValues(t, latest, 0)
+		require.EqualValues(t, 0, latest)
 		return nil
 	})
 	require.NoError(t, err)
@@ -204,7 +205,7 @@ func testStore(
 	err = runConn(ctx, db, func(conn *sql.Conn) error {
 		res, err := store.ListMigrations(ctx, conn)
 		require.NoError(t, err)
-		require.Equal(t, len(res), 0)
+		require.Empty(t, res)
 		return nil
 	})
 	require.NoError(t, err)
@@ -213,7 +214,7 @@ func testStore(
 	err = runConn(ctx, db, func(conn *sql.Conn) error {
 		_, err := store.GetMigration(ctx, conn, 0)
 		require.Error(t, err)
-		require.True(t, errors.Is(err, database.ErrVersionNotFound))
+		require.ErrorIs(t, err, database.ErrVersionNotFound)
 		return nil
 	})
 	require.NoError(t, err)
