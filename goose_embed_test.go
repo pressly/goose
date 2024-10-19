@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/pressly/goose/v3"
-	"github.com/pressly/goose/v3/internal/check"
+	"github.com/stretchr/testify/require"
 	_ "modernc.org/sqlite"
 )
 
@@ -20,43 +20,43 @@ func TestEmbeddedMigrations(t *testing.T) {
 	dir := t.TempDir()
 	// not using t.Parallel here to avoid races
 	db, err := sql.Open("sqlite", filepath.Join(dir, "sql_embed.db"))
-	check.NoError(t, err)
+	require.NoError(t, err)
 
 	db.SetMaxOpenConns(1)
 
 	migrationFiles, err := fs.ReadDir(embedMigrations, "testdata/migrations")
-	check.NoError(t, err)
+	require.NoError(t, err)
 	total := len(migrationFiles)
 
 	// decouple from existing structure
 	fsys, err := fs.Sub(embedMigrations, "testdata/migrations")
-	check.NoError(t, err)
+	require.NoError(t, err)
 
 	goose.SetBaseFS(fsys)
 	t.Cleanup(func() { goose.SetBaseFS(nil) })
-	check.NoError(t, goose.SetDialect("sqlite3"))
+	require.NoError(t, goose.SetDialect("sqlite3"))
 
 	t.Run("migration_cycle", func(t *testing.T) {
 		err := goose.Up(db, ".")
-		check.NoError(t, err)
+		require.NoError(t, err)
 		ver, err := goose.GetDBVersion(db)
-		check.NoError(t, err)
-		check.Number(t, ver, total)
+		require.NoError(t, err)
+		require.EqualValues(t, ver, total)
 		err = goose.Reset(db, ".")
-		check.NoError(t, err)
+		require.NoError(t, err)
 		ver, err = goose.GetDBVersion(db)
-		check.NoError(t, err)
-		check.Number(t, ver, 0)
+		require.NoError(t, err)
+		require.EqualValues(t, ver, 0)
 	})
 	t.Run("create_uses_os_fs", func(t *testing.T) {
 		dir := t.TempDir()
 		err := goose.Create(db, dir, "test", "sql")
-		check.NoError(t, err)
+		require.NoError(t, err)
 		paths, _ := filepath.Glob(filepath.Join(dir, "*test.sql"))
-		check.NumberNotZero(t, len(paths))
+		require.NotZero(t, len(paths))
 		err = goose.Fix(dir)
-		check.NoError(t, err)
+		require.NoError(t, err)
 		_, err = os.Stat(filepath.Join(dir, "00001_test.sql"))
-		check.NoError(t, err)
+		require.NoError(t, err)
 	})
 }

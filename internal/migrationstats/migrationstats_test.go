@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pressly/goose/v3/internal/check"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParsingGoMigrations(t *testing.T) {
@@ -31,11 +31,11 @@ func TestParsingGoMigrations(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			g, err := parseGoFile(strings.NewReader(tc.input))
-			check.NoError(t, err)
-			check.Equal(t, g.useTx != nil, true)
-			check.Bool(t, *g.useTx, tc.wantTx)
-			check.Equal(t, g.downFuncName, tc.wantDownName)
-			check.Equal(t, g.upFuncName, tc.wantUpName)
+			require.NoError(t, err)
+			require.Equal(t, g.useTx != nil, true)
+			require.Equal(t, *g.useTx, tc.wantTx)
+			require.Equal(t, g.downFuncName, tc.wantDownName)
+			require.Equal(t, g.upFuncName, tc.wantUpName)
 		})
 	}
 }
@@ -45,15 +45,15 @@ func TestGoMigrationStats(t *testing.T) {
 
 	base := "../../tests/gomigrations/success/testdata"
 	all, err := os.ReadDir(base)
-	check.NoError(t, err)
-	check.Equal(t, len(all), 16)
+	require.NoError(t, err)
+	require.Equal(t, len(all), 16)
 	files := make([]string, 0, len(all))
 	for _, f := range all {
 		files = append(files, filepath.Join(base, f.Name()))
 	}
 	stats, err := GatherStats(NewFileWalker(files...), false)
-	check.NoError(t, err)
-	check.Equal(t, len(stats), 16)
+	require.NoError(t, err)
+	require.Equal(t, len(stats), 16)
 	checkGoStats(t, stats[0], "001_up_down.go", 1, 1, 1, true)
 	checkGoStats(t, stats[1], "002_up_only.go", 2, 1, 0, true)
 	checkGoStats(t, stats[2], "003_down_only.go", 3, 0, 1, true)
@@ -74,22 +74,22 @@ func TestGoMigrationStats(t *testing.T) {
 
 func checkGoStats(t *testing.T, stats *Stats, filename string, version int64, upCount, downCount int, tx bool) {
 	t.Helper()
-	check.Equal(t, filepath.Base(stats.FileName), filename)
-	check.Equal(t, stats.Version, version)
-	check.Equal(t, stats.UpCount, upCount)
-	check.Equal(t, stats.DownCount, downCount)
-	check.Equal(t, stats.Tx, tx)
+	require.Equal(t, filepath.Base(stats.FileName), filename)
+	require.Equal(t, stats.Version, version)
+	require.Equal(t, stats.UpCount, upCount)
+	require.Equal(t, stats.DownCount, downCount)
+	require.Equal(t, stats.Tx, tx)
 }
 
 func TestParsingGoMigrationsError(t *testing.T) {
 	t.Parallel()
 	_, err := parseGoFile(strings.NewReader(emptyInit))
-	check.HasError(t, err)
-	check.Contains(t, err.Error(), "no registered goose functions")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "no registered goose functions")
 
 	_, err = parseGoFile(strings.NewReader(wrongName))
-	check.HasError(t, err)
-	check.Contains(t, err.Error(), "AddMigration, AddMigrationNoTx, AddMigrationContext, AddMigrationNoTxContext")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "AddMigration, AddMigrationNoTx, AddMigrationContext, AddMigrationNoTxContext")
 }
 
 var (

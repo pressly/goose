@@ -6,14 +6,14 @@ import (
 	"testing"
 
 	"github.com/pressly/goose/v3"
-	"github.com/pressly/goose/v3/internal/check"
 	_ "github.com/pressly/goose/v3/tests/gomigrations/register/testdata"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAddFunctions(t *testing.T) {
 	goMigrations, err := goose.CollectMigrations("testdata", 0, math.MaxInt64)
-	check.NoError(t, err)
-	check.Number(t, len(goMigrations), 4)
+	require.NoError(t, err)
+	require.Equal(t, len(goMigrations), 4)
 
 	checkMigration(t, goMigrations[0], &goose.Migration{
 		Version:    1,
@@ -51,12 +51,12 @@ func TestAddFunctions(t *testing.T) {
 
 func checkMigration(t *testing.T, got *goose.Migration, want *goose.Migration) {
 	t.Helper()
-	check.Equal(t, got.Version, want.Version)
-	check.Equal(t, got.Next, want.Next)
-	check.Equal(t, got.Previous, want.Previous)
-	check.Equal(t, filepath.Base(got.Source), want.Source)
-	check.Equal(t, got.Registered, want.Registered)
-	check.Bool(t, got.UseTx, want.UseTx)
+	require.Equal(t, got.Version, want.Version)
+	require.Equal(t, got.Next, want.Next)
+	require.Equal(t, got.Previous, want.Previous)
+	require.Equal(t, filepath.Base(got.Source), want.Source)
+	require.Equal(t, got.Registered, want.Registered)
+	require.Equal(t, got.UseTx, want.UseTx)
 	checkFunctions(t, got)
 }
 
@@ -65,48 +65,48 @@ func checkFunctions(t *testing.T, m *goose.Migration) {
 	switch filepath.Base(m.Source) {
 	case "001_addmigration.go":
 		// With transaction
-		check.Bool(t, m.UpFn == nil, false)
-		check.Bool(t, m.DownFn == nil, false)
-		check.Bool(t, m.UpFnContext == nil, false)
-		check.Bool(t, m.DownFnContext == nil, false)
+		require.False(t, m.UpFn == nil)
+		require.False(t, m.DownFn == nil)
+		require.False(t, m.UpFnContext == nil)
+		require.False(t, m.DownFnContext == nil)
 		// No transaction
-		check.Bool(t, m.UpFnNoTx == nil, true)
-		check.Bool(t, m.DownFnNoTx == nil, true)
-		check.Bool(t, m.UpFnNoTxContext == nil, true)
-		check.Bool(t, m.DownFnNoTxContext == nil, true)
+		require.True(t, m.UpFnNoTx == nil)
+		require.True(t, m.DownFnNoTx == nil)
+		require.True(t, m.UpFnNoTxContext == nil)
+		require.True(t, m.DownFnNoTxContext == nil)
 	case "002_addmigrationnotx.go":
 		// With transaction
-		check.Bool(t, m.UpFn == nil, true)
-		check.Bool(t, m.DownFn == nil, true)
-		check.Bool(t, m.UpFnContext == nil, true)
-		check.Bool(t, m.DownFnContext == nil, true)
+		require.True(t, m.UpFn == nil)
+		require.True(t, m.DownFn == nil)
+		require.True(t, m.UpFnContext == nil)
+		require.True(t, m.DownFnContext == nil)
 		// No transaction
-		check.Bool(t, m.UpFnNoTx == nil, false)
-		check.Bool(t, m.DownFnNoTx == nil, false)
-		check.Bool(t, m.UpFnNoTxContext == nil, false)
-		check.Bool(t, m.DownFnNoTxContext == nil, false)
+		require.False(t, m.UpFnNoTx == nil)
+		require.False(t, m.DownFnNoTx == nil)
+		require.False(t, m.UpFnNoTxContext == nil)
+		require.False(t, m.DownFnNoTxContext == nil)
 	case "003_addmigrationcontext.go":
 		// With transaction
-		check.Bool(t, m.UpFn == nil, false)
-		check.Bool(t, m.DownFn == nil, false)
-		check.Bool(t, m.UpFnContext == nil, false)
-		check.Bool(t, m.DownFnContext == nil, false)
+		require.False(t, m.UpFn == nil)
+		require.False(t, m.DownFn == nil)
+		require.False(t, m.UpFnContext == nil)
+		require.False(t, m.DownFnContext == nil)
 		// No transaction
-		check.Bool(t, m.UpFnNoTx == nil, true)
-		check.Bool(t, m.DownFnNoTx == nil, true)
-		check.Bool(t, m.UpFnNoTxContext == nil, true)
-		check.Bool(t, m.DownFnNoTxContext == nil, true)
+		require.True(t, m.UpFnNoTx == nil)
+		require.True(t, m.DownFnNoTx == nil)
+		require.True(t, m.UpFnNoTxContext == nil)
+		require.True(t, m.DownFnNoTxContext == nil)
 	case "004_addmigrationnotxcontext.go":
 		// With transaction
-		check.Bool(t, m.UpFn == nil, true)
-		check.Bool(t, m.DownFn == nil, true)
-		check.Bool(t, m.UpFnContext == nil, true)
-		check.Bool(t, m.DownFnContext == nil, true)
+		require.True(t, m.UpFn == nil)
+		require.True(t, m.DownFn == nil)
+		require.True(t, m.UpFnContext == nil)
+		require.True(t, m.DownFnContext == nil)
 		// No transaction
-		check.Bool(t, m.UpFnNoTx == nil, false)
-		check.Bool(t, m.DownFnNoTx == nil, false)
-		check.Bool(t, m.UpFnNoTxContext == nil, false)
-		check.Bool(t, m.DownFnNoTxContext == nil, false)
+		require.False(t, m.UpFnNoTx == nil)
+		require.False(t, m.DownFnNoTx == nil)
+		require.False(t, m.UpFnNoTxContext == nil)
+		require.False(t, m.DownFnNoTxContext == nil)
 	default:
 		t.Fatalf("unexpected migration: %s", filepath.Base(m.Source))
 	}

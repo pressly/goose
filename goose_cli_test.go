@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pressly/goose/v3/internal/check"
+	"github.com/stretchr/testify/require"
 	_ "modernc.org/sqlite"
 )
 
@@ -23,8 +23,8 @@ func TestFullBinary(t *testing.T) {
 	t.Parallel()
 	cli := buildGooseCLI(t, false)
 	out, err := cli.run("--version")
-	check.NoError(t, err)
-	check.Equal(t, out, "goose version: "+gooseTestBinaryVersion+"\n")
+	require.NoError(t, err)
+	require.Equal(t, out, "goose version: "+gooseTestBinaryVersion+"\n")
 }
 
 func TestLiteBinary(t *testing.T) {
@@ -34,8 +34,8 @@ func TestLiteBinary(t *testing.T) {
 	t.Run("binary_version", func(t *testing.T) {
 		t.Parallel()
 		out, err := cli.run("--version")
-		check.NoError(t, err)
-		check.Equal(t, out, "goose version: "+gooseTestBinaryVersion+"\n")
+		require.NoError(t, err)
+		require.Equal(t, out, "goose version: "+gooseTestBinaryVersion+"\n")
 	})
 	t.Run("default_binary", func(t *testing.T) {
 		t.Parallel()
@@ -55,8 +55,8 @@ func TestLiteBinary(t *testing.T) {
 		}
 		for _, c := range commands {
 			out, err := cli.run("-dir=testdata/migrations", "sqlite3", filepath.Join(dir, "sql.db"), c.cmd)
-			check.NoError(t, err)
-			check.Contains(t, out, c.out)
+			require.NoError(t, err)
+			require.Contains(t, out, c.out)
 		}
 	})
 	t.Run("gh_issue_532", func(t *testing.T) {
@@ -65,13 +65,13 @@ func TestLiteBinary(t *testing.T) {
 		dir := t.TempDir()
 		total := countSQLFiles(t, "testdata/migrations")
 		_, err := cli.run("-dir=testdata/migrations", "sqlite3", filepath.Join(dir, "sql.db"), "up")
-		check.NoError(t, err)
+		require.NoError(t, err)
 		out, err := cli.run("-dir=testdata/migrations", "sqlite3", filepath.Join(dir, "sql.db"), "up")
-		check.NoError(t, err)
-		check.Contains(t, out, "goose: no migrations to run. current version: "+strconv.Itoa(total))
+		require.NoError(t, err)
+		require.Contains(t, out, "goose: no migrations to run. current version: "+strconv.Itoa(total))
 		out, err = cli.run("-dir=testdata/migrations", "sqlite3", filepath.Join(dir, "sql.db"), "version")
-		check.NoError(t, err)
-		check.Contains(t, out, "goose: version "+strconv.Itoa(total))
+		require.NoError(t, err)
+		require.Contains(t, out, "goose: version "+strconv.Itoa(total))
 	})
 	t.Run("gh_issue_293", func(t *testing.T) {
 		// https://github.com/pressly/goose/issues/293
@@ -92,8 +92,8 @@ func TestLiteBinary(t *testing.T) {
 		}
 		for _, c := range commands {
 			out, err := cli.run("-dir=testdata/migrations", "sqlite3", filepath.Join(dir, "sql.db"), c.cmd)
-			check.NoError(t, err)
-			check.Contains(t, out, c.out)
+			require.NoError(t, err)
+			require.Contains(t, out, c.out)
 		}
 	})
 	t.Run("gh_issue_336", func(t *testing.T) {
@@ -101,8 +101,8 @@ func TestLiteBinary(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()
 		_, err := cli.run("-dir="+dir, "sqlite3", filepath.Join(dir, "sql.db"), "up")
-		check.HasError(t, err)
-		check.Contains(t, err.Error(), "goose run: no migration files found")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "goose run: no migration files found")
 	})
 	t.Run("create_and_fix", func(t *testing.T) {
 		t.Parallel()
@@ -112,8 +112,8 @@ func TestLiteBinary(t *testing.T) {
 		createEmptyFile(t, dir, "20230826163141_charlie.sql")
 		createEmptyFile(t, dir, "20230826163151_delta.go")
 		total, err := os.ReadDir(dir)
-		check.NoError(t, err)
-		check.Number(t, len(total), 4)
+		require.NoError(t, err)
+		require.Equal(t, len(total), 4)
 		migrationFiles := []struct {
 			name     string
 			fileType string
@@ -128,22 +128,22 @@ func TestLiteBinary(t *testing.T) {
 				args = append(args, f.fileType)
 			}
 			out, err := cli.run(args...)
-			check.NoError(t, err)
-			check.Contains(t, out, "Created new file")
+			require.NoError(t, err)
+			require.Contains(t, out, "Created new file")
 			// ensure different timestamps, granularity is 1 second
 			if i < len(migrationFiles)-1 {
 				time.Sleep(1100 * time.Millisecond)
 			}
 		}
 		total, err = os.ReadDir(dir)
-		check.NoError(t, err)
-		check.Number(t, len(total), 7)
+		require.NoError(t, err)
+		require.Equal(t, len(total), 7)
 		out, err := cli.run("-dir="+dir, "fix")
-		check.NoError(t, err)
-		check.Contains(t, out, "RENAMED")
+		require.NoError(t, err)
+		require.Contains(t, out, "RENAMED")
 		files, err := os.ReadDir(dir)
-		check.NoError(t, err)
-		check.Number(t, len(files), 7)
+		require.NoError(t, err)
+		require.Equal(t, len(files), 7)
 		expected := []string{
 			"00001_alpha.sql",
 			"00003_bravo.sql",
@@ -154,7 +154,7 @@ func TestLiteBinary(t *testing.T) {
 			"00008_golf.go",
 		}
 		for i, f := range files {
-			check.Equal(t, f.Name(), expected[i])
+			require.Equal(t, f.Name(), expected[i])
 		}
 	})
 }
@@ -201,7 +201,7 @@ func buildGooseCLI(t *testing.T, lite bool) gooseBinary {
 func countSQLFiles(t *testing.T, dir string) int {
 	t.Helper()
 	files, err := filepath.Glob(filepath.Join(dir, "*.sql"))
-	check.NoError(t, err)
+	require.NoError(t, err)
 	return len(files)
 }
 
@@ -209,6 +209,6 @@ func createEmptyFile(t *testing.T, dir, name string) {
 	t.Helper()
 	path := filepath.Join(dir, name)
 	f, err := os.Create(path)
-	check.NoError(t, err)
+	require.NoError(t, err)
 	defer f.Close()
 }

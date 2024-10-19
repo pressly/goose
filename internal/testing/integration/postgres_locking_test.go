@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/pressly/goose/v3"
-	"github.com/pressly/goose/v3/internal/check"
 	"github.com/pressly/goose/v3/internal/testing/testdb"
 	"github.com/pressly/goose/v3/lock"
 	"github.com/stretchr/testify/require"
@@ -433,23 +432,23 @@ func TestPostgresPending(t *testing.T) {
 		for i := 0; i < workers; i++ {
 			g.Go(func() error {
 				p, err := goose.NewProvider(goose.DialectPostgres, db, os.DirFS(testDir))
-				check.NoError(t, err)
+				require.NoError(t, err)
 				hasPending, err := p.HasPending(context.Background())
-				check.NoError(t, err)
+				require.NoError(t, err)
 				boolCh <- hasPending
 				current, target, err := p.GetVersions(context.Background())
-				check.NoError(t, err)
-				check.Number(t, current, int64(wantCurrent))
-				check.Number(t, target, int64(wantTarget))
+				require.NoError(t, err)
+				require.Equal(t, current, int64(wantCurrent))
+				require.Equal(t, target, int64(wantTarget))
 				return nil
 
 			})
 		}
-		check.NoError(t, g.Wait())
+		require.NoError(t, g.Wait())
 		close(boolCh)
 		// expect all values to be true
 		for hasPending := range boolCh {
-			check.Bool(t, hasPending, want)
+			require.Equal(t, hasPending, want)
 		}
 	}
 	t.Run("concurrent_has_pending", func(t *testing.T) {
@@ -458,9 +457,9 @@ func TestPostgresPending(t *testing.T) {
 
 	// apply all migrations
 	p, err := goose.NewProvider(goose.DialectPostgres, db, os.DirFS("testdata/migrations/postgres"))
-	check.NoError(t, err)
+	require.NoError(t, err)
 	_, err = p.Up(context.Background())
-	check.NoError(t, err)
+	require.NoError(t, err)
 
 	t.Run("concurrent_no_pending", func(t *testing.T) {
 		run(t, false, len(files), len(files))
@@ -480,10 +479,10 @@ SELECT pg_sleep_for('4 seconds');
 	sessionLocker, err := lock.NewPostgresSessionLocker(lock.WithLockTimeout(1, 10), lock.WithLockID(lockID)) // Timeout 5min. Try every 1s up to 10 times.
 	require.NoError(t, err)
 	newProvider, err := goose.NewProvider(goose.DialectPostgres, db, fsys, goose.WithSessionLocker(sessionLocker))
-	check.NoError(t, err)
-	check.Number(t, len(newProvider.ListSources()), 1)
+	require.NoError(t, err)
+	require.Equal(t, len(newProvider.ListSources()), 1)
 	oldProvider := p
-	check.Number(t, len(oldProvider.ListSources()), len(files))
+	require.Equal(t, len(oldProvider.ListSources()), len(files))
 
 	var g errgroup.Group
 	g.Go(func() error {
@@ -491,13 +490,13 @@ SELECT pg_sleep_for('4 seconds');
 		if err != nil {
 			return err
 		}
-		check.Bool(t, hasPending, true)
+		require.True(t, hasPending)
 		current, target, err := newProvider.GetVersions(context.Background())
 		if err != nil {
 			return err
 		}
-		check.Number(t, current, lastVersion)
-		check.Number(t, target, lastVersion+1)
+		require.Equal(t, current, lastVersion)
+		require.Equal(t, target, lastVersion+1)
 		return nil
 	})
 	g.Go(func() error {
@@ -505,16 +504,16 @@ SELECT pg_sleep_for('4 seconds');
 		if err != nil {
 			return err
 		}
-		check.Bool(t, hasPending, false)
+		require.False(t, hasPending)
 		current, target, err := oldProvider.GetVersions(context.Background())
 		if err != nil {
 			return err
 		}
-		check.Number(t, current, lastVersion)
-		check.Number(t, target, lastVersion)
+		require.Equal(t, current, lastVersion)
+		require.Equal(t, target, lastVersion)
 		return nil
 	})
-	check.NoError(t, g.Wait())
+	require.NoError(t, g.Wait())
 
 	// A new provider is running in the background with a session lock to simulate a long running
 	// migration. If older instances come up, they should not have any pending migrations and not be
@@ -526,29 +525,29 @@ SELECT pg_sleep_for('4 seconds');
 	})
 	time.Sleep(1 * time.Second)
 	isLocked, err := existsPgLock(context.Background(), db, lockID)
-	check.NoError(t, err)
-	check.Bool(t, isLocked, true)
+	require.NoError(t, err)
+	require.True(t, isLocked)
 	hasPending, err := oldProvider.HasPending(context.Background())
-	check.NoError(t, err)
-	check.Bool(t, hasPending, false)
+	require.NoError(t, err)
+	require.False(t, hasPending)
 	current, target, err := oldProvider.GetVersions(context.Background())
-	check.NoError(t, err)
-	check.Number(t, current, lastVersion)
-	check.Number(t, target, lastVersion)
+	require.NoError(t, err)
+	require.Equal(t, current, lastVersion)
+	require.Equal(t, target, lastVersion)
 	// Wait for the long running migration to finish
-	check.NoError(t, g.Wait())
+	require.NoError(t, g.Wait())
 	// Check that the new migration was applied
 	hasPending, err = newProvider.HasPending(context.Background())
-	check.NoError(t, err)
-	check.Bool(t, hasPending, false)
+	require.NoError(t, err)
+	require.False(t, hasPending)
 	current, target, err = newProvider.GetVersions(context.Background())
-	check.NoError(t, err)
-	check.Number(t, current, lastVersion+1)
-	check.Number(t, target, lastVersion+1)
+	require.NoError(t, err)
+	require.Equal(t, current, lastVersion+1)
+	require.Equal(t, target, lastVersion+1)
 	// The max version should be the new migration
 	currentVersion, err := newProvider.GetDBVersion(context.Background())
-	check.NoError(t, err)
-	check.Number(t, currentVersion, lastVersion+1)
+	require.NoError(t, err)
+	require.Equal(t, currentVersion, lastVersion+1)
 }
 
 func existsPgLock(ctx context.Context, db *sql.DB, lockID int64) (bool, error) {
