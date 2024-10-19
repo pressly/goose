@@ -165,9 +165,7 @@ func WithDisableVersioning(b bool) ProviderOption {
 	})
 }
 
-// WithLogger set the logger, same behavior as with goose.SetLogger(logger)
-// Using Provider would block the ability to override the logger, which could become painful to have a proper
-// structured logging. By Default, this won't override the default logger.
+// WithLogger will set a custom Logger, which will override the default logger.
 func WithLogger(l Logger) ProviderOption {
 	return configFunc(func(c *config) error {
 		c.logger = l
@@ -195,9 +193,6 @@ type config struct {
 	allowMissing          bool
 	disableGlobalRegistry bool
 
-	// Let's not expose the Logger just yet. Ideally we consolidate on the std lib slog package
-	// added in go1.21 and then expose that (if that's even necessary). For now, just use the std
-	// lib log package.
 	logger Logger
 }
 
