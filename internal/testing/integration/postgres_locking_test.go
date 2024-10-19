@@ -495,8 +495,8 @@ SELECT pg_sleep_for('4 seconds');
 		if err != nil {
 			return err
 		}
-		require.Equal(t, current, lastVersion)
-		require.Equal(t, target, lastVersion+1)
+		require.EqualValues(t, current, lastVersion)
+		require.EqualValues(t, target, lastVersion+1)
 		return nil
 	})
 	g.Go(func() error {
@@ -509,8 +509,8 @@ SELECT pg_sleep_for('4 seconds');
 		if err != nil {
 			return err
 		}
-		require.Equal(t, current, lastVersion)
-		require.Equal(t, target, lastVersion)
+		require.EqualValues(t, current, lastVersion)
+		require.EqualValues(t, target, lastVersion)
 		return nil
 	})
 	require.NoError(t, g.Wait())
@@ -532,8 +532,8 @@ SELECT pg_sleep_for('4 seconds');
 	require.False(t, hasPending)
 	current, target, err := oldProvider.GetVersions(context.Background())
 	require.NoError(t, err)
-	require.Equal(t, current, lastVersion)
-	require.Equal(t, target, lastVersion)
+	require.EqualValues(t, current, lastVersion)
+	require.EqualValues(t, target, lastVersion)
 	// Wait for the long running migration to finish
 	require.NoError(t, g.Wait())
 	// Check that the new migration was applied
@@ -542,12 +542,12 @@ SELECT pg_sleep_for('4 seconds');
 	require.False(t, hasPending)
 	current, target, err = newProvider.GetVersions(context.Background())
 	require.NoError(t, err)
-	require.Equal(t, current, lastVersion+1)
-	require.Equal(t, target, lastVersion+1)
+	require.EqualValues(t, current, lastVersion+1)
+	require.EqualValues(t, target, lastVersion+1)
 	// The max version should be the new migration
 	currentVersion, err := newProvider.GetDBVersion(context.Background())
 	require.NoError(t, err)
-	require.Equal(t, currentVersion, lastVersion+1)
+	require.EqualValues(t, currentVersion, lastVersion+1)
 }
 
 func existsPgLock(ctx context.Context, db *sql.DB, lockID int64) (bool, error) {
