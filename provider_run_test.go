@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"math/rand/v2"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -1017,7 +1017,7 @@ const (
 func randomAlphaNumeric(length int) string {
 	b := make([]byte, length)
 	for i := range b {
-		b[i] = charset[rand.N(len(charset))]
+		b[i] = charset[rand.Intn(len(charset))]
 	}
 	return string(b)
 }

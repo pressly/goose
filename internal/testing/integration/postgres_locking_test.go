@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/crc64"
-	"math/rand/v2"
+	"math/rand"
 	"os"
 	"sort"
 	"sync"
@@ -134,7 +134,8 @@ func TestPostgresSessionLocker(t *testing.T) {
 		require.True(t, exists)
 	})
 	t.Run("unlock_with_different_connection_error", func(t *testing.T) {
-		randomLockID := rand.Int64N(90000) + 10000
+		rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+		randomLockID := rng.Int63n(90000) + 10000
 		ctx := context.Background()
 		locker, err := lock.NewPostgresSessionLocker(
 			lock.WithLockID(randomLockID),
