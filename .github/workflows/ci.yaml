@@ -36,6 +36,8 @@ jobs:
             echo "Please format Go code by running: go fmt ./..."
             exit 1
           fi
+      - name: Install tparse
+        run: go install github.com/mfridman/tparse@latest
       - name: Run tests
         run: |
           mkdir -p bin

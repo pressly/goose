@@ -23,6 +23,8 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: "stable"
+      - name: Install tparse
+        run: go install github.com/mfridman/tparse@latest
       - name: Run full integration tests
         run: |
           make test-integration
