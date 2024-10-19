@@ -1,7 +1,7 @@
 linters:
   disable-all: true
   enable:
-    - testifylint
+    # Default
     - errcheck
     - gosimple
     - govet
@@ -9,3 +9,6 @@ linters:
     - staticcheck
     - unused
     - gofmt
+    # Added
+    - testifylint
+    - misspell
