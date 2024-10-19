@@ -24,7 +24,7 @@ func TestFullBinary(t *testing.T) {
 	cli := buildGooseCLI(t, false)
 	out, err := cli.run("--version")
 	require.NoError(t, err)
-	require.Equal(t, out, "goose version: "+gooseTestBinaryVersion+"\n")
+	require.Equal(t, "goose version: "+gooseTestBinaryVersion+"\n", out)
 }
 
 func TestLiteBinary(t *testing.T) {
@@ -35,7 +35,7 @@ func TestLiteBinary(t *testing.T) {
 		t.Parallel()
 		out, err := cli.run("--version")
 		require.NoError(t, err)
-		require.Equal(t, out, "goose version: "+gooseTestBinaryVersion+"\n")
+		require.Equal(t, "goose version: "+gooseTestBinaryVersion+"\n", out)
 	})
 	t.Run("default_binary", func(t *testing.T) {
 		t.Parallel()
@@ -113,7 +113,7 @@ func TestLiteBinary(t *testing.T) {
 		createEmptyFile(t, dir, "20230826163151_delta.go")
 		total, err := os.ReadDir(dir)
 		require.NoError(t, err)
-		require.Equal(t, len(total), 4)
+		require.Len(t, total, 4)
 		migrationFiles := []struct {
 			name     string
 			fileType string
@@ -137,13 +137,13 @@ func TestLiteBinary(t *testing.T) {
 		}
 		total, err = os.ReadDir(dir)
 		require.NoError(t, err)
-		require.Equal(t, len(total), 7)
+		require.Len(t, total, 7)
 		out, err := cli.run("-dir="+dir, "fix")
 		require.NoError(t, err)
 		require.Contains(t, out, "RENAMED")
 		files, err := os.ReadDir(dir)
 		require.NoError(t, err)
-		require.Equal(t, len(files), 7)
+		require.Len(t, files, 7)
 		expected := []string{
 			"00001_alpha.sql",
 			"00003_bravo.sql",
@@ -175,6 +175,7 @@ func (g gooseBinary) run(params ...string) (string, error) {
 // buildGooseCLI builds goose test binary, which is used for testing goose CLI. It is built with all
 // drivers enabled, unless lite is true, in which case all drivers are disabled except sqlite3
 func buildGooseCLI(t *testing.T, lite bool) gooseBinary {
+	t.Helper()
 	binName := "goose-test"
 	dir := t.TempDir()
 	output := filepath.Join(dir, binName)

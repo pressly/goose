@@ -123,7 +123,12 @@ func (s *store) DeleteVersionNoTx(ctx context.Context, db *sql.DB, tableName str
 	return err
 }
 
-func (s *store) GetMigration(ctx context.Context, db *sql.DB, tableName string, version int64) (*GetMigrationResult, error) {
+func (s *store) GetMigration(
+	ctx context.Context,
+	db *sql.DB,
+	tableName string,
+	version int64,
+) (*GetMigrationResult, error) {
 	q := s.querier.GetMigrationByVersion(tableName)
 	var timestamp time.Time
 	var isApplied bool

@@ -92,7 +92,7 @@ func TestInvalidUp(t *testing.T) {
 	testdataDir := filepath.Join("testdata", "invalid", "up")
 	entries, err := os.ReadDir(testdataDir)
 	require.NoError(t, err)
-	require.NotZero(t, len(entries))
+	require.NotEmpty(t, entries)
 
 	for _, entry := range entries {
 		by, err := os.ReadFile(filepath.Join(testdataDir, entry.Name()))
@@ -585,7 +585,7 @@ func Test_extractAnnotation(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
-			require.Equal(t, got, tt.want)
+			require.Equal(t, tt.want, got)
 		})
 	}
 }

@@ -23,6 +23,7 @@ func TestGoMigrationByOne(t *testing.T) {
 	require.NoError(t, err)
 
 	upByOne := func(t *testing.T) int64 {
+		t.Helper()
 		err = goose.UpByOne(db, dir)
 		t.Logf("err: %v %s", err, dir)
 		require.NoError(t, err)
@@ -31,6 +32,7 @@ func TestGoMigrationByOne(t *testing.T) {
 		return version
 	}
 	downByOne := func(t *testing.T) int64 {
+		t.Helper()
 		err = goose.Down(db, dir)
 		require.NoError(t, err)
 		version, err := goose.GetDBVersion(db)
@@ -43,22 +45,25 @@ func TestGoMigrationByOne(t *testing.T) {
 	}
 	version, err := goose.GetDBVersion(db)
 	require.NoError(t, err)
-	require.Equal(t, version, len(files))
+	require.Len(t, files, int(version))
 
 	tables, err := ListTables(db)
 	require.NoError(t, err)
-	require.Equal(t, tables, []string{
-		"alpha",
-		"bravo",
-		"charlie",
-		"delta",
-		"echo",
-		"foxtrot",
-		"golf",
-		"goose_db_version",
-		"hotel",
-		"sqlite_sequence",
-	})
+	require.Equal(t,
+		[]string{
+			"alpha",
+			"bravo",
+			"charlie",
+			"delta",
+			"echo",
+			"foxtrot",
+			"golf",
+			"goose_db_version",
+			"hotel",
+			"sqlite_sequence",
+		},
+		tables,
+	)
 
 	// Migrate all files down-by-one.
 	for i := len(files) - 1; i >= 0; i-- {
@@ -66,14 +71,17 @@ func TestGoMigrationByOne(t *testing.T) {
 	}
 	version, err = goose.GetDBVersion(db)
 	require.NoError(t, err)
-	require.Equal(t, version, 0)
+	require.Equal(t, 0, version)
 
 	tables, err = ListTables(db)
 	require.NoError(t, err)
-	require.Equal(t, tables, []string{
-		"goose_db_version",
-		"sqlite_sequence",
-	})
+	require.Equal(t,
+		[]string{
+			"goose_db_version",
+			"sqlite_sequence",
+		},
+		tables,
+	)
 }
 
 func ListTables(db *sql.DB) ([]string, error) {

@@ -32,10 +32,10 @@ func TestParsingGoMigrations(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g, err := parseGoFile(strings.NewReader(tc.input))
 			require.NoError(t, err)
-			require.Equal(t, g.useTx != nil, true)
-			require.Equal(t, *g.useTx, tc.wantTx)
-			require.Equal(t, g.downFuncName, tc.wantDownName)
-			require.Equal(t, g.upFuncName, tc.wantUpName)
+			require.NotNil(t, g.useTx)
+			require.Equal(t, tc.wantTx, *g.useTx)
+			require.Equal(t, tc.wantDownName, g.downFuncName)
+			require.Equal(t, tc.wantUpName, g.upFuncName)
 		})
 	}
 }
@@ -46,14 +46,14 @@ func TestGoMigrationStats(t *testing.T) {
 	base := "../../tests/gomigrations/success/testdata"
 	all, err := os.ReadDir(base)
 	require.NoError(t, err)
-	require.Equal(t, len(all), 16)
+	require.Len(t, all, 16)
 	files := make([]string, 0, len(all))
 	for _, f := range all {
 		files = append(files, filepath.Join(base, f.Name()))
 	}
 	stats, err := GatherStats(NewFileWalker(files...), false)
 	require.NoError(t, err)
-	require.Equal(t, len(stats), 16)
+	require.Len(t, stats, 16)
 	checkGoStats(t, stats[0], "001_up_down.go", 1, 1, 1, true)
 	checkGoStats(t, stats[1], "002_up_only.go", 2, 1, 0, true)
 	checkGoStats(t, stats[2], "003_down_only.go", 3, 0, 1, true)

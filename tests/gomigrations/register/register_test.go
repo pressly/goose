@@ -13,7 +13,7 @@ import (
 func TestAddFunctions(t *testing.T) {
 	goMigrations, err := goose.CollectMigrations("testdata", 0, math.MaxInt64)
 	require.NoError(t, err)
-	require.Equal(t, len(goMigrations), 4)
+	require.Len(t, goMigrations, 4)
 
 	checkMigration(t, goMigrations[0], &goose.Migration{
 		Version:    1,
@@ -51,12 +51,12 @@ func TestAddFunctions(t *testing.T) {
 
 func checkMigration(t *testing.T, got *goose.Migration, want *goose.Migration) {
 	t.Helper()
-	require.Equal(t, got.Version, want.Version)
-	require.Equal(t, got.Next, want.Next)
-	require.Equal(t, got.Previous, want.Previous)
-	require.Equal(t, filepath.Base(got.Source), want.Source)
-	require.Equal(t, got.Registered, want.Registered)
-	require.Equal(t, got.UseTx, want.UseTx)
+	require.Equal(t, want.Version, got.Version)
+	require.Equal(t, want.Next, got.Next)
+	require.Equal(t, want.Previous, got.Previous)
+	require.Equal(t, want.Source, filepath.Base(got.Source))
+	require.Equal(t, want.Registered, got.Registered)
+	require.Equal(t, want.UseTx, got.UseTx)
 	checkFunctions(t, got)
 }
 

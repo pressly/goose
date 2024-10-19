@@ -2,7 +2,6 @@ package goose_test
 
 import (
 	"database/sql"
-	"errors"
 	"io/fs"
 	"path/filepath"
 	"testing"
@@ -20,7 +19,7 @@ func TestProvider(t *testing.T) {
 	t.Run("empty", func(t *testing.T) {
 		_, err := goose.NewProvider(goose.DialectSQLite3, db, fstest.MapFS{})
 		require.Error(t, err)
-		require.True(t, errors.Is(err, goose.ErrNoMigrations))
+		require.ErrorIs(t, err, goose.ErrNoMigrations)
 	})
 
 	mapFS := fstest.MapFS{
@@ -32,7 +31,7 @@ func TestProvider(t *testing.T) {
 	p, err := goose.NewProvider(goose.DialectSQLite3, db, fsys)
 	require.NoError(t, err)
 	sources := p.ListSources()
-	require.Equal(t, len(sources), 2)
+	require.Len(t, sources, 2)
 	require.Equal(t, sources[0], newSource(goose.TypeSQL, "001_foo.sql", 1))
 	require.Equal(t, sources[1], newSource(goose.TypeSQL, "002_bar.sql", 2))
 }

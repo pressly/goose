@@ -27,7 +27,7 @@ func TestProviderRun(t *testing.T) {
 		require.NoError(t, db.Close())
 		_, err := p.Up(context.Background())
 		require.Error(t, err)
-		require.Equal(t, err.Error(), "failed to initialize: sql: database is closed")
+		require.Equal(t, "failed to initialize: sql: database is closed", err.Error())
 	})
 	t.Run("ping_and_close", func(t *testing.T) {
 		p, _ := newProviderWithDB(t)
@@ -40,22 +40,22 @@ func TestProviderRun(t *testing.T) {
 		p, _ := newProviderWithDB(t)
 		_, err := p.ApplyVersion(context.Background(), 999, true)
 		require.Error(t, err)
-		require.True(t, errors.Is(err, goose.ErrVersionNotFound))
+		require.ErrorIs(t, err, goose.ErrVersionNotFound)
 		_, err = p.ApplyVersion(context.Background(), 999, false)
 		require.Error(t, err)
-		require.True(t, errors.Is(err, goose.ErrVersionNotFound))
+		require.ErrorIs(t, err, goose.ErrVersionNotFound)
 	})
 	t.Run("run_zero", func(t *testing.T) {
 		p, _ := newProviderWithDB(t)
 		_, err := p.UpTo(context.Background(), 0)
 		require.Error(t, err)
-		require.Equal(t, err.Error(), "version must be greater than 0")
+		require.Equal(t, "version must be greater than 0", err.Error())
 		_, err = p.DownTo(context.Background(), -1)
 		require.Error(t, err)
-		require.Equal(t, err.Error(), "invalid version: must be a valid number or zero: -1")
+		require.Equal(t, "invalid version: must be a valid number or zero: -1", err.Error())
 		_, err = p.ApplyVersion(context.Background(), 0, true)
 		require.Error(t, err)
-		require.Equal(t, err.Error(), "version must be greater than 0")
+		require.Equal(t, "version must be greater than 0", err.Error())
 	})
 	t.Run("up_and_down_all", func(t *testing.T) {
 		ctx := context.Background()
@@ -64,15 +64,15 @@ func TestProviderRun(t *testing.T) {
 			numCount = 7
 		)
 		sources := p.ListSources()
-		require.Equal(t, len(sources), numCount)
+		require.Len(t, sources, numCount)
 		// Ensure only SQL migrations are returned
 		for _, s := range sources {
-			require.Equal(t, s.Type, goose.TypeSQL)
+			require.Equal(t, goose.TypeSQL, s.Type)
 		}
 		// Test Up
 		res, err := p.Up(ctx)
 		require.NoError(t, err)
-		require.Equal(t, len(res), numCount)
+		require.Len(t, res, numCount)
 		assertResult(t, res[0], newSource(goose.TypeSQL, "00001_users_table.sql", 1), "up", false)
 		assertResult(t, res[1], newSource(goose.TypeSQL, "00002_posts_table.sql", 2), "up", false)
 		assertResult(t, res[2], newSource(goose.TypeSQL, "00003_comments_table.sql", 3), "up", false)
@@ -83,7 +83,7 @@ func TestProviderRun(t *testing.T) {
 		// Test Down
 		res, err = p.DownTo(ctx, 0)
 		require.NoError(t, err)
-		require.Equal(t, len(res), numCount)
+		require.Len(t, res, numCount)
 		assertResult(t, res[0], newSource(goose.TypeSQL, "00007_empty_up_down.sql", 7), "down", true)
 		assertResult(t, res[1], newSource(goose.TypeSQL, "00006_empty_up.sql", 6), "down", true)
 		assertResult(t, res[2], newSource(goose.TypeSQL, "00005_posts_view.sql", 5), "down", false)
@@ -108,7 +108,7 @@ func TestProviderRun(t *testing.T) {
 				break
 			}
 			require.NoError(t, err)
-			require.True(t, res != nil)
+			require.NotNil(t, res)
 			require.Equal(t, res.Source.Version, int64(counter))
 		}
 		currentVersion, err := p.GetDBVersion(ctx)
@@ -127,13 +127,13 @@ func TestProviderRun(t *testing.T) {
 				break
 			}
 			require.NoError(t, err)
-			require.True(t, res != nil)
+			require.NotNil(t, res)
 			require.Equal(t, res.Source.Version, int64(maxVersion-counter+1))
 		}
 		// Once everything is tested the version should match the highest testdata version
 		currentVersion, err = p.GetDBVersion(ctx)
 		require.NoError(t, err)
-		require.EqualValues(t, currentVersion, 0)
+		require.EqualValues(t, 0, currentVersion)
 	})
 	t.Run("up_to", func(t *testing.T) {
 		ctx := context.Background()
@@ -143,17 +143,17 @@ func TestProviderRun(t *testing.T) {
 		)
 		results, err := p.UpTo(ctx, upToVersion)
 		require.NoError(t, err)
-		require.EqualValues(t, len(results), upToVersion)
+		require.Len(t, results, int(upToVersion))
 		assertResult(t, results[0], newSource(goose.TypeSQL, "00001_users_table.sql", 1), "up", false)
 		assertResult(t, results[1], newSource(goose.TypeSQL, "00002_posts_table.sql", 2), "up", false)
 		// Fetch the goose version from DB
 		currentVersion, err := p.GetDBVersion(ctx)
 		require.NoError(t, err)
-		require.Equal(t, currentVersion, upToVersion)
+		require.Equal(t, upToVersion, currentVersion)
 		// Validate the version actually matches what goose claims it is
 		gotVersion, err := getMaxVersionID(db, goose.DefaultTablename)
 		require.NoError(t, err)
-		require.Equal(t, gotVersion, upToVersion)
+		require.Equal(t, upToVersion, gotVersion)
 	})
 	t.Run("sql_connections", func(t *testing.T) {
 		tt := []struct {
@@ -177,11 +177,11 @@ func TestProviderRun(t *testing.T) {
 					db.SetMaxIdleConns(tc.maxIdleConns)
 				}
 				sources := p.ListSources()
-				require.NotZero(t, len(sources))
+				require.NotEmpty(t, sources)
 
 				currentVersion, err := p.GetDBVersion(ctx)
 				require.NoError(t, err)
-				require.EqualValues(t, currentVersion, 0)
+				require.EqualValues(t, 0, currentVersion)
 
 				{
 					// Apply all up migrations
@@ -210,7 +210,7 @@ func TestProviderRun(t *testing.T) {
 					require.Equal(t, len(downResult), len(sources))
 					gotVersion, err := getMaxVersionID(db, goose.DefaultTablename)
 					require.NoError(t, err)
-					require.EqualValues(t, gotVersion, 0)
+					require.EqualValues(t, 0, gotVersion)
 					// Should only be left with a single table, the default goose table
 					tables, err := getTableNames(db)
 					require.NoError(t, err)
@@ -256,7 +256,7 @@ func TestProviderRun(t *testing.T) {
 		require.NoError(t, err)
 		_, err = p.ApplyVersion(ctx, 1, true)
 		require.Error(t, err)
-		require.True(t, errors.Is(err, goose.ErrAlreadyApplied))
+		require.ErrorIs(t, err, goose.ErrAlreadyApplied)
 		require.Contains(t, err.Error(), "version 1: migration already applied")
 	})
 	t.Run("status", func(t *testing.T) {
@@ -321,31 +321,30 @@ INSERT INTO owners (owner_name) VALUES ('seed-user-3');
 		_, err = p.Up(ctx)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "partial migration error (type:sql,version:2)")
-		var expected *goose.PartialError
-		require.True(t, errors.As(err, &expected))
+		expected := new(goose.PartialError)
+		require.ErrorAs(t, err, &expected)
 		// Check Err field
-		require.True(t, expected.Err != nil)
 		require.Contains(t, expected.Err.Error(), "SQL logic error: no such table: invalid_table (1)")
 		// Check Results field
-		require.Equal(t, len(expected.Applied), 1)
+		require.Len(t, expected.Applied, 1)
 		assertResult(t, expected.Applied[0], newSource(goose.TypeSQL, "00001_users_table.sql", 1), "up", false)
 		// Check Failed field
-		require.True(t, expected.Failed != nil)
+		require.NotNil(t, expected.Failed)
 		assertSource(t, expected.Failed.Source, goose.TypeSQL, "00002_partial_error.sql", 2)
 		require.False(t, expected.Failed.Empty)
-		require.True(t, expected.Failed.Error != nil)
+		require.Error(t, expected.Failed.Error)
 		require.Contains(t, expected.Failed.Error.Error(), "SQL logic error: no such table: invalid_table (1)")
-		require.Equal(t, expected.Failed.Direction, "up")
-		require.True(t, expected.Failed.Duration > 0)
+		require.Equal(t, "up", expected.Failed.Direction)
+		require.Positive(t, expected.Failed.Duration)
 
 		// Ensure the partial error did not affect the database.
 		count, err := countOwners(db)
 		require.NoError(t, err)
-		require.Equal(t, count, 0)
+		require.Equal(t, 0, count)
 
 		status, err := p.Status(ctx)
 		require.NoError(t, err)
-		require.Equal(t, len(status), 3)
+		require.Len(t, status, 3)
 		assertStatus(t, status[0], goose.StateApplied, newSource(goose.TypeSQL, "00001_users_table.sql", 1), false)
 		assertStatus(t, status[1], goose.StatePending, newSource(goose.TypeSQL, "00002_partial_error.sql", 2), true)
 		assertStatus(t, status[2], goose.StatePending, newSource(goose.TypeSQL, "00003_insert_data.sql", 3), true)
@@ -444,7 +443,7 @@ func TestConcurrentProvider(t *testing.T) {
 		if t.Failed() {
 			return
 		}
-		require.Equal(t, len(valid), 1)
+		require.Len(t, valid, 1)
 		require.Equal(t, len(empty), maxVersion-1)
 		// Ensure the valid result is correct.
 		require.Equal(t, len(valid[0]), maxVersion)
@@ -485,13 +484,13 @@ func TestNoVersioning(t *testing.T) {
 		goose.WithVerbose(testing.Verbose()),
 		goose.WithDisableVersioning(false), // This is the default.
 	)
-	require.Equal(t, len(p.ListSources()), 3)
+	require.Len(t, p.ListSources(), 3)
 	require.NoError(t, err)
 	_, err = p.Up(ctx)
 	require.NoError(t, err)
 	baseVersion, err := p.GetDBVersion(ctx)
 	require.NoError(t, err)
-	require.EqualValues(t, baseVersion, 3)
+	require.EqualValues(t, 3, baseVersion)
 	t.Run("seed-up-down-to-zero", func(t *testing.T) {
 		fsys := os.DirFS(filepath.Join("testdata", "no-versioning", "seed"))
 		p, err := goose.NewProvider(goose.DialectSQLite3, db, fsys,
@@ -499,36 +498,36 @@ func TestNoVersioning(t *testing.T) {
 			goose.WithDisableVersioning(true), // Provider with no versioning.
 		)
 		require.NoError(t, err)
-		require.Equal(t, len(p.ListSources()), 2)
+		require.Len(t, p.ListSources(), 2)
 
 		// Run (all) up migrations from the seed dir
 		{
 			upResult, err := p.Up(ctx)
 			require.NoError(t, err)
-			require.Equal(t, len(upResult), 2)
+			require.Len(t, upResult, 2)
 			// When versioning is disabled, we cannot track the version of the seed files.
 			_, err = p.GetDBVersion(ctx)
 			require.Error(t, err)
 			seedOwnerCount, err := countSeedOwners(db)
 			require.NoError(t, err)
-			require.Equal(t, seedOwnerCount, wantSeedOwnerCount)
+			require.Equal(t, wantSeedOwnerCount, seedOwnerCount)
 		}
 		// Run (all) down migrations from the seed dir
 		{
 			downResult, err := p.DownTo(ctx, 0)
 			require.NoError(t, err)
-			require.Equal(t, len(downResult), 2)
+			require.Len(t, downResult, 2)
 			// When versioning is disabled, we cannot track the version of the seed files.
 			_, err = p.GetDBVersion(ctx)
 			require.Error(t, err)
 			seedOwnerCount, err := countSeedOwners(db)
 			require.NoError(t, err)
-			require.Equal(t, seedOwnerCount, 0)
+			require.Equal(t, 0, seedOwnerCount)
 		}
 		// The migrations added 4 non-seed owners, they must remain in the database afterwards
 		ownerCount, err := countOwners(db)
 		require.NoError(t, err)
-		require.Equal(t, ownerCount, wantOwnerCount)
+		require.Equal(t, wantOwnerCount, ownerCount)
 	})
 }
 
@@ -555,15 +554,15 @@ func TestAllowMissing(t *testing.T) {
 		require.NoError(t, err)
 		currentVersion, err := p.GetDBVersion(ctx)
 		require.NoError(t, err)
-		require.EqualValues(t, currentVersion, 3)
+		require.EqualValues(t, 3, currentVersion)
 
 		// Developer A - migration 5 (mistakenly applied)
 		result, err := p.ApplyVersion(ctx, 5, true)
 		require.NoError(t, err)
-		require.EqualValues(t, result.Source.Version, 5)
+		require.EqualValues(t, 5, result.Source.Version)
 		current, err := p.GetDBVersion(ctx)
 		require.NoError(t, err)
-		require.EqualValues(t, current, 5)
+		require.EqualValues(t, 5, current)
 
 		// The database has migrations 1,2,3,5 applied.
 
@@ -577,7 +576,7 @@ func TestAllowMissing(t *testing.T) {
 		// Confirm db version is unchanged.
 		current, err = p.GetDBVersion(ctx)
 		require.NoError(t, err)
-		require.EqualValues(t, current, 5)
+		require.EqualValues(t, 5, current)
 
 		_, err = p.UpByOne(ctx)
 		require.Error(t, err)
@@ -586,7 +585,7 @@ func TestAllowMissing(t *testing.T) {
 		// Confirm db version is unchanged.
 		current, err = p.GetDBVersion(ctx)
 		require.NoError(t, err)
-		require.EqualValues(t, current, 5)
+		require.EqualValues(t, 5, current)
 
 		_, err = p.UpTo(ctx, math.MaxInt64)
 		require.Error(t, err)
@@ -595,7 +594,7 @@ func TestAllowMissing(t *testing.T) {
 		// Confirm db version is unchanged.
 		current, err = p.GetDBVersion(ctx)
 		require.NoError(t, err)
-		require.EqualValues(t, current, 5)
+		require.EqualValues(t, 5, current)
 	})
 
 	t.Run("missing_allowed", func(t *testing.T) {
@@ -610,7 +609,7 @@ func TestAllowMissing(t *testing.T) {
 		require.NoError(t, err)
 		currentVersion, err := p.GetDBVersion(ctx)
 		require.NoError(t, err)
-		require.EqualValues(t, currentVersion, 3)
+		require.EqualValues(t, 3, currentVersion)
 
 		// Developer A - migration 5 (mistakenly applied)
 		{
@@ -618,28 +617,28 @@ func TestAllowMissing(t *testing.T) {
 			require.NoError(t, err)
 			current, err := p.GetDBVersion(ctx)
 			require.NoError(t, err)
-			require.EqualValues(t, current, 5)
+			require.EqualValues(t, 5, current)
 		}
 		// Developer B - migration 4 (missing) and 6 (new)
 		{
 			// 4
 			upResult, err := p.UpByOne(ctx)
 			require.NoError(t, err)
-			require.True(t, upResult != nil)
-			require.EqualValues(t, upResult.Source.Version, 4)
+			require.NotNil(t, upResult)
+			require.EqualValues(t, 4, upResult.Source.Version)
 			// 6
 			upResult, err = p.UpByOne(ctx)
 			require.NoError(t, err)
-			require.True(t, upResult != nil)
-			require.EqualValues(t, upResult.Source.Version, 6)
+			require.NotNil(t, upResult)
+			require.EqualValues(t, 6, upResult.Source.Version)
 
 			count, err := getGooseVersionCount(db, goose.DefaultTablename)
 			require.NoError(t, err)
-			require.EqualValues(t, count, 6)
+			require.EqualValues(t, 6, count)
 			current, err := p.GetDBVersion(ctx)
 			require.NoError(t, err)
 			// Expecting max(version_id) to be 8
-			require.EqualValues(t, current, 6)
+			require.EqualValues(t, 6, current)
 		}
 
 		// The applied order in the database is expected to be:
@@ -650,11 +649,11 @@ func TestAllowMissing(t *testing.T) {
 		testDownAndVersion := func(wantDBVersion, wantResultVersion int64) {
 			currentVersion, err := p.GetDBVersion(ctx)
 			require.NoError(t, err)
-			require.Equal(t, currentVersion, wantDBVersion)
+			require.Equal(t, wantDBVersion, currentVersion)
 			downRes, err := p.Down(ctx)
 			require.NoError(t, err)
-			require.True(t, downRes != nil)
-			require.Equal(t, downRes.Source.Version, wantResultVersion)
+			require.NotNil(t, downRes)
+			require.Equal(t, wantResultVersion, downRes.Source.Version)
 		}
 
 		// This behaviour may need to change, see the following issues for more details:
@@ -669,7 +668,7 @@ func TestAllowMissing(t *testing.T) {
 		testDownAndVersion(1, 1)
 		_, err = p.Down(ctx)
 		require.Error(t, err)
-		require.True(t, errors.Is(err, goose.ErrNoNextVersion))
+		require.ErrorIs(t, err, goose.ErrNoNextVersion)
 	})
 }
 
@@ -739,9 +738,8 @@ func TestGoMigrationPanic(t *testing.T) {
 	require.NoError(t, err)
 	_, err = p.Up(ctx)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), wantErrString)
-	var expected *goose.PartialError
-	require.True(t, errors.As(err, &expected))
+	expected := new(goose.PartialError)
+	require.ErrorAs(t, err, &expected)
 	require.Contains(t, expected.Err.Error(), wantErrString)
 }
 
@@ -769,7 +767,7 @@ func TestProviderApply(t *testing.T) {
 	// This version has a corresponding down migration, but has never been applied.
 	_, err = p.ApplyVersion(ctx, 2, false)
 	require.Error(t, err)
-	require.True(t, errors.Is(err, goose.ErrNotApplied))
+	require.ErrorIs(t, err, goose.ErrNotApplied)
 }
 
 func TestPending(t *testing.T) {
@@ -790,8 +788,8 @@ func TestPending(t *testing.T) {
 		// migrations.
 		current, target, err := p.GetVersions(ctx)
 		require.NoError(t, err)
-		require.EqualValues(t, current, 3)
-		require.EqualValues(t, target, len(fsys))
+		require.EqualValues(t, 3, current)
+		require.Len(t, fsys, int(target))
 		hasPending, err := p.HasPending(ctx)
 		require.NoError(t, err)
 		require.True(t, hasPending)
@@ -811,6 +809,7 @@ func TestPending(t *testing.T) {
 		fsys := newFsys()
 
 		run := func(t *testing.T, versionToApply int64) {
+			t.Helper()
 			p, err := goose.NewProvider(goose.DialectSQLite3, newDB(t), fsys,
 				goose.WithAllowOutofOrder(false),
 			)
@@ -825,7 +824,7 @@ func TestPending(t *testing.T) {
 			current, target, err := p.GetVersions(ctx)
 			require.NoError(t, err)
 			require.Equal(t, current, versionToApply)
-			require.EqualValues(t, target, len(fsys))
+			require.Len(t, fsys, int(target))
 			_, err = p.HasPending(ctx)
 			require.Error(t, err)
 			require.Contains(t, err.Error(), "missing (out-of-order) migration")
@@ -904,25 +903,25 @@ func TestGoOnly(t *testing.T) {
 		)
 		require.NoError(t, err)
 		sources := p.ListSources()
-		require.Equal(t, len(p.ListSources()), 2)
+		require.Len(t, p.ListSources(), 2)
 		assertSource(t, sources[0], goose.TypeGo, "", 1)
 		assertSource(t, sources[1], goose.TypeGo, "", 2)
 		// Apply migration 1
 		res, err := p.UpByOne(ctx)
 		require.NoError(t, err)
 		assertResult(t, res, newSource(goose.TypeGo, "", 1), "up", false)
-		require.Equal(t, countUser(db), 0)
+		require.Equal(t, 0, countUser(db))
 		require.True(t, tableExists(t, db, "users"))
 		// Apply migration 2
 		res, err = p.UpByOne(ctx)
 		require.NoError(t, err)
 		assertResult(t, res, newSource(goose.TypeGo, "", 2), "up", false)
-		require.Equal(t, countUser(db), 3)
+		require.Equal(t, 3, countUser(db))
 		// Rollback migration 2
 		res, err = p.Down(ctx)
 		require.NoError(t, err)
 		assertResult(t, res, newSource(goose.TypeGo, "", 2), "down", false)
-		require.Equal(t, countUser(db), 0)
+		require.Equal(t, 0, countUser(db))
 		// Rollback migration 1
 		res, err = p.Down(ctx)
 		require.NoError(t, err)
@@ -960,25 +959,25 @@ func TestGoOnly(t *testing.T) {
 		)
 		require.NoError(t, err)
 		sources := p.ListSources()
-		require.Equal(t, len(p.ListSources()), 2)
+		require.Len(t, p.ListSources(), 2)
 		assertSource(t, sources[0], goose.TypeGo, "", 1)
 		assertSource(t, sources[1], goose.TypeGo, "", 2)
 		// Apply migration 1
 		res, err := p.UpByOne(ctx)
 		require.NoError(t, err)
 		assertResult(t, res, newSource(goose.TypeGo, "", 1), "up", false)
-		require.Equal(t, countUser(db), 0)
+		require.Equal(t, 0, countUser(db))
 		require.True(t, tableExists(t, db, "users"))
 		// Apply migration 2
 		res, err = p.UpByOne(ctx)
 		require.NoError(t, err)
 		assertResult(t, res, newSource(goose.TypeGo, "", 2), "up", false)
-		require.Equal(t, countUser(db), 3)
+		require.Equal(t, 3, countUser(db))
 		// Rollback migration 2
 		res, err = p.Down(ctx)
 		require.NoError(t, err)
 		assertResult(t, res, newSource(goose.TypeGo, "", 2), "down", false)
-		require.Equal(t, countUser(db), 0)
+		require.Equal(t, 0, countUser(db))
 		// Rollback migration 1
 		res, err = p.Down(ctx)
 		require.NoError(t, err)
@@ -1072,21 +1071,33 @@ func getTableNames(db *sql.DB) ([]string, error) {
 	return tables, nil
 }
 
-func assertStatus(t *testing.T, got *goose.MigrationStatus, state goose.State, source *goose.Source, appliedIsZero bool) {
+func assertStatus(
+	t *testing.T,
+	got *goose.MigrationStatus,
+	state goose.State,
+	source *goose.Source,
+	appliedIsZero bool,
+) {
 	t.Helper()
 	require.Equal(t, got.State, state)
 	require.Equal(t, got.Source, source)
 	require.Equal(t, got.AppliedAt.IsZero(), appliedIsZero)
 }
 
-func assertResult(t *testing.T, got *goose.MigrationResult, source *goose.Source, direction string, isEmpty bool) {
+func assertResult(
+	t *testing.T,
+	got *goose.MigrationResult,
+	source *goose.Source,
+	direction string,
+	isEmpty bool,
+) {
 	t.Helper()
-	require.True(t, got != nil)
+	require.NotNil(t, got)
 	require.Equal(t, got.Source, source)
 	require.Equal(t, got.Direction, direction)
 	require.Equal(t, got.Empty, isEmpty)
-	require.Nil(t, got.Error)
-	require.True(t, got.Duration > 0)
+	require.NoError(t, got.Error)
+	require.Positive(t, got.Duration)
 }
 
 func assertSource(t *testing.T, got *goose.Source, typ goose.MigrationType, name string, version int64) {
