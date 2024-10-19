@@ -1,4 +1,4 @@
-GO_TEST_FLAGS ?= -race -count=1 -v -timeout=5m
+GO_TEST_FLAGS ?= -race -count=1 -v -timeout=5m -json
 
 # These are the default values for the test database. They can be overridden
 DB_USER ?= dbuser
@@ -38,19 +38,22 @@ lint: tools
 .PHONY: tools
 tools:
 	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	@go install github.com/mfridman/tparse@latest
 
 test-packages:
-	go test $(GO_TEST_FLAGS) $$(go list ./... | grep -v -e /tests -e /bin -e /cmd -e /examples)
+	go test $(GO_TEST_FLAGS) $$(go list ./... | grep -v -e /tests -e /bin -e /cmd -e /examples) |\
+		tparse --follow -sort=elapsed
 
 test-packages-short:
-	go test -test.short $(GO_TEST_FLAGS) $$(go list ./... | grep -v -e /tests -e /bin -e /cmd -e /examples)
+	go test -test.short $(GO_TEST_FLAGS) $$(go list ./... | grep -v -e /tests -e /bin -e /cmd -e /examples) |\
+		tparse --follow -sort=elapsed
 
 coverage-short:
-	go test ./ -test.short  $(GO_TEST_FLAGS) -cover -coverprofile=coverage.out
+	go test ./ -test.short $(GO_TEST_FLAGS) -cover -coverprofile=coverage.out | tparse --follow -sort=elapsed
 	go tool cover -html=coverage.out
 
 coverage:
-	go test ./ $(GO_TEST_FLAGS) -cover -coverprofile=coverage.out
+	go test ./ $(GO_TEST_FLAGS) -cover -coverprofile=coverage.out | tparse --follow -sort=elapsed
 	go tool cover -html=coverage.out
 
 #
@@ -67,31 +70,33 @@ upgrade-integration-deps:
 	cd ./internal/testing && go get -u ./... && go mod tidy
 
 test-postgres-long: add-gowork test-postgres
-	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='(TestPostgresProviderLocking|TestPostgresSessionLocker)'
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='(TestPostgresProviderLocking|TestPostgresSessionLocker)' |\
+		tparse --follow -sort=elapsed
 
 test-postgres: add-gowork
-	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run="^TestPostgres$$"
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run="^TestPostgres$$" | tparse --follow -sort=elapsed
 
 test-clickhouse: add-gowork
-	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='(TestClickhouse|TestClickhouseRemote)'
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='(TestClickhouse|TestClickhouseRemote)' |\
+		tparse --follow -sort=elapsed
 
 test-mysql: add-gowork
-	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestMySQL'
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestMySQL' | tparse --follow -sort=elapsed
 
 test-turso: add-gowork
-	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestTurso'
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestTurso' | tparse --follow -sort=elapsed
 
 test-vertica: add-gowork
-	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestVertica'
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestVertica' | tparse --follow -sort=elapsed
 
 test-ydb: add-gowork
-	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestYDB'
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestYDB' | tparse --follow -sort=elapsed
 
 test-starrocks: add-gowork
-	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestStarrocks'
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestStarrocks' | tparse --follow -sort=elapsed
 
 test-integration: add-gowork
-	go test $(GO_TEST_FLAGS) ./internal/testing/integration/...
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration/... | tparse --follow -sort=elapsed
 
 #
 # Docker-related targets
