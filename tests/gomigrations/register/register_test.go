@@ -65,48 +65,48 @@ func checkFunctions(t *testing.T, m *goose.Migration) {
 	switch filepath.Base(m.Source) {
 	case "001_addmigration.go":
 		// With transaction
-		require.False(t, m.UpFn == nil)
-		require.False(t, m.DownFn == nil)
-		require.False(t, m.UpFnContext == nil)
-		require.False(t, m.DownFnContext == nil)
+		require.NotNil(t, m.UpFn)
+		require.NotNil(t, m.DownFn)
+		require.NotNil(t, m.UpFnContext)
+		require.NotNil(t, m.DownFnContext)
 		// No transaction
-		require.True(t, m.UpFnNoTx == nil)
-		require.True(t, m.DownFnNoTx == nil)
-		require.True(t, m.UpFnNoTxContext == nil)
-		require.True(t, m.DownFnNoTxContext == nil)
+		require.Nil(t, m.UpFnNoTx)
+		require.Nil(t, m.DownFnNoTx)
+		require.Nil(t, m.UpFnNoTxContext)
+		require.Nil(t, m.DownFnNoTxContext)
 	case "002_addmigrationnotx.go":
 		// With transaction
-		require.True(t, m.UpFn == nil)
-		require.True(t, m.DownFn == nil)
-		require.True(t, m.UpFnContext == nil)
-		require.True(t, m.DownFnContext == nil)
+		require.Nil(t, m.UpFn)
+		require.Nil(t, m.DownFn)
+		require.Nil(t, m.UpFnContext)
+		require.Nil(t, m.DownFnContext)
 		// No transaction
-		require.False(t, m.UpFnNoTx == nil)
-		require.False(t, m.DownFnNoTx == nil)
-		require.False(t, m.UpFnNoTxContext == nil)
-		require.False(t, m.DownFnNoTxContext == nil)
+		require.NotNil(t, m.UpFnNoTx)
+		require.NotNil(t, m.DownFnNoTx)
+		require.NotNil(t, m.UpFnNoTxContext)
+		require.NotNil(t, m.DownFnNoTxContext)
 	case "003_addmigrationcontext.go":
 		// With transaction
-		require.False(t, m.UpFn == nil)
-		require.False(t, m.DownFn == nil)
-		require.False(t, m.UpFnContext == nil)
-		require.False(t, m.DownFnContext == nil)
+		require.NotNil(t, m.UpFn)
+		require.NotNil(t, m.DownFn)
+		require.NotNil(t, m.UpFnContext)
+		require.NotNil(t, m.DownFnContext)
 		// No transaction
-		require.True(t, m.UpFnNoTx == nil)
-		require.True(t, m.DownFnNoTx == nil)
-		require.True(t, m.UpFnNoTxContext == nil)
-		require.True(t, m.DownFnNoTxContext == nil)
+		require.Nil(t, m.UpFnNoTx)
+		require.Nil(t, m.DownFnNoTx)
+		require.Nil(t, m.UpFnNoTxContext)
+		require.Nil(t, m.DownFnNoTxContext)
 	case "004_addmigrationnotxcontext.go":
 		// With transaction
-		require.True(t, m.UpFn == nil)
-		require.True(t, m.DownFn == nil)
-		require.True(t, m.UpFnContext == nil)
-		require.True(t, m.DownFnContext == nil)
+		require.Nil(t, m.UpFn)
+		require.Nil(t, m.DownFn)
+		require.Nil(t, m.UpFnContext)
+		require.Nil(t, m.DownFnContext)
 		// No transaction
-		require.False(t, m.UpFnNoTx == nil)
-		require.False(t, m.DownFnNoTx == nil)
-		require.False(t, m.UpFnNoTxContext == nil)
-		require.False(t, m.DownFnNoTxContext == nil)
+		require.NotNil(t, m.UpFnNoTx)
+		require.NotNil(t, m.DownFnNoTx)
+		require.NotNil(t, m.UpFnNoTxContext)
+		require.NotNil(t, m.DownFnNoTxContext)
 	default:
 		t.Fatalf("unexpected migration: %s", filepath.Base(m.Source))
 	}

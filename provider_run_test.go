@@ -1085,7 +1085,7 @@ func assertResult(t *testing.T, got *goose.MigrationResult, source *goose.Source
 	require.Equal(t, got.Source, source)
 	require.Equal(t, got.Direction, direction)
 	require.Equal(t, got.Empty, isEmpty)
-	require.True(t, got.Error == nil)
+	require.Nil(t, got.Error)
 	require.True(t, got.Duration > 0)
 }
 
