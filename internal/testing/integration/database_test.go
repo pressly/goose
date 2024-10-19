@@ -88,6 +88,27 @@ func TestClickhouseRemote(t *testing.T) {
 	require.Equal(t, 265, count)
 }
 
+func TestClickhouseReplicated(t *testing.T) {
+	t.Parallel()
+
+	db0, db1, cleanup, err := testdb.NewClickHouseReplicated(testdb.WithDebug(false))
+	require.NoError(t, err)
+	t.Cleanup(cleanup)
+
+	testDatabase(t, database.DialectClickHouseReplicated, db0, "testdata/migrations/clickhouse-replicated")
+
+	rows, err := db1.Query(`SELECT count(*) FROM clickstream`)
+	require.NoError(t, err)
+	var result int
+	for rows.Next() {
+		err = rows.Scan(&result)
+		require.NoError(t, err)
+	}
+	require.Equal(t, result, 3)
+	require.NoError(t, rows.Close())
+	require.NoError(t, rows.Err())
+}
+
 func TestMySQL(t *testing.T) {
 	t.Parallel()
 

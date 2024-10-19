@@ -7,6 +7,11 @@ func NewClickHouse(options ...OptionsFunc) (db *sql.DB, cleanup func(), err erro
 	return newClickHouse(options...)
 }
 
+// NewClickHouseReplicated starts Zookeeper and two ClickHouse docker containers. Returns db connections for each db and a docker cleanup function.
+func NewClickHouseReplicated(options ...OptionsFunc) (db0 *sql.DB, db1 *sql.DB, cleanup func(), err error) {
+	return newClickHouseReplicated(options...)
+}
+
 // NewPostgres starts a PostgreSQL docker container. Returns db connection and a docker cleanup function.
 func NewPostgres(options ...OptionsFunc) (db *sql.DB, cleanup func(), err error) {
 	return newPostgres(options...)

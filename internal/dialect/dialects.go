@@ -4,15 +4,16 @@ package dialect
 type Dialect string
 
 const (
-	Postgres   Dialect = "postgres"
-	Mysql      Dialect = "mysql"
-	Sqlite3    Dialect = "sqlite3"
-	Sqlserver  Dialect = "sqlserver"
-	Redshift   Dialect = "redshift"
-	Tidb       Dialect = "tidb"
-	Clickhouse Dialect = "clickhouse"
-	Vertica    Dialect = "vertica"
-	Ydb        Dialect = "ydb"
-	Turso      Dialect = "turso"
-	Starrocks  Dialect = "starrocks"
+	Postgres             Dialect = "postgres"
+	Mysql                Dialect = "mysql"
+	Sqlite3              Dialect = "sqlite3"
+	Sqlserver            Dialect = "sqlserver"
+	Redshift             Dialect = "redshift"
+	Tidb                 Dialect = "tidb"
+	Clickhouse           Dialect = "clickhouse"
+	ClickhouseReplicated Dialect = "clickhouse-replicated"
+	Vertica              Dialect = "vertica"
+	Ydb                  Dialect = "ydb"
+	Turso                Dialect = "turso"
+	Starrocks            Dialect = "starrocks"
 )

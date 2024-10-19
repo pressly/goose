@@ -1,0 +1,17 @@
+<yandex>
+    <remote_servers>
+        <goose>
+            <shard>
+                <internal_replication>true</internal_replication>
+                <replica>
+                    <host>clickhouse0</host>
+                    <port>9000</port>
+                </replica>
+                <replica>
+                    <host>clickhouse1</host>
+                    <port>9000</port>
+                </replica>
+            </shard>
+        </goose>
+    </remote_servers>
+</yandex>
