@@ -41,11 +41,11 @@ tools:
 	@go install github.com/mfridman/tparse@latest
 
 test-packages:
-	go test $(GO_TEST_FLAGS) $$(go list ./... | grep -v -e /tests -e /bin -e /cmd -e /examples) |\
+	go test $(GO_TEST_FLAGS) $$(go list ./... | grep -v -e /bin -e /cmd -e /examples) |\
 		tparse --follow -sort=elapsed
 
 test-packages-short:
-	go test -test.short $(GO_TEST_FLAGS) $$(go list ./... | grep -v -e /tests -e /bin -e /cmd -e /examples) |\
+	go test -test.short $(GO_TEST_FLAGS) $$(go list ./... | grep -v -e /bin -e /cmd -e /examples) |\
 		tparse --follow -sort=elapsed
 
 coverage-short:

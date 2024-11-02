@@ -41,7 +41,7 @@ func TestGoMigrationByOne(t *testing.T) {
 	}
 	// Migrate all files up-by-one.
 	for i := 1; i <= len(files); i++ {
-		require.Equal(t, upByOne(t), i)
+		require.EqualValues(t, upByOne(t), i)
 	}
 	version, err := goose.GetDBVersion(db)
 	require.NoError(t, err)
@@ -67,11 +67,11 @@ func TestGoMigrationByOne(t *testing.T) {
 
 	// Migrate all files down-by-one.
 	for i := len(files) - 1; i >= 0; i-- {
-		require.Equal(t, downByOne(t), i)
+		require.EqualValues(t, downByOne(t), i)
 	}
 	version, err = goose.GetDBVersion(db)
 	require.NoError(t, err)
-	require.Equal(t, 0, version)
+	require.EqualValues(t, 0, version)
 
 	tables, err = ListTables(db)
 	require.NoError(t, err)

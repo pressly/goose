@@ -20,7 +20,7 @@ func TestGoMigrationByOne(t *testing.T) {
 	// Create goose table.
 	current, err := goose.EnsureDBVersion(db)
 	require.NoError(t, err)
-	require.Equal(t, 0, current)
+	require.EqualValues(t, 0, current)
 	// Collect migrations.
 	dir := "testdata"
 	migrations, err := goose.CollectMigrations(dir, 0, goose.MaxVersion)
@@ -32,7 +32,7 @@ func TestGoMigrationByOne(t *testing.T) {
 	require.NoError(t, err)
 	version, err := goose.GetDBVersion(db)
 	require.NoError(t, err)
-	require.Equal(t, 1, version)
+	require.EqualValues(t, 1, version)
 
 	// Registered Go migration run outside a goose tx using *sql.DB.
 	err = migrations[1].Up(db)
@@ -40,7 +40,7 @@ func TestGoMigrationByOne(t *testing.T) {
 	require.Contains(t, err.Error(), "failed to run go migration")
 	version, err = goose.GetDBVersion(db)
 	require.NoError(t, err)
-	require.Equal(t, 1, version)
+	require.EqualValues(t, 1, version)
 
 	// This migration was inserting 100 rows, but fails at 50, and
 	// because it's run outside a goose tx then we expect 50 rows.
@@ -63,11 +63,11 @@ func TestGoMigrationByOne(t *testing.T) {
 	require.Contains(t, err.Error(), "failed to run go migration")
 	version, err = goose.GetDBVersion(db)
 	require.NoError(t, err)
-	require.Equal(t, 3, version) // This migration failed, so we're still at 3.
+	require.EqualValues(t, 3, version) // This migration failed, so we're still at 3.
 	// This migration was inserting 100 rows, but fails at 50. However, since it's
 	// running within a tx we expect none of the inserts to persist.
 	err = db.QueryRow("SELECT COUNT(*) FROM foo").Scan(&count)
 	require.NoError(t, err)
-	require.Equal(t, 0, count)
+	require.EqualValues(t, 0, count)
 
 }
