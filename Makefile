@@ -38,7 +38,7 @@ lint: tools
 .PHONY: tools
 tools:
 	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-	@go install github.com/mfridman/tparse@latest
+	@go install github.com/mfridman/tparse@main
 
 test-packages:
 	go test $(GO_TEST_FLAGS) $$(go list ./... | grep -v -e /bin -e /cmd -e /examples) |\

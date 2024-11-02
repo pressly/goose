@@ -24,7 +24,7 @@ jobs:
         with:
           go-version: "stable"
       - name: Install tparse
-        run: go install github.com/mfridman/tparse@latest
+        run: go install github.com/mfridman/tparse@main
       - name: Run full integration tests
         run: |
           make test-integration

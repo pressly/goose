@@ -37,7 +37,7 @@ jobs:
             exit 1
           fi
       - name: Install tparse
-        run: go install github.com/mfridman/tparse@latest
+        run: go install github.com/mfridman/tparse@main
       - name: Run tests
         run: |
           mkdir -p bin
