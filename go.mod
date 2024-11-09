@@ -13,10 +13,10 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/tursodatabase/libsql-client-go v0.0.0-20240902231107-85af5b9d094d
 	github.com/vertica/vertica-sql-go v1.3.3
-	github.com/ydb-platform/ydb-go-sdk/v3 v3.84.1
+	github.com/ydb-platform/ydb-go-sdk/v3 v3.91.0
 	github.com/ziutek/mymysql v1.5.4
 	go.uber.org/multierr v1.11.0
-	golang.org/x/sync v0.8.0
+	golang.org/x/sync v0.9.0
 	modernc.org/sqlite v1.33.1
 )
 
@@ -54,7 +54,7 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
-	github.com/ydb-platform/ydb-go-genproto v0.0.0-20240920120314-0fed943b0136 // indirect
+	github.com/ydb-platform/ydb-go-genproto v0.0.0-20241022174402-dd276c7f197b // indirect
 	go.opentelemetry.io/otel v1.26.0 // indirect
 	go.opentelemetry.io/otel/trace v1.26.0 // indirect
 	golang.org/x/crypto v0.28.0 // indirect
