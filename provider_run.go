@@ -174,7 +174,7 @@ func (p *Provider) runIndividually(
 	}
 	if useTx {
 		return beginTx(ctx, conn, func(tx *sql.Tx) error {
-			if err := runMigration(ctx, tx, m, direction); err != nil {
+			if err := p.runMigration(ctx, tx, m, direction); err != nil {
 				return err
 			}
 			return p.maybeInsertOrDelete(ctx, tx, m.Version, direction)
@@ -189,12 +189,12 @@ func (p *Provider) runIndividually(
 		//
 		// For now, we guard against this scenario by checking the max open connections and
 		// returning an error in the prepareMigration function.
-		if err := runMigration(ctx, p.db, m, direction); err != nil {
+		if err := p.runMigration(ctx, p.db, m, direction); err != nil {
 			return err
 		}
 		return p.maybeInsertOrDelete(ctx, p.db, m.Version, direction)
 	case TypeSQL:
-		if err := runMigration(ctx, conn, m, direction); err != nil {
+		if err := p.runMigration(ctx, conn, m, direction); err != nil {
 			return err
 		}
 		return p.maybeInsertOrDelete(ctx, conn, m.Version, direction)
@@ -382,19 +382,19 @@ func isEmpty(m *Migration, direction bool) bool {
 
 // runMigration is a helper function that runs the migration in the given direction. It must only be
 // called after the migration has been parsed and initialized.
-func runMigration(ctx context.Context, db database.DBTxConn, m *Migration, direction bool) error {
+func (p *Provider) runMigration(ctx context.Context, db database.DBTxConn, m *Migration, direction bool) error {
 	switch m.Type {
 	case TypeGo:
-		return runGo(ctx, db, m, direction)
+		return p.runGo(ctx, db, m, direction)
 	case TypeSQL:
-		return runSQL(ctx, db, m, direction)
+		return p.runSQL(ctx, db, m, direction)
 	}
 	return fmt.Errorf("invalid migration type: %q", m.Type)
 }
 
 // runGo is a helper function that runs the given Go functions in the given direction. It must only
 // be called after the migration has been initialized.
-func runGo(ctx context.Context, db database.DBTxConn, m *Migration, direction bool) (retErr error) {
+func (p *Provider) runGo(ctx context.Context, db database.DBTxConn, m *Migration, direction bool) (retErr error) {
 	defer func() {
 		if r := recover(); r != nil {
 			retErr = fmt.Errorf("panic: %v\n%s", r, debug.Stack())
@@ -426,7 +426,8 @@ func runGo(ctx context.Context, db database.DBTxConn, m *Migration, direction bo
 
 // runSQL is a helper function that runs the given SQL statements in the given direction. It must
 // only be called after the migration has been parsed.
-func runSQL(ctx context.Context, db database.DBTxConn, m *Migration, direction bool) error {
+func (p *Provider) runSQL(ctx context.Context, db database.DBTxConn, m *Migration, direction bool) error {
+
 	if !m.sql.Parsed {
 		return fmt.Errorf("sql migrations must be parsed")
 	}
@@ -437,6 +438,9 @@ func runSQL(ctx context.Context, db database.DBTxConn, m *Migration, direction b
 		statements = m.sql.Down
 	}
 	for _, stmt := range statements {
+		if p.cfg.verbose {
+			p.cfg.logger.Printf("Excuting statement: %s", stmt)
+		}
 		if _, err := db.ExecContext(ctx, stmt); err != nil {
 			return err
 		}
