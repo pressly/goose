@@ -42,7 +42,7 @@ tools:
 
 test-packages:
 	go test $(GO_TEST_FLAGS) $$(go list ./... | grep -v -e /bin -e /cmd -e /examples) |\
-		tparse --follow -sort=elapsed
+		tparse --follow -sort=elapsed -trimpath=auto -all
 
 test-packages-short:
 	go test -test.short $(GO_TEST_FLAGS) $$(go list ./... | grep -v -e /bin -e /cmd -e /examples) |\
@@ -96,7 +96,7 @@ test-starrocks: add-gowork
 	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestStarrocks' | tparse --follow -sort=elapsed
 
 test-integration: add-gowork
-	go test $(GO_TEST_FLAGS) ./internal/testing/integration/... | tparse --follow -sort=elapsed
+	go test $(GO_TEST_FLAGS) ./internal/testing/integration/... | tparse --follow -sort=elapsed -trimpath=auto -all
 
 #
 # Docker-related targets
