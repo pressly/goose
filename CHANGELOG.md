@@ -7,6 +7,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Add `WithLogger` to `NewProvider` to allow custom loggers (#833)
+- Update Provider `WithVerbose` behavior to log all SQL statements (#851)
+
 ## [v3.22.1]
 
 - Upgrade dependencies and rebuild binaries with latest Go version (`go1.23.1`)
