@@ -7,9 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-- Optional table existence check optimization for Store implementations (#860)
-  - Store implementations can now **optionally** implement this interface to provide optimized table
-    existence checks
+- Store implementations can now **optionally** implement the `TableExists` method to provide
+  optimized table (#860) existence checks
   - Default postgres implementation updated to use `pg_tables` system catalog, more to follow
   - Backward compatible change - existing implementations will continue to work without modification
 
