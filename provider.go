@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/pressly/goose/v3/database"
+	"github.com/pressly/goose/v3/internal/controller"
 	"github.com/pressly/goose/v3/internal/gooseutil"
 	"github.com/pressly/goose/v3/internal/sqlparser"
 	"go.uber.org/multierr"
@@ -24,7 +25,7 @@ type Provider struct {
 	mu sync.Mutex
 
 	db               *sql.DB
-	store            database.Store
+	store            *controller.StoreController
 	versionTableOnce sync.Once
 
 	fsys fs.FS
@@ -141,7 +142,7 @@ func newProvider(
 		db:         db,
 		fsys:       fsys,
 		cfg:        cfg,
-		store:      store,
+		store:      controller.NewStoreController(store),
 		migrations: migrations,
 	}, nil
 }
