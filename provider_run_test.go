@@ -745,15 +745,17 @@ func TestGoMigrationPanic(t *testing.T) {
 
 func TestCustomStoreTableExists(t *testing.T) {
 	t.Parallel()
-
+	db := newDB(t)
 	store, err := database.NewStore(database.DialectSQLite3, goose.DefaultTablename)
 	require.NoError(t, err)
-	p, err := goose.NewProvider("", newDB(t), newFsys(),
-		goose.WithStore(&customStoreSQLite3{store}),
-	)
-	require.NoError(t, err)
-	_, err = p.Up(context.Background())
-	require.NoError(t, err)
+	for i := 0; i < 2; i++ {
+		p, err := goose.NewProvider("", db, newFsys(),
+			goose.WithStore(&customStoreSQLite3{store}),
+		)
+		require.NoError(t, err)
+		_, err = p.Up(context.Background())
+		require.NoError(t, err)
+	}
 }
 
 func TestProviderApply(t *testing.T) {
@@ -846,10 +848,10 @@ type customStoreSQLite3 struct {
 	database.Store
 }
 
-func (s *customStoreSQLite3) TableExists(ctx context.Context, db database.DBTxConn, name string) (bool, error) {
-	q := `SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type='table' AND name=$1) AS table_exists`
+func (s *customStoreSQLite3) TableExists(ctx context.Context, db database.DBTxConn) (bool, error) {
+	q := `SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type='table' AND name=?) AS table_exists`
 	var exists bool
-	if err := db.QueryRowContext(ctx, q, name).Scan(&exists); err != nil {
+	if err := db.QueryRowContext(ctx, q, s.Tablename()).Scan(&exists); err != nil {
 		return false, err
 	}
 	return exists, nil
