@@ -8,8 +8,7 @@ import "context"
 //
 // IMPORTANT: This interface may be expanded in future versions. Implementors MUST be prepared to
 // update their implementations when new methods are added, either by implementing the new
-// functionality or returning [errors.ErrUnsupported]. This is similar to how Go's standard library
-// handles interface extensions (e.g., sql.Scanner, sql.Driver).
+// functionality or returning [errors.ErrUnsupported].
 //
 // The goose package handles these extended capabilities through a [controller.StoreController],
 // which automatically uses optimized methods when available while falling back to default behavior
