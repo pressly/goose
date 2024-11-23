@@ -12,7 +12,7 @@ import (
 // that are not part of the core Store interface.
 type StoreController struct{ database.Store }
 
-var _ database.Store = (*StoreController)(nil)
+var _ database.StoreExtender = (*StoreController)(nil)
 
 // NewStoreController returns a new StoreController that wraps the given Store.
 //
@@ -27,9 +27,6 @@ func NewStoreController(store database.Store) *StoreController {
 	return &StoreController{store}
 }
 
-// TableExists is an optional method that checks if the version table exists in the database. It is
-// recommended to implement this method if the database supports it, as it can be used to optimize
-// certain operations.
 func (c *StoreController) TableExists(ctx context.Context, db database.DBTxConn) (bool, error) {
 	if t, ok := c.Store.(interface {
 		TableExists(ctx context.Context, db database.DBTxConn) (bool, error)

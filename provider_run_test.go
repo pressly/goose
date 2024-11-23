@@ -844,9 +844,9 @@ func TestPending(t *testing.T) {
 	})
 }
 
-type customStoreSQLite3 struct {
-	database.Store
-}
+var _ database.StoreExtender = (*customStoreSQLite3)(nil)
+
+type customStoreSQLite3 struct{ database.Store }
 
 func (s *customStoreSQLite3) TableExists(ctx context.Context, db database.DBTxConn) (bool, error) {
 	q := `SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type='table' AND name=?) AS table_exists`
