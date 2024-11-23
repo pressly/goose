@@ -18,7 +18,8 @@ import "context"
 //
 //	var _ StoreExtender = (*CustomStoreExtended)(nil)
 //
-// In short, a compile-time to allow implementors to verify that they have implemented all methods.
+// In short, it's exported to allows implementors to have a compile-time check that they are
+// implementing the interface correctly.
 type StoreExtender interface {
 	Store
 
