@@ -1,6 +1,16 @@
 package dialectquery
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
+
+const (
+	// defaultSchemaName is the default schema name for Postgres.
+	//
+	// https://www.postgresql.org/docs/current/ddl-schemas.html#DDL-SCHEMAS-PUBLIC
+	defaultSchemaName = "public"
+)
 
 type Postgres struct{}
 
@@ -39,4 +49,18 @@ func (p *Postgres) ListMigrations(tableName string) string {
 func (p *Postgres) GetLatestVersion(tableName string) string {
 	q := `SELECT max(version_id) FROM %s`
 	return fmt.Sprintf(q, tableName)
+}
+
+func (p *Postgres) TableExists(tableName string) string {
+	schemaName, tableName := parseTableIdentifier(tableName)
+	q := `SELECT EXISTS ( SELECT FROM pg_tables WHERE schemaname = '%s' AND tablename = '%s' )`
+	return fmt.Sprintf(q, schemaName, tableName)
+}
+
+func parseTableIdentifier(name string) (schema, table string) {
+	schema, table, found := strings.Cut(name, ".")
+	if !found {
+		return defaultSchemaName, name
+	}
+	return schema, table
 }

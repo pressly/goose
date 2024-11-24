@@ -7,6 +7,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Store implementations can **optionally** implement the `TableExists` method to provide optimized
+  table existence checks (#860)
+  - Default postgres Store implementation updated to use `pg_tables` system catalog, more to follow
+  - Backward compatible change - existing implementations will continue to work without modification
+
+```go
+TableExists(ctx context.Context, db database.DBTxConn) (bool, error)
+```
+
 ## [v3.23.0]
 
 - Add `WithLogger` to `NewProvider` to allow custom loggers (#833)

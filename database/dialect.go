@@ -53,13 +53,13 @@ func NewStore(dialect Dialect, tablename string) (Store, error) {
 	}
 	return &store{
 		tablename: tablename,
-		querier:   querier,
+		querier:   dialectquery.NewQueryController(querier),
 	}, nil
 }
 
 type store struct {
 	tablename string
-	querier   dialectquery.Querier
+	querier   *dialectquery.QueryController
 }
 
 var _ Store = (*store)(nil)
@@ -146,4 +146,27 @@ func (s *store) ListMigrations(
 		return nil, err
 	}
 	return migrations, nil
+}
+
+//
+//
+//
+// Additional methods that are not part of the core Store interface, but are extended by the
+// [controller.StoreController] type.
+//
+//
+//
+
+func (s *store) TableExists(ctx context.Context, db DBTxConn) (bool, error) {
+	q := s.querier.TableExists(s.tablename)
+	if q == "" {
+		return false, errors.ErrUnsupported
+	}
+	var exists bool
+	// Note, we do not pass the table name as an argument to the query, as the query should be
+	// pre-defined by the dialect.
+	if err := db.QueryRowContext(ctx, q).Scan(&exists); err != nil {
+		return false, fmt.Errorf("failed to check if table exists: %w", err)
+	}
+	return exists, nil
 }
