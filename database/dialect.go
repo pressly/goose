@@ -27,8 +27,8 @@ const (
 )
 
 // NewStore returns a new [Store] implementation for the given dialect.
-func NewStore(dialect Dialect, tableName string) (Store, error) {
-	if tableName == "" {
+func NewStore(dialect Dialect, tablename string) (Store, error) {
+	if tablename == "" {
 		return nil, errors.New("table name must not be empty")
 	}
 	if dialect == "" {
@@ -52,32 +52,32 @@ func NewStore(dialect Dialect, tableName string) (Store, error) {
 		return nil, fmt.Errorf("unknown dialect: %q", dialect)
 	}
 	return &store{
-		tableName: tableName,
+		tablename: tablename,
 		querier:   dialectquery.NewQueryController(querier),
 	}, nil
 }
 
 type store struct {
-	tableName string
+	tablename string
 	querier   *dialectquery.QueryController
 }
 
 var _ Store = (*store)(nil)
 
 func (s *store) Tablename() string {
-	return s.tableName
+	return s.tablename
 }
 
 func (s *store) CreateVersionTable(ctx context.Context, db DBTxConn) error {
-	q := s.querier.CreateTable(s.tableName)
+	q := s.querier.CreateTable(s.tablename)
 	if _, err := db.ExecContext(ctx, q); err != nil {
-		return fmt.Errorf("failed to create version table %q: %w", s.tableName, err)
+		return fmt.Errorf("failed to create version table %q: %w", s.tablename, err)
 	}
 	return nil
 }
 
 func (s *store) Insert(ctx context.Context, db DBTxConn, req InsertRequest) error {
-	q := s.querier.InsertVersion(s.tableName)
+	q := s.querier.InsertVersion(s.tablename)
 	if _, err := db.ExecContext(ctx, q, req.Version, true); err != nil {
 		return fmt.Errorf("failed to insert version %d: %w", req.Version, err)
 	}
@@ -85,7 +85,7 @@ func (s *store) Insert(ctx context.Context, db DBTxConn, req InsertRequest) erro
 }
 
 func (s *store) Delete(ctx context.Context, db DBTxConn, version int64) error {
-	q := s.querier.DeleteVersion(s.tableName)
+	q := s.querier.DeleteVersion(s.tablename)
 	if _, err := db.ExecContext(ctx, q, version); err != nil {
 		return fmt.Errorf("failed to delete version %d: %w", version, err)
 	}
@@ -97,7 +97,7 @@ func (s *store) GetMigration(
 	db DBTxConn,
 	version int64,
 ) (*GetMigrationResult, error) {
-	q := s.querier.GetMigrationByVersion(s.tableName)
+	q := s.querier.GetMigrationByVersion(s.tablename)
 	var result GetMigrationResult
 	if err := db.QueryRowContext(ctx, q, version).Scan(
 		&result.Timestamp,
@@ -112,7 +112,7 @@ func (s *store) GetMigration(
 }
 
 func (s *store) GetLatestVersion(ctx context.Context, db DBTxConn) (int64, error) {
-	q := s.querier.GetLatestVersion(s.tableName)
+	q := s.querier.GetLatestVersion(s.tablename)
 	var version sql.NullInt64
 	if err := db.QueryRowContext(ctx, q).Scan(&version); err != nil {
 		return -1, fmt.Errorf("failed to get latest version: %w", err)
@@ -127,7 +127,7 @@ func (s *store) ListMigrations(
 	ctx context.Context,
 	db DBTxConn,
 ) ([]*ListMigrationsResult, error) {
-	q := s.querier.ListMigrations(s.tableName)
+	q := s.querier.ListMigrations(s.tablename)
 	rows, err := db.QueryContext(ctx, q)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list migrations: %w", err)
@@ -158,7 +158,7 @@ func (s *store) ListMigrations(
 //
 
 func (s *store) TableExists(ctx context.Context, db DBTxConn) (bool, error) {
-	q := s.querier.TableExists(s.tableName)
+	q := s.querier.TableExists(s.tablename)
 	if q == "" {
 		return false, errors.ErrUnsupported
 	}
