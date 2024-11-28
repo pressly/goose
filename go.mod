@@ -6,6 +6,7 @@ require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.30.0
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/jackc/pgx/v5 v5.7.1
+	github.com/joho/godotenv v1.5.1
 	github.com/mfridman/interpolate v0.0.2
 	github.com/mfridman/xflag v0.0.0-20240825232106-efb77353e578
 	github.com/microsoft/go-mssqldb v1.7.2
