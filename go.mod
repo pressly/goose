@@ -1,8 +1,6 @@
 module github.com/pressly/goose/v3
 
-go 1.22
-
-toolchain go1.23.4
+go 1.21.0
 
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.30.0
