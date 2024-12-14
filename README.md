@@ -52,6 +52,24 @@ brew install goose
 
 See [installation documentation](https://pressly.github.io/goose/installation/) for more details.
 
+# Setting Up Environment Keys
+To start, configure the environment keys using one of the following methods:
+
+**1. Via environment variables:** 
+```shell
+export GOOSE_DRIVER=DRIVER
+export GOOSE_DBSTRING=DBSTRING
+export GOOSE_MIGRATION_DIR=MIGRATION_DIR
+```
+
+**2. Via `.env` files with corresponding variables. `.env` file example**:
+```env
+GOOSE_DRIVER=postgres
+GOOSE_DBSTRING=postgres://admin:admin@localhost:5432/admin_db
+GOOSE_MIGRATION_DIR=./migrations
+```
+For more details about environment variables, see the [official documentation on environment variables]( https://pressly.github.io/goose/documentation/environment-variables/).
+
 # Usage
 
 <details>

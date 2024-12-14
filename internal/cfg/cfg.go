@@ -1,8 +1,12 @@
 package cfg
 
-import "os"
+import (
+	"github.com/joho/godotenv"
+	"os"
+)
 
 var (
+	_                 = godotenv.Load()
 	GOOSEDRIVER       = envOr("GOOSE_DRIVER", "")
 	GOOSEDBSTRING     = envOr("GOOSE_DBSTRING", "")
 	GOOSEMIGRATIONDIR = envOr("GOOSE_MIGRATION_DIR", DefaultMigrationDir)
