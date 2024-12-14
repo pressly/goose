@@ -7,6 +7,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Add support for loading environment variables from `.env` files, enabled by default.
+  - The default file name is `.env`, but can be changed with the `-env=<filename>` flag.
+  - To disable this feature, set `-env=none`.
+
 ## [v3.23.1]
 
 - Store implementations can **optionally** implement the `TableExists` method to provide optimized

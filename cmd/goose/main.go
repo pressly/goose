@@ -17,15 +17,17 @@ import (
 	"text/tabwriter"
 	"text/template"
 
+	"github.com/joho/godotenv"
 	"github.com/mfridman/xflag"
 	"github.com/pressly/goose/v3"
-	"github.com/pressly/goose/v3/internal/cfg"
 	"github.com/pressly/goose/v3/internal/migrationstats"
 )
 
 var (
+	DefaultMigrationDir = "."
+
 	flags        = flag.NewFlagSet("goose", flag.ExitOnError)
-	dir          = flags.String("dir", cfg.DefaultMigrationDir, "directory with migration files, (GOOSE_MIGRATION_DIR env variable supported)")
+	dir          = flags.String("dir", DefaultMigrationDir, "directory with migration files, (GOOSE_MIGRATION_DIR env variable supported)")
 	table        = flags.String("table", "goose_db_version", "migrations table name")
 	verbose      = flags.Bool("v", false, "enable verbose mode")
 	help         = flags.Bool("h", false, "print help")
@@ -38,6 +40,7 @@ var (
 	noVersioning = flags.Bool("no-versioning", false, "apply migration commands with no versioning, in file order, from directory pointed to")
 	noColor      = flags.Bool("no-color", false, "disable color output (NO_COLOR env variable supported)")
 	timeout      = flags.Duration("timeout", 0, "maximum allowed duration for queries to run; e.g., 1h13m")
+	envFile      = flags.String("env", "", "load environment variables from file (default .env)")
 )
 
 var version string
@@ -60,6 +63,20 @@ func main() {
 		fmt.Printf("goose version: %s\n", strings.TrimSpace(version))
 		return
 	}
+
+	switch *envFile {
+	case "":
+		// Best effort to load default .env file
+		_ = godotenv.Load()
+	case "none":
+		// Do not load any env file
+	default:
+		if err := godotenv.Load(*envFile); err != nil {
+			log.Fatalf("failed to load env file: %v", err)
+		}
+	}
+	envConfig := loadEnvConfig()
+
 	if *verbose {
 		goose.SetVerbose(true)
 	}
@@ -82,8 +99,8 @@ func main() {
 
 	// The -dir option has not been set, check whether the env variable is set
 	// before defaulting to ".".
-	if *dir == cfg.DefaultMigrationDir && cfg.GOOSEMIGRATIONDIR != "" {
-		*dir = cfg.GOOSEMIGRATIONDIR
+	if *dir == DefaultMigrationDir && envConfig.dir != "" {
+		*dir = envConfig.dir
 	}
 
 	switch args[0] {
@@ -103,7 +120,7 @@ func main() {
 		}
 		return
 	case "env":
-		for _, env := range cfg.List() {
+		for _, env := range envConfig.listEnvs() {
 			fmt.Printf("%s=%q\n", env.Name, env.Value)
 		}
 		return
@@ -125,7 +142,7 @@ func main() {
 		return
 	}
 
-	args = mergeArgs(args)
+	args = mergeArgs(envConfig, args)
 	if len(args) < 3 {
 		flags.Usage()
 		os.Exit(1)
@@ -147,7 +164,7 @@ func main() {
 		arguments = append(arguments, args[3:]...)
 	}
 	options := []goose.OptionsFunc{}
-	if *noColor || checkNoColorFromEnv() {
+	if *noColor || envConfig.noColor {
 		options = append(options, goose.WithNoColor(true))
 	}
 	if *allowMissing {
@@ -209,19 +226,14 @@ func mergeDrivers(drivers []string) []string {
 	return merged
 }
 
-func checkNoColorFromEnv() bool {
-	ok, _ := strconv.ParseBool(cfg.GOOSENOCOLOR)
-	return ok
-}
-
-func mergeArgs(args []string) []string {
+func mergeArgs(config *envConfig, args []string) []string {
 	if len(args) < 1 {
 		return args
 	}
-	if s := cfg.GOOSEDRIVER; s != "" {
+	if s := config.driver; s != "" {
 		args = append([]string{s}, args...)
 	}
-	if s := cfg.GOOSEDBSTRING; s != "" {
+	if s := config.dbstring; s != "" {
 		args = append([]string{args[0], s}, args[1:]...)
 	}
 	return args
@@ -330,7 +342,7 @@ SELECT 'down SQL query';
 
 // initDir will create a directory with an empty SQL migration file.
 func gooseInit(dir string) error {
-	if dir == "" || dir == cfg.DefaultMigrationDir {
+	if dir == "" || dir == DefaultMigrationDir {
 		dir = "migrations"
 	}
 	_, err := os.Stat(dir)
@@ -403,4 +415,45 @@ func printValidate(filename string, verbose bool) error {
 		)
 	}
 	return w.Flush()
+}
+
+type envConfig struct {
+	driver   string
+	dbstring string
+	dir      string
+	noColor  bool
+}
+
+func loadEnvConfig() *envConfig {
+	noColorBool, _ := strconv.ParseBool(envOr("NO_COLOR", "false"))
+	return &envConfig{
+		driver:   envOr("GOOSE_DRIVER", ""),
+		dbstring: envOr("GOOSE_DBSTRING", ""),
+		dir:      envOr("GOOSE_MIGRATION_DIR", DefaultMigrationDir),
+		// https://no-color.org/
+		noColor: noColorBool,
+	}
+}
+
+func (c *envConfig) listEnvs() []envVar {
+	return []envVar{
+		{Name: "GOOSE_DRIVER", Value: c.driver},
+		{Name: "GOOSE_DBSTRING", Value: c.dbstring},
+		{Name: "GOOSE_MIGRATION_DIR", Value: c.dir},
+		{Name: "NO_COLOR", Value: strconv.FormatBool(c.noColor)},
+	}
+}
+
+type envVar struct {
+	Name  string
+	Value string
+}
+
+// envOr returns os.Getenv(key) if set, or else default.
+func envOr(key, def string) string {
+	val := os.Getenv(key)
+	if val == "" {
+		val = def
+	}
+	return val
 }

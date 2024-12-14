@@ -52,24 +52,6 @@ brew install goose
 
 See [installation documentation](https://pressly.github.io/goose/installation/) for more details.
 
-# Setting Up Environment Keys
-To start, configure the environment keys using one of the following methods:
-
-**1. Via environment variables:** 
-```shell
-export GOOSE_DRIVER=DRIVER
-export GOOSE_DBSTRING=DBSTRING
-export GOOSE_MIGRATION_DIR=MIGRATION_DIR
-```
-
-**2. Via `.env` files with corresponding variables. `.env` file example**:
-```env
-GOOSE_DRIVER=postgres
-GOOSE_DBSTRING=postgres://admin:admin@localhost:5432/admin_db
-GOOSE_MIGRATION_DIR=./migrations
-```
-For more details about environment variables, see the [official documentation on environment variables]( https://pressly.github.io/goose/documentation/environment-variables/).
-
 # Usage
 
 <details>
@@ -253,6 +235,33 @@ Print the current version of the database:
 
     $ goose version
     $ goose: version 002
+
+# Environment Variables
+
+If you prefer to use environment variables, instead of passing the driver and database string as
+arguments, you can set the following environment variables:
+
+**1. Via environment variables:**
+
+```shell
+export GOOSE_DRIVER=DRIVER
+export GOOSE_DBSTRING=DBSTRING
+export GOOSE_MIGRATION_DIR=MIGRATION_DIR
+```
+
+**2. Via `.env` files with corresponding variables. `.env` file example**:
+
+```env
+GOOSE_DRIVER=postgres
+GOOSE_DBSTRING=postgres://admin:admin@localhost:5432/admin_db
+GOOSE_MIGRATION_DIR=./migrations
+```
+
+Loading from `.env` files is enabled by default. To disable this feature, set the `-env=none` flag.
+If you want to load from a specific file, set the `-env` flag to the file path.
+
+For more details about environment variables, see the [official documentation on environment
+variables](https://pressly.github.io/goose/documentation/environment-variables/).
 
 # Migrations
 
