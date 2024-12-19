@@ -27,7 +27,7 @@ func VersionContext(ctx context.Context, db *sql.DB, dir string, opts ...Options
 		if len(migrations) > 0 {
 			current = migrations[len(migrations)-1].Version
 		}
-		log.Printf("goose: file version %v\n", current)
+		log.Printf("goose: file version %v", current)
 		return nil
 	}
 
@@ -35,7 +35,7 @@ func VersionContext(ctx context.Context, db *sql.DB, dir string, opts ...Options
 	if err != nil {
 		return err
 	}
-	log.Printf("goose: version %v\n", current)
+	log.Printf("goose: version %v", current)
 	return nil
 }
 
