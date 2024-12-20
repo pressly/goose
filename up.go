@@ -122,9 +122,9 @@ func UpToContext(ctx context.Context, db *sql.DB, dir string, version int64, opt
 			return err
 		}
 
-		log.Printf("goose: no migrations to run. current version: %d\n", current)
+		log.Printf("goose: no migrations to run. current version: %d", current)
 	} else {
-		log.Printf("goose: successfully migrated database to version: %d\n", current)
+		log.Printf("goose: successfully migrated database to version: %d", current)
 	}
 
 	// At this point there are no more migrations to apply. But we need to maintain
@@ -153,7 +153,7 @@ func upToNoVersioning(ctx context.Context, db *sql.DB, migrations Migrations, ve
 		}
 		finalVersion = current.Version
 	}
-	log.Printf("goose: up to current file version: %d\n", finalVersion)
+	log.Printf("goose: up to current file version: %d", finalVersion)
 	return nil
 }
 
