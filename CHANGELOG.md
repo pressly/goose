@@ -7,7 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-- Fix regression in postgres migration table existence check for non-default schema. (#882, #883)
+- Fix regression (`v3.23.1` and `v3.24.0`) in postgres migration table existence check for
+  non-default schema. (#882, #883)
 
 ## [v3.24.0]
 
