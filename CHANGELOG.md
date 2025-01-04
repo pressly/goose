@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Fix regression in postgres migration table existence check for non-default schema. (#882, #883)
+
 ## [v3.24.0]
 
 - Add support for loading environment variables from `.env` files, enabled by default.
