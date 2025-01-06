@@ -50,7 +50,7 @@ func (p *Postgres) TableExists(tableName string) string {
 		q := `SELECT EXISTS ( SELECT 1 FROM pg_tables WHERE schemaname = '%s' AND tablename = '%s' )`
 		return fmt.Sprintf(q, schemaName, tableName)
 	}
-	q := `SELECT EXISTS ( SELECT 1 FROM pg_tables WHERE tablename = '%s' )`
+	q := `SELECT EXISTS ( SELECT 1 FROM pg_tables WHERE schemaname = current_schema() AND tablename = '%s' )`
 	return fmt.Sprintf(q, tableName)
 }
 
