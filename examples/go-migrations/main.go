@@ -30,12 +30,12 @@ func main() {
 
 	db, err := goose.OpenDBWithDriver("sqlite", dbstring)
 	if err != nil {
-		log.Fatalf("goose: failed to open DB: %v\n", err)
+		log.Fatalf("goose: failed to open DB: %v", err)
 	}
 
 	defer func() {
 		if err := db.Close(); err != nil {
-			log.Fatalf("goose: failed to close DB: %v\n", err)
+			log.Fatalf("goose: failed to close DB: %v", err)
 		}
 	}()
 

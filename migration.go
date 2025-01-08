@@ -232,9 +232,9 @@ func (m *Migration) run(ctx context.Context, db *sql.DB, direction bool) error {
 		finish := truncateDuration(time.Since(start))
 
 		if len(statements) > 0 {
-			log.Printf("OK   %s (%s)\n", filepath.Base(m.Source), finish)
+			log.Printf("OK   %s (%s)", filepath.Base(m.Source), finish)
 		} else {
-			log.Printf("EMPTY %s (%s)\n", filepath.Base(m.Source), finish)
+			log.Printf("EMPTY %s (%s)", filepath.Base(m.Source), finish)
 		}
 
 	case ".go":
@@ -280,9 +280,9 @@ func (m *Migration) run(ctx context.Context, db *sql.DB, direction bool) error {
 		}
 		finish := truncateDuration(time.Since(start))
 		if !empty {
-			log.Printf("OK   %s (%s)\n", filepath.Base(m.Source), finish)
+			log.Printf("OK   %s (%s)", filepath.Base(m.Source), finish)
 		} else {
-			log.Printf("EMPTY %s (%s)\n", filepath.Base(m.Source), finish)
+			log.Printf("EMPTY %s (%s)", filepath.Base(m.Source), finish)
 		}
 	}
 	return nil
