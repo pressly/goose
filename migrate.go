@@ -213,6 +213,7 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 func EnsureDBVersionContext(ctx context.Context, db *sql.DB) (int64, error) {
 	dbMigrations, err := store.ListMigrations(ctx, db, TableName())
 	if err != nil {
+		log.Printf("goose: create version table due to issue: %s\n", err.Error())
 		return 0, createVersionTable(ctx, db)
 	}
 	// The most recent record for each migration specifies
