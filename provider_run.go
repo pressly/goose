@@ -446,7 +446,7 @@ func (p *Provider) runSQL(ctx context.Context, db database.DBTxConn, m *Migratio
 			p.cfg.logger.Printf("Excuting statement: %s", stmt)
 		}
 		if _, err := db.ExecContext(ctx, stmt); err != nil {
-			return err
+			return fmt.Errorf("failed to execute statement %q: %w", stmt, err)
 		}
 	}
 	return nil
