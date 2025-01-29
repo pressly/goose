@@ -3,7 +3,7 @@ name: Goose CI
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
 
 concurrency:
@@ -45,13 +45,13 @@ jobs:
           go build ./...
           make test-packages
       - name: Install GoReleaser
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.go-version == 'stable'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.go-version == 'stable'
         uses: goreleaser/goreleaser-action@v6
         with:
           install-only: true
           distribution: goreleaser
           version: "~> v2"
       - name: Gorelease dry-run
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.go-version == 'stable'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.go-version == 'stable'
         run: |
           goreleaser release --skip=publish --snapshot --fail-fast --clean
