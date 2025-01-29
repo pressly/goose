@@ -151,11 +151,11 @@ func main() {
 	driver, dbstring, command := args[0], args[1], args[2]
 	db, err := goose.OpenDBWithDriver(driver, normalizeDBString(driver, dbstring, *certfile, *sslcert, *sslkey))
 	if err != nil {
-		log.Fatalf("-dbstring=%q: %v\n", dbstring, err)
+		log.Fatalf("-dbstring=%q: %v", dbstring, err)
 	}
 	defer func() {
 		if err := db.Close(); err != nil {
-			log.Fatalf("goose: failed to close DB: %v\n", err)
+			log.Fatalf("goose: failed to close DB: %v", err)
 		}
 	}()
 
