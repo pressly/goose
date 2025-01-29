@@ -1,8 +1,6 @@
 module github.com/pressly/goose/v3/internal/testing
 
-go 1.22.7
-
-toolchain go1.23.2
+go 1.23.5
 
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.30.1
@@ -61,6 +59,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
+	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
