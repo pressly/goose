@@ -404,7 +404,7 @@ func main() {
 
     goose.SetBaseFS(embedMigrations)
 
-    if err := goose.SetDialect("postgres"); err != nil {
+    if err := goose.SetDialect(goose.DialectPostgres); err != nil {
         panic(err)
     }
 

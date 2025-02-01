@@ -32,13 +32,23 @@ func init() {
 }
 
 // SetDialect sets the dialect to use for the goose package.
-func SetDialect(s string) error {
-	var d, err = GetDialect(s)
-	if err != nil {
-		return err
+func SetDialect[D string | Dialect](d D) error {
+	var (
+		v   Dialect
+		err error
+	)
+
+	switch t := any(d).(type) {
+	case string:
+		v, err = GetDialect(t)
+		if err != nil {
+			return err
+		}
+	case Dialect:
+		v = t
 	}
 
-	store, err = dialectstore.NewStore(d)
+	store, err = dialectstore.NewStore(v)
 
 	return err
 }
