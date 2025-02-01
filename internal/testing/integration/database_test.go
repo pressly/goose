@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pressly/goose/v3/database"
+	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/internal/testing/testdb"
 	"github.com/stretchr/testify/require"
 )
@@ -17,7 +17,7 @@ func TestPostgres(t *testing.T) {
 	t.Cleanup(cleanup)
 	require.NoError(t, db.Ping())
 
-	testDatabase(t, database.DialectPostgres, db, "testdata/migrations/postgres")
+	testDatabase(t, goose.DialectPostgres, db, "testdata/migrations/postgres")
 }
 
 func TestClickhouse(t *testing.T) {
@@ -28,7 +28,7 @@ func TestClickhouse(t *testing.T) {
 	t.Cleanup(cleanup)
 	require.NoError(t, db.Ping())
 
-	testDatabase(t, database.DialectClickHouse, db, "testdata/migrations/clickhouse")
+	testDatabase(t, goose.DialectClickHouse, db, "testdata/migrations/clickhouse")
 
 	type result struct {
 		customerID     string    `db:"customer_id"`
@@ -79,7 +79,7 @@ func TestClickhouseRemote(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(cleanup)
 	require.NoError(t, db.Ping())
-	testDatabase(t, database.DialectClickHouse, db, "testdata/migrations/clickhouse-remote")
+	testDatabase(t, goose.DialectClickHouse, db, "testdata/migrations/clickhouse-remote")
 
 	// assert that the taxi_zone_dictionary table has been created and populated
 	var count int
@@ -96,7 +96,7 @@ func TestMySQL(t *testing.T) {
 	t.Cleanup(cleanup)
 	require.NoError(t, db.Ping())
 
-	testDatabase(t, database.DialectMySQL, db, "testdata/migrations/mysql")
+	testDatabase(t, goose.DialectMySQL, db, "testdata/migrations/mysql")
 }
 
 func TestTurso(t *testing.T) {
@@ -107,7 +107,7 @@ func TestTurso(t *testing.T) {
 	t.Cleanup(cleanup)
 	require.NoError(t, db.Ping())
 
-	testDatabase(t, database.DialectTurso, db, "testdata/migrations/turso")
+	testDatabase(t, goose.DialectTurso, db, "testdata/migrations/turso")
 }
 
 func TestVertica(t *testing.T) {
@@ -118,7 +118,7 @@ func TestVertica(t *testing.T) {
 	t.Cleanup(cleanup)
 	require.NoError(t, db.Ping())
 
-	testDatabase(t, database.DialectVertica, db, "testdata/migrations/vertica")
+	testDatabase(t, goose.DialectVertica, db, "testdata/migrations/vertica")
 
 	type result struct {
 		TestKey    int64     `db:"test_key"`
@@ -191,7 +191,7 @@ func TestYDB(t *testing.T) {
 	t.Cleanup(cleanup)
 	require.NoError(t, db.Ping())
 
-	testDatabase(t, database.DialectYdB, db, "testdata/migrations/ydb")
+	testDatabase(t, goose.DialectYdB, db, "testdata/migrations/ydb")
 }
 
 func TestStarrocks(t *testing.T) {
@@ -202,5 +202,5 @@ func TestStarrocks(t *testing.T) {
 	t.Cleanup(cleanup)
 	require.NoError(t, db.Ping())
 
-	testDatabase(t, database.DialectStarrocks, db, "testdata/migrations/starrocks")
+	testDatabase(t, goose.DialectStarrocks, db, "testdata/migrations/starrocks")
 }

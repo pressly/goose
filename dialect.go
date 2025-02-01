@@ -2,63 +2,72 @@ package goose
 
 import (
 	"fmt"
-
-	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/internal/dialect"
+	"github.com/pressly/goose/v3/internal/dialectstore"
 )
 
-// Dialect is the type of database dialect. It is an alias for [database.Dialect].
-type Dialect = database.Dialect
+// Dialect is the type of database dialect.
+type Dialect = dialect.Dialect
 
 const (
-	DialectClickHouse Dialect = database.DialectClickHouse
-	DialectMSSQL      Dialect = database.DialectMSSQL
-	DialectMySQL      Dialect = database.DialectMySQL
-	DialectPostgres   Dialect = database.DialectPostgres
-	DialectRedshift   Dialect = database.DialectRedshift
-	DialectSQLite3    Dialect = database.DialectSQLite3
-	DialectTiDB       Dialect = database.DialectTiDB
-	DialectVertica    Dialect = database.DialectVertica
-	DialectYdB        Dialect = database.DialectYdB
-	DialectStarrocks  Dialect = database.DialectStarrocks
+	DialectClickHouse Dialect = dialect.Clickhouse
+	// Deprecated: use [DialectSqlserver]
+	DialectMSSQL     Dialect = dialect.Sqlserver
+	DialectSqlserver Dialect = dialect.Sqlserver
+	DialectMySQL     Dialect = dialect.Mysql
+	DialectPostgres  Dialect = dialect.Postgres
+	DialectRedshift  Dialect = dialect.Redshift
+	DialectSQLite3   Dialect = dialect.Sqlite3
+	DialectTiDB      Dialect = dialect.Tidb
+	DialectVertica   Dialect = dialect.Vertica
+	DialectYdB       Dialect = dialect.Ydb
+	DialectTurso     Dialect = dialect.Turso
+	DialectStarrocks Dialect = dialect.Starrocks
 )
 
-func init() {
-	store, _ = dialect.NewStore(dialect.Postgres)
-}
+var store dialectstore.Store
 
-var store dialect.Store
+func init() {
+	store, _ = dialectstore.NewStore(DialectPostgres)
+}
 
 // SetDialect sets the dialect to use for the goose package.
 func SetDialect(s string) error {
-	var d dialect.Dialect
+	var d, err = GetDialect(s)
+	if err != nil {
+		return err
+	}
+
+	store, err = dialectstore.NewStore(d)
+
+	return err
+}
+
+func GetDialect(s string) (Dialect, error) {
 	switch s {
 	case "postgres", "pgx":
-		d = dialect.Postgres
+		return DialectPostgres, nil
 	case "mysql":
-		d = dialect.Mysql
+		return DialectMySQL, nil
 	case "sqlite3", "sqlite":
-		d = dialect.Sqlite3
+		return DialectSQLite3, nil
 	case "mssql", "azuresql", "sqlserver":
-		d = dialect.Sqlserver
+		return DialectSqlserver, nil
 	case "redshift":
-		d = dialect.Redshift
+		return DialectRedshift, nil
 	case "tidb":
-		d = dialect.Tidb
+		return DialectTiDB, nil
 	case "clickhouse":
-		d = dialect.Clickhouse
+		return DialectClickHouse, nil
 	case "vertica":
-		d = dialect.Vertica
+		return DialectVertica, nil
 	case "ydb":
-		d = dialect.Ydb
+		return DialectYdB, nil
 	case "turso":
-		d = dialect.Turso
+		return DialectTurso, nil
 	case "starrocks":
-		d = dialect.Starrocks
+		return DialectStarrocks, nil
 	default:
-		return fmt.Errorf("%q: unknown dialect", s)
+		return "", fmt.Errorf("%q: unknown dialect", s)
 	}
-	var err error
-	store, err = dialect.NewStore(d)
-	return err
 }

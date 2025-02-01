@@ -5,52 +5,22 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/pressly/goose/v3/internal/dialect"
 
-	"github.com/pressly/goose/v3/internal/dialect/dialectquery"
-)
-
-// Dialect is the type of database dialect.
-type Dialect string
-
-const (
-	DialectClickHouse Dialect = "clickhouse"
-	DialectMSSQL      Dialect = "mssql"
-	DialectMySQL      Dialect = "mysql"
-	DialectPostgres   Dialect = "postgres"
-	DialectRedshift   Dialect = "redshift"
-	DialectSQLite3    Dialect = "sqlite3"
-	DialectTiDB       Dialect = "tidb"
-	DialectTurso      Dialect = "turso"
-	DialectVertica    Dialect = "vertica"
-	DialectYdB        Dialect = "ydb"
-	DialectStarrocks  Dialect = "starrocks"
+	"github.com/pressly/goose/v3/internal/dialectquery"
 )
 
 // NewStore returns a new [Store] implementation for the given dialect.
-func NewStore(dialect Dialect, tablename string) (Store, error) {
+func NewStore(d dialect.Dialect, tablename string) (Store, error) {
 	if tablename == "" {
 		return nil, errors.New("table name must not be empty")
 	}
-	if dialect == "" {
-		return nil, errors.New("dialect must not be empty")
+
+	var querier, err = dialectquery.LookupQuerier(d)
+	if err != nil {
+		return nil, err
 	}
-	lookup := map[Dialect]dialectquery.Querier{
-		DialectClickHouse: &dialectquery.Clickhouse{},
-		DialectMSSQL:      &dialectquery.Sqlserver{},
-		DialectMySQL:      &dialectquery.Mysql{},
-		DialectPostgres:   &dialectquery.Postgres{},
-		DialectRedshift:   &dialectquery.Redshift{},
-		DialectSQLite3:    &dialectquery.Sqlite3{},
-		DialectTiDB:       &dialectquery.Tidb{},
-		DialectVertica:    &dialectquery.Vertica{},
-		DialectYdB:        &dialectquery.Ydb{},
-		DialectTurso:      &dialectquery.Turso{},
-		DialectStarrocks:  &dialectquery.Starrocks{},
-	}
-	querier, ok := lookup[dialect]
-	if !ok {
-		return nil, fmt.Errorf("unknown dialect: %q", dialect)
-	}
+
 	return &store{
 		tablename: tablename,
 		querier:   dialectquery.NewQueryController(querier),

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/pressly/goose/v3/internal/dialect"
 	"math"
 	"math/rand"
 	"os"
@@ -746,7 +747,7 @@ func TestGoMigrationPanic(t *testing.T) {
 func TestCustomStoreTableExists(t *testing.T) {
 	t.Parallel()
 	db := newDB(t)
-	store, err := database.NewStore(database.DialectSQLite3, goose.DefaultTablename)
+	store, err := database.NewStore(dialect.Sqlite3, goose.DefaultTablename)
 	require.NoError(t, err)
 	for i := 0; i < 2; i++ {
 		p, err := goose.NewProvider("", db, newFsys(),

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/pressly/goose/v3/internal/dialect"
 	"path/filepath"
 	"testing"
 
@@ -21,7 +22,7 @@ func TestDialectStore(t *testing.T) {
 	t.Parallel()
 	t.Run("invalid", func(t *testing.T) {
 		// Test empty table name.
-		_, err := database.NewStore(database.DialectSQLite3, "")
+		_, err := database.NewStore(dialect.Sqlite3, "")
 		require.Error(t, err)
 		// Test unknown dialect.
 		_, err = database.NewStore("unknown-dialect", "foo")
@@ -34,7 +35,7 @@ func TestDialectStore(t *testing.T) {
 	t.Run("sqlite3", func(t *testing.T) {
 		db, err := sql.Open("sqlite", ":memory:")
 		require.NoError(t, err)
-		testStore(context.Background(), t, database.DialectSQLite3, db, func(t *testing.T, err error) {
+		testStore(context.Background(), t, dialect.Sqlite3, db, func(t *testing.T, err error) {
 			t.Helper()
 			var sqliteErr *sqlite.Error
 			ok := errors.As(err, &sqliteErr)
@@ -47,7 +48,7 @@ func TestDialectStore(t *testing.T) {
 		dir := t.TempDir()
 		db, err := sql.Open("sqlite", filepath.Join(dir, "sql_embed.db"))
 		require.NoError(t, err)
-		store, err := database.NewStore(database.DialectSQLite3, "foo")
+		store, err := database.NewStore(dialect.Sqlite3, "foo")
 		require.NoError(t, err)
 		err = store.CreateVersionTable(context.Background(), db)
 		require.NoError(t, err)
@@ -74,7 +75,7 @@ func TestDialectStore(t *testing.T) {
 func testStore(
 	ctx context.Context,
 	t *testing.T,
-	d database.Dialect,
+	d dialect.Dialect,
 	db *sql.DB,
 	alreadyExists func(t *testing.T, err error),
 ) {

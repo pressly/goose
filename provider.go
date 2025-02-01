@@ -40,7 +40,7 @@ type Provider struct {
 //
 // The caller is responsible for matching the database dialect with the database/sql driver. For
 // example, if the database dialect is "postgres", the database/sql driver could be
-// github.com/lib/pq or github.com/jackc/pgx. Each dialect has a corresponding [database.Dialect]
+// github.com/lib/pq or github.com/jackc/pgx. Each dialect has a corresponding [dialect.Dialect]
 // constant backed by a default [database.Store] implementation. For more advanced use cases, such
 // as using a custom table name or supplying a custom store implementation, see [WithStore].
 //

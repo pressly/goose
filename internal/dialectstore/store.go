@@ -1,12 +1,11 @@
-package dialect
+package dialectstore
 
 import (
 	"context"
 	"database/sql"
-	"fmt"
+	"github.com/pressly/goose/v3/internal/dialect"
+	"github.com/pressly/goose/v3/internal/dialectquery"
 	"time"
-
-	"github.com/pressly/goose/v3/internal/dialect/dialectquery"
 )
 
 // Store is the interface that wraps the basic methods for a database dialect.
@@ -45,38 +44,6 @@ type Store interface {
 	ListMigrations(ctx context.Context, db *sql.DB, tableName string) ([]*ListMigrationsResult, error)
 }
 
-// NewStore returns a new Store for the given dialect.
-func NewStore(d Dialect) (Store, error) {
-	var querier dialectquery.Querier
-	switch d {
-	case Postgres:
-		querier = &dialectquery.Postgres{}
-	case Mysql:
-		querier = &dialectquery.Mysql{}
-	case Sqlite3:
-		querier = &dialectquery.Sqlite3{}
-	case Sqlserver:
-		querier = &dialectquery.Sqlserver{}
-	case Redshift:
-		querier = &dialectquery.Redshift{}
-	case Tidb:
-		querier = &dialectquery.Tidb{}
-	case Clickhouse:
-		querier = &dialectquery.Clickhouse{}
-	case Vertica:
-		querier = &dialectquery.Vertica{}
-	case Ydb:
-		querier = &dialectquery.Ydb{}
-	case Turso:
-		querier = &dialectquery.Turso{}
-	case Starrocks:
-		querier = &dialectquery.Starrocks{}
-	default:
-		return nil, fmt.Errorf("unknown querier dialect: %v", d)
-	}
-	return &store{querier: querier}, nil
-}
-
 type GetMigrationResult struct {
 	IsApplied bool
 	Timestamp time.Time
@@ -87,11 +54,21 @@ type ListMigrationsResult struct {
 	IsApplied bool
 }
 
+var _ Store = (*store)(nil)
+
+// NewStore returns a new Store for the given dialect.
+func NewStore(d dialect.Dialect) (Store, error) {
+	var querier, err = dialectquery.LookupQuerier(d)
+	if err != nil {
+		return nil, err
+	}
+
+	return &store{querier: querier}, nil
+}
+
 type store struct {
 	querier dialectquery.Querier
 }
-
-var _ Store = (*store)(nil)
 
 func (s *store) CreateVersionTable(ctx context.Context, tx *sql.Tx, tableName string) error {
 	q := s.querier.CreateTable(tableName)
