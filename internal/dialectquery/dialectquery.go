@@ -3,6 +3,7 @@ package dialectquery
 import (
 	"fmt"
 	"github.com/pressly/goose/v3/internal/dialect"
+	"strings"
 )
 
 // Querier is the interface that wraps the basic methods to create a dialect specific query.
@@ -53,4 +54,12 @@ func LookupQuerier(d dialect.Dialect) (Querier, error) {
 	}
 
 	return querier, nil
+}
+
+func parseTableIdentifier(name string) (schema, table string) {
+	schema, table, found := strings.Cut(name, ".")
+	if !found {
+		return "", name
+	}
+	return schema, table
 }

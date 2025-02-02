@@ -2,7 +2,6 @@ package dialectquery
 
 import (
 	"fmt"
-	"strings"
 )
 
 type Postgres struct{}
@@ -52,12 +51,4 @@ func (p *Postgres) TableExists(tableName string) string {
 	}
 	q := `SELECT EXISTS ( SELECT 1 FROM pg_tables WHERE (current_schema() IS NULL OR schemaname = current_schema()) AND tablename = '%s' )`
 	return fmt.Sprintf(q, tableName)
-}
-
-func parseTableIdentifier(name string) (schema, table string) {
-	schema, table, found := strings.Cut(name, ".")
-	if !found {
-		return "", name
-	}
-	return schema, table
 }
