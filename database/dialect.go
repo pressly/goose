@@ -2,12 +2,11 @@ package database
 
 import (
 	"context"
-	"database/sql"
 	"errors"
-	"fmt"
 	"github.com/pressly/goose/v3/internal/dialect"
+	"github.com/pressly/goose/v3/migration"
 
-	"github.com/pressly/goose/v3/internal/dialectquery"
+	"github.com/pressly/goose/v3/internal/dialectstore"
 )
 
 // NewStore returns a new [Store] implementation for the given dialect.
@@ -16,20 +15,22 @@ func NewStore(d dialect.Dialect, tablename string) (Store, error) {
 		return nil, errors.New("table name must not be empty")
 	}
 
-	var querier, err = dialectquery.LookupQuerier(d)
-	if err != nil {
-		return nil, err
+	var result = &store{
+		tablename: tablename,
 	}
 
-	return &store{
-		tablename: tablename,
-		querier:   dialectquery.NewQueryController(querier),
-	}, nil
+	if dialectStore, err := dialectstore.NewStore(d); err != nil {
+		return nil, err
+	} else {
+		result.dialectStore = dialectStore
+	}
+
+	return result, nil
 }
 
 type store struct {
-	tablename string
-	querier   *dialectquery.QueryController
+	tablename    string
+	dialectStore dialectstore.Store
 }
 
 var _ Store = (*store)(nil)
@@ -39,104 +40,36 @@ func (s *store) Tablename() string {
 }
 
 func (s *store) CreateVersionTable(ctx context.Context, db DBTxConn) error {
-	q := s.querier.CreateTable(s.tablename)
-	if _, err := db.ExecContext(ctx, q); err != nil {
-		return fmt.Errorf("failed to create version table %q: %w", s.tablename, err)
-	}
-	return nil
+	return s.dialectStore.CreateVersionTable(ctx, db, s.tablename)
 }
 
-func (s *store) Insert(ctx context.Context, db DBTxConn, req InsertRequest) error {
-	q := s.querier.InsertVersion(s.tablename)
-	if _, err := db.ExecContext(ctx, q, req.Version, true); err != nil {
-		return fmt.Errorf("failed to insert version %d: %w", req.Version, err)
-	}
-	return nil
+func (s *store) Insert(ctx context.Context, db DBTxConn, req migration.Entity) error {
+	return s.dialectStore.InsertVersion(ctx, db, s.tablename, req)
 }
 
 func (s *store) Delete(ctx context.Context, db DBTxConn, version int64) error {
-	q := s.querier.DeleteVersion(s.tablename)
-	if _, err := db.ExecContext(ctx, q, version); err != nil {
-		return fmt.Errorf("failed to delete version %d: %w", version, err)
-	}
-	return nil
+	return s.dialectStore.DeleteVersion(ctx, db, s.tablename, migration.Entity{Version: version})
 }
 
 func (s *store) GetMigration(
 	ctx context.Context,
 	db DBTxConn,
 	version int64,
-) (*GetMigrationResult, error) {
-	q := s.querier.GetMigrationByVersion(s.tablename)
-	var result GetMigrationResult
-	if err := db.QueryRowContext(ctx, q, version).Scan(
-		&result.Timestamp,
-		&result.IsApplied,
-	); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("%w: %d", ErrVersionNotFound, version)
-		}
-		return nil, fmt.Errorf("failed to get migration %d: %w", version, err)
-	}
-	return &result, nil
+) (*dialectstore.GetMigrationResult, error) {
+	return s.dialectStore.GetMigration(ctx, db, s.tablename, version)
 }
 
 func (s *store) GetLatestVersion(ctx context.Context, db DBTxConn) (int64, error) {
-	q := s.querier.GetLatestVersion(s.tablename)
-	var version sql.NullInt64
-	if err := db.QueryRowContext(ctx, q).Scan(&version); err != nil {
-		return -1, fmt.Errorf("failed to get latest version: %w", err)
-	}
-	if !version.Valid {
-		return -1, fmt.Errorf("latest %w", ErrVersionNotFound)
-	}
-	return version.Int64, nil
+	return s.dialectStore.GetLatestVersion(ctx, db, s.tablename)
 }
 
 func (s *store) ListMigrations(
 	ctx context.Context,
 	db DBTxConn,
-) ([]*ListMigrationsResult, error) {
-	q := s.querier.ListMigrations(s.tablename)
-	rows, err := db.QueryContext(ctx, q)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list migrations: %w", err)
-	}
-	defer rows.Close()
-
-	var migrations []*ListMigrationsResult
-	for rows.Next() {
-		var result ListMigrationsResult
-		if err := rows.Scan(&result.Version, &result.IsApplied); err != nil {
-			return nil, fmt.Errorf("failed to scan list migrations result: %w", err)
-		}
-		migrations = append(migrations, &result)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return migrations, nil
+) ([]*dialectstore.ListMigrationsResult, error) {
+	return s.dialectStore.ListMigrations(ctx, db, s.tablename)
 }
 
-//
-//
-//
-// Additional methods that are not part of the core Store interface, but are extended by the
-// [controller.StoreController] type.
-//
-//
-//
-
 func (s *store) TableExists(ctx context.Context, db DBTxConn) (bool, error) {
-	q := s.querier.TableExists(s.tablename)
-	if q == "" {
-		return false, errors.ErrUnsupported
-	}
-	var exists bool
-	// Note, we do not pass the table name as an argument to the query, as the query should be
-	// pre-defined by the dialect.
-	if err := db.QueryRowContext(ctx, q).Scan(&exists); err != nil {
-		return false, fmt.Errorf("failed to check if table exists: %w", err)
-	}
-	return exists, nil
+	return s.dialectStore.TableVersionExists(ctx, db, s.tablename)
 }

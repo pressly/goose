@@ -13,6 +13,7 @@ import (
 
 	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/internal/controller"
+	"github.com/pressly/goose/v3/internal/dialectstore"
 	"github.com/pressly/goose/v3/internal/gooseutil"
 	"github.com/pressly/goose/v3/internal/sqlparser"
 	"go.uber.org/multierr"
@@ -434,16 +435,16 @@ func (p *Provider) down(
 		return nil, errMissingZeroVersion
 	}
 	// We never migrate the zero version down.
-	if dbMigrations[0].Version == 0 {
+	if dbMigrations[0].VersionID == 0 {
 		p.printf("no migrations to run, current version: 0")
 		return nil, nil
 	}
 	var apply []*Migration
 	for _, dbMigration := range dbMigrations {
-		if dbMigration.Version <= version {
+		if dbMigration.VersionID <= version {
 			break
 		}
-		m, err := p.getMigration(dbMigration.Version)
+		m, err := p.getMigration(dbMigration.VersionID)
 		if err != nil {
 			return nil, err
 		}
@@ -473,7 +474,7 @@ func (p *Provider) apply(
 	}()
 
 	result, err := p.store.GetMigration(ctx, conn, version)
-	if err != nil && !errors.Is(err, database.ErrVersionNotFound) {
+	if err != nil && !errors.Is(err, ErrVersionNotFound) {
 		return nil, err
 	}
 	// There are a few states here:
@@ -515,7 +516,7 @@ func (p *Provider) getVersions(ctx context.Context) (current, target int64, retE
 
 	current, err = p.store.GetLatestVersion(ctx, conn)
 	if err != nil {
-		if errors.Is(err, database.ErrVersionNotFound) {
+		if errors.Is(err, ErrVersionNotFound) {
 			return -1, target, errMissingZeroVersion
 		}
 		return -1, target, err
@@ -578,10 +579,10 @@ func getVersionsFromMigrations(in []*Migration) []int64 {
 
 }
 
-func getVersionsFromListMigrations(in []*database.ListMigrationsResult) []int64 {
+func getVersionsFromListMigrations(in []*dialectstore.ListMigrationsResult) []int64 {
 	out := make([]int64, 0, len(in))
 	for _, m := range in {
-		out = append(out, m.Version)
+		out = append(out, m.VersionID)
 	}
 	return out
 
@@ -610,7 +611,7 @@ func (p *Provider) status(ctx context.Context) (_ []*MigrationStatus, retErr err
 		// assume all migrations are pending.
 		if !p.cfg.disableVersioning {
 			dbResult, err := p.store.GetMigration(ctx, conn, m.Version)
-			if err != nil && !errors.Is(err, database.ErrVersionNotFound) {
+			if err != nil && !errors.Is(err, ErrVersionNotFound) {
 				return nil, err
 			}
 			if dbResult != nil {
@@ -641,7 +642,7 @@ func (p *Provider) getDBMaxVersion(ctx context.Context, conn *sql.Conn) (_ int64
 
 	latest, err := p.store.GetLatestVersion(ctx, conn)
 	if err != nil {
-		if errors.Is(err, database.ErrVersionNotFound) {
+		if errors.Is(err, ErrVersionNotFound) {
 			return 0, errMissingZeroVersion
 		}
 		return -1, err

@@ -16,6 +16,11 @@ func (s *Sqlserver) CreateTable(tableName string) string {
 	return fmt.Sprintf(q, tableName)
 }
 
+func (s *Sqlserver) TableExists(_ string) string {
+	// TODO https://github.com/pressly/goose/issues/898
+	return ""
+}
+
 func (s *Sqlserver) InsertVersion(tableName string) string {
 	q := `INSERT INTO %s (version_id, is_applied) VALUES (@p1, @p2)`
 	return fmt.Sprintf(q, tableName)

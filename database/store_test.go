@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/pressly/goose/v3/internal/dialect"
+	"github.com/pressly/goose/v3/internal/dialectstore"
+	"github.com/pressly/goose/v3/migration"
 	"path/filepath"
 	"testing"
 
@@ -53,7 +55,7 @@ func TestDialectStore(t *testing.T) {
 		err = store.CreateVersionTable(context.Background(), db)
 		require.NoError(t, err)
 		insert := func(db *sql.DB, version int64) error {
-			return store.Insert(context.Background(), db, database.InsertRequest{Version: version})
+			return store.Insert(context.Background(), db, migration.Entity{Version: version})
 		}
 		require.NoError(t, insert(db, 1))
 		require.NoError(t, insert(db, 3))
@@ -62,9 +64,9 @@ func TestDialectStore(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, res, 3)
 		// Check versions are in descending order: [2, 3, 1]
-		require.EqualValues(t, 2, res[0].Version)
-		require.EqualValues(t, 3, res[1].Version)
-		require.EqualValues(t, 1, res[2].Version)
+		require.EqualValues(t, 2, res[0].VersionID)
+		require.EqualValues(t, 3, res[1].VersionID)
+		require.EqualValues(t, 1, res[2].VersionID)
 	})
 }
 
@@ -99,7 +101,7 @@ func testStore(
 	}
 	// Get the latest version. There should be none.
 	_, err = store.GetLatestVersion(ctx, db)
-	require.ErrorIs(t, err, database.ErrVersionNotFound)
+	require.ErrorIs(t, err, dialectstore.ErrVersionNotFound)
 
 	// List migrations. There should be none.
 	err = runConn(ctx, db, func(conn *sql.Conn) error {
@@ -113,7 +115,7 @@ func testStore(
 	// Insert 5 migrations in addition to the zero migration.
 	for i := 0; i < 6; i++ {
 		err = runConn(ctx, db, func(conn *sql.Conn) error {
-			err := store.Insert(ctx, conn, database.InsertRequest{Version: int64(i)})
+			err := store.Insert(ctx, conn, migration.Entity{Version: int64(i)})
 			require.NoError(t, err)
 			latest, err := store.GetLatestVersion(ctx, conn)
 			require.NoError(t, err)
@@ -130,7 +132,7 @@ func testStore(
 		require.Len(t, res, 6)
 		// Check versions are in descending order.
 		for i := 0; i < 6; i++ {
-			require.EqualValues(t, res[i].Version, 5-i)
+			require.EqualValues(t, res[i].VersionID, 5-i)
 		}
 		return nil
 	})
@@ -156,7 +158,7 @@ func testStore(
 		require.Len(t, res, 3)
 		// Check that the remaining versions are in descending order.
 		for i := 0; i < 3; i++ {
-			require.EqualValues(t, res[i].Version, 2-i)
+			require.EqualValues(t, res[i].VersionID, 2-i)
 		}
 		return nil
 	})
@@ -200,7 +202,7 @@ func testStore(
 	err = store.Delete(ctx, db, 0)
 	require.NoError(t, err)
 	_, err = store.GetLatestVersion(ctx, db)
-	require.ErrorIs(t, err, database.ErrVersionNotFound)
+	require.ErrorIs(t, err, dialectstore.ErrVersionNotFound)
 
 	// List migrations. There should be none.
 	err = runConn(ctx, db, func(conn *sql.Conn) error {
@@ -215,7 +217,7 @@ func testStore(
 	err = runConn(ctx, db, func(conn *sql.Conn) error {
 		_, err := store.GetMigration(ctx, conn, 0)
 		require.Error(t, err)
-		require.ErrorIs(t, err, database.ErrVersionNotFound)
+		require.ErrorIs(t, err, dialectstore.ErrVersionNotFound)
 		return nil
 	})
 	require.NoError(t, err)

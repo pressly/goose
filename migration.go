@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/pressly/goose/v3/migration"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -343,17 +344,22 @@ func runGoMigration(
 }
 
 func insertOrDeleteVersion(ctx context.Context, tx *sql.Tx, version int64, direction bool) error {
+	entityVersion := migration.Entity{Version: version}
+
 	if direction {
-		return store.InsertVersion(ctx, tx, TableName(), version)
+		return store.InsertVersion(ctx, tx, TableName(), entityVersion)
 	}
-	return store.DeleteVersion(ctx, tx, TableName(), version)
+
+	return store.DeleteVersion(ctx, tx, TableName(), entityVersion)
 }
 
 func insertOrDeleteVersionNoTx(ctx context.Context, db *sql.DB, version int64, direction bool) error {
+	entityVersion := migration.Entity{Version: version}
+
 	if direction {
-		return store.InsertVersionNoTx(ctx, db, TableName(), version)
+		return store.InsertVersionNoTx(ctx, db, TableName(), entityVersion)
 	}
-	return store.DeleteVersionNoTx(ctx, db, TableName(), version)
+	return store.DeleteVersionNoTx(ctx, db, TableName(), entityVersion)
 }
 
 // NumericComponent parses the version from the migration file name.

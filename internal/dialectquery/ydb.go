@@ -17,6 +17,11 @@ func (c *Ydb) CreateTable(tableName string) string {
 	return fmt.Sprintf(q, tableName)
 }
 
+func (c *Ydb) TableExists(_ string) string {
+	// TODO https://github.com/pressly/goose/issues/898
+	return ""
+}
+
 func (c *Ydb) InsertVersion(tableName string) string {
 	q := `INSERT INTO %s (
 		version_id, 

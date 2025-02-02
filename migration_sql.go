@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/pressly/goose/v3/migration"
 	"regexp"
 )
 
@@ -24,6 +25,8 @@ func runSQLMigration(
 	direction bool,
 	noVersioning bool,
 ) error {
+	entityVersion := migration.Entity{Version: v}
+
 	if useTx {
 		// TRANSACTION.
 
@@ -44,14 +47,15 @@ func runSQLMigration(
 		}
 
 		if !noVersioning {
+
 			if direction {
-				if err := store.InsertVersion(ctx, tx, TableName(), v); err != nil {
+				if err := store.InsertVersion(ctx, tx, TableName(), entityVersion); err != nil {
 					verboseInfo("Rollback transaction")
 					_ = tx.Rollback()
 					return fmt.Errorf("failed to insert new goose version: %w", err)
 				}
 			} else {
-				if err := store.DeleteVersion(ctx, tx, TableName(), v); err != nil {
+				if err := store.DeleteVersion(ctx, tx, TableName(), entityVersion); err != nil {
 					verboseInfo("Rollback transaction")
 					_ = tx.Rollback()
 					return fmt.Errorf("failed to delete goose version: %w", err)
@@ -76,11 +80,11 @@ func runSQLMigration(
 	}
 	if !noVersioning {
 		if direction {
-			if err := store.InsertVersionNoTx(ctx, db, TableName(), v); err != nil {
+			if err := store.InsertVersionNoTx(ctx, db, TableName(), entityVersion); err != nil {
 				return fmt.Errorf("failed to insert new goose version: %w", err)
 			}
 		} else {
-			if err := store.DeleteVersionNoTx(ctx, db, TableName(), v); err != nil {
+			if err := store.DeleteVersionNoTx(ctx, db, TableName(), entityVersion); err != nil {
 				return fmt.Errorf("failed to delete goose version: %w", err)
 			}
 		}

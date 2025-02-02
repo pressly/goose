@@ -28,7 +28,7 @@ var (
 
 	flags        = flag.NewFlagSet("goose", flag.ExitOnError)
 	dir          = flags.String("dir", DefaultMigrationDir, "directory with migration files, (GOOSE_MIGRATION_DIR env variable supported)")
-	table        = flags.String("table", "goose_db_version", "migrations table name")
+	table        = flags.String("table", goose.DefaultTablename, "migrations table name")
 	verbose      = flags.Bool("v", false, "enable verbose mode")
 	help         = flags.Bool("h", false, "print help")
 	versionFlag  = flags.Bool("version", false, "print version")
@@ -83,7 +83,10 @@ func main() {
 	if *sequential {
 		goose.SetSequential(true)
 	}
-	goose.SetTableName(*table)
+
+	if err := goose.SetTableName(*table); err != nil {
+		log.Fatalf("goose run: %v", err)
+	}
 
 	args := flags.Args()
 

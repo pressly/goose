@@ -3,12 +3,13 @@ package goose
 import (
 	"errors"
 	"fmt"
+	"github.com/pressly/goose/v3/internal/dialectstore"
 )
 
 var (
 	// ErrVersionNotFound is returned when a specific migration version is not located. This can
 	// occur if a .sql file or a Go migration function for the specified version is missing.
-	ErrVersionNotFound = errors.New("version not found")
+	ErrVersionNotFound = dialectstore.ErrVersionNotFound
 
 	// ErrNoMigrations is returned by [NewProvider] when no migrations are found.
 	ErrNoMigrations = errors.New("no migrations found")
@@ -22,7 +23,7 @@ var (
 	ErrNotApplied = errors.New("migration not applied")
 
 	// errInvalidVersion is returned when a migration version is invalid.
-	errInvalidVersion = errors.New("version must be greater than 0")
+	errInvalidVersion = errors.New("version must be greater than zero")
 )
 
 // PartialError is returned when a migration fails, but some migrations already got applied.

@@ -17,6 +17,11 @@ func (t *Tidb) CreateTable(tableName string) string {
 	return fmt.Sprintf(q, tableName)
 }
 
+func (t *Tidb) TableExists(_ string) string {
+	// TODO https://github.com/pressly/goose/issues/898
+	return ""
+}
+
 func (t *Tidb) InsertVersion(tableName string) string {
 	q := `INSERT INTO %s (version_id, is_applied) VALUES (?, ?)`
 	return fmt.Sprintf(q, tableName)

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/pressly/goose/v3/migration"
 	"io/fs"
 	"math"
 	"path"
@@ -255,7 +256,7 @@ func createVersionTable(ctx context.Context, db *sql.DB) error {
 		_ = txn.Rollback()
 		return err
 	}
-	if err := store.InsertVersion(ctx, txn, TableName(), 0); err != nil {
+	if err := store.InsertVersion(ctx, txn, TableName(), migration.Entity{Version: 0}); err != nil {
 		_ = txn.Rollback()
 		return err
 	}

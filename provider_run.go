@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/pressly/goose/v3/migration"
 	"io/fs"
 	"runtime/debug"
 	"strings"
@@ -213,7 +214,7 @@ func (p *Provider) maybeInsertOrDelete(
 		return nil
 	}
 	if direction {
-		return p.store.Insert(ctx, db, database.InsertRequest{Version: version})
+		return p.store.Insert(ctx, db, migration.Entity{Version: version})
 	}
 	return p.store.Delete(ctx, db, version)
 }
@@ -323,7 +324,7 @@ func (p *Provider) tryEnsureVersionTable(ctx context.Context, conn *sql.Conn) er
 			if err := p.store.CreateVersionTable(ctx, tx); err != nil {
 				return err
 			}
-			return p.store.Insert(ctx, tx, database.InsertRequest{Version: 0})
+			return p.store.Insert(ctx, tx, migration.Entity{Version: 0})
 		}); err != nil {
 			// Mark the error as retryable so we can try again. It's possible that another instance
 			// is creating the table at the same time and the checks above will succeed on the next

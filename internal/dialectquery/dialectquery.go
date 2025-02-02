@@ -9,6 +9,8 @@ import (
 type Querier interface {
 	// CreateTable returns the SQL query string to create the db version table.
 	CreateTable(tableName string) string
+	// TableExists returns the SQL query string to check exist the db version table.
+	TableExists(tableName string) string
 
 	// InsertVersion returns the SQL query string to insert a new version into the db version table.
 	InsertVersion(tableName string) string
@@ -29,28 +31,6 @@ type Querier interface {
 	// GetLatestVersion returns the SQL query string to get the last version_id from the db version
 	// table. Returns a nullable int64 value.
 	GetLatestVersion(tableName string) string
-}
-
-var _ Querier = (*QueryController)(nil)
-
-type QueryController struct{ Querier }
-
-// NewQueryController returns a new QueryController that wraps the given Querier.
-func NewQueryController(querier Querier) *QueryController {
-	return &QueryController{Querier: querier}
-}
-
-// Optional methods
-
-// TableExists returns the SQL query string to check if the version table exists. If the Querier
-// does not implement this method, it will return an empty string.
-//
-// Returns a boolean value.
-func (c *QueryController) TableExists(tableName string) string {
-	if t, ok := c.Querier.(interface{ TableExists(string) string }); ok {
-		return t.TableExists(tableName)
-	}
-	return ""
 }
 
 func LookupQuerier(d dialect.Dialect) (Querier, error) {

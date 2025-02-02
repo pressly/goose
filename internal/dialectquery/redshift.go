@@ -17,6 +17,11 @@ func (r *Redshift) CreateTable(tableName string) string {
 	return fmt.Sprintf(q, tableName)
 }
 
+func (r *Redshift) TableExists(_ string) string {
+	// TODO https://github.com/pressly/goose/issues/898
+	return ""
+}
+
 func (r *Redshift) InsertVersion(tableName string) string {
 	q := `INSERT INTO %s (version_id, is_applied) VALUES ($1, $2)`
 	return fmt.Sprintf(q, tableName)

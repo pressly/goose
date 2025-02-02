@@ -18,6 +18,11 @@ func (c *Clickhouse) CreateTable(tableName string) string {
 	return fmt.Sprintf(q, tableName)
 }
 
+func (c *Clickhouse) TableExists(_ string) string {
+	// TODO https://github.com/pressly/goose/issues/898
+	return ""
+}
+
 func (c *Clickhouse) InsertVersion(tableName string) string {
 	q := `INSERT INTO %s (version_id, is_applied) VALUES ($1, $2)`
 	return fmt.Sprintf(q, tableName)
