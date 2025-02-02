@@ -2,11 +2,14 @@ package dialectquery
 
 import (
 	"fmt"
+	"github.com/pressly/goose/v3/internal/dialect"
 )
 
 type Postgres struct{}
 
 var _ Querier = (*Postgres)(nil)
+
+func (p *Postgres) GetDialect() dialect.Dialect { return dialect.Postgres }
 
 func (p *Postgres) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (

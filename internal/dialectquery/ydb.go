@@ -1,10 +1,15 @@
 package dialectquery
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/pressly/goose/v3/internal/dialect"
+)
 
 type Ydb struct{}
 
 var _ Querier = (*Ydb)(nil)
+
+func (c *Ydb) GetDialect() dialect.Dialect { return dialect.Ydb }
 
 func (c *Ydb) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (

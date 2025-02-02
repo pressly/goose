@@ -1,10 +1,15 @@
 package dialectquery
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/pressly/goose/v3/internal/dialect"
+)
 
 type Mysql struct{}
 
 var _ Querier = (*Mysql)(nil)
+
+func (m *Mysql) GetDialect() dialect.Dialect { return dialect.Mysql }
 
 func (m *Mysql) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (
@@ -15,11 +20,6 @@ func (m *Mysql) CreateTable(tableName string) string {
 		PRIMARY KEY(id)
 	)`
 	return fmt.Sprintf(q, tableName)
-}
-
-func (m *Mysql) TableExists(_ string) string {
-	// TODO https://github.com/pressly/goose/issues/898
-	return ""
 }
 
 func (m *Mysql) InsertVersion(tableName string) string {

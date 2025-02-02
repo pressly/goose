@@ -1,10 +1,15 @@
 package dialectquery
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/pressly/goose/v3/internal/dialect"
+)
 
 type Redshift struct{}
 
 var _ Querier = (*Redshift)(nil)
+
+func (r *Redshift) GetDialect() dialect.Dialect { return dialect.Redshift }
 
 func (r *Redshift) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (

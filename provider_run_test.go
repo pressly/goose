@@ -1033,6 +1033,9 @@ func newProviderWithDB(t *testing.T, opts ...goose.ProviderOption) (*goose.Provi
 	)
 	p, err := goose.NewProvider(goose.DialectSQLite3, db, newFsys(), opts...)
 	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, p.Close())
+	})
 	return p, db
 }
 

@@ -15,6 +15,9 @@ func TestGoMigrationByOne(t *testing.T) {
 	tempDir := t.TempDir()
 	db, err := sql.Open("sqlite", filepath.Join(tempDir, "test.db"))
 	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, db.Close())
+	})
 	err = goose.SetDialect(string(goose.DialectSQLite3))
 	require.NoError(t, err)
 	// Create goose table.

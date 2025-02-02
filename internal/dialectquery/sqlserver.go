@@ -1,10 +1,15 @@
 package dialectquery
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/pressly/goose/v3/internal/dialect"
+)
 
 type Sqlserver struct{}
 
 var _ Querier = (*Sqlserver)(nil)
+
+func (s *Sqlserver) GetDialect() dialect.Dialect { return dialect.Sqlserver }
 
 func (s *Sqlserver) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (

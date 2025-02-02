@@ -50,6 +50,9 @@ func TestDialectStore(t *testing.T) {
 		dir := t.TempDir()
 		db, err := sql.Open("sqlite", filepath.Join(dir, "sql_embed.db"))
 		require.NoError(t, err)
+		t.Cleanup(func() {
+			require.NoError(t, db.Close())
+		})
 		store, err := database.NewStore(dialect.Sqlite3, "foo")
 		require.NoError(t, err)
 		err = store.CreateVersionTable(context.Background(), db)

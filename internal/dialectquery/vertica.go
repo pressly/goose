@@ -1,10 +1,15 @@
 package dialectquery
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/pressly/goose/v3/internal/dialect"
+)
 
 type Vertica struct{}
 
 var _ Querier = (*Vertica)(nil)
+
+func (v *Vertica) GetDialect() dialect.Dialect { return dialect.Vertica }
 
 func (v *Vertica) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (

@@ -8,6 +8,8 @@ import (
 
 // Querier is the interface that wraps the basic methods to create a dialect specific query.
 type Querier interface {
+	GetDialect() dialect.Dialect
+
 	// CreateTable returns the SQL query string to create the db version table.
 	CreateTable(tableName string) string
 	// TableExists returns the SQL query string to check exist the db version table.

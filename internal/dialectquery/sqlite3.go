@@ -1,10 +1,15 @@
 package dialectquery
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/pressly/goose/v3/internal/dialect"
+)
 
 type Sqlite3 struct{}
 
 var _ Querier = (*Sqlite3)(nil)
+
+func (s *Sqlite3) GetDialect() dialect.Dialect { return dialect.Sqlite3 }
 
 func (s *Sqlite3) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (

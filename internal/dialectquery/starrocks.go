@@ -1,10 +1,15 @@
 package dialectquery
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/pressly/goose/v3/internal/dialect"
+)
 
 type Starrocks struct{}
 
 var _ Querier = (*Starrocks)(nil)
+
+func (m *Starrocks) GetDialect() dialect.Dialect { return dialect.Starrocks }
 
 func (m *Starrocks) CreateTable(tableName string) string {
 	q := `CREATE TABLE IF NOT EXISTS %s (

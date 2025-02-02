@@ -1,10 +1,17 @@
 package dialectquery
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/pressly/goose/v3/internal/dialect"
+)
 
 type Clickhouse struct{}
 
 var _ Querier = (*Clickhouse)(nil)
+
+func (c *Clickhouse) GetDialect() dialect.Dialect {
+	return dialect.Clickhouse
+}
 
 func (c *Clickhouse) CreateTable(tableName string) string {
 	q := `CREATE TABLE IF NOT EXISTS %s (
