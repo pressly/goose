@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Add `TableExists` table existence check for the mysql dialect (#895)
+
 ## [v3.24.1]
 
 - Fix regression (`v3.23.1` and `v3.24.0`) in postgres migration table existence check for

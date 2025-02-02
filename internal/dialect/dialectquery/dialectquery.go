@@ -1,5 +1,7 @@
 package dialectquery
 
+import "strings"
+
 // Querier is the interface that wraps the basic methods to create a dialect specific query.
 type Querier interface {
 	// CreateTable returns the SQL query string to create the db version table.
@@ -46,4 +48,12 @@ func (c *QueryController) TableExists(tableName string) string {
 		return t.TableExists(tableName)
 	}
 	return ""
+}
+
+func parseTableIdentifier(name string) (schema, table string) {
+	schema, table, found := strings.Cut(name, ".")
+	if !found {
+		return "", name
+	}
+	return schema, table
 }
