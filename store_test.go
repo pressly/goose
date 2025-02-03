@@ -1,16 +1,15 @@
-package database_test
+package goose_test
 
 import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/pressly/goose/v4"
 	"github.com/pressly/goose/v4/internal/dialect"
-	"github.com/pressly/goose/v4/internal/dialectstore"
 	"github.com/pressly/goose/v4/migration"
 	"path/filepath"
 	"testing"
 
-	"github.com/pressly/goose/v4/database"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/multierr"
 	"modernc.org/sqlite"
@@ -24,13 +23,13 @@ func TestDialectStore(t *testing.T) {
 	t.Parallel()
 	t.Run("invalid", func(t *testing.T) {
 		// Test empty table name.
-		_, err := database.NewStore(dialect.Sqlite3, "")
+		_, err := goose.NewStore(dialect.Sqlite3, "")
 		require.Error(t, err)
 		// Test unknown dialect.
-		_, err = database.NewStore("unknown-dialect", "foo")
+		_, err = goose.NewStore("unknown-dialect", "foo")
 		require.Error(t, err)
 		// Test empty dialect.
-		_, err = database.NewStore("", "foo")
+		_, err = goose.NewStore("", "foo")
 		require.Error(t, err)
 	})
 	// Test generic behavior.
@@ -53,12 +52,12 @@ func TestDialectStore(t *testing.T) {
 		t.Cleanup(func() {
 			require.NoError(t, db.Close())
 		})
-		store, err := database.NewStore(dialect.Sqlite3, "foo")
+		store, err := goose.NewStore(dialect.Sqlite3, "foo")
 		require.NoError(t, err)
 		err = store.CreateVersionTable(context.Background(), db)
 		require.NoError(t, err)
 		insert := func(db *sql.DB, version int64) error {
-			return store.Insert(context.Background(), db, migration.Entity{Version: version})
+			return store.InsertVersion(context.Background(), db, migration.NewVersion(version))
 		}
 		require.NoError(t, insert(db, 1))
 		require.NoError(t, insert(db, 3))
@@ -87,7 +86,7 @@ func testStore(
 	const (
 		tablename = "test_goose_db_version"
 	)
-	store, err := database.NewStore(d, tablename)
+	store, err := goose.NewStore(d, tablename)
 	require.NoError(t, err)
 	// Create the version table.
 	err = runTx(ctx, db, func(tx *sql.Tx) error {
@@ -104,7 +103,7 @@ func testStore(
 	}
 	// Get the latest version. There should be none.
 	_, err = store.GetLatestVersion(ctx, db)
-	require.ErrorIs(t, err, dialectstore.ErrVersionNotFound)
+	require.ErrorIs(t, err, goose.ErrVersionNotFound)
 
 	// List migrations. There should be none.
 	err = runConn(ctx, db, func(conn *sql.Conn) error {
@@ -118,11 +117,12 @@ func testStore(
 	// Insert 5 migrations in addition to the zero migration.
 	for i := 0; i < 6; i++ {
 		err = runConn(ctx, db, func(conn *sql.Conn) error {
-			err := store.Insert(ctx, conn, migration.Entity{Version: int64(i)})
+			version := migration.NewVersion(int64(i))
+			err := store.InsertVersion(ctx, conn, version)
 			require.NoError(t, err)
 			latest, err := store.GetLatestVersion(ctx, conn)
 			require.NoError(t, err)
-			require.Equal(t, latest, int64(i))
+			require.Equal(t, latest, version)
 			return nil
 		})
 		require.NoError(t, err)
@@ -144,7 +144,7 @@ func testStore(
 	// Delete 3 migrations backwards
 	for i := 5; i >= 3; i-- {
 		err = runConn(ctx, db, func(conn *sql.Conn) error {
-			err := store.Delete(ctx, conn, int64(i))
+			err := store.DeleteVersion(ctx, conn, migration.NewVersion(int64(i)))
 			require.NoError(t, err)
 			latest, err := store.GetLatestVersion(ctx, conn)
 			require.NoError(t, err)
@@ -170,7 +170,7 @@ func testStore(
 	// Get remaining migrations one by one.
 	for i := 0; i < 3; i++ {
 		err = runConn(ctx, db, func(conn *sql.Conn) error {
-			res, err := store.GetMigration(ctx, conn, int64(i))
+			res, err := store.GetMigration(ctx, conn, migration.NewVersion(int64(i)))
 			require.NoError(t, err)
 			require.True(t, res.IsApplied)
 			require.False(t, res.Timestamp.IsZero())
@@ -183,7 +183,7 @@ func testStore(
 
 	// 1. *sql.Tx
 	err = runTx(ctx, db, func(tx *sql.Tx) error {
-		err := store.Delete(ctx, tx, 2)
+		err := store.DeleteVersion(ctx, tx, migration.NewVersion(2))
 		require.NoError(t, err)
 		latest, err := store.GetLatestVersion(ctx, tx)
 		require.NoError(t, err)
@@ -193,7 +193,7 @@ func testStore(
 	require.NoError(t, err)
 	// 2. *sql.Conn
 	err = runConn(ctx, db, func(conn *sql.Conn) error {
-		err := store.Delete(ctx, conn, 1)
+		err := store.DeleteVersion(ctx, conn, migration.NewVersion(1))
 		require.NoError(t, err)
 		latest, err := store.GetLatestVersion(ctx, conn)
 		require.NoError(t, err)
@@ -202,10 +202,10 @@ func testStore(
 	})
 	require.NoError(t, err)
 	// 3. *sql.DB
-	err = store.Delete(ctx, db, 0)
+	err = store.DeleteVersion(ctx, db, migration.ZeroVersion)
 	require.NoError(t, err)
 	_, err = store.GetLatestVersion(ctx, db)
-	require.ErrorIs(t, err, dialectstore.ErrVersionNotFound)
+	require.ErrorIs(t, err, goose.ErrVersionNotFound)
 
 	// List migrations. There should be none.
 	err = runConn(ctx, db, func(conn *sql.Conn) error {
@@ -218,9 +218,9 @@ func testStore(
 
 	// Try to get a migration that does not exist.
 	err = runConn(ctx, db, func(conn *sql.Conn) error {
-		_, err := store.GetMigration(ctx, conn, 0)
+		_, err := store.GetMigration(ctx, conn, migration.ZeroVersion)
 		require.Error(t, err)
-		require.ErrorIs(t, err, dialectstore.ErrVersionNotFound)
+		require.ErrorIs(t, err, goose.ErrVersionNotFound)
 		return nil
 	})
 	require.NoError(t, err)

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/pressly/goose/v4/migration"
 	"path/filepath"
 	"time"
 )
@@ -51,7 +52,7 @@ func StatusContext(ctx context.Context, db *sql.DB, dir string, opts ...OptionsF
 }
 
 func printMigrationStatus(ctx context.Context, db *sql.DB, version int64, script string) error {
-	m, err := store.GetMigration(ctx, db, version)
+	m, err := store.GetMigration(ctx, db, migration.NewVersion(version))
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("failed to query the latest migration: %w", err)
 	}

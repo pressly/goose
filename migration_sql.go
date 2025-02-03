@@ -25,7 +25,7 @@ func runSQLMigration(
 	direction bool,
 	noVersioning bool,
 ) error {
-	entityVersion := migration.Entity{Version: v}
+	version := migration.NewVersion(v)
 
 	if useTx {
 		// TRANSACTION.
@@ -49,13 +49,13 @@ func runSQLMigration(
 		if !noVersioning {
 
 			if direction {
-				if err := store.InsertVersion(ctx, tx, entityVersion); err != nil {
+				if err := store.InsertVersion(ctx, tx, version); err != nil {
 					verboseInfo("Rollback transaction")
 					_ = tx.Rollback()
 					return fmt.Errorf("failed to insert new goose version: %w", err)
 				}
 			} else {
-				if err := store.DeleteVersion(ctx, tx, entityVersion); err != nil {
+				if err := store.DeleteVersion(ctx, tx, version); err != nil {
 					verboseInfo("Rollback transaction")
 					_ = tx.Rollback()
 					return fmt.Errorf("failed to delete goose version: %w", err)
@@ -80,11 +80,11 @@ func runSQLMigration(
 	}
 	if !noVersioning {
 		if direction {
-			if err := store.InsertVersionNoTx(ctx, db, entityVersion); err != nil {
+			if err := store.InsertVersionNoTx(ctx, db, version); err != nil {
 				return fmt.Errorf("failed to insert new goose version: %w", err)
 			}
 		} else {
-			if err := store.DeleteVersionNoTx(ctx, db, entityVersion); err != nil {
+			if err := store.DeleteVersionNoTx(ctx, db, version); err != nil {
 				return fmt.Errorf("failed to delete goose version: %w", err)
 			}
 		}

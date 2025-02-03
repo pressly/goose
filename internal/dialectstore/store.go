@@ -31,24 +31,24 @@ type Store interface {
 	GetDialect() dialect.Dialect
 
 	// InsertVersion inserts a version id into the version table within a transaction.
-	InsertVersion(ctx context.Context, tx sql.DBTxConn, entity migration.Entity) error
+	InsertVersion(ctx context.Context, tx sql.DBTxConn, version migration.Version) error
 	// InsertVersionNoTx inserts a version id into the version table without a transaction.
-	InsertVersionNoTx(ctx context.Context, db sql.DBTxConn, version migration.Entity) error
+	InsertVersionNoTx(ctx context.Context, db sql.DBTxConn, version migration.Version) error
 
 	// DeleteVersion deletes a version id from the version table within a transaction.
-	DeleteVersion(ctx context.Context, tx sql.DBTxConn, entity migration.Entity) error
+	DeleteVersion(ctx context.Context, tx sql.DBTxConn, version migration.Version) error
 	// DeleteVersionNoTx deletes a version id from the version table without a transaction.
-	DeleteVersionNoTx(ctx context.Context, db sql.DBTxConn, entity migration.Entity) error
+	DeleteVersionNoTx(ctx context.Context, db sql.DBTxConn, version migration.Version) error
 
 	// GetLatestVersion retrieves the last applied migration version. If no migrations exist, this
 	// method must return [ErrVersionNotFound].
-	GetLatestVersion(ctx context.Context, db sql.DBTxConn) (migration.VersionID, error)
+	GetLatestVersion(ctx context.Context, db sql.DBTxConn) (migration.Version, error)
 
 	// GetMigrationRow retrieves a single migration by version id.
 	//
 	// Returns the raw sql error if the query fails. It is the callers responsibility
 	// to assert for the correct error, such as sql.ErrNoRows.
-	GetMigration(ctx context.Context, db sql.DBTxConn, version migration.VersionID) (*GetMigrationResult, error)
+	GetMigration(ctx context.Context, db sql.DBTxConn, version migration.Version) (*GetMigrationResult, error)
 	// ListMigrations retrieves all migrations sorted in descending order by id.
 	//
 	// If there are no migrations, an empty slice is returned with no error.
@@ -116,59 +116,59 @@ func (s *store) TableVersionExists(ctx context.Context, tx sql.DBTxConn) (bool, 
 
 func (s *store) GetDialect() dialect.Dialect { return s.querier.GetDialect() }
 
-func (s *store) InsertVersion(ctx context.Context, tx sql.DBTxConn, entity migration.Entity) error {
+func (s *store) InsertVersion(ctx context.Context, tx sql.DBTxConn, version migration.Version) error {
 	q := s.querier.InsertVersion(s.tableName)
-	if _, err := tx.ExecContext(ctx, q, entity.Version, true); err != nil {
-		return fmt.Errorf("failed to insert version %d: %w", entity.Version, err)
+	if _, err := tx.ExecContext(ctx, q, version.GetID(), true); err != nil {
+		return fmt.Errorf("failed to insert version %d: %w", version.GetID(), err)
 	}
 
 	return nil
 }
 
-func (s *store) InsertVersionNoTx(ctx context.Context, db sql.DBTxConn, entity migration.Entity) error {
+func (s *store) InsertVersionNoTx(ctx context.Context, db sql.DBTxConn, version migration.Version) error {
 	q := s.querier.InsertVersion(s.tableName)
-	_, err := db.ExecContext(ctx, q, entity.Version, true)
+	_, err := db.ExecContext(ctx, q, version.GetID(), true)
 	return err
 }
 
-func (s *store) DeleteVersion(ctx context.Context, tx sql.DBTxConn, entity migration.Entity) error {
+func (s *store) DeleteVersion(ctx context.Context, tx sql.DBTxConn, version migration.Version) error {
 	q := s.querier.DeleteVersion(s.tableName)
-	if _, err := tx.ExecContext(ctx, q, entity.Version); err != nil {
-		return fmt.Errorf("failed to delete version %d: %w", entity.Version, err)
+	if _, err := tx.ExecContext(ctx, q, version.GetID()); err != nil {
+		return fmt.Errorf("failed to delete version %d: %w", version.GetID(), err)
 	}
 
 	return nil
 }
 
-func (s *store) DeleteVersionNoTx(ctx context.Context, db sql.DBTxConn, entity migration.Entity) error {
+func (s *store) DeleteVersionNoTx(ctx context.Context, db sql.DBTxConn, version migration.Version) error {
 	q := s.querier.DeleteVersion(s.tableName)
-	_, err := db.ExecContext(ctx, q, entity.Version)
+	_, err := db.ExecContext(ctx, q, version.GetID())
 	return err
 }
 
-func (s *store) GetLatestVersion(ctx context.Context, db sql.DBTxConn) (migration.VersionID, error) {
+func (s *store) GetLatestVersion(ctx context.Context, db sql.DBTxConn) (migration.Version, error) {
 	q := s.querier.GetLatestVersion(s.tableName)
 
 	var version sql.NullInt64
 	err := db.QueryRowContext(ctx, q).Scan(&version)
 
 	if err != nil {
-		return -1, fmt.Errorf("failed to get latest version: %w", err)
+		return migration.NoVersion, fmt.Errorf("failed to get latest version: %w", err)
 	}
 
 	if !version.Valid {
-		return -1, fmt.Errorf("latest %w", ErrVersionNotFound)
+		return migration.NoVersion, fmt.Errorf("latest %w", ErrVersionNotFound)
 	}
 
-	return version.Int64, nil
+	return migration.NewVersion(version.Int64), nil
 }
 
-func (s *store) GetMigration(ctx context.Context, db sql.DBTxConn, version int64) (*GetMigrationResult, error) {
+func (s *store) GetMigration(ctx context.Context, db sql.DBTxConn, version migration.Version) (*GetMigrationResult, error) {
 	q := s.querier.GetMigrationByVersion(s.tableName)
 
 	var result GetMigrationResult
 
-	err := db.QueryRowContext(ctx, q, version).Scan(&result.Timestamp, &result.IsApplied)
+	err := db.QueryRowContext(ctx, q, version.GetID()).Scan(&result.Timestamp, &result.IsApplied)
 	if err == nil {
 		return &result, nil
 	}

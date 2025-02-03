@@ -343,23 +343,23 @@ func runGoMigration(
 	return nil
 }
 
-func insertOrDeleteVersion(ctx context.Context, tx *sql.Tx, version int64, direction bool) error {
-	entityVersion := migration.Entity{Version: version}
+func insertOrDeleteVersion(ctx context.Context, tx *sql.Tx, id migration.VersionID, direction bool) error {
+	version := migration.NewVersion(id)
 
 	if direction {
-		return store.InsertVersion(ctx, tx, entityVersion)
+		return store.InsertVersion(ctx, tx, version)
 	}
 
-	return store.DeleteVersion(ctx, tx, entityVersion)
+	return store.DeleteVersion(ctx, tx, version)
 }
 
-func insertOrDeleteVersionNoTx(ctx context.Context, db *sql.DB, version int64, direction bool) error {
-	entityVersion := migration.Entity{Version: version}
+func insertOrDeleteVersionNoTx(ctx context.Context, db *sql.DB, id int64, direction bool) error {
+	version := migration.NewVersion(id)
 
 	if direction {
-		return store.InsertVersionNoTx(ctx, db, entityVersion)
+		return store.InsertVersionNoTx(ctx, db, version)
 	}
-	return store.DeleteVersionNoTx(ctx, db, entityVersion)
+	return store.DeleteVersionNoTx(ctx, db, version)
 }
 
 // NumericComponent parses the version from the migration file name.

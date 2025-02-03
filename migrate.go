@@ -256,7 +256,7 @@ func createVersionTable(ctx context.Context, db *sql.DB) error {
 		_ = txn.Rollback()
 		return err
 	}
-	if err := store.InsertVersion(ctx, txn, migration.Entity{Version: 0}); err != nil {
+	if err := store.InsertVersion(ctx, txn, migration.ZeroVersion); err != nil {
 		_ = txn.Rollback()
 		return err
 	}

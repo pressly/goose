@@ -3,7 +3,10 @@ package goose
 import (
 	"database/sql"
 	"fmt"
+	gooseSql "github.com/pressly/goose/v4/internal/sql"
 )
+
+type DBTxConn = gooseSql.DBTxConn
 
 // OpenDBWithDriver creates a connection to a database, and modifies goose internals to be
 // compatible with the supplied driver by calling [SetDialect].

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/pressly/goose/v4/internal/dialect"
+	"github.com/pressly/goose/v4/migration"
 	"math"
 	"math/rand"
 	"os"
@@ -16,7 +17,6 @@ import (
 	"testing/fstest"
 
 	"github.com/pressly/goose/v4"
-	"github.com/pressly/goose/v4/database"
 	"github.com/stretchr/testify/require"
 )
 
@@ -747,7 +747,7 @@ func TestGoMigrationPanic(t *testing.T) {
 func TestCustomStoreTableExists(t *testing.T) {
 	t.Parallel()
 	db := newDB(t)
-	store, err := database.NewStore(dialect.Sqlite3, goose.DefaultTablename)
+	store, err := goose.NewStore(dialect.Sqlite3, goose.DefaultTablename)
 	require.NoError(t, err)
 	for i := 0; i < 2; i++ {
 		p, err := goose.NewProvider("", db, newFsys(),
@@ -845,14 +845,14 @@ func TestPending(t *testing.T) {
 	})
 }
 
-var _ database.StoreExtender = (*customStoreSQLite3)(nil)
+var _ migration.StoreVersionTable = (*customStoreSQLite3)(nil)
 
-type customStoreSQLite3 struct{ database.Store }
+type customStoreSQLite3 struct{ goose.Store }
 
-func (s *customStoreSQLite3) TableExists(ctx context.Context, db database.DBTxConn) (bool, error) {
+func (s *customStoreSQLite3) TableVersionExists(ctx context.Context, db goose.DBTxConn) (bool, error) {
 	q := `SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type='table' AND name=?) AS table_exists`
 	var exists bool
-	if err := db.QueryRowContext(ctx, q, s.Tablename()).Scan(&exists); err != nil {
+	if err := db.QueryRowContext(ctx, q, s.GetTableName()).Scan(&exists); err != nil {
 		return false, err
 	}
 	return exists, nil

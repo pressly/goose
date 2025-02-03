@@ -5,14 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/pressly/goose/v4/migration"
 	"io/fs"
 	"math"
 	"strconv"
 	"strings"
 	"sync"
 
-	"github.com/pressly/goose/v4/database"
-	"github.com/pressly/goose/v4/internal/controller"
 	"github.com/pressly/goose/v4/internal/dialectstore"
 	"github.com/pressly/goose/v4/internal/gooseutil"
 	"github.com/pressly/goose/v4/internal/sqlparser"
@@ -26,7 +25,7 @@ type Provider struct {
 	mu sync.Mutex
 
 	db               *sql.DB
-	store            *controller.StoreController
+	store            Store
 	versionTableOnce sync.Once
 
 	fsys fs.FS
@@ -79,17 +78,17 @@ func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption
 	if dialect != "" && cfg.store != nil {
 		return nil, errors.New("dialect must be empty when using a custom store implementation")
 	}
-	var store database.Store
+	var store dialectstore.Store
 	if dialect != "" {
 		var err error
-		store, err = database.NewStore(dialect, DefaultTablename)
+		store, err = NewStore(dialect, DefaultTablename)
 		if err != nil {
 			return nil, err
 		}
 	} else {
 		store = cfg.store
 	}
-	if store.Tablename() == "" {
+	if store.GetTableName() == "" {
 		return nil, errors.New("invalid store implementation: table name must not be empty")
 	}
 	return newProvider(db, store, fsys, cfg, registeredGoMigrations /* global */)
@@ -97,7 +96,7 @@ func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption
 
 func newProvider(
 	db *sql.DB,
-	store database.Store,
+	store Store,
 	fsys fs.FS,
 	cfg config,
 	global map[int64]*Migration,
@@ -143,7 +142,7 @@ func newProvider(
 		db:         db,
 		fsys:       fsys,
 		cfg:        cfg,
-		store:      controller.NewStoreController(store),
+		store:      store,
 		migrations: migrations,
 	}, nil
 }
@@ -473,7 +472,7 @@ func (p *Provider) apply(
 		retErr = multierr.Append(retErr, cleanup())
 	}()
 
-	result, err := p.store.GetMigration(ctx, conn, version)
+	result, err := p.store.GetMigration(ctx, conn, migration.NewVersion(version))
 	if err != nil && !errors.Is(err, ErrVersionNotFound) {
 		return nil, err
 	}
@@ -497,31 +496,31 @@ func (p *Provider) apply(
 	return p.runMigrations(ctx, conn, []*Migration{m}, d, true)
 }
 
-func (p *Provider) getVersions(ctx context.Context) (current, target int64, retErr error) {
+func (p *Provider) getVersions(ctx context.Context) (_, _ migration.VersionID, retErr error) {
 	conn, cleanup, err := p.initialize(ctx, false)
 	if err != nil {
-		return -1, -1, fmt.Errorf("failed to initialize: %w", err)
+		return migration.NoVersionID, migration.NoVersionID, fmt.Errorf("failed to initialize: %w", err)
 	}
 	defer func() {
 		retErr = multierr.Append(retErr, cleanup())
 	}()
 
-	target = p.migrations[len(p.migrations)-1].Version
+	target := p.migrations[len(p.migrations)-1].Version
 
 	// If versioning is disabled, we always have pending migrations and the target version is the
 	// last migration.
 	if p.cfg.disableVersioning {
-		return -1, target, nil
+		return migration.NoVersionID, target, nil
 	}
 
-	current, err = p.store.GetLatestVersion(ctx, conn)
+	currentVersion, err := p.store.GetLatestVersion(ctx, conn)
 	if err != nil {
 		if errors.Is(err, ErrVersionNotFound) {
-			return -1, target, errMissingZeroVersion
+			return migration.NoVersionID, target, errMissingZeroVersion
 		}
-		return -1, target, err
+		return migration.NoVersionID, target, err
 	}
-	return current, target, nil
+	return currentVersion.GetID(), target, nil
 }
 
 func (p *Provider) hasPending(ctx context.Context) (_ bool, retErr error) {
@@ -610,7 +609,7 @@ func (p *Provider) status(ctx context.Context) (_ []*MigrationStatus, retErr err
 		// If versioning is disabled, we can't check the database for applied migrations, so we
 		// assume all migrations are pending.
 		if !p.cfg.disableVersioning {
-			dbResult, err := p.store.GetMigration(ctx, conn, m.Version)
+			dbResult, err := p.store.GetMigration(ctx, conn, migration.NewVersion(m.Version))
 			if err != nil && !errors.Is(err, ErrVersionNotFound) {
 				return nil, err
 			}
@@ -647,5 +646,5 @@ func (p *Provider) getDBMaxVersion(ctx context.Context, conn *sql.Conn) (_ int64
 		}
 		return -1, err
 	}
-	return latest, nil
+	return latest.GetID(), nil
 }

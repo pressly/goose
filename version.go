@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/pressly/goose/v4/internal/dialectstore"
 	"strings"
 )
 
@@ -57,7 +56,7 @@ func SetTableName(n string) error {
 
 	var err error
 
-	store, err = dialectstore.NewStore(store.GetDialect(), n)
+	store, err = NewStore(store.GetDialect(), n)
 
 	return err
 }

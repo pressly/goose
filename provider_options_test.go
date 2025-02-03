@@ -7,7 +7,6 @@ import (
 	"testing/fstest"
 
 	"github.com/pressly/goose/v4"
-	"github.com/pressly/goose/v4/database"
 	"github.com/stretchr/testify/require"
 	_ "modernc.org/sqlite"
 )
@@ -36,7 +35,7 @@ func TestNewProvider(t *testing.T) {
 		_, err = goose.NewProvider(goose.DialectSQLite3, db, nil, goose.WithStore(nil))
 		require.Error(t, err)
 		// Cannot set both dialect and store
-		store, err := database.NewStore(goose.DialectSQLite3, "custom_table")
+		store, err := goose.NewStore(goose.DialectSQLite3, "custom_table")
 		require.NoError(t, err)
 		_, err = goose.NewProvider(goose.DialectSQLite3, db, nil, goose.WithStore(store))
 		require.Error(t, err)
@@ -57,7 +56,7 @@ func TestNewProvider(t *testing.T) {
 		)
 		require.NoError(t, err)
 		// Custom store allowed
-		store, err := database.NewStore(goose.DialectSQLite3, "custom_table")
+		store, err := goose.NewStore(goose.DialectSQLite3, "custom_table")
 		require.NoError(t, err)
 		_, err = goose.NewProvider("", db, nil, goose.WithStore(store))
 		require.Error(t, err)

@@ -3,8 +3,8 @@ package goose
 import (
 	"errors"
 	"fmt"
+	"github.com/pressly/goose/v4/internal/dialectstore"
 
-	"github.com/pressly/goose/v4/database"
 	"github.com/pressly/goose/v4/lock"
 )
 
@@ -19,16 +19,16 @@ type ProviderOption interface {
 	apply(*config) error
 }
 
-// WithStore configures the provider with a custom [database.Store] implementation.
+// WithStore configures the provider with a custom [dialectstore.Store] implementation.
 //
-// By default, the provider uses the [database.NewStore] function to create a store backed by the
+// By default, the provider uses the [dialectstore.NewStore] function to create a store backed by the
 // given dialect. However, this option allows users to provide their own implementation or call
 // [database.NewStore] with custom options, such as setting the table name.
 //
 // Example:
 //
 //	// Create a store with a custom table name.
-//	store, err := database.NewStore(database.DialectPostgres, "my_custom_table_name")
+//	store, err := dialectstore.NewStore(database.DialectPostgres, "my_custom_table_name")
 //	if err != nil {
 //	    return err
 //	}
@@ -37,7 +37,7 @@ type ProviderOption interface {
 //	if err != nil {
 //	    return err
 //	}
-func WithStore(store database.Store) ProviderOption {
+func WithStore(store dialectstore.Store) ProviderOption {
 	return configFunc(func(c *config) error {
 		if c.store != nil {
 			return fmt.Errorf("store already set: %T", c.store)
@@ -45,7 +45,7 @@ func WithStore(store database.Store) ProviderOption {
 		if store == nil {
 			return errors.New("store must not be nil")
 		}
-		if store.Tablename() == "" {
+		if store.GetTableName() == "" {
 			return errors.New("store implementation must set the table name")
 		}
 		c.store = store
@@ -174,7 +174,7 @@ func WithLogger(l Logger) ProviderOption {
 }
 
 type config struct {
-	store database.Store
+	store dialectstore.Store
 
 	verbose         bool
 	excludePaths    map[string]bool

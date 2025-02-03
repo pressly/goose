@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/pressly/goose/v4"
-	"github.com/pressly/goose/v4/database"
 )
 
 func init() {
@@ -21,12 +20,12 @@ func down001(tx *sql.Tx) error {
 	return dropTable(tx, "alpha")
 }
 
-func createTable(db database.DBTxConn, name string) error {
+func createTable(db goose.DBTxConn, name string) error {
 	_, err := db.ExecContext(context.Background(), fmt.Sprintf("CREATE TABLE %s (id INTEGER)", name))
 	return err
 }
 
-func dropTable(db database.DBTxConn, name string) error {
+func dropTable(db goose.DBTxConn, name string) error {
 	_, err := db.ExecContext(context.Background(), fmt.Sprintf("DROP TABLE %s", name))
 	return err
 }
