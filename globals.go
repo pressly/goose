@@ -46,7 +46,7 @@ func checkGoMigration(m *Migration) error {
 		return fmt.Errorf("type must be %q", TypeGo)
 	}
 	if m.Version < 1 {
-		return errors.New("version must be greater than zero")
+		return errInvalidVersion
 	}
 	if m.Source != "" {
 		if filepath.Ext(m.Source) != ".go" {

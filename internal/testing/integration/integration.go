@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/pressly/goose/v3"
-	"github.com/pressly/goose/v3/database"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,7 +35,7 @@ func collectMigrations(t *testing.T, dir string) []collected {
 	return all
 }
 
-func testDatabase(t *testing.T, dialect database.Dialect, db *sql.DB, migrationsDir string) {
+func testDatabase(t *testing.T, dialect goose.Dialect, db *sql.DB, migrationsDir string) {
 	t.Helper()
 
 	ctx := context.Background()

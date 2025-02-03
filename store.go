@@ -1,4 +1,4 @@
-// Package database defines a generic [Store] interface for goose to use when interacting with the
+// Package goose defines a generic [Store] interface for goose to use when interacting with the
 // database. It is meant to be generic and not tied to any specific database technology.
 //
 // At a high level, a [Store] is responsible for:
@@ -11,4 +11,18 @@
 //
 // For more advanced use cases, it's possible to implement a custom [Store] for a database that
 // goose does not support.
-package database
+package goose
+
+import "github.com/pressly/goose/v4/internal/dialectstore"
+
+var (
+	store dialectstore.Store
+
+	NewStore = dialectstore.NewStore
+)
+
+type Store = dialectstore.Store
+
+func init() {
+	store, _ = NewStore(DialectPostgres, DefaultTablename)
+}

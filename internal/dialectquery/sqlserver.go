@@ -1,10 +1,15 @@
 package dialectquery
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/pressly/goose/v4/internal/dialect"
+)
 
 type Sqlserver struct{}
 
 var _ Querier = (*Sqlserver)(nil)
+
+func (s *Sqlserver) GetDialect() dialect.Dialect { return dialect.Sqlserver }
 
 func (s *Sqlserver) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (
@@ -14,6 +19,11 @@ func (s *Sqlserver) CreateTable(tableName string) string {
 		tstamp DATETIME NULL DEFAULT CURRENT_TIMESTAMP
 	)`
 	return fmt.Sprintf(q, tableName)
+}
+
+func (s *Sqlserver) TableExists(_ string) string {
+	// TODO https://github.com/pressly/goose/issues/898
+	return ""
 }
 
 func (s *Sqlserver) InsertVersion(tableName string) string {
