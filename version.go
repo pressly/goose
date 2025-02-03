@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/pressly/goose/v3/internal/dialectstore"
 	"strings"
 )
 
@@ -41,11 +42,9 @@ func VersionContext(ctx context.Context, db *sql.DB, dir string, opts ...Options
 	return nil
 }
 
-var tableName = DefaultTablename
-
 // TableName returns goose db version table name
 func TableName() string {
-	return tableName
+	return store.GetTableName()
 }
 
 // SetTableName set goose db version table name
@@ -56,7 +55,9 @@ func SetTableName(n string) error {
 		return errors.New("table name must not be empty")
 	}
 
-	tableName = n
+	var err error
 
-	return nil
+	store, err = dialectstore.NewStore(store.GetDialect(), n)
+
+	return err
 }

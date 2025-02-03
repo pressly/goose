@@ -25,12 +25,6 @@ const (
 	DialectStarrocks Dialect = dialect.Starrocks
 )
 
-var store dialectstore.Store
-
-func init() {
-	store, _ = dialectstore.NewStore(DialectPostgres)
-}
-
 // SetDialect sets the dialect to use for the goose package.
 func SetDialect[D string | Dialect](d D) error {
 	var (
@@ -48,7 +42,7 @@ func SetDialect[D string | Dialect](d D) error {
 		v = t
 	}
 
-	store, err = dialectstore.NewStore(v)
+	store, err = dialectstore.NewStore(v, store.GetTableName())
 
 	return err
 }

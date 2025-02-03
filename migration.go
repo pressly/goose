@@ -347,19 +347,19 @@ func insertOrDeleteVersion(ctx context.Context, tx *sql.Tx, version int64, direc
 	entityVersion := migration.Entity{Version: version}
 
 	if direction {
-		return store.InsertVersion(ctx, tx, TableName(), entityVersion)
+		return store.InsertVersion(ctx, tx, entityVersion)
 	}
 
-	return store.DeleteVersion(ctx, tx, TableName(), entityVersion)
+	return store.DeleteVersion(ctx, tx, entityVersion)
 }
 
 func insertOrDeleteVersionNoTx(ctx context.Context, db *sql.DB, version int64, direction bool) error {
 	entityVersion := migration.Entity{Version: version}
 
 	if direction {
-		return store.InsertVersionNoTx(ctx, db, TableName(), entityVersion)
+		return store.InsertVersionNoTx(ctx, db, entityVersion)
 	}
-	return store.DeleteVersionNoTx(ctx, db, TableName(), entityVersion)
+	return store.DeleteVersionNoTx(ctx, db, entityVersion)
 }
 
 // NumericComponent parses the version from the migration file name.
