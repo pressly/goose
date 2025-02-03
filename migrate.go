@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"go.uber.org/multierr"
 	"io/fs"
 	"math"
 	"path"
@@ -215,7 +216,7 @@ func EnsureDBVersionContext(ctx context.Context, db *sql.DB) (int64, error) {
 	if err != nil {
 		createErr := createVersionTable(ctx, db)
 		if createErr != nil {
-			return 0, errors.Join(err, createErr)
+			return 0, multierr.Append(err, createErr)
 		}
 		return 0, nil
 	}
