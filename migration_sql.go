@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/pressly/goose/v3/migration"
+	"github.com/pressly/goose/v4/migration"
 	"regexp"
 )
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/pressly/goose/v3/database"
+	"github.com/pressly/goose/v4/database"
 )
 
 // A StoreController is used by the goose package to interact with a database. This type is a

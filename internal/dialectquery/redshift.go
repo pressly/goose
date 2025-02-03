@@ -2,7 +2,7 @@ package dialectquery
 
 import (
 	"fmt"
-	"github.com/pressly/goose/v3/internal/dialect"
+	"github.com/pressly/goose/v4/internal/dialect"
 )
 
 type Redshift struct{}

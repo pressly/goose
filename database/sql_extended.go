@@ -1,7 +1,7 @@
 package database
 
 import (
-	"github.com/pressly/goose/v3/internal/sql"
+	"github.com/pressly/goose/v4/internal/sql"
 )
 
 // DBTxConn is a thin interface for common methods that is satisfied by *sql.DB, *sql.Tx and

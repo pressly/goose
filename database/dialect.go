@@ -2,10 +2,10 @@ package database
 
 import (
 	"context"
-	"github.com/pressly/goose/v3/internal/dialect"
-	"github.com/pressly/goose/v3/migration"
+	"github.com/pressly/goose/v4/internal/dialect"
+	"github.com/pressly/goose/v4/migration"
 
-	"github.com/pressly/goose/v3/internal/dialectstore"
+	"github.com/pressly/goose/v4/internal/dialectstore"
 )
 
 // NewStore returns a new [Store] implementation for the given dialect.

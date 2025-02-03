@@ -5,7 +5,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/pressly/goose/v3/internal/sqlparser"
+	"github.com/pressly/goose/v4/internal/sqlparser"
 	"github.com/stretchr/testify/require"
 )
 

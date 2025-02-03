@@ -2,9 +2,9 @@ package database
 
 import (
 	"context"
-	"github.com/pressly/goose/v3/migration"
+	"github.com/pressly/goose/v4/migration"
 
-	"github.com/pressly/goose/v3/internal/dialectstore"
+	"github.com/pressly/goose/v4/internal/dialectstore"
 )
 
 // Store is an interface that defines methods for tracking and managing migrations. It is used by

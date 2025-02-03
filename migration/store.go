@@ -2,7 +2,7 @@ package migration
 
 import (
 	"context"
-	"github.com/pressly/goose/v3/internal/sql"
+	"github.com/pressly/goose/v4/internal/sql"
 )
 
 type StoreVersionTable interface {

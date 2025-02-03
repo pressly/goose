@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/pressly/goose/v3/migration"
+	"github.com/pressly/goose/v4/migration"
 	"io/fs"
 	"math"
 	"path"

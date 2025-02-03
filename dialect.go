@@ -2,8 +2,8 @@ package goose
 
 import (
 	"fmt"
-	"github.com/pressly/goose/v3/internal/dialect"
-	"github.com/pressly/goose/v3/internal/dialectstore"
+	"github.com/pressly/goose/v4/internal/dialect"
+	"github.com/pressly/goose/v4/internal/dialectstore"
 )
 
 // Dialect is the type of database dialect.

@@ -1,6 +1,6 @@
 package goose
 
-import "github.com/pressly/goose/v3/internal/dialectstore"
+import "github.com/pressly/goose/v4/internal/dialectstore"
 
 var store dialectstore.Store
 

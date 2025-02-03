@@ -5,13 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/pressly/goose/v3/migration"
+	"github.com/pressly/goose/v4/migration"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/pressly/goose/v3/internal/sqlparser"
+	"github.com/pressly/goose/v4/internal/sqlparser"
 )
 
 // NewGoMigration creates a new Go migration.

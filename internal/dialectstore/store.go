@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/pressly/goose/v3/internal/dialect"
-	"github.com/pressly/goose/v3/internal/dialectquery"
-	"github.com/pressly/goose/v3/internal/sql"
-	"github.com/pressly/goose/v3/migration"
+	"github.com/pressly/goose/v4/internal/dialect"
+	"github.com/pressly/goose/v4/internal/dialectquery"
+	"github.com/pressly/goose/v4/internal/sql"
+	"github.com/pressly/goose/v4/migration"
 	"time"
 )
 

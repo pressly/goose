@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/pressly/goose/v3/internal/dialectstore"
+	"github.com/pressly/goose/v4/internal/dialectstore"
 	"strings"
 )
 
