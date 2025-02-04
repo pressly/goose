@@ -142,3 +142,6 @@ docker-turso:
 		-p $(DB_TURSO_PORT):8080 \
 		-l goose_test \
 		ghcr.io/tursodatabase/libsql-server:v0.22.10
+
+build-goose:
+	go build -o $(GOBIN)/goose ./cmd/goose
