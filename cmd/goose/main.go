@@ -20,6 +20,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/mfridman/xflag"
 	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v3/internal/goosecli"
 	"github.com/pressly/goose/v3/internal/migrationstats"
 )
 
@@ -46,6 +47,13 @@ var (
 var version string
 
 func main() {
+	if ok, err := strconv.ParseBool(os.Getenv("GOOSE_CLI")); err == nil && ok {
+		goosecli.Main(
+			goosecli.WithStdout(os.Stdout),
+			goosecli.WithStderr(os.Stderr),
+		)
+		return
+	}
 	ctx := context.Background()
 
 	flags.Usage = usage
