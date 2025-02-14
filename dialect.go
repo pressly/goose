@@ -21,6 +21,7 @@ const (
 	DialectVertica    Dialect = database.DialectVertica
 	DialectYdB        Dialect = database.DialectYdB
 	DialectStarrocks  Dialect = database.DialectStarrocks
+	DialectSpannerPG  Dialect = database.DialectSpannerPG
 )
 
 func init() {
@@ -55,6 +56,8 @@ func SetDialect(s string) error {
 		d = dialect.Turso
 	case "starrocks":
 		d = dialect.Starrocks
+	case "spannerpg":
+		d = dialect.SpannerPG
 	default:
 		return fmt.Errorf("%q: unknown dialect", s)
 	}
