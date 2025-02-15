@@ -197,6 +197,8 @@ func TestYDB(t *testing.T) {
 func TestStarrocks(t *testing.T) {
 	t.Parallel()
 
+	t.Skip("Starrocks is flaky on CI, see https://github.com/pressly/goose/issues/881")
+
 	db, cleanup, err := testdb.NewStarrocks()
 	require.NoError(t, err)
 	t.Cleanup(cleanup)
