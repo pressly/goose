@@ -24,13 +24,13 @@ func SetSequential(s bool) {
 	sequential = s
 }
 
-// Create writes a new blank migration file.
+// CreateWithTemplate writes a new blank migration file.
 func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, migrationType string) error {
 	version := time.Now().UTC().Format(timestampFormat)
 
 	if sequential {
 		// always use DirFS here because it's modifying operation
-		migrations, err := collectMigrationsFS(osFS{}, dir, minVersion, maxVersion, registeredGoMigrations)
+		migrations, err := collectMigrationsFS(baseFS, dir, minVersion, maxVersion, registeredGoMigrations)
 		if err != nil && !errors.Is(err, ErrNoMigrationFiles) {
 			return err
 		}

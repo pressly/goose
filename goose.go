@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"io/fs"
+	"os"
 	"strconv"
 )
 
@@ -18,8 +19,9 @@ var (
 	verbose         = false
 	noColor         = false
 
+	defaultBaseFS = os.DirFS(".")
 	// base fs to lookup migrations
-	baseFS fs.FS = osFS{}
+	baseFS = defaultBaseFS
 )
 
 // SetVerbose set the goose verbosity mode
@@ -27,12 +29,12 @@ func SetVerbose(v bool) {
 	verbose = v
 }
 
-// SetBaseFS sets a base FS to discover migrations. It can be used with 'embed' package.
+// SetBaseFS sets a base [fs.FS] to discover migrations. It can be used with 'embed' package.
 // Calling with 'nil' argument leads to default behaviour: discovering migrations from os filesystem.
 // Note that modifying operations like Create will use os filesystem anyway.
 func SetBaseFS(fsys fs.FS) {
 	if fsys == nil {
-		fsys = osFS{}
+		baseFS = defaultBaseFS
 	}
 
 	baseFS = fsys
