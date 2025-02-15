@@ -1,10 +1,15 @@
 package dialectquery
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/pressly/goose/v4/internal/dialect"
+)
 
 type Mysql struct{}
 
 var _ Querier = (*Mysql)(nil)
+
+func (m *Mysql) GetDialect() dialect.Dialect { return dialect.Mysql }
 
 func (m *Mysql) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (

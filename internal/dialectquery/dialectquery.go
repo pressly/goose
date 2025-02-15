@@ -1,11 +1,19 @@
 package dialectquery
 
-import "strings"
+import (
+	"fmt"
+	"github.com/pressly/goose/v4/internal/dialect"
+	"strings"
+)
 
 // Querier is the interface that wraps the basic methods to create a dialect specific query.
 type Querier interface {
+	GetDialect() dialect.Dialect
+
 	// CreateTable returns the SQL query string to create the db version table.
 	CreateTable(tableName string) string
+	// TableExists returns the SQL query string to check exist the db version table.
+	TableExists(tableName string) string
 
 	// InsertVersion returns the SQL query string to insert a new version into the db version table.
 	InsertVersion(tableName string) string
@@ -28,26 +36,26 @@ type Querier interface {
 	GetLatestVersion(tableName string) string
 }
 
-var _ Querier = (*QueryController)(nil)
-
-type QueryController struct{ Querier }
-
-// NewQueryController returns a new QueryController that wraps the given Querier.
-func NewQueryController(querier Querier) *QueryController {
-	return &QueryController{Querier: querier}
-}
-
-// Optional methods
-
-// TableExists returns the SQL query string to check if the version table exists. If the Querier
-// does not implement this method, it will return an empty string.
-//
-// Returns a boolean value.
-func (c *QueryController) TableExists(tableName string) string {
-	if t, ok := c.Querier.(interface{ TableExists(string) string }); ok {
-		return t.TableExists(tableName)
+func LookupQuerier(d dialect.Dialect) (Querier, error) {
+	lookup := map[dialect.Dialect]Querier{
+		dialect.Clickhouse: &Clickhouse{},
+		dialect.Sqlserver:  &Sqlserver{},
+		dialect.Mysql:      &Mysql{},
+		dialect.Postgres:   &Postgres{},
+		dialect.Redshift:   &Redshift{},
+		dialect.Sqlite3:    &Sqlite3{},
+		dialect.Tidb:       &Tidb{},
+		dialect.Vertica:    &Vertica{},
+		dialect.Ydb:        &Ydb{},
+		dialect.Turso:      &Turso{},
+		dialect.Starrocks:  &Starrocks{},
 	}
-	return ""
+	querier, ok := lookup[d]
+	if !ok {
+		return nil, fmt.Errorf("unknown dialect: %q", d)
+	}
+
+	return querier, nil
 }
 
 func parseTableIdentifier(name string) (schema, table string) {

@@ -1,4 +1,4 @@
-package database
+package sql
 
 import (
 	"context"
@@ -15,6 +15,10 @@ type DBTxConn interface {
 	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
+
+var ErrNoRows = sql.ErrNoRows
+
+type NullInt64 = sql.NullInt64
 
 var (
 	_ DBTxConn = (*sql.DB)(nil)

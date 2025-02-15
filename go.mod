@@ -1,4 +1,4 @@
-module github.com/pressly/goose/v3
+module github.com/pressly/goose/v4
 
 go 1.22.0
 
@@ -73,11 +73,4 @@ require (
 	modernc.org/libc v1.55.3 // indirect
 	modernc.org/mathutil v1.6.0 // indirect
 	modernc.org/memory v1.8.0 // indirect
-)
-
-retract (
-	v3.21.0 // Invalid replace directives
-	v3.12.2 // Invalid module reference
-	v3.12.1 // Invalid module reference
-	v3.12.0 // Invalid module reference
 )
