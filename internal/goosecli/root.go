@@ -5,8 +5,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"runtime/debug"
 
-	"github.com/mfridman/buildversion"
 	"github.com/mfridman/cli"
 )
 
@@ -23,7 +23,12 @@ var root = &cli.Command{
 	}),
 	Exec: func(ctx context.Context, s *cli.State) error {
 		if cli.GetFlag[bool](s, "version") {
-			fmt.Fprintf(s.Stdout, "goose version: %s\n", buildversion.New())
+			buildInfo, ok := debug.ReadBuildInfo()
+			var version string
+			if version == "" && ok && buildInfo != nil && buildInfo.Main.Version != "" {
+				version = buildInfo.Main.Version
+			}
+			fmt.Fprintf(s.Stdout, "goose version: %s\n", version)
 			return nil
 		}
 		if len(s.Args) == 0 {
