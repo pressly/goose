@@ -59,6 +59,7 @@ var downTo = &cli.Command{
 	Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
 		commonConnectionFlags(f)
 		f.Bool("no-versioning", false, "Apply migration commands with no versioning, in file order, from directory pointed to")
+		f.Bool("json", false, "Output results in JSON format")
 	}),
 	Exec: func(ctx context.Context, s *cli.State) error {
 		printer := newPrinter(s.Stdout, defaultSeparator)
@@ -73,7 +74,10 @@ var downTo = &cli.Command{
 			return errors.New("version must be a number")
 		}
 
-		provider, err := getProvider(s)
+		provider, err := getProvider(
+			s,
+			goose.WithDisableVersioning(cli.GetFlag[bool](s, "no-versioning")),
+		)
 		if err != nil {
 			return err
 		}
@@ -112,13 +116,18 @@ var up = &cli.Command{
 		commonConnectionFlags(f)
 		f.Bool("allow-missing", false, "Applies missing (out-of-order) migrations")
 		f.Bool("no-versioning", false, "Apply migration commands with no versioning, in file order, from directory pointed to")
+		f.Bool("json", false, "Output results in JSON format")
 	}),
 	Exec: func(ctx context.Context, s *cli.State) error {
 		printer := newPrinter(s.Stdout, defaultSeparator)
 
 		useJSON := cli.GetFlag[bool](s, "json")
 
-		provider, err := getProvider(s)
+		provider, err := getProvider(
+			s,
+			goose.WithDisableVersioning(cli.GetFlag[bool](s, "no-versioning")),
+			goose.WithAllowOutofOrder(cli.GetFlag[bool](s, "allow-missing")),
+		)
 		if err != nil {
 			return err
 		}
@@ -176,6 +185,7 @@ var status = &cli.Command{
 	ShortHelp: "List the status of all migrations",
 	Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
 		commonConnectionFlags(f)
+		f.Bool("json", false, "Output results in JSON format")
 	}),
 	Exec: func(ctx context.Context, s *cli.State) error {
 		printer := newPrinter(s.Stdout, defaultSeparator)
@@ -235,10 +245,12 @@ var create = &cli.Command{
 	ShortHelp: "Create a new migration file",
 	Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
 		dirFlag(f)
-		f.String("sql", "", "Create a SQL migration file")
-		f.String("go", "", "Create a Go migration file")
 		f.String("s", "", "Use sequential numbering for new migrations")
+		f.String("type", "sql", "Type of migration to create [sql,go]")
 	}),
+	Exec: func(ctx context.Context, s *cli.State) error {
+		return errors.New("not implemented")
+	},
 }
 
 var fix = &cli.Command{

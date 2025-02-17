@@ -17,7 +17,6 @@ var root = &cli.Command{
 	ShortHelp: "A database migration tool for SQL databases.",
 	Usage:     "goose <command> [flags] [args...]",
 	Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
-		f.Bool("json", false, "Output in json format")
 		f.Bool("version", false, "Print goose version and exit")
 		f.String("env", ".env", "Load environment variables from file")
 	}),

@@ -1,8 +1,10 @@
 package goosecli
 
 import (
+	"cmp"
 	"flag"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/mfridman/cli"
@@ -75,20 +77,22 @@ func flagsSection(c *cli.Command) string {
 	c.Flags.VisitAll(func(f *flag.Flag) {
 		maxLen = max(maxLen, len(f.Name))
 	})
+	var all []*flag.Flag
+	c.Flags.VisitAll(func(f *flag.Flag) {
+		all = append(all, f)
+	})
+	// Sort flags by name
+	slices.SortFunc(all, func(a, b *flag.Flag) int {
+		return cmp.Compare(a.Name, b.Name)
+	})
 
 	// Second pass to write formatted flags
 	var sb strings.Builder
-	c.Flags.VisitAll(func(f *flag.Flag) {
+	for _, f := range all {
 		flagText := "--" + f.Name
-
 		padding := strings.Repeat(" ", maxLen-len(flagText)+4) // +4 for extra spacing
-		defaultValue := ""
-		if f.DefValue != "" && f.DefValue != "false" {
-			defaultValue = fmt.Sprintf(" (default: %s)", f.DefValue)
-		}
-
-		sb.WriteString(fmt.Sprintf("  %s%s%s%s\n", flagText, padding, f.Usage, defaultValue))
-	})
+		sb.WriteString(fmt.Sprintf("  %s%s%s\n", flagText, padding, f.Usage))
+	}
 
 	return sb.String() + "\n"
 }

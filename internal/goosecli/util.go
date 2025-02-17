@@ -36,7 +36,7 @@ func getFlagOrEnv(s *cli.State, name string) (string, error) {
 	return val, nil
 }
 
-func getProvider(s *cli.State) (*goose.Provider, error) {
+func getProvider(s *cli.State, more ...goose.ProviderOption) (*goose.Provider, error) {
 	dir, err := getFlagOrEnv(s, "dir")
 	if err != nil {
 		return nil, err
@@ -49,7 +49,11 @@ func getProvider(s *cli.State) (*goose.Provider, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open connection: %w", err)
 	}
-	return goose.NewProvider(dialect, db, os.DirFS(dir))
+	var options []goose.ProviderOption
+	// Add additional options to the provider.
+	options = append(options, more...)
+
+	return goose.NewProvider(dialect, db, os.DirFS(dir), options...)
 }
 
 // dialectToDriverMapping maps dialects to the actual driver names used by the goose CLI.
