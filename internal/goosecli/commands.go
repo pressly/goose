@@ -35,12 +35,19 @@ func tableFlag(f *flag.FlagSet) {
 	f.String("table", goose.DefaultTablename, "Goose migration table name")
 }
 
-// commonFlags are flags that are required for most goose commands which interact with the database
-// and open a connection.
-func commonFlags(f *flag.FlagSet) {
+// commonConnectionFlags are flags that are required for most goose commands which interact with the
+// database and open a connection.
+func commonConnectionFlags(f *flag.FlagSet) {
 	dirFlag(f)
 	dbStringFlag(f)
 	tableFlag(f)
+
+	f.Duration("timeout", 0, "Maximum allowed duration for queries to run; e.g., 1h13m")
+
+	// MySQL flags
+	f.String("certfile", "", "File path to root CA's certificates in pem format (mysql only)")
+	f.String("ssl-cert", "", "File path to SSL certificates in pem format (mysql only)")
+	f.String("ssl-key", "", "File path to SSL key in pem format (mysql only)")
 }
 
 var downTo = &cli.Command{
@@ -50,7 +57,8 @@ var downTo = &cli.Command{
 	Usage:     "goose down-to [flags] <version>",
 	ShortHelp: "Roll back migrations down to, but not including, the specified version",
 	Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
-		commonFlags(f)
+		commonConnectionFlags(f)
+		f.Bool("no-versioning", false, "Apply migration commands with no versioning, in file order, from directory pointed to")
 	}),
 	Exec: func(ctx context.Context, s *cli.State) error {
 		printer := newPrinter(s.Stdout, defaultSeparator)
@@ -79,6 +87,21 @@ var downTo = &cli.Command{
 	},
 }
 
+var down = &cli.Command{
+	UsageFunc: defaultUsageFunc(),
+
+	Name:      "down",
+	Usage:     "goose down [flags]",
+	ShortHelp: "Roll back the most recently applied migration",
+	Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
+		commonConnectionFlags(f)
+		f.Bool("no-versioning", false, "Apply migration commands with no versioning, in file order, from directory pointed to")
+	}),
+	Exec: func(ctx context.Context, s *cli.State) error {
+		return errors.New("not implemented")
+	},
+}
+
 var up = &cli.Command{
 	UsageFunc: defaultUsageFunc(),
 
@@ -86,7 +109,9 @@ var up = &cli.Command{
 	Usage:     "goose up [flags]",
 	ShortHelp: "Apply all available migrations",
 	Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
-		commonFlags(f)
+		commonConnectionFlags(f)
+		f.Bool("allow-missing", false, "Applies missing (out-of-order) migrations")
+		f.Bool("no-versioning", false, "Apply migration commands with no versioning, in file order, from directory pointed to")
 	}),
 	Exec: func(ctx context.Context, s *cli.State) error {
 		printer := newPrinter(s.Stdout, defaultSeparator)
@@ -111,6 +136,38 @@ var up = &cli.Command{
 	},
 }
 
+var upByOne = &cli.Command{
+	UsageFunc: defaultUsageFunc(),
+
+	Name:      "up-by-one",
+	Usage:     "goose up-by-one [flags]",
+	ShortHelp: "Apply the next available migration",
+	Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
+		commonConnectionFlags(f)
+		f.Bool("allow-missing", false, "Applies missing (out-of-order) migrations")
+		f.Bool("no-versioning", false, "Apply migration commands with no versioning, in file order, from directory pointed to")
+	}),
+	Exec: func(ctx context.Context, s *cli.State) error {
+		return errors.New("not implemented")
+	},
+}
+
+var upTo = &cli.Command{
+	UsageFunc: defaultUsageFunc(),
+
+	Name:      "up-to",
+	Usage:     "goose up-to [flags] <version>",
+	ShortHelp: "Apply all available migrations up to, and including, the specified version",
+	Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
+		commonConnectionFlags(f)
+		f.Bool("allow-missing", false, "Applies missing (out-of-order) migrations")
+		f.Bool("no-versioning", false, "Apply migration commands with no versioning, in file order, from directory pointed to")
+	}),
+	Exec: func(ctx context.Context, s *cli.State) error {
+		return errors.New("not implemented")
+	},
+}
+
 var status = &cli.Command{
 	UsageFunc: defaultUsageFunc(),
 
@@ -118,7 +175,7 @@ var status = &cli.Command{
 	Usage:     "goose status [flags]",
 	ShortHelp: "List the status of all migrations",
 	Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
-		commonFlags(f)
+		commonConnectionFlags(f)
 	}),
 	Exec: func(ctx context.Context, s *cli.State) error {
 		printer := newPrinter(s.Stdout, defaultSeparator)
@@ -156,48 +213,6 @@ var status = &cli.Command{
 	},
 }
 
-var upByOne = &cli.Command{
-	UsageFunc: defaultUsageFunc(),
-
-	Name:      "up-by-one",
-	Usage:     "goose up-by-one [flags]",
-	ShortHelp: "Apply the next available migration",
-	Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
-		commonFlags(f)
-	}),
-	Exec: func(ctx context.Context, s *cli.State) error {
-		return errors.New("not implemented")
-	},
-}
-
-var upTo = &cli.Command{
-	UsageFunc: defaultUsageFunc(),
-
-	Name:      "up-to",
-	Usage:     "goose up-to [flags] <version>",
-	ShortHelp: "Apply all available migrations up to, and including, the specified version",
-	Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
-		commonFlags(f)
-	}),
-	Exec: func(ctx context.Context, s *cli.State) error {
-		return errors.New("not implemented")
-	},
-}
-
-var down = &cli.Command{
-	UsageFunc: defaultUsageFunc(),
-
-	Name:      "down",
-	Usage:     "goose down [flags]",
-	ShortHelp: "Roll back the most recently applied migration",
-	Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
-		commonFlags(f)
-	}),
-	Exec: func(ctx context.Context, s *cli.State) error {
-		return errors.New("not implemented")
-	},
-}
-
 var version = &cli.Command{
 	UsageFunc: defaultUsageFunc(),
 
@@ -205,7 +220,7 @@ var version = &cli.Command{
 	Usage:     "goose version [flags]",
 	ShortHelp: "Print the current version of the database",
 	Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
-		commonFlags(f)
+		commonConnectionFlags(f)
 	}),
 	Exec: func(ctx context.Context, s *cli.State) error {
 		return errors.New("not implemented")
@@ -222,7 +237,7 @@ var create = &cli.Command{
 		dirFlag(f)
 		f.String("sql", "", "Create a SQL migration file")
 		f.String("go", "", "Create a Go migration file")
-		f.String("s", "", "use sequential numbering for new migrations")
+		f.String("s", "", "Use sequential numbering for new migrations")
 	}),
 }
 
@@ -231,7 +246,7 @@ var fix = &cli.Command{
 
 	Name:      "fix",
 	Usage:     "goose fix [flags]",
-	ShortHelp: "Conver migration files to sequential order, while preserving the timestamp ordering",
+	ShortHelp: "Convert migration files to sequential order, while preserving timestamp ordering",
 	Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
 		dirFlag(f)
 	}),
@@ -245,7 +260,7 @@ var validate = &cli.Command{
 
 	Name:      "validate",
 	Usage:     "goose validate [flags]",
-	ShortHelp: "Validate the migration files, without running them",
+	ShortHelp: "Check migration files without running them",
 	Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
 		dirFlag(f)
 	}),

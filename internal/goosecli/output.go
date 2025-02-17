@@ -43,27 +43,22 @@ func (p *printer) Table(data tableData) error {
 	if err := validateTableData(data); err != nil {
 		return err
 	}
-	defer p.tabWriter.Flush()
 
 	// Create format pattern based on number of columns
 	fmtPattern := strings.Repeat("%v\t", len(data.Headers)-1) + "%v\n"
-
 	// Print headers
 	fmt.Fprintf(p.tabWriter, fmtPattern, toAnySlice(data.Headers)...)
-
 	// Print separator line
 	separators := make([]string, len(data.Headers))
 	for i := range separators {
 		separators[i] = strings.Repeat(string(p.separator), len(data.Headers[i]))
 	}
 	fmt.Fprintf(p.tabWriter, fmtPattern, toAnySlice(separators)...)
-
 	// Print rows
 	for _, row := range data.Rows {
 		fmt.Fprintf(p.tabWriter, fmtPattern, toAnySlice(row)...)
 	}
-
-	return nil
+	return p.tabWriter.Flush()
 }
 
 // JSON prints any struct with json tags as JSON.

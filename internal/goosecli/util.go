@@ -128,10 +128,9 @@ func resolveDialect(ss ...string) (goose.Dialect, error) {
 }
 
 func render(s string) string {
-	if val := os.Getenv("NO_COLOR"); val != "" {
-		if ok, err := strconv.ParseBool(val); err == nil && ok {
-			return s
-		}
+	ok, err := strconv.ParseBool(os.Getenv("NO_COLOR"))
+	if err == nil && ok {
+		return s
 	}
 	return style.Render(s)
 }

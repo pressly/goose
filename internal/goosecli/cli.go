@@ -1,6 +1,7 @@
 package goosecli
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"flag"
@@ -8,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"slices"
 	"syscall"
 
 	"github.com/mfridman/cli"
@@ -55,39 +57,22 @@ func newContext() (context.Context, context.CancelFunc) {
 	return signal.NotifyContext(context.Background(), signals...)
 }
 
-/*
-
- 	up                   Migrate the DB to the most recent version available
-    up-by-one            Migrate the DB up by 1
-    up-to VERSION        Migrate the DB to a specific VERSION
-
-    down                 Roll back the version by 1
-    down-to VERSION      Roll back to a specific VERSION
-
-    ??? redo                 Re-run the latest migration
-    ??? reset                Roll back all migrations
-
-	status               Dump the migration status for the current DB
-    version              Print the current version of the database
-    create NAME [sql|go] Creates new migration file with the current timestamp
-    fix                  Apply sequential ordering to migrations
-    validate             Check migration files without running them
-
-*/
-
 func run(ctx context.Context, args []string, cfg config) error {
 	commands := []*cli.Command{
+		create,
+		down,
+		downTo,
+		fix,
+		status,
 		up,
 		upByOne,
 		upTo,
-		down,
-		downTo,
-		status,
-		version,
-		create,
-		fix,
 		validate,
+		version,
 	}
+	slices.SortFunc(commands, func(a, b *cli.Command) int {
+		return cmp.Compare(a.Name, b.Name)
+	})
 	// Add all subcommands to the root command.
 	root.SubCommands = append(root.SubCommands, commands...)
 
@@ -96,7 +81,7 @@ func run(ctx context.Context, args []string, cfg config) error {
 			fmt.Fprintf(cfg.stdout, "%s\n", cli.DefaultUsage(root))
 			return nil
 		}
-		return fmt.Errorf("error: %w", err)
+		return fmt.Errorf("parse error: %w", err)
 	}
 
 	options := &cli.RunOptions{
@@ -104,7 +89,7 @@ func run(ctx context.Context, args []string, cfg config) error {
 		Stderr: cfg.stderr,
 	}
 	if err := cli.Run(ctx, root, options); err != nil {
-		return fmt.Errorf("error: %w", err)
+		return fmt.Errorf("run error: %w", err)
 	}
 	return nil
 }

@@ -19,6 +19,7 @@ var root = &cli.Command{
 	Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
 		f.Bool("json", false, "Output in json format")
 		f.Bool("version", false, "Print goose version and exit")
+		f.String("env", ".env", "Load environment variables from file")
 	}),
 	Exec: func(ctx context.Context, s *cli.State) error {
 		if cli.GetFlag[bool](s, "version") {
