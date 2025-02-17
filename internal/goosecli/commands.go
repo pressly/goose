@@ -23,33 +23,6 @@ func defaultUsageFunc() func(c *cli.Command) string {
 	}
 }
 
-func dirFlag(f *flag.FlagSet) {
-	f.String("dir", "", "Directory with migration files")
-}
-
-func dbStringFlag(f *flag.FlagSet) {
-	f.String("dbstring", "", "Database connection string")
-}
-
-func tableFlag(f *flag.FlagSet) {
-	f.String("table", goose.DefaultTablename, "Goose migration table name")
-}
-
-// commonConnectionFlags are flags that are required for most goose commands which interact with the
-// database and open a connection.
-func commonConnectionFlags(f *flag.FlagSet) {
-	dirFlag(f)
-	dbStringFlag(f)
-	tableFlag(f)
-
-	f.Duration("timeout", 0, "Maximum allowed duration for queries to run; e.g., 1h13m")
-
-	// MySQL flags
-	f.String("certfile", "", "File path to root CA's certificates in pem format (mysql only)")
-	f.String("ssl-cert", "", "File path to SSL certificates in pem format (mysql only)")
-	f.String("ssl-key", "", "File path to SSL key in pem format (mysql only)")
-}
-
 var downTo = &cli.Command{
 	UsageFunc: defaultUsageFunc(),
 
@@ -58,13 +31,13 @@ var downTo = &cli.Command{
 	ShortHelp: "Roll back migrations down to, but not including, the specified version",
 	Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
 		commonConnectionFlags(f)
-		f.Bool("no-versioning", false, "Apply migration commands with no versioning, in file order, from directory pointed to")
-		f.Bool("json", false, "Output results in JSON format")
+		jsonFlag(f)
+		noVersioningFlag(f)
 	}),
 	Exec: func(ctx context.Context, s *cli.State) error {
 		printer := newPrinter(s.Stdout, defaultSeparator)
 
-		useJSON := cli.GetFlag[bool](s, "json")
+		useJSON := cli.GetFlag[bool](s, jsonFlagName)
 
 		if len(s.Args) == 0 {
 			return errors.New("must supply a version to goose down-to")
@@ -76,7 +49,7 @@ var downTo = &cli.Command{
 
 		provider, err := getProvider(
 			s,
-			goose.WithDisableVersioning(cli.GetFlag[bool](s, "no-versioning")),
+			goose.WithDisableVersioning(cli.GetFlag[bool](s, noVersioningFlagName)),
 		)
 		if err != nil {
 			return err
@@ -97,10 +70,7 @@ var down = &cli.Command{
 	Name:      "down",
 	Usage:     "goose down [flags]",
 	ShortHelp: "Roll back the most recently applied migration",
-	Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
-		commonConnectionFlags(f)
-		f.Bool("no-versioning", false, "Apply migration commands with no versioning, in file order, from directory pointed to")
-	}),
+	Flags:     cli.FlagsFunc(func(f *flag.FlagSet) {}),
 	Exec: func(ctx context.Context, s *cli.State) error {
 		return errors.New("not implemented")
 	},
@@ -114,19 +84,19 @@ var up = &cli.Command{
 	ShortHelp: "Apply all available migrations",
 	Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
 		commonConnectionFlags(f)
-		f.Bool("allow-missing", false, "Applies missing (out-of-order) migrations")
-		f.Bool("no-versioning", false, "Apply migration commands with no versioning, in file order, from directory pointed to")
-		f.Bool("json", false, "Output results in JSON format")
+		allowMissingFlag(f)
+		noVersioningFlag(f)
+		jsonFlag(f)
 	}),
 	Exec: func(ctx context.Context, s *cli.State) error {
 		printer := newPrinter(s.Stdout, defaultSeparator)
 
-		useJSON := cli.GetFlag[bool](s, "json")
+		useJSON := cli.GetFlag[bool](s, jsonFlagName)
 
 		provider, err := getProvider(
 			s,
-			goose.WithDisableVersioning(cli.GetFlag[bool](s, "no-versioning")),
-			goose.WithAllowOutofOrder(cli.GetFlag[bool](s, "allow-missing")),
+			goose.WithDisableVersioning(cli.GetFlag[bool](s, noVersioningFlagName)),
+			goose.WithAllowOutofOrder(cli.GetFlag[bool](s, allowMissingFlagName)),
 		)
 		if err != nil {
 			return err
@@ -153,8 +123,9 @@ var upByOne = &cli.Command{
 	ShortHelp: "Apply the next available migration",
 	Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
 		commonConnectionFlags(f)
-		f.Bool("allow-missing", false, "Applies missing (out-of-order) migrations")
-		f.Bool("no-versioning", false, "Apply migration commands with no versioning, in file order, from directory pointed to")
+		allowMissingFlag(f)
+		noVersioningFlag(f)
+		jsonFlag(f)
 	}),
 	Exec: func(ctx context.Context, s *cli.State) error {
 		return errors.New("not implemented")
@@ -169,8 +140,9 @@ var upTo = &cli.Command{
 	ShortHelp: "Apply all available migrations up to, and including, the specified version",
 	Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
 		commonConnectionFlags(f)
-		f.Bool("allow-missing", false, "Applies missing (out-of-order) migrations")
-		f.Bool("no-versioning", false, "Apply migration commands with no versioning, in file order, from directory pointed to")
+		allowMissingFlag(f)
+		noVersioningFlag(f)
+		jsonFlag(f)
 	}),
 	Exec: func(ctx context.Context, s *cli.State) error {
 		return errors.New("not implemented")
@@ -185,12 +157,12 @@ var status = &cli.Command{
 	ShortHelp: "List the status of all migrations",
 	Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
 		commonConnectionFlags(f)
-		f.Bool("json", false, "Output results in JSON format")
+		jsonFlag(f)
 	}),
 	Exec: func(ctx context.Context, s *cli.State) error {
 		printer := newPrinter(s.Stdout, defaultSeparator)
 
-		useJSON := cli.GetFlag[bool](s, "json")
+		useJSON := cli.GetFlag[bool](s, jsonFlagName)
 
 		provider, err := getProvider(s)
 		if err != nil {
@@ -231,6 +203,7 @@ var version = &cli.Command{
 	ShortHelp: "Print the current version of the database",
 	Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
 		commonConnectionFlags(f)
+		jsonFlag(f)
 	}),
 	Exec: func(ctx context.Context, s *cli.State) error {
 		return errors.New("not implemented")
@@ -245,8 +218,8 @@ var create = &cli.Command{
 	ShortHelp: "Create a new migration file",
 	Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
 		dirFlag(f)
-		f.String("s", "", "Use sequential numbering for new migrations")
-		f.String("type", "sql", "Type of migration to create [sql,go]")
+		f.String(sequentialFlagName, "", "Use sequential numbering for new migrations")
+		f.String(typeFlagName, "sql", "Type of migration to create [sql,go] (default: sql)")
 	}),
 	Exec: func(ctx context.Context, s *cli.State) error {
 		return errors.New("not implemented")

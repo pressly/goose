@@ -11,7 +11,17 @@ import (
 )
 
 var root = &cli.Command{
-	UsageFunc: rootUsageFunc(),
+	UsageFunc: func(c *cli.Command) string {
+		return newHelp().
+			add("", shortHelpSection).
+			add("USAGE", usageSection).
+			add("COMMANDS", commandsSection).
+			add("GLOBAL FLAGS", flagsSection).
+			add("SUPPORTED DATABASES", databasesSection).
+			add("ENVIRONMENT VARIABLES (flags take precedence)", envVarsSection).
+			add("LEARN MORE", learnMoreSection).
+			build(c)
+	},
 
 	Name:      "goose",
 	ShortHelp: "A database migration tool for SQL databases.",
@@ -35,18 +45,4 @@ var root = &cli.Command{
 		}
 		return nil
 	},
-}
-
-func rootUsageFunc() func(c *cli.Command) string {
-	return func(c *cli.Command) string {
-		return newHelp().
-			add("", shortHelpSection).
-			add("USAGE", usageSection).
-			add("COMMANDS", commandsSection).
-			add("GLOBAL FLAGS", flagsSection).
-			add("SUPPORTED DATABASES", databasesSection).
-			add("ENVIRONMENT VARIABLES (flags take precedence)", envVarsSection).
-			add("LEARN MORE", learnMoreSection).
-			build(c)
-	}
 }
