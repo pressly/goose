@@ -8,6 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 - Add `TableExists` table existence check for the mysql dialect (#895)
+- Upgrade **minimum Go version to 1.22** (#909)
 
 ## [v3.24.1]
 
@@ -224,7 +225,7 @@ Here's a quick summary:
 
 - Fix `sqlparser` to avoid skipping the last statement when it's not terminated with a semicolon
   within a StatementBegin/End block. (#580)
-- Add `go1.21` to the CI matrix.
+- Add `**go1.21**` to the CI matrix.
 - Bump minimum version of module in go.mod to `go1.19`.
 - Fix version output when installing pre-built binaries (#585).
 
