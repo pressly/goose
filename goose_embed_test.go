@@ -21,6 +21,7 @@ func TestEmbeddedMigrations(t *testing.T) {
 	// not using t.Parallel here to avoid races
 	db, err := sql.Open("sqlite", filepath.Join(dir, "sql_embed.db"))
 	require.NoError(t, err)
+	defer db.Close()
 
 	db.SetMaxOpenConns(1)
 
