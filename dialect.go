@@ -1,7 +1,6 @@
 package goose
 
 import (
-	"fmt"
 	"github.com/pressly/goose/v4/internal/dialect"
 )
 
@@ -24,6 +23,11 @@ const (
 	DialectStarrocks Dialect = dialect.Starrocks
 )
 
+var ErrUnknownDialect = dialect.ErrUnknownDialect
+
+// GetDialect gets the dialect used in the goose package.
+var GetDialect = dialect.GetDialect
+
 // SetDialect sets the dialect to use for the goose package.
 func SetDialect[D string | Dialect](d D) error {
 	var (
@@ -44,33 +48,4 @@ func SetDialect[D string | Dialect](d D) error {
 	store, err = NewStore(v, store.GetTableName())
 
 	return err
-}
-
-func GetDialect(s string) (Dialect, error) {
-	switch s {
-	case "postgres", "pgx":
-		return DialectPostgres, nil
-	case "mysql":
-		return DialectMySQL, nil
-	case "sqlite3", "sqlite":
-		return DialectSQLite3, nil
-	case "mssql", "azuresql", "sqlserver":
-		return DialectSqlserver, nil
-	case "redshift":
-		return DialectRedshift, nil
-	case "tidb":
-		return DialectTiDB, nil
-	case "clickhouse":
-		return DialectClickHouse, nil
-	case "vertica":
-		return DialectVertica, nil
-	case "ydb":
-		return DialectYdB, nil
-	case "turso":
-		return DialectTurso, nil
-	case "starrocks":
-		return DialectStarrocks, nil
-	default:
-		return "", fmt.Errorf("%q: unknown dialect", s)
-	}
 }

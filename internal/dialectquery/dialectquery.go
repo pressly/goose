@@ -1,7 +1,7 @@
 package dialectquery
 
 import (
-	"fmt"
+	"github.com/pkg/errors"
 	"github.com/pressly/goose/v4/internal/dialect"
 	"strings"
 )
@@ -52,7 +52,7 @@ func LookupQuerier(d dialect.Dialect) (Querier, error) {
 	}
 	querier, ok := lookup[d]
 	if !ok {
-		return nil, fmt.Errorf("unknown dialect: %q", d)
+		return nil, errors.WithMessage(dialect.ErrUnknownDialect, string(d))
 	}
 
 	return querier, nil
