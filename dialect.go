@@ -1,64 +1,51 @@
 package goose
 
 import (
-	"fmt"
-
-	"github.com/pressly/goose/v3/database"
-	"github.com/pressly/goose/v3/internal/dialect"
+	"github.com/pressly/goose/v4/internal/dialect"
 )
 
-// Dialect is the type of database dialect. It is an alias for [database.Dialect].
-type Dialect = database.Dialect
+// Dialect is the type of database dialect.
+type Dialect = dialect.Dialect
 
 const (
-	DialectClickHouse Dialect = database.DialectClickHouse
-	DialectMSSQL      Dialect = database.DialectMSSQL
-	DialectMySQL      Dialect = database.DialectMySQL
-	DialectPostgres   Dialect = database.DialectPostgres
-	DialectRedshift   Dialect = database.DialectRedshift
-	DialectSQLite3    Dialect = database.DialectSQLite3
-	DialectTiDB       Dialect = database.DialectTiDB
-	DialectVertica    Dialect = database.DialectVertica
-	DialectYdB        Dialect = database.DialectYdB
-	DialectStarrocks  Dialect = database.DialectStarrocks
+	DialectClickHouse Dialect = dialect.Clickhouse
+	// Deprecated: use [DialectSqlserver]
+	DialectMSSQL     Dialect = dialect.Sqlserver
+	DialectSqlserver Dialect = dialect.Sqlserver
+	DialectMySQL     Dialect = dialect.Mysql
+	DialectPostgres  Dialect = dialect.Postgres
+	DialectRedshift  Dialect = dialect.Redshift
+	DialectSQLite3   Dialect = dialect.Sqlite3
+	DialectTiDB      Dialect = dialect.Tidb
+	DialectVertica   Dialect = dialect.Vertica
+	DialectYdB       Dialect = dialect.Ydb
+	DialectTurso     Dialect = dialect.Turso
+	DialectStarrocks Dialect = dialect.Starrocks
 )
 
-func init() {
-	store, _ = dialect.NewStore(dialect.Postgres)
-}
+var ErrUnknownDialect = dialect.ErrUnknownDialect
 
-var store dialect.Store
+// GetDialect gets the dialect used in the goose package.
+var GetDialect = dialect.GetDialect
 
 // SetDialect sets the dialect to use for the goose package.
-func SetDialect(s string) error {
-	var d dialect.Dialect
-	switch s {
-	case "postgres", "pgx":
-		d = dialect.Postgres
-	case "mysql":
-		d = dialect.Mysql
-	case "sqlite3", "sqlite":
-		d = dialect.Sqlite3
-	case "mssql", "azuresql", "sqlserver":
-		d = dialect.Sqlserver
-	case "redshift":
-		d = dialect.Redshift
-	case "tidb":
-		d = dialect.Tidb
-	case "clickhouse":
-		d = dialect.Clickhouse
-	case "vertica":
-		d = dialect.Vertica
-	case "ydb":
-		d = dialect.Ydb
-	case "turso":
-		d = dialect.Turso
-	case "starrocks":
-		d = dialect.Starrocks
-	default:
-		return fmt.Errorf("%q: unknown dialect", s)
+func SetDialect[D string | Dialect](d D) error {
+	var (
+		v   Dialect
+		err error
+	)
+
+	switch t := any(d).(type) {
+	case string:
+		v, err = GetDialect(t)
+		if err != nil {
+			return err
+		}
+	case Dialect:
+		v = t
 	}
-	var err error
-	store, err = dialect.NewStore(d)
+
+	store, err = NewStore(v, store.GetTableName())
+
 	return err
 }

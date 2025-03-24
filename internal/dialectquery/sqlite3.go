@@ -1,10 +1,15 @@
 package dialectquery
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/pressly/goose/v4/internal/dialect"
+)
 
 type Sqlite3 struct{}
 
 var _ Querier = (*Sqlite3)(nil)
+
+func (s *Sqlite3) GetDialect() dialect.Dialect { return dialect.Sqlite3 }
 
 func (s *Sqlite3) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (
@@ -14,6 +19,11 @@ func (s *Sqlite3) CreateTable(tableName string) string {
 		tstamp TIMESTAMP DEFAULT (datetime('now'))
 	)`
 	return fmt.Sprintf(q, tableName)
+}
+
+func (s *Sqlite3) TableExists(_ string) string {
+	// TODO https://github.com/pressly/goose/issues/898
+	return ""
 }
 
 func (s *Sqlite3) InsertVersion(tableName string) string {

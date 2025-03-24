@@ -3,7 +3,9 @@ package goose
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"strings"
 )
 
 // Version prints the current version of the database.
@@ -39,14 +41,22 @@ func VersionContext(ctx context.Context, db *sql.DB, dir string, opts ...Options
 	return nil
 }
 
-var tableName = "goose_db_version"
-
 // TableName returns goose db version table name
 func TableName() string {
-	return tableName
+	return store.GetTableName()
 }
 
 // SetTableName set goose db version table name
-func SetTableName(n string) {
-	tableName = n
+func SetTableName(n string) error {
+	n = strings.TrimSpace(n)
+
+	if n == "" {
+		return errors.New("table name must not be empty")
+	}
+
+	var err error
+
+	store, err = NewStore(store.GetDialect(), n)
+
+	return err
 }

@@ -3,7 +3,7 @@ package gomigrations
 import (
 	"database/sql"
 
-	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v4"
 )
 
 func init() {

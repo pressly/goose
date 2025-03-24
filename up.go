@@ -182,7 +182,7 @@ func UpByOneContext(ctx context.Context, db *sql.DB, dir string, opts ...Options
 
 // listAllDBVersions returns a list of all migrations, ordered ascending.
 func listAllDBVersions(ctx context.Context, db *sql.DB) (Migrations, error) {
-	dbMigrations, err := store.ListMigrations(ctx, db, TableName())
+	dbMigrations, err := store.ListMigrations(ctx, db)
 	if err != nil {
 		return nil, err
 	}

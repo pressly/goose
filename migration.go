@@ -5,12 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/pressly/goose/v4/migration"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/pressly/goose/v3/internal/sqlparser"
+	"github.com/pressly/goose/v4/internal/sqlparser"
 )
 
 // NewGoMigration creates a new Go migration.
@@ -342,18 +343,23 @@ func runGoMigration(
 	return nil
 }
 
-func insertOrDeleteVersion(ctx context.Context, tx *sql.Tx, version int64, direction bool) error {
+func insertOrDeleteVersion(ctx context.Context, tx *sql.Tx, id migration.VersionID, direction bool) error {
+	version := migration.NewVersion(id)
+
 	if direction {
-		return store.InsertVersion(ctx, tx, TableName(), version)
+		return store.InsertVersion(ctx, tx, version)
 	}
-	return store.DeleteVersion(ctx, tx, TableName(), version)
+
+	return store.DeleteVersion(ctx, tx, version)
 }
 
-func insertOrDeleteVersionNoTx(ctx context.Context, db *sql.DB, version int64, direction bool) error {
+func insertOrDeleteVersionNoTx(ctx context.Context, db *sql.DB, id int64, direction bool) error {
+	version := migration.NewVersion(id)
+
 	if direction {
-		return store.InsertVersionNoTx(ctx, db, TableName(), version)
+		return store.InsertVersionNoTx(ctx, db, version)
 	}
-	return store.DeleteVersionNoTx(ctx, db, TableName(), version)
+	return store.DeleteVersionNoTx(ctx, db, version)
 }
 
 // NumericComponent parses the version from the migration file name.

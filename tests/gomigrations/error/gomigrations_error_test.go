@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/pressly/goose/v3"
-	_ "github.com/pressly/goose/v3/tests/gomigrations/error/testdata"
+	"github.com/pressly/goose/v4"
+	_ "github.com/pressly/goose/v4/tests/gomigrations/error/testdata"
 	"github.com/stretchr/testify/require"
 	_ "modernc.org/sqlite"
 )
@@ -15,6 +15,9 @@ func TestGoMigrationByOne(t *testing.T) {
 	tempDir := t.TempDir()
 	db, err := sql.Open("sqlite", filepath.Join(tempDir, "test.db"))
 	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, db.Close())
+	})
 	err = goose.SetDialect(string(goose.DialectSQLite3))
 	require.NoError(t, err)
 	// Create goose table.

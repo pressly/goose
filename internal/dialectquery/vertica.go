@@ -1,10 +1,15 @@
 package dialectquery
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/pressly/goose/v4/internal/dialect"
+)
 
 type Vertica struct{}
 
 var _ Querier = (*Vertica)(nil)
+
+func (v *Vertica) GetDialect() dialect.Dialect { return dialect.Vertica }
 
 func (v *Vertica) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (
@@ -15,6 +20,11 @@ func (v *Vertica) CreateTable(tableName string) string {
 		PRIMARY KEY(id)
 	)`
 	return fmt.Sprintf(q, tableName)
+}
+
+func (v *Vertica) TableExists(_ string) string {
+	// TODO https://github.com/pressly/goose/issues/898
+	return ""
 }
 
 func (v *Vertica) InsertVersion(tableName string) string {

@@ -1,10 +1,15 @@
 package dialectquery
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/pressly/goose/v4/internal/dialect"
+)
 
 type Starrocks struct{}
 
 var _ Querier = (*Starrocks)(nil)
+
+func (m *Starrocks) GetDialect() dialect.Dialect { return dialect.Starrocks }
 
 func (m *Starrocks) CreateTable(tableName string) string {
 	q := `CREATE TABLE IF NOT EXISTS %s (
@@ -17,6 +22,11 @@ func (m *Starrocks) CreateTable(tableName string) string {
 	DISTRIBUTED BY HASH (id)
 	ORDER BY (id,version_id)`
 	return fmt.Sprintf(q, tableName)
+}
+
+func (m *Starrocks) TableExists(_ string) string {
+	// TODO https://github.com/pressly/goose/issues/898
+	return ""
 }
 
 func (m *Starrocks) InsertVersion(tableName string) string {
