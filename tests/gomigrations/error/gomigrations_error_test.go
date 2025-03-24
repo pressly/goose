@@ -68,6 +68,6 @@ func TestGoMigrationByOne(t *testing.T) {
 	// running within a tx we expect none of the inserts to persist.
 	err = db.QueryRow("SELECT COUNT(*) FROM foo").Scan(&count)
 	require.NoError(t, err)
-	require.EqualValues(t, 0, count)
+	require.Equal(t, 0, count)
 
 }
