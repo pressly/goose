@@ -37,7 +37,7 @@ lint: tools
 
 .PHONY: tools
 tools:
-	# curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOBIN)/bin
+	@go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
 	@go install github.com/mfridman/tparse@main
 
 test-packages:
