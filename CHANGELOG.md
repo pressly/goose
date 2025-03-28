@@ -10,7 +10,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [v3.24.2]
 
 - Add `TableExists` table existence check for the mysql dialect (#895)
-- Upgrade **minimum Go version to 1.22** (#909)
+- Upgrade **minimum Go version to 1.23**
 - Various dependency updates
 
 ## [v3.24.1]
