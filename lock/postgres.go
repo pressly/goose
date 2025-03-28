@@ -25,11 +25,11 @@ func NewPostgresSessionLocker(opts ...SessionLockerOption) (SessionLocker, error
 	cfg := sessionLockerConfig{
 		lockID: DefaultLockID,
 		lockProbe: probe{
-			periodSeconds:    5 * time.Second,
+			intervalDuration: 5 * time.Second,
 			failureThreshold: 60,
 		},
 		unlockProbe: probe{
-			periodSeconds:    2 * time.Second,
+			intervalDuration: 2 * time.Second,
 			failureThreshold: 30,
 		},
 	}
@@ -42,11 +42,11 @@ func NewPostgresSessionLocker(opts ...SessionLockerOption) (SessionLocker, error
 		lockID: cfg.lockID,
 		retryLock: retry.WithMaxRetries(
 			cfg.lockProbe.failureThreshold,
-			retry.NewConstant(cfg.lockProbe.periodSeconds),
+			retry.NewConstant(cfg.lockProbe.intervalDuration),
 		),
 		retryUnlock: retry.WithMaxRetries(
 			cfg.unlockProbe.failureThreshold,
-			retry.NewConstant(cfg.unlockProbe.periodSeconds),
+			retry.NewConstant(cfg.unlockProbe.intervalDuration),
 		),
 	}, nil
 }

@@ -160,7 +160,7 @@ func TestCollectFileSources(t *testing.T) {
 			require.NoError(t, err)
 			got, err := collectFilesystemSources(f, false, nil, nil)
 			require.NoError(t, err)
-			require.Equal(t, len(got.sqlSources), len(sqlSources))
+			require.Len(t, sqlSources, len(got.sqlSources))
 			require.Empty(t, got.goSources)
 			for i := 0; i < len(got.sqlSources); i++ {
 				require.Equal(t, got.sqlSources[i], sqlSources[i])
