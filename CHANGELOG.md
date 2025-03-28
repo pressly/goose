@@ -7,8 +7,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [v3.24.2]
+
 - Add `TableExists` table existence check for the mysql dialect (#895)
 - Upgrade **minimum Go version to 1.22** (#909)
+- Various dependency updates
 
 ## [v3.24.1]
 
@@ -263,7 +266,8 @@ Here's a quick summary:
 - Add new `context.Context`-aware functions and methods, for both sql and go migrations.
 - Return error when no migration files found or dir is not a directory.
 
-[Unreleased]: https://github.com/pressly/goose/compare/v3.24.1...HEAD
+[Unreleased]: https://github.com/pressly/goose/compare/v3.24.2...HEAD
+[v3.24.2]: https://github.com/pressly/goose/compare/v3.24.1...v3.24.2
 [v3.24.1]: https://github.com/pressly/goose/compare/v3.24.0...v3.24.1
 [v3.24.0]: https://github.com/pressly/goose/compare/v3.23.1...v3.24.0
 [v3.23.1]: https://github.com/pressly/goose/compare/v3.23.0...v3.23.1
