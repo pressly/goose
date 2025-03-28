@@ -187,7 +187,7 @@ func TestProviderRun(t *testing.T) {
 					// Apply all up migrations
 					upResult, err := p.Up(ctx)
 					require.NoError(t, err)
-					require.Equal(t, len(upResult), len(sources))
+					require.Len(t, sources, len(upResult))
 					currentVersion, err := p.GetDBVersion(ctx)
 					require.NoError(t, err)
 					require.Equal(t, currentVersion, p.ListSources()[len(sources)-1].Version)
@@ -207,7 +207,7 @@ func TestProviderRun(t *testing.T) {
 					// Apply all down migrations
 					downResult, err := p.DownTo(ctx, 0)
 					require.NoError(t, err)
-					require.Equal(t, len(downResult), len(sources))
+					require.Len(t, sources, len(downResult))
 					gotVersion, err := getMaxVersionID(db, goose.DefaultTablename)
 					require.NoError(t, err)
 					require.EqualValues(t, 0, gotVersion)

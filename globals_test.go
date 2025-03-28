@@ -17,7 +17,7 @@ func TestNewGoMigration(t *testing.T) {
 		require.True(t, m.Registered)
 		require.EqualValues(t, -1, m.Next)
 		require.EqualValues(t, -1, m.Previous)
-		require.Equal(t, "", m.Source)
+		require.Empty(t, m.Source)
 		require.Nil(t, m.UpFnNoTxContext)
 		require.Nil(t, m.DownFnNoTxContext)
 		require.Nil(t, m.UpFnContext)
@@ -136,7 +136,7 @@ func TestLegacyFunctions(t *testing.T) {
 		require.True(t, m.Registered)
 		require.EqualValues(t, -1, m.Next)
 		require.EqualValues(t, -1, m.Previous)
-		require.Equal(t, "", m.Source)
+		require.Empty(t, m.Source)
 	}
 
 	t.Run("all_tx", func(t *testing.T) {
