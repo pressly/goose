@@ -1,8 +1,7 @@
 module github.com/pressly/goose/v3
 
 go 1.22.0
-
-toolchain go1.24.0
+toolchain go1.24.1
 
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.33.1
@@ -19,7 +18,7 @@ require (
 	github.com/ydb-platform/ydb-go-sdk/v3 v3.104.7
 	github.com/ziutek/mymysql v1.5.4
 	go.uber.org/multierr v1.11.0
-	golang.org/x/sync v0.11.0
+	golang.org/x/sync v0.12.0
 	modernc.org/sqlite v1.36.1
 )
 
