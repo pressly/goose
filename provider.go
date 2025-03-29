@@ -135,9 +135,6 @@ func newProvider(
 	if err != nil {
 		return nil, err
 	}
-	if len(migrations) == 0 {
-		return nil, ErrNoMigrations
-	}
 	return &Provider{
 		db:         db,
 		fsys:       fsys,
@@ -505,7 +502,11 @@ func (p *Provider) getVersions(ctx context.Context) (current, target int64, retE
 		retErr = multierr.Append(retErr, cleanup())
 	}()
 
-	target = p.migrations[len(p.migrations)-1].Version
+	if len(p.migrations) > 0 {
+		target = p.migrations[len(p.migrations)-1].Version
+	} else {
+		target = 0 //If there are no migrations, the target is 0
+	}
 
 	// If versioning is disabled, we always have pending migrations and the target version is the
 	// last migration.
