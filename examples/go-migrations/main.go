@@ -4,11 +4,12 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"flag"
 	"log"
 	"os"
 
-	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v4"
 	_ "modernc.org/sqlite"
 )
 
@@ -30,7 +31,7 @@ func main() {
 
 	dbstring, command := args[1], args[2]
 
-	db, err := goose.OpenDBWithDriver("sqlite", dbstring)
+	db, err := sql.Open("sqlite", dbstring)
 	if err != nil {
 		log.Fatalf("goose: failed to open DB: %v", err)
 	}
@@ -41,7 +42,7 @@ func main() {
 		}
 	}()
 
-	arguments := []string{}
+	var arguments []string
 	if len(args) > 3 {
 		arguments = append(arguments, args[3:]...)
 	}

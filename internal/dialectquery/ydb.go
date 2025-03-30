@@ -1,10 +1,15 @@
 package dialectquery
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/pressly/goose/v4/internal/dialect"
+)
 
 type Ydb struct{}
 
 var _ Querier = (*Ydb)(nil)
+
+func (c *Ydb) GetDialect() dialect.Dialect { return dialect.Ydb }
 
 func (c *Ydb) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (
@@ -15,6 +20,11 @@ func (c *Ydb) CreateTable(tableName string) string {
 		PRIMARY KEY(version_id)
 	)`
 	return fmt.Sprintf(q, tableName)
+}
+
+func (c *Ydb) TableExists(_ string) string {
+	// TODO https://github.com/pressly/goose/issues/898
+	return ""
 }
 
 func (c *Ydb) InsertVersion(tableName string) string {

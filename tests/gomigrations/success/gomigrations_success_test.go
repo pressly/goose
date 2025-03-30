@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v4"
 	"github.com/stretchr/testify/require"
 
-	_ "github.com/pressly/goose/v3/tests/gomigrations/success/testdata"
+	_ "github.com/pressly/goose/v4/tests/gomigrations/success/testdata"
 	_ "modernc.org/sqlite"
 )
 
@@ -18,6 +18,9 @@ func TestGoMigrationByOne(t *testing.T) {
 	require.NoError(t, goose.SetDialect("sqlite3"))
 	db, err := sql.Open("sqlite", ":memory:")
 	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, db.Close())
+	})
 	dir := "testdata"
 	files, err := filepath.Glob(dir + "/*.go")
 	require.NoError(t, err)

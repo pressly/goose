@@ -1,10 +1,17 @@
 package dialectquery
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/pressly/goose/v4/internal/dialect"
+)
 
 type Clickhouse struct{}
 
 var _ Querier = (*Clickhouse)(nil)
+
+func (c *Clickhouse) GetDialect() dialect.Dialect {
+	return dialect.Clickhouse
+}
 
 func (c *Clickhouse) CreateTable(tableName string) string {
 	q := `CREATE TABLE IF NOT EXISTS %s (
@@ -16,6 +23,11 @@ func (c *Clickhouse) CreateTable(tableName string) string {
 	  ENGINE = MergeTree()
 		ORDER BY (date)`
 	return fmt.Sprintf(q, tableName)
+}
+
+func (c *Clickhouse) TableExists(_ string) string {
+	// TODO https://github.com/pressly/goose/issues/898
+	return ""
 }
 
 func (c *Clickhouse) InsertVersion(tableName string) string {
