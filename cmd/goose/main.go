@@ -83,7 +83,9 @@ func main() {
 	if *sequential {
 		goose.SetSequential(true)
 	}
-	goose.SetTableName(*table)
+
+	// Envvars should have lower priority than flags.
+	goose.SetTableName(firstNonEmpty(*table, envConfig.table))
 
 	args := flags.Args()
 
@@ -421,6 +423,7 @@ type envConfig struct {
 	driver   string
 	dbstring string
 	dir      string
+	table    string
 	noColor  bool
 }
 
@@ -429,6 +432,7 @@ func loadEnvConfig() *envConfig {
 	return &envConfig{
 		driver:   envOr("GOOSE_DRIVER", ""),
 		dbstring: envOr("GOOSE_DBSTRING", ""),
+		table:    envOr("GOOSE_TABLE", ""),
 		dir:      envOr("GOOSE_MIGRATION_DIR", DefaultMigrationDir),
 		// https://no-color.org/
 		noColor: noColorBool,
@@ -440,6 +444,7 @@ func (c *envConfig) listEnvs() []envVar {
 		{Name: "GOOSE_DRIVER", Value: c.driver},
 		{Name: "GOOSE_DBSTRING", Value: c.dbstring},
 		{Name: "GOOSE_MIGRATION_DIR", Value: c.dir},
+		{Name: "GOOSE_TABLE", Value: c.table},
 		{Name: "NO_COLOR", Value: strconv.FormatBool(c.noColor)},
 	}
 }
@@ -456,4 +461,14 @@ func envOr(key, def string) string {
 		val = def
 	}
 	return val
+}
+
+// firstNonEmpty returns the first non-empty string from the provided input or an empty string if all are empty.
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
 }
