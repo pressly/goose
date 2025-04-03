@@ -25,7 +25,6 @@ import (
 
 var (
 	DefaultMigrationDir = "."
-	DefaultTable        = "goose_db_version"
 
 	flags        = flag.NewFlagSet("goose", flag.ExitOnError)
 	dir          = flags.String("dir", DefaultMigrationDir, "directory with migration files, (GOOSE_MIGRATION_DIR env variable supported)")
@@ -86,7 +85,7 @@ func main() {
 	}
 
 	// The order of precedence should be: flag > env variable > default value.
-	goose.SetTableName(firstNonEmpty(*table, envConfig.table, DefaultTable))
+	goose.SetTableName(firstNonEmpty(*table, envConfig.table, goose.DefaultTablename))
 
 	args := flags.Args()
 
