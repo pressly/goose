@@ -25,10 +25,11 @@ import (
 
 var (
 	DefaultMigrationDir = "."
+	DefaultTable        = "goose_db_version"
 
 	flags        = flag.NewFlagSet("goose", flag.ExitOnError)
 	dir          = flags.String("dir", DefaultMigrationDir, "directory with migration files, (GOOSE_MIGRATION_DIR env variable supported)")
-	table        = flags.String("table", "goose_db_version", "migrations table name")
+	table        = flags.String("table", "", "migrations table name")
 	verbose      = flags.Bool("v", false, "enable verbose mode")
 	help         = flags.Bool("h", false, "print help")
 	versionFlag  = flags.Bool("version", false, "print version")
@@ -84,8 +85,8 @@ func main() {
 		goose.SetSequential(true)
 	}
 
-	// Envvars should have lower priority than flags.
-	goose.SetTableName(firstNonEmpty(*table, envConfig.table))
+	// The order of precedence should be: flag > env variable > default value.
+	goose.SetTableName(firstNonEmpty(*table, envConfig.table, DefaultTable))
 
 	args := flags.Args()
 
