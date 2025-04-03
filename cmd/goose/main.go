@@ -28,7 +28,7 @@ var (
 
 	flags        = flag.NewFlagSet("goose", flag.ExitOnError)
 	dir          = flags.String("dir", DefaultMigrationDir, "directory with migration files, (GOOSE_MIGRATION_DIR env variable supported)")
-	table        = flags.String("table", "goose_db_version", "migrations table name")
+	table        = flags.String("table", "", "migrations table name")
 	verbose      = flags.Bool("v", false, "enable verbose mode")
 	help         = flags.Bool("h", false, "print help")
 	versionFlag  = flags.Bool("version", false, "print version")
@@ -83,7 +83,9 @@ func main() {
 	if *sequential {
 		goose.SetSequential(true)
 	}
-	goose.SetTableName(*table)
+
+	// The order of precedence should be: flag > env variable > default value.
+	goose.SetTableName(firstNonEmpty(*table, envConfig.table, goose.DefaultTablename))
 
 	args := flags.Args()
 
@@ -421,6 +423,7 @@ type envConfig struct {
 	driver   string
 	dbstring string
 	dir      string
+	table    string
 	noColor  bool
 }
 
@@ -429,6 +432,7 @@ func loadEnvConfig() *envConfig {
 	return &envConfig{
 		driver:   envOr("GOOSE_DRIVER", ""),
 		dbstring: envOr("GOOSE_DBSTRING", ""),
+		table:    envOr("GOOSE_TABLE", ""),
 		dir:      envOr("GOOSE_MIGRATION_DIR", DefaultMigrationDir),
 		// https://no-color.org/
 		noColor: noColorBool,
@@ -440,6 +444,7 @@ func (c *envConfig) listEnvs() []envVar {
 		{Name: "GOOSE_DRIVER", Value: c.driver},
 		{Name: "GOOSE_DBSTRING", Value: c.dbstring},
 		{Name: "GOOSE_MIGRATION_DIR", Value: c.dir},
+		{Name: "GOOSE_TABLE", Value: c.table},
 		{Name: "NO_COLOR", Value: strconv.FormatBool(c.noColor)},
 	}
 }
@@ -456,4 +461,14 @@ func envOr(key, def string) string {
 		val = def
 	}
 	return val
+}
+
+// firstNonEmpty returns the first non-empty string from the provided input or an empty string if all are empty.
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
 }

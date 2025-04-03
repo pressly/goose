@@ -247,6 +247,7 @@ arguments, you can set the following environment variables:
 export GOOSE_DRIVER=DRIVER
 export GOOSE_DBSTRING=DBSTRING
 export GOOSE_MIGRATION_DIR=MIGRATION_DIR
+export GOOSE_TABLE=TABLENAME
 ```
 
 **2. Via `.env` files with corresponding variables. `.env` file example**:
@@ -255,6 +256,7 @@ export GOOSE_MIGRATION_DIR=MIGRATION_DIR
 GOOSE_DRIVER=postgres
 GOOSE_DBSTRING=postgres://admin:admin@localhost:5432/admin_db
 GOOSE_MIGRATION_DIR=./migrations
+GOOSE_TABLE=custom.goose_migrations
 ```
 
 Loading from `.env` files is enabled by default. To disable this feature, set the `-env=none` flag.
