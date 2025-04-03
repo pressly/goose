@@ -5,25 +5,28 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/pressly/goose/v3/internal/dialect"
 
 	"github.com/pressly/goose/v3/internal/dialect/dialectquery"
 )
 
 // Dialect is the type of database dialect.
-type Dialect string
+type Dialect = dialect.Dialect
+
+var ErrUnknownDialect = dialect.ErrUnknownDialect
 
 const (
-	DialectClickHouse Dialect = "clickhouse"
-	DialectMSSQL      Dialect = "mssql"
-	DialectMySQL      Dialect = "mysql"
-	DialectPostgres   Dialect = "postgres"
-	DialectRedshift   Dialect = "redshift"
-	DialectSQLite3    Dialect = "sqlite3"
-	DialectTiDB       Dialect = "tidb"
-	DialectTurso      Dialect = "turso"
-	DialectVertica    Dialect = "vertica"
-	DialectYdB        Dialect = "ydb"
-	DialectStarrocks  Dialect = "starrocks"
+	DialectClickHouse Dialect = dialect.Clickhouse
+	DialectMSSQL      Dialect = dialect.Mssql
+	DialectMySQL      Dialect = dialect.Mysql
+	DialectPostgres   Dialect = dialect.Postgres
+	DialectRedshift   Dialect = dialect.Redshift
+	DialectSQLite3    Dialect = dialect.Sqlite3
+	DialectTiDB       Dialect = dialect.Tidb
+	DialectTurso      Dialect = dialect.Turso
+	DialectVertica    Dialect = dialect.Vertica
+	DialectYdB        Dialect = dialect.Ydb
+	DialectStarrocks  Dialect = dialect.Starrocks
 )
 
 // NewStore returns a new [Store] implementation for the given dialect.
@@ -49,7 +52,7 @@ func NewStore(dialect Dialect, tablename string) (Store, error) {
 	}
 	querier, ok := lookup[dialect]
 	if !ok {
-		return nil, fmt.Errorf("unknown dialect: %q", dialect)
+		return nil, fmt.Errorf("%s: %w", dialect, ErrUnknownDialect)
 	}
 	return &store{
 		tablename: tablename,
