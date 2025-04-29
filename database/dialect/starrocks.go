@@ -1,12 +1,19 @@
-package dialectquery
+package dialect
 
-import "fmt"
+import (
+	"fmt"
+)
 
-type Starrocks struct{}
+// NewStarrocks returns a [Querier] for StarRocks dialect.
+func NewStarrocks() Querier {
+	return &starrocks{}
+}
 
-var _ Querier = (*Starrocks)(nil)
+type starrocks struct{}
 
-func (m *Starrocks) CreateTable(tableName string) string {
+var _ Querier = (*starrocks)(nil)
+
+func (m *starrocks) CreateTable(tableName string) string {
 	q := `CREATE TABLE IF NOT EXISTS %s (
 		id bigint NOT NULL AUTO_INCREMENT,
 		version_id bigint NOT NULL,
@@ -19,27 +26,27 @@ func (m *Starrocks) CreateTable(tableName string) string {
 	return fmt.Sprintf(q, tableName)
 }
 
-func (m *Starrocks) InsertVersion(tableName string) string {
+func (m *starrocks) InsertVersion(tableName string) string {
 	q := `INSERT INTO %s (version_id, is_applied) VALUES (?, ?)`
 	return fmt.Sprintf(q, tableName)
 }
 
-func (m *Starrocks) DeleteVersion(tableName string) string {
+func (m *starrocks) DeleteVersion(tableName string) string {
 	q := `DELETE FROM %s WHERE version_id=?`
 	return fmt.Sprintf(q, tableName)
 }
 
-func (m *Starrocks) GetMigrationByVersion(tableName string) string {
+func (m *starrocks) GetMigrationByVersion(tableName string) string {
 	q := `SELECT tstamp, is_applied FROM %s WHERE version_id=? ORDER BY tstamp DESC LIMIT 1`
 	return fmt.Sprintf(q, tableName)
 }
 
-func (m *Starrocks) ListMigrations(tableName string) string {
+func (m *starrocks) ListMigrations(tableName string) string {
 	q := `SELECT version_id, is_applied from %s ORDER BY id DESC`
 	return fmt.Sprintf(q, tableName)
 }
 
-func (m *Starrocks) GetLatestVersion(tableName string) string {
+func (m *starrocks) GetLatestVersion(tableName string) string {
 	q := `SELECT MAX(version_id) FROM %s`
 	return fmt.Sprintf(q, tableName)
 }

@@ -11,50 +11,52 @@ import (
 type Dialect = database.Dialect
 
 const (
+	DialectCustom     Dialect = database.DialectCustom
 	DialectClickHouse Dialect = database.DialectClickHouse
 	DialectMSSQL      Dialect = database.DialectMSSQL
 	DialectMySQL      Dialect = database.DialectMySQL
 	DialectPostgres   Dialect = database.DialectPostgres
 	DialectRedshift   Dialect = database.DialectRedshift
 	DialectSQLite3    Dialect = database.DialectSQLite3
+	DialectStarrocks  Dialect = database.DialectStarrocks
 	DialectTiDB       Dialect = database.DialectTiDB
+	DialectTurso      Dialect = database.DialectTurso
 	DialectVertica    Dialect = database.DialectVertica
 	DialectYdB        Dialect = database.DialectYdB
-	DialectStarrocks  Dialect = database.DialectStarrocks
 )
 
 func init() {
-	store, _ = dialect.NewStore(dialect.Postgres)
+	store, _ = dialect.NewStore(DialectPostgres)
 }
 
 var store dialect.Store
 
 // SetDialect sets the dialect to use for the goose package.
 func SetDialect(s string) error {
-	var d dialect.Dialect
+	var d Dialect
 	switch s {
 	case "postgres", "pgx":
-		d = dialect.Postgres
+		d = DialectPostgres
 	case "mysql":
-		d = dialect.Mysql
+		d = DialectMySQL
 	case "sqlite3", "sqlite":
-		d = dialect.Sqlite3
+		d = DialectSQLite3
 	case "mssql", "azuresql", "sqlserver":
-		d = dialect.Sqlserver
+		d = DialectMSSQL
 	case "redshift":
-		d = dialect.Redshift
+		d = DialectRedshift
 	case "tidb":
-		d = dialect.Tidb
+		d = DialectTiDB
 	case "clickhouse":
-		d = dialect.Clickhouse
+		d = DialectClickHouse
 	case "vertica":
-		d = dialect.Vertica
+		d = DialectVertica
 	case "ydb":
-		d = dialect.Ydb
+		d = DialectYdB
 	case "turso":
-		d = dialect.Turso
+		d = DialectTurso
 	case "starrocks":
-		d = dialect.Starrocks
+		d = DialectStarrocks
 	default:
 		return fmt.Errorf("%q: unknown dialect", s)
 	}

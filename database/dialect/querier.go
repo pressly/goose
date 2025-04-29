@@ -1,6 +1,4 @@
-package dialectquery
-
-import "strings"
+package dialect
 
 // Querier is the interface that wraps the basic methods to create a dialect specific query.
 type Querier interface {
@@ -26,34 +24,4 @@ type Querier interface {
 	// GetLatestVersion returns the SQL query string to get the last version_id from the db version
 	// table. Returns a nullable int64 value.
 	GetLatestVersion(tableName string) string
-}
-
-var _ Querier = (*QueryController)(nil)
-
-type QueryController struct{ Querier }
-
-// NewQueryController returns a new QueryController that wraps the given Querier.
-func NewQueryController(querier Querier) *QueryController {
-	return &QueryController{Querier: querier}
-}
-
-// Optional methods
-
-// TableExists returns the SQL query string to check if the version table exists. If the Querier
-// does not implement this method, it will return an empty string.
-//
-// Returns a boolean value.
-func (c *QueryController) TableExists(tableName string) string {
-	if t, ok := c.Querier.(interface{ TableExists(string) string }); ok {
-		return t.TableExists(tableName)
-	}
-	return ""
-}
-
-func parseTableIdentifier(name string) (schema, table string) {
-	schema, table, found := strings.Cut(name, ".")
-	if !found {
-		return "", name
-	}
-	return schema, table
 }

@@ -1,12 +1,19 @@
-package dialectquery
+package dialect
 
-import "fmt"
+import (
+	"fmt"
+)
 
-type Ydb struct{}
+// NewVertica returns a new [Querier] for Vertica dialect.
+func NewYDB() Querier {
+	return &ydb{}
+}
 
-var _ Querier = (*Ydb)(nil)
+type ydb struct{}
 
-func (c *Ydb) CreateTable(tableName string) string {
+var _ Querier = (*ydb)(nil)
+
+func (c *ydb) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (
 		version_id Uint64,
 		is_applied Bool,
@@ -17,7 +24,7 @@ func (c *Ydb) CreateTable(tableName string) string {
 	return fmt.Sprintf(q, tableName)
 }
 
-func (c *Ydb) InsertVersion(tableName string) string {
+func (c *ydb) InsertVersion(tableName string) string {
 	q := `INSERT INTO %s (
 		version_id, 
 		is_applied, 
@@ -30,24 +37,24 @@ func (c *Ydb) InsertVersion(tableName string) string {
 	return fmt.Sprintf(q, tableName)
 }
 
-func (c *Ydb) DeleteVersion(tableName string) string {
+func (c *ydb) DeleteVersion(tableName string) string {
 	q := `DELETE FROM %s WHERE version_id = $1`
 	return fmt.Sprintf(q, tableName)
 }
 
-func (c *Ydb) GetMigrationByVersion(tableName string) string {
+func (c *ydb) GetMigrationByVersion(tableName string) string {
 	q := `SELECT tstamp, is_applied FROM %s WHERE version_id = $1 ORDER BY tstamp DESC LIMIT 1`
 	return fmt.Sprintf(q, tableName)
 }
 
-func (c *Ydb) ListMigrations(tableName string) string {
+func (c *ydb) ListMigrations(tableName string) string {
 	q := `
 	SELECT version_id, is_applied, tstamp AS __discard_column_tstamp 
 	FROM %s ORDER BY __discard_column_tstamp DESC`
 	return fmt.Sprintf(q, tableName)
 }
 
-func (c *Ydb) GetLatestVersion(tableName string) string {
+func (c *ydb) GetLatestVersion(tableName string) string {
 	q := `SELECT MAX(version_id) FROM %s`
 	return fmt.Sprintf(q, tableName)
 }

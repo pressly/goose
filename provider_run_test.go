@@ -749,7 +749,7 @@ func TestCustomStoreTableExists(t *testing.T) {
 	store, err := database.NewStore(database.DialectSQLite3, goose.DefaultTablename)
 	require.NoError(t, err)
 	for i := 0; i < 2; i++ {
-		p, err := goose.NewProvider("", db, newFsys(),
+		p, err := goose.NewProvider(goose.DialectCustom, db, newFsys(),
 			goose.WithStore(&customStoreSQLite3{store}),
 		)
 		require.NoError(t, err)
