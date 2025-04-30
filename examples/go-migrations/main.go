@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	"os"
@@ -17,7 +18,9 @@ var (
 )
 
 func main() {
-	flags.Parse(os.Args[1:])
+	if err := flags.Parse(os.Args[1:]); err != nil {
+		log.Fatalf("goose: failed to parse flags: %v", err)
+	}
 	args := flags.Args()
 
 	if len(args) < 3 {
@@ -29,12 +32,12 @@ func main() {
 
 	db, err := goose.OpenDBWithDriver("sqlite", dbstring)
 	if err != nil {
-		log.Fatalf("goose: failed to open DB: %v\n", err)
+		log.Fatalf("goose: failed to open DB: %v", err)
 	}
 
 	defer func() {
 		if err := db.Close(); err != nil {
-			log.Fatalf("goose: failed to close DB: %v\n", err)
+			log.Fatalf("goose: failed to close DB: %v", err)
 		}
 	}()
 
@@ -43,7 +46,8 @@ func main() {
 		arguments = append(arguments, args[3:]...)
 	}
 
-	if err := goose.Run(command, db, *dir, arguments...); err != nil {
+	ctx := context.Background()
+	if err := goose.RunContext(ctx, command, db, *dir, arguments...); err != nil {
 		log.Fatalf("goose %v: %v", command, err)
 	}
 }

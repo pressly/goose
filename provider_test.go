@@ -2,25 +2,24 @@ package goose_test
 
 import (
 	"database/sql"
-	"errors"
 	"io/fs"
 	"path/filepath"
 	"testing"
 	"testing/fstest"
 
 	"github.com/pressly/goose/v3"
-	"github.com/pressly/goose/v3/internal/check"
+	"github.com/stretchr/testify/require"
 	_ "modernc.org/sqlite"
 )
 
 func TestProvider(t *testing.T) {
 	dir := t.TempDir()
 	db, err := sql.Open("sqlite", filepath.Join(dir, "sql_embed.db"))
-	check.NoError(t, err)
+	require.NoError(t, err)
 	t.Run("empty", func(t *testing.T) {
 		_, err := goose.NewProvider(goose.DialectSQLite3, db, fstest.MapFS{})
-		check.HasError(t, err)
-		check.Bool(t, errors.Is(err, goose.ErrNoMigrations), true)
+		require.Error(t, err)
+		require.ErrorIs(t, err, goose.ErrNoMigrations)
 	})
 
 	mapFS := fstest.MapFS{
@@ -28,14 +27,13 @@ func TestProvider(t *testing.T) {
 		"migrations/002_bar.sql": {Data: []byte(`-- +goose Up`)},
 	}
 	fsys, err := fs.Sub(mapFS, "migrations")
-	check.NoError(t, err)
+	require.NoError(t, err)
 	p, err := goose.NewProvider(goose.DialectSQLite3, db, fsys)
-	check.NoError(t, err)
+	require.NoError(t, err)
 	sources := p.ListSources()
-	check.Equal(t, len(sources), 2)
-	check.Equal(t, sources[0], newSource(goose.TypeSQL, "001_foo.sql", 1))
-	check.Equal(t, sources[1], newSource(goose.TypeSQL, "002_bar.sql", 2))
-
+	require.Len(t, sources, 2)
+	require.Equal(t, sources[0], newSource(goose.TypeSQL, "001_foo.sql", 1))
+	require.Equal(t, sources[1], newSource(goose.TypeSQL, "002_bar.sql", 2))
 }
 
 var (
@@ -76,3 +74,8 @@ ALTER TABLE my_foo DROP COLUMN timestamp;
 ALTER TABLE my_foo RENAME TO foo;
 `
 )
+
+func TestPartialErrorUnwrap(t *testing.T) {
+	err := &goose.PartialError{Err: goose.ErrNoCurrentVersion}
+	require.ErrorIs(t, err, goose.ErrNoCurrentVersion)
+}

@@ -3,10 +3,10 @@ name: Goose CI
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
 
-concurrency: 
+concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
@@ -17,7 +17,7 @@ jobs:
 
     strategy:
       matrix:
-        go-version: ["1.20", "1.21", "1.22"]
+        go-version: [oldstable, stable]
         os: [ubuntu-latest]
 
     runs-on: ${{ matrix.os }}
@@ -36,6 +36,8 @@ jobs:
             echo "Please format Go code by running: go fmt ./..."
             exit 1
           fi
+      - name: Install tparse
+        run: go install github.com/mfridman/tparse@main
       - name: Run tests
         run: |
           mkdir -p bin
@@ -43,11 +45,13 @@ jobs:
           go build ./...
           make test-packages
       - name: Install GoReleaser
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.go-version == '1.22'
-        uses: goreleaser/goreleaser-action@v5
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.go-version == 'stable'
+        uses: goreleaser/goreleaser-action@v6
         with:
           install-only: true
+          distribution: goreleaser
+          version: "~> v2"
       - name: Gorelease dry-run
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.go-version == '1.22'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.go-version == 'stable'
         run: |
           goreleaser release --skip=publish --snapshot --fail-fast --clean

@@ -68,17 +68,17 @@ func DownToContext(ctx context.Context, db *sql.DB, dir string, version int64, o
 		}
 
 		if currentVersion == 0 {
-			log.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
+			log.Printf("goose: no migrations to run. current version: %d", currentVersion)
 			return nil
 		}
 		current, err := migrations.Current(currentVersion)
 		if err != nil {
-			log.Printf("goose: migration file not found for current version (%d), error: %s\n", currentVersion, err)
+			log.Printf("goose: migration file not found for current version (%d), error: %s", currentVersion, err)
 			return err
 		}
 
 		if current.Version <= version {
-			log.Printf("goose: no migrations to run. current version: %d\n", currentVersion)
+			log.Printf("goose: no migrations to run. current version: %d", currentVersion)
 			return nil
 		}
 
@@ -102,6 +102,6 @@ func downToNoVersioning(ctx context.Context, db *sql.DB, migrations Migrations, 
 			return err
 		}
 	}
-	log.Printf("goose: down to current file version: %d\n", finalVersion)
+	log.Printf("goose: down to current file version: %d", finalVersion)
 	return nil
 }

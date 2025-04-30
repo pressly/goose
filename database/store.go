@@ -7,42 +7,43 @@ import (
 )
 
 var (
-	// ErrVersionNotFound must be returned by [GetMigration] when a migration version is not found.
+	// ErrVersionNotFound must be returned by [GetMigration] or [GetLatestVersion] when a migration
+	// does not exist.
 	ErrVersionNotFound = errors.New("version not found")
+
+	// ErrNotImplemented must be returned by methods that are not implemented.
+	ErrNotImplemented = errors.New("not implemented")
 )
 
-// Store is an interface that defines methods for managing database migrations and versioning. By
-// defining a Store interface, we can support multiple databases with consistent functionality.
+// Store is an interface that defines methods for tracking and managing migrations. It is used by
+// the goose package to interact with a database. By defining a Store interface, multiple
+// implementations can be created to support different databases without reimplementing the
+// migration logic.
 //
-// Each database dialect requires a specific implementation of this interface. A dialect represents
-// a set of SQL statements specific to a particular database system.
+// This package provides several dialects that implement the Store interface. While most users won't
+// need to create their own Store, if you need to support a database that isn't currently supported,
+// you can implement your own!
 type Store interface {
-	// Tablename is the version table used to record applied migrations. Must not be empty.
+	// Tablename is the name of the version table. This table is used to record applied migrations
+	// and must not be an empty string.
 	Tablename() string
-
-	// CreateVersionTable creates the version table. This table is used to record applied
-	// migrations. When creating the table, the implementation must also insert a row for the
-	// initial version (0).
+	// CreateVersionTable creates the version table, which is used to track migrations.
 	CreateVersionTable(ctx context.Context, db DBTxConn) error
-
-	// Insert inserts a version id into the version table.
+	// Insert a version id into the version table.
 	Insert(ctx context.Context, db DBTxConn, req InsertRequest) error
-
-	// Delete deletes a version id from the version table.
+	// Delete a version id from the version table.
 	Delete(ctx context.Context, db DBTxConn, version int64) error
-
 	// GetMigration retrieves a single migration by version id. If the query succeeds, but the
 	// version is not found, this method must return [ErrVersionNotFound].
 	GetMigration(ctx context.Context, db DBTxConn, version int64) (*GetMigrationResult, error)
-
+	// GetLatestVersion retrieves the last applied migration version. If no migrations exist, this
+	// method must return [ErrVersionNotFound].
+	GetLatestVersion(ctx context.Context, db DBTxConn) (int64, error)
 	// ListMigrations retrieves all migrations sorted in descending order by id or timestamp. If
 	// there are no migrations, return empty slice with no error. Typically this method will return
 	// at least one migration, because the initial version (0) is always inserted into the version
 	// table when it is created.
 	ListMigrations(ctx context.Context, db DBTxConn) ([]*ListMigrationsResult, error)
-
-	// TODO(mf): remove this method once the Provider is public and a custom Store can be used.
-	private()
 }
 
 type InsertRequest struct {

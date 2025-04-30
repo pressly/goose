@@ -20,9 +20,10 @@ const (
 	DialectRedshift   Dialect = "redshift"
 	DialectSQLite3    Dialect = "sqlite3"
 	DialectTiDB       Dialect = "tidb"
+	DialectTurso      Dialect = "turso"
 	DialectVertica    Dialect = "vertica"
 	DialectYdB        Dialect = "ydb"
-	DialectTurso      Dialect = "turso"
+	DialectStarrocks  Dialect = "starrocks"
 )
 
 // NewStore returns a new [Store] implementation for the given dialect.
@@ -44,6 +45,7 @@ func NewStore(dialect Dialect, tablename string) (Store, error) {
 		DialectVertica:    &dialectquery.Vertica{},
 		DialectYdB:        &dialectquery.Ydb{},
 		DialectTurso:      &dialectquery.Turso{},
+		DialectStarrocks:  &dialectquery.Starrocks{},
 	}
 	querier, ok := lookup[dialect]
 	if !ok {
@@ -51,18 +53,16 @@ func NewStore(dialect Dialect, tablename string) (Store, error) {
 	}
 	return &store{
 		tablename: tablename,
-		querier:   querier,
+		querier:   dialectquery.NewQueryController(querier),
 	}, nil
 }
 
 type store struct {
 	tablename string
-	querier   dialectquery.Querier
+	querier   *dialectquery.QueryController
 }
 
 var _ Store = (*store)(nil)
-
-func (s *store) private() {}
 
 func (s *store) Tablename() string {
 	return s.tablename
@@ -111,6 +111,18 @@ func (s *store) GetMigration(
 	return &result, nil
 }
 
+func (s *store) GetLatestVersion(ctx context.Context, db DBTxConn) (int64, error) {
+	q := s.querier.GetLatestVersion(s.tablename)
+	var version sql.NullInt64
+	if err := db.QueryRowContext(ctx, q).Scan(&version); err != nil {
+		return -1, fmt.Errorf("failed to get latest version: %w", err)
+	}
+	if !version.Valid {
+		return -1, fmt.Errorf("latest %w", ErrVersionNotFound)
+	}
+	return version.Int64, nil
+}
+
 func (s *store) ListMigrations(
 	ctx context.Context,
 	db DBTxConn,
@@ -134,4 +146,27 @@ func (s *store) ListMigrations(
 		return nil, err
 	}
 	return migrations, nil
+}
+
+//
+//
+//
+// Additional methods that are not part of the core Store interface, but are extended by the
+// [controller.StoreController] type.
+//
+//
+//
+
+func (s *store) TableExists(ctx context.Context, db DBTxConn) (bool, error) {
+	q := s.querier.TableExists(s.tablename)
+	if q == "" {
+		return false, errors.ErrUnsupported
+	}
+	var exists bool
+	// Note, we do not pass the table name as an argument to the query, as the query should be
+	// pre-defined by the dialect.
+	if err := db.QueryRowContext(ctx, q).Scan(&exists); err != nil {
+		return false, fmt.Errorf("failed to check if table exists: %w", err)
+	}
+	return exists, nil
 }

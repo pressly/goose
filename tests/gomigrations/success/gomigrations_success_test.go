@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/pressly/goose/v3"
-	"github.com/pressly/goose/v3/internal/check"
+	"github.com/stretchr/testify/require"
 
 	_ "github.com/pressly/goose/v3/tests/gomigrations/success/testdata"
 	_ "modernc.org/sqlite"
@@ -15,65 +15,73 @@ import (
 func TestGoMigrationByOne(t *testing.T) {
 	t.Parallel()
 
-	check.NoError(t, goose.SetDialect("sqlite3"))
+	require.NoError(t, goose.SetDialect("sqlite3"))
 	db, err := sql.Open("sqlite", ":memory:")
-	check.NoError(t, err)
+	require.NoError(t, err)
 	dir := "testdata"
 	files, err := filepath.Glob(dir + "/*.go")
-	check.NoError(t, err)
+	require.NoError(t, err)
 
 	upByOne := func(t *testing.T) int64 {
+		t.Helper()
 		err = goose.UpByOne(db, dir)
 		t.Logf("err: %v %s", err, dir)
-		check.NoError(t, err)
+		require.NoError(t, err)
 		version, err := goose.GetDBVersion(db)
-		check.NoError(t, err)
+		require.NoError(t, err)
 		return version
 	}
 	downByOne := func(t *testing.T) int64 {
+		t.Helper()
 		err = goose.Down(db, dir)
-		check.NoError(t, err)
+		require.NoError(t, err)
 		version, err := goose.GetDBVersion(db)
-		check.NoError(t, err)
+		require.NoError(t, err)
 		return version
 	}
 	// Migrate all files up-by-one.
 	for i := 1; i <= len(files); i++ {
-		check.Number(t, upByOne(t), i)
+		require.EqualValues(t, upByOne(t), i)
 	}
 	version, err := goose.GetDBVersion(db)
-	check.NoError(t, err)
-	check.Number(t, version, len(files))
+	require.NoError(t, err)
+	require.Len(t, files, int(version))
 
 	tables, err := ListTables(db)
-	check.NoError(t, err)
-	check.Equal(t, tables, []string{
-		"alpha",
-		"bravo",
-		"charlie",
-		"delta",
-		"echo",
-		"foxtrot",
-		"golf",
-		"goose_db_version",
-		"hotel",
-		"sqlite_sequence",
-	})
+	require.NoError(t, err)
+	require.Equal(t,
+		[]string{
+			"alpha",
+			"bravo",
+			"charlie",
+			"delta",
+			"echo",
+			"foxtrot",
+			"golf",
+			"goose_db_version",
+			"hotel",
+			"sqlite_sequence",
+		},
+		tables,
+	)
 
 	// Migrate all files down-by-one.
 	for i := len(files) - 1; i >= 0; i-- {
-		check.Number(t, downByOne(t), i)
+		require.EqualValues(t, downByOne(t), i)
 	}
 	version, err = goose.GetDBVersion(db)
-	check.NoError(t, err)
-	check.Number(t, version, 0)
+	require.NoError(t, err)
+	require.EqualValues(t, 0, version)
 
 	tables, err = ListTables(db)
-	check.NoError(t, err)
-	check.Equal(t, tables, []string{
-		"goose_db_version",
-		"sqlite_sequence",
-	})
+	require.NoError(t, err)
+	require.Equal(t,
+		[]string{
+			"goose_db_version",
+			"sqlite_sequence",
+		},
+		tables,
+	)
 }
 
 func ListTables(db *sql.DB) ([]string, error) {

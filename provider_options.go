@@ -165,6 +165,14 @@ func WithDisableVersioning(b bool) ProviderOption {
 	})
 }
 
+// WithLogger will set a custom Logger, which will override the default logger.
+func WithLogger(l Logger) ProviderOption {
+	return configFunc(func(c *config) error {
+		c.logger = l
+		return nil
+	})
+}
+
 type config struct {
 	store database.Store
 
@@ -185,9 +193,6 @@ type config struct {
 	allowMissing          bool
 	disableGlobalRegistry bool
 
-	// Let's not expose the Logger just yet. Ideally we consolidate on the std lib slog package
-	// added in go1.21 and then expose that (if that's even necessary). For now, just use the std
-	// lib log package.
 	logger Logger
 }
 

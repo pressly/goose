@@ -76,7 +76,7 @@ func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, m
 		return fmt.Errorf("failed to execute tmpl: %w", err)
 	}
 
-	log.Printf("Created new file: %s\n", f.Name())
+	log.Printf("Created new file: %s", f.Name())
 	return nil
 }
 

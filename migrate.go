@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"go.uber.org/multierr"
 	"io/fs"
 	"math"
 	"path"
@@ -213,7 +214,11 @@ func EnsureDBVersion(db *sql.DB) (int64, error) {
 func EnsureDBVersionContext(ctx context.Context, db *sql.DB) (int64, error) {
 	dbMigrations, err := store.ListMigrations(ctx, db, TableName())
 	if err != nil {
-		return 0, createVersionTable(ctx, db)
+		createErr := createVersionTable(ctx, db)
+		if createErr != nil {
+			return 0, multierr.Append(err, createErr)
+		}
+		return 0, nil
 	}
 	// The most recent record for each migration specifies
 	// whether it has been applied or rolled back.

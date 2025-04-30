@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pressly/goose/v3/internal/check"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -91,14 +91,14 @@ func TestInvalidUp(t *testing.T) {
 
 	testdataDir := filepath.Join("testdata", "invalid", "up")
 	entries, err := os.ReadDir(testdataDir)
-	check.NoError(t, err)
-	check.NumberNotZero(t, len(entries))
+	require.NoError(t, err)
+	require.NotEmpty(t, entries)
 
 	for _, entry := range entries {
 		by, err := os.ReadFile(filepath.Join(testdataDir, entry.Name()))
-		check.NoError(t, err)
+		require.NoError(t, err)
 		_, _, err = ParseSQLMigration(strings.NewReader(string(by)), DirectionUp, false)
-		check.HasError(t, err)
+		require.Error(t, err)
 	}
 }
 
@@ -410,11 +410,11 @@ func testValid(t *testing.T, dir string, count int, direction Direction) {
 	t.Helper()
 
 	f, err := os.Open(filepath.Join(dir, "input.sql"))
-	check.NoError(t, err)
+	require.NoError(t, err)
 	t.Cleanup(func() { f.Close() })
 	statements, _, err := ParseSQLMigration(f, direction, debug)
-	check.NoError(t, err)
-	check.Number(t, len(statements), count)
+	require.NoError(t, err)
+	require.Equal(t, len(statements), count)
 	compareStatements(t, dir, statements, direction)
 }
 
@@ -422,7 +422,7 @@ func compareStatements(t *testing.T, dir string, statements []string, direction 
 	t.Helper()
 
 	files, err := filepath.Glob(filepath.Join(dir, fmt.Sprintf("*.%s.golden.sql", direction)))
-	check.NoError(t, err)
+	require.NoError(t, err)
 	if len(statements) != len(files) {
 		t.Fatalf("mismatch between parsed statements (%d) and golden files (%d), did you check in NN.{up|down}.golden.sql file in %q?", len(statements), len(files), dir)
 	}
@@ -433,12 +433,12 @@ func compareStatements(t *testing.T, dir string, statements []string, direction 
 			t.Fatal(`failed to cut on file delimiter ".", must be of the format NN.{up|down}.golden.sql`)
 		}
 		index, err := strconv.Atoi(before)
-		check.NoError(t, err)
+		require.NoError(t, err)
 		index--
 
 		goldenFilePath := filepath.Join(dir, goldenFile)
 		by, err := os.ReadFile(goldenFilePath)
-		check.NoError(t, err)
+		require.NoError(t, err)
 
 		got, want := statements[index], string(by)
 
@@ -452,7 +452,7 @@ func compareStatements(t *testing.T, dir string, statements []string, direction 
 					filepath.Join("internal", "sqlparser", goldenFilePath),
 				)
 				err := os.WriteFile(goldenFilePath+".FAIL", []byte(got), 0644)
-				check.NoError(t, err)
+				require.NoError(t, err)
 			}
 		}
 	}
@@ -504,8 +504,8 @@ CREATE TABLE post (
 );
 `
 	_, _, err := ParseSQLMigration(strings.NewReader(s), DirectionUp, debug)
-	check.HasError(t, err)
-	check.Contains(t, err.Error(), "variable substitution failed: $SOME_UNSET_VAR: required env var not set:")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "variable substitution failed: $SOME_UNSET_VAR: required env var not set:")
 }
 
 func Test_extractAnnotation(t *testing.T) {
@@ -513,76 +513,79 @@ func Test_extractAnnotation(t *testing.T) {
 		name    string
 		input   string
 		want    annotation
-		wantErr func(t *testing.T, err error)
+		wantErr bool
 	}{
 		{
 			name:    "Up",
 			input:   "-- +goose Up",
 			want:    annotationUp,
-			wantErr: check.NoError,
+			wantErr: false,
 		},
 		{
 			name:    "Down",
 			input:   "-- +goose Down",
 			want:    annotationDown,
-			wantErr: check.NoError,
+			wantErr: false,
 		},
 		{
 			name:    "StmtBegin",
 			input:   "-- +goose StatementBegin",
 			want:    annotationStatementBegin,
-			wantErr: check.NoError,
+			wantErr: false,
 		},
 		{
 			name:    "NoTransact",
 			input:   "-- +goose NO TRANSACTION",
 			want:    annotationNoTransaction,
-			wantErr: check.NoError,
+			wantErr: false,
 		},
 		{
 			name:    "Unsupported",
 			input:   "-- +goose unsupported",
 			want:    "",
-			wantErr: check.HasError,
+			wantErr: true,
 		},
 		{
 			name:    "Empty",
 			input:   "-- +goose",
 			want:    "",
-			wantErr: check.HasError,
+			wantErr: true,
 		},
 		{
 			name:    "statement with spaces and Uppercase",
 			input:   "-- +goose   UP 	",
 			want:    annotationUp,
-			wantErr: check.NoError,
+			wantErr: false,
 		},
 		{
 			name:    "statement with leading whitespace - error",
 			input:   " -- +goose   UP 	",
 			want:    "",
-			wantErr: check.HasError,
+			wantErr: true,
 		},
 		{
 			name:    "statement with leading \t - error",
 			input:   "\t-- +goose   UP 	",
 			want:    "",
-			wantErr: check.HasError,
+			wantErr: true,
 		},
 		{
 			name:    "multiple +goose annotations - error",
 			input:   "-- +goose +goose Up",
 			want:    "",
-			wantErr: check.HasError,
+			wantErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := extractAnnotation(tt.input)
-			tt.wantErr(t, err)
-
-			check.Equal(t, got, tt.want)
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+			require.Equal(t, tt.want, got)
 		})
 	}
 }

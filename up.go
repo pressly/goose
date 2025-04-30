@@ -85,8 +85,8 @@ func UpToContext(ctx context.Context, db *sql.DB, dir string, version int64, opt
 			output := fmt.Sprintf("version %d: %s", m.Version, m.Source)
 			collected = append(collected, output)
 		}
-		return fmt.Errorf("error: found %d missing migrations:\n\t%s",
-			len(missingMigrations), strings.Join(collected, "\n\t"))
+		return fmt.Errorf("error: found %d missing migrations before current version %d:\n\t%s",
+			len(missingMigrations), dbMaxVersion, strings.Join(collected, "\n\t"))
 	}
 	var migrationsToApply Migrations
 	if option.allowMissing {
@@ -122,9 +122,9 @@ func UpToContext(ctx context.Context, db *sql.DB, dir string, version int64, opt
 			return err
 		}
 
-		log.Printf("goose: no migrations to run. current version: %d\n", current)
+		log.Printf("goose: no migrations to run. current version: %d", current)
 	} else {
-		log.Printf("goose: successfully migrated database to version: %d\n", current)
+		log.Printf("goose: successfully migrated database to version: %d", current)
 	}
 
 	// At this point there are no more migrations to apply. But we need to maintain
@@ -153,7 +153,7 @@ func upToNoVersioning(ctx context.Context, db *sql.DB, migrations Migrations, ve
 		}
 		finalVersion = current.Version
 	}
-	log.Printf("goose: up to current file version: %d\n", finalVersion)
+	log.Printf("goose: up to current file version: %d", finalVersion)
 	return nil
 }
 

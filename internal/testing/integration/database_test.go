@@ -193,3 +193,16 @@ func TestYDB(t *testing.T) {
 
 	testDatabase(t, database.DialectYdB, db, "testdata/migrations/ydb")
 }
+
+func TestStarrocks(t *testing.T) {
+	t.Parallel()
+
+	t.Skip("Starrocks is flaky on CI, see https://github.com/pressly/goose/issues/881")
+
+	db, cleanup, err := testdb.NewStarrocks()
+	require.NoError(t, err)
+	t.Cleanup(cleanup)
+	require.NoError(t, db.Ping())
+
+	testDatabase(t, database.DialectStarrocks, db, "testdata/migrations/starrocks")
+}

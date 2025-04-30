@@ -113,7 +113,7 @@ func newSQLMigration(source Source) *Migration {
 	}
 }
 
-func merge(sources *fileSources, registerd map[int64]*Migration) ([]*Migration, error) {
+func merge(sources *fileSources, registered map[int64]*Migration) ([]*Migration, error) {
 	var migrations []*Migration
 	migrationLookup := make(map[int64]*Migration)
 	// Add all SQL migrations to the list of migrations.
@@ -123,7 +123,7 @@ func merge(sources *fileSources, registerd map[int64]*Migration) ([]*Migration, 
 		migrationLookup[source.Version] = m
 	}
 	// If there are no Go files in the filesystem and no registered Go migrations, return early.
-	if len(sources.goSources) == 0 && len(registerd) == 0 {
+	if len(sources.goSources) == 0 && len(registered) == 0 {
 		return migrations, nil
 	}
 	// Return an error if the given sources contain a versioned Go migration that has not been
@@ -133,7 +133,7 @@ func merge(sources *fileSources, registerd map[int64]*Migration) ([]*Migration, 
 	// This is almost always a user error.
 	var unregistered []string
 	for _, s := range sources.goSources {
-		m, ok := registerd[s.Version]
+		m, ok := registered[s.Version]
 		if !ok {
 			unregistered = append(unregistered, s.Path)
 		} else {
@@ -151,7 +151,7 @@ func merge(sources *fileSources, registerd map[int64]*Migration) ([]*Migration, 
 	// migrations may not have a corresponding file on disk. Which is fine! We include them
 	// wholesale as part of migrations. This allows users to build a custom binary that only embeds
 	// the SQL migration files.
-	for version, r := range registerd {
+	for version, r := range registered {
 		// Ensure there are no duplicate versions.
 		if existing, ok := migrationLookup[version]; ok {
 			fullpath := r.Source

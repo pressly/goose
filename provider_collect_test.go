@@ -5,32 +5,31 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/pressly/goose/v3/database"
-	"github.com/pressly/goose/v3/internal/check"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCollectFileSources(t *testing.T) {
 	t.Parallel()
 	t.Run("nil_fsys", func(t *testing.T) {
 		sources, err := collectFilesystemSources(nil, false, nil, nil)
-		check.NoError(t, err)
-		check.Bool(t, sources != nil, true)
-		check.Number(t, len(sources.goSources), 0)
-		check.Number(t, len(sources.sqlSources), 0)
+		require.NoError(t, err)
+		require.NotNil(t, sources)
+		require.Empty(t, sources.goSources)
+		require.Empty(t, sources.sqlSources)
 	})
 	t.Run("noop_fsys", func(t *testing.T) {
 		sources, err := collectFilesystemSources(noopFS{}, false, nil, nil)
-		check.NoError(t, err)
-		check.Bool(t, sources != nil, true)
-		check.Number(t, len(sources.goSources), 0)
-		check.Number(t, len(sources.sqlSources), 0)
+		require.NoError(t, err)
+		require.NotNil(t, sources)
+		require.Empty(t, sources.goSources)
+		require.Empty(t, sources.sqlSources)
 	})
 	t.Run("empty_fsys", func(t *testing.T) {
 		sources, err := collectFilesystemSources(fstest.MapFS{}, false, nil, nil)
-		check.NoError(t, err)
-		check.Number(t, len(sources.goSources), 0)
-		check.Number(t, len(sources.sqlSources), 0)
-		check.Bool(t, sources != nil, true)
+		require.NoError(t, err)
+		require.Empty(t, sources.goSources)
+		require.Empty(t, sources.sqlSources)
+		require.NotNil(t, sources)
 	})
 	t.Run("incorrect_fsys", func(t *testing.T) {
 		mapFS := fstest.MapFS{
@@ -38,21 +37,21 @@ func TestCollectFileSources(t *testing.T) {
 		}
 		// strict disable - should not error
 		sources, err := collectFilesystemSources(mapFS, false, nil, nil)
-		check.NoError(t, err)
-		check.Number(t, len(sources.goSources), 0)
-		check.Number(t, len(sources.sqlSources), 0)
+		require.NoError(t, err)
+		require.Empty(t, sources.goSources)
+		require.Empty(t, sources.sqlSources)
 		// strict enabled - should error
 		_, err = collectFilesystemSources(mapFS, true, nil, nil)
-		check.HasError(t, err)
-		check.Contains(t, err.Error(), "migration version must be greater than zero")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "migration version must be greater than zero")
 	})
 	t.Run("collect", func(t *testing.T) {
 		fsys, err := fs.Sub(newSQLOnlyFS(), "migrations")
-		check.NoError(t, err)
+		require.NoError(t, err)
 		sources, err := collectFilesystemSources(fsys, false, nil, nil)
-		check.NoError(t, err)
-		check.Number(t, len(sources.sqlSources), 4)
-		check.Number(t, len(sources.goSources), 0)
+		require.NoError(t, err)
+		require.Len(t, sources.sqlSources, 4)
+		require.Empty(t, sources.goSources)
 		expected := fileSources{
 			sqlSources: []Source{
 				newSource(TypeSQL, "00001_foo.sql", 1),
@@ -62,12 +61,12 @@ func TestCollectFileSources(t *testing.T) {
 			},
 		}
 		for i := 0; i < len(sources.sqlSources); i++ {
-			check.Equal(t, sources.sqlSources[i], expected.sqlSources[i])
+			require.Equal(t, sources.sqlSources[i], expected.sqlSources[i])
 		}
 	})
 	t.Run("excludes", func(t *testing.T) {
 		fsys, err := fs.Sub(newSQLOnlyFS(), "migrations")
-		check.NoError(t, err)
+		require.NoError(t, err)
 		sources, err := collectFilesystemSources(
 			fsys,
 			false,
@@ -78,9 +77,9 @@ func TestCollectFileSources(t *testing.T) {
 			},
 			nil,
 		)
-		check.NoError(t, err)
-		check.Number(t, len(sources.sqlSources), 2)
-		check.Number(t, len(sources.goSources), 0)
+		require.NoError(t, err)
+		require.Len(t, sources.sqlSources, 2)
+		require.Empty(t, sources.goSources)
 		expected := fileSources{
 			sqlSources: []Source{
 				newSource(TypeSQL, "00001_foo.sql", 1),
@@ -88,7 +87,7 @@ func TestCollectFileSources(t *testing.T) {
 			},
 		}
 		for i := 0; i < len(sources.sqlSources); i++ {
-			check.Equal(t, sources.sqlSources[i], expected.sqlSources[i])
+			require.Equal(t, sources.sqlSources[i], expected.sqlSources[i])
 		}
 	})
 	t.Run("strict", func(t *testing.T) {
@@ -96,10 +95,10 @@ func TestCollectFileSources(t *testing.T) {
 		// Add a file with no version number
 		mapFS["migrations/not_valid.sql"] = &fstest.MapFile{Data: []byte("invalid")}
 		fsys, err := fs.Sub(mapFS, "migrations")
-		check.NoError(t, err)
+		require.NoError(t, err)
 		_, err = collectFilesystemSources(fsys, true, nil, nil)
-		check.HasError(t, err)
-		check.Contains(t, err.Error(), `failed to parse numeric component from "not_valid.sql"`)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), `failed to parse numeric component from "not_valid.sql"`)
 	})
 	t.Run("skip_go_test_files", func(t *testing.T) {
 		mapFS := fstest.MapFS{
@@ -110,9 +109,9 @@ func TestCollectFileSources(t *testing.T) {
 			"5_foo_test.go": {Data: []byte(`package goose_test`)},
 		}
 		sources, err := collectFilesystemSources(mapFS, false, nil, nil)
-		check.NoError(t, err)
-		check.Number(t, len(sources.sqlSources), 4)
-		check.Number(t, len(sources.goSources), 0)
+		require.NoError(t, err)
+		require.Len(t, sources.sqlSources, 4)
+		require.Empty(t, sources.goSources)
 	})
 	t.Run("skip_random_files", func(t *testing.T) {
 		mapFS := fstest.MapFS{
@@ -125,18 +124,18 @@ func TestCollectFileSources(t *testing.T) {
 			"some/other/dir/2_foo.sql": {Data: []byte(`SELECT 1;`)},
 		}
 		sources, err := collectFilesystemSources(mapFS, false, nil, nil)
-		check.NoError(t, err)
-		check.Number(t, len(sources.sqlSources), 2)
-		check.Number(t, len(sources.goSources), 1)
+		require.NoError(t, err)
+		require.Len(t, sources.sqlSources, 2)
+		require.Len(t, sources.goSources, 1)
 		// 1
-		check.Equal(t, sources.sqlSources[0].Path, "1_foo.sql")
-		check.Equal(t, sources.sqlSources[0].Version, int64(1))
+		require.Equal(t, "1_foo.sql", sources.sqlSources[0].Path)
+		require.EqualValues(t, 1, sources.sqlSources[0].Version)
 		// 2
-		check.Equal(t, sources.sqlSources[1].Path, "5_qux.sql")
-		check.Equal(t, sources.sqlSources[1].Version, int64(5))
+		require.Equal(t, "5_qux.sql", sources.sqlSources[1].Path)
+		require.EqualValues(t, 5, sources.sqlSources[1].Version)
 		// 3
-		check.Equal(t, sources.goSources[0].Path, "4_something.go")
-		check.Equal(t, sources.goSources[0].Version, int64(4))
+		require.Equal(t, "4_something.go", sources.goSources[0].Path)
+		require.EqualValues(t, 4, sources.goSources[0].Version)
 	})
 	t.Run("duplicate_versions", func(t *testing.T) {
 		mapFS := fstest.MapFS{
@@ -144,8 +143,8 @@ func TestCollectFileSources(t *testing.T) {
 			"01_bar.sql":  sqlMapFile,
 		}
 		_, err := collectFilesystemSources(mapFS, false, nil, nil)
-		check.HasError(t, err)
-		check.Contains(t, err.Error(), "found duplicate migration version 1")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "found duplicate migration version 1")
 	})
 	t.Run("dirpath", func(t *testing.T) {
 		mapFS := fstest.MapFS{
@@ -158,13 +157,13 @@ func TestCollectFileSources(t *testing.T) {
 		assertDirpath := func(dirpath string, sqlSources []Source) {
 			t.Helper()
 			f, err := fs.Sub(mapFS, dirpath)
-			check.NoError(t, err)
+			require.NoError(t, err)
 			got, err := collectFilesystemSources(f, false, nil, nil)
-			check.NoError(t, err)
-			check.Number(t, len(got.sqlSources), len(sqlSources))
-			check.Number(t, len(got.goSources), 0)
+			require.NoError(t, err)
+			require.Len(t, sqlSources, len(got.sqlSources))
+			require.Empty(t, got.goSources)
 			for i := 0; i < len(got.sqlSources); i++ {
-				check.Equal(t, got.sqlSources[i], sqlSources[i])
+				require.Equal(t, got.sqlSources[i], sqlSources[i])
 			}
 		}
 		assertDirpath(".", []Source{
@@ -194,35 +193,35 @@ func TestMerge(t *testing.T) {
 			"migrations/00003_baz.go": {Data: []byte(`package migrations`)},
 		}
 		fsys, err := fs.Sub(mapFS, "migrations")
-		check.NoError(t, err)
+		require.NoError(t, err)
 		sources, err := collectFilesystemSources(fsys, false, nil, nil)
-		check.NoError(t, err)
-		check.Equal(t, len(sources.sqlSources), 1)
-		check.Equal(t, len(sources.goSources), 2)
+		require.NoError(t, err)
+		require.Len(t, sources.sqlSources, 1)
+		require.Len(t, sources.goSources, 2)
 		t.Run("valid", func(t *testing.T) {
 			registered := map[int64]*Migration{
 				2: NewGoMigration(2, nil, nil),
 				3: NewGoMigration(3, nil, nil),
 			}
 			migrations, err := merge(sources, registered)
-			check.NoError(t, err)
-			check.Number(t, len(migrations), 3)
+			require.NoError(t, err)
+			require.Len(t, migrations, 3)
 			assertMigration(t, migrations[0], newSource(TypeSQL, "00001_foo.sql", 1))
 			assertMigration(t, migrations[1], newSource(TypeGo, "00002_bar.go", 2))
 			assertMigration(t, migrations[2], newSource(TypeGo, "00003_baz.go", 3))
 		})
 		t.Run("unregistered_all", func(t *testing.T) {
 			_, err := merge(sources, nil)
-			check.HasError(t, err)
-			check.Contains(t, err.Error(), "error: detected 2 unregistered Go files:")
-			check.Contains(t, err.Error(), "00002_bar.go")
-			check.Contains(t, err.Error(), "00003_baz.go")
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "error: detected 2 unregistered Go files:")
+			require.Contains(t, err.Error(), "00002_bar.go")
+			require.Contains(t, err.Error(), "00003_baz.go")
 		})
 		t.Run("unregistered_some", func(t *testing.T) {
 			_, err := merge(sources, map[int64]*Migration{2: NewGoMigration(2, nil, nil)})
-			check.HasError(t, err)
-			check.Contains(t, err.Error(), "error: detected 1 unregistered Go file")
-			check.Contains(t, err.Error(), "00003_baz.go")
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "error: detected 1 unregistered Go file")
+			require.Contains(t, err.Error(), "00003_baz.go")
 		})
 		t.Run("duplicate_sql", func(t *testing.T) {
 			_, err := merge(sources, map[int64]*Migration{
@@ -230,8 +229,8 @@ func TestMerge(t *testing.T) {
 				2: NewGoMigration(2, nil, nil),
 				3: NewGoMigration(3, nil, nil),
 			})
-			check.HasError(t, err)
-			check.Contains(t, err.Error(), "found duplicate migration version 1")
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "found duplicate migration version 1")
 		})
 	})
 	t.Run("no_go_files_on_disk", func(t *testing.T) {
@@ -242,17 +241,17 @@ func TestMerge(t *testing.T) {
 			"migrations/00005_baz.sql": sqlMapFile,
 		}
 		fsys, err := fs.Sub(mapFS, "migrations")
-		check.NoError(t, err)
+		require.NoError(t, err)
 		sources, err := collectFilesystemSources(fsys, false, nil, nil)
-		check.NoError(t, err)
+		require.NoError(t, err)
 		t.Run("unregistered_all", func(t *testing.T) {
 			migrations, err := merge(sources, map[int64]*Migration{
 				3: NewGoMigration(3, nil, nil),
 				// 4 is missing
 				6: NewGoMigration(6, nil, nil),
 			})
-			check.NoError(t, err)
-			check.Number(t, len(migrations), 5)
+			require.NoError(t, err)
+			require.Len(t, migrations, 5)
 			assertMigration(t, migrations[0], newSource(TypeSQL, "00001_foo.sql", 1))
 			assertMigration(t, migrations[1], newSource(TypeSQL, "00002_bar.sql", 2))
 			assertMigration(t, migrations[2], newSource(TypeGo, "", 3))
@@ -266,9 +265,9 @@ func TestMerge(t *testing.T) {
 			"migrations/00002_bar.go":  &fstest.MapFile{Data: []byte(`package migrations`)},
 		}
 		fsys, err := fs.Sub(mapFS, "migrations")
-		check.NoError(t, err)
+		require.NoError(t, err)
 		sources, err := collectFilesystemSources(fsys, false, nil, nil)
-		check.NoError(t, err)
+		require.NoError(t, err)
 		t.Run("unregistered_all", func(t *testing.T) {
 			migrations, err := merge(sources, map[int64]*Migration{
 				// This is the only Go file on disk.
@@ -277,8 +276,8 @@ func TestMerge(t *testing.T) {
 				3: NewGoMigration(3, nil, nil),
 				6: NewGoMigration(6, nil, nil),
 			})
-			check.NoError(t, err)
-			check.Number(t, len(migrations), 4)
+			require.NoError(t, err)
+			require.Len(t, migrations, 4)
 			assertMigration(t, migrations[0], newSource(TypeSQL, "00001_foo.sql", 1))
 			assertMigration(t, migrations[1], newSource(TypeGo, "00002_bar.go", 2))
 			assertMigration(t, migrations[2], newSource(TypeGo, "", 3))
@@ -287,68 +286,17 @@ func TestMerge(t *testing.T) {
 	})
 }
 
-func TestCheckMissingMigrations(t *testing.T) {
-	t.Parallel()
-
-	t.Run("db_has_max_version", func(t *testing.T) {
-		// Test case: database has migrations 1, 3, 4, 5, 7
-		// Missing migrations: 2, 6
-		// Filesystem has migrations 1, 2, 3, 4, 5, 6, 7, 8
-		dbMigrations := []*database.ListMigrationsResult{
-			{Version: 1},
-			{Version: 3},
-			{Version: 4},
-			{Version: 5},
-			{Version: 7}, // <-- database max version_id
-		}
-		fsMigrations := []*Migration{
-			newSQLMigration(Source{Version: 1}),
-			newSQLMigration(Source{Version: 2}), // missing migration
-			newSQLMigration(Source{Version: 3}),
-			newSQLMigration(Source{Version: 4}),
-			newSQLMigration(Source{Version: 5}),
-			newSQLMigration(Source{Version: 6}), // missing migration
-			newSQLMigration(Source{Version: 7}), // ----- database max version_id -----
-			newSQLMigration(Source{Version: 8}), // new migration
-		}
-		got := checkMissingMigrations(dbMigrations, fsMigrations)
-		check.Number(t, len(got), 2)
-		check.Number(t, got[0], 2)
-		check.Number(t, got[1], 6)
-
-		// Sanity check.
-		check.Number(t, len(checkMissingMigrations(nil, nil)), 0)
-		check.Number(t, len(checkMissingMigrations(dbMigrations, nil)), 0)
-		check.Number(t, len(checkMissingMigrations(nil, fsMigrations)), 0)
-	})
-	t.Run("fs_has_max_version", func(t *testing.T) {
-		dbMigrations := []*database.ListMigrationsResult{
-			{Version: 1},
-			{Version: 5},
-			{Version: 2},
-		}
-		fsMigrations := []*Migration{
-			NewGoMigration(3, nil, nil), // new migration
-			NewGoMigration(4, nil, nil), // new migration
-		}
-		got := checkMissingMigrations(dbMigrations, fsMigrations)
-		check.Number(t, len(got), 2)
-		check.Number(t, got[0], 3)
-		check.Number(t, got[1], 4)
-	})
-}
-
 func assertMigration(t *testing.T, got *Migration, want Source) {
 	t.Helper()
-	check.Equal(t, got.Type, want.Type)
-	check.Equal(t, got.Version, want.Version)
-	check.Equal(t, got.Source, want.Path)
+	require.Equal(t, want.Type, got.Type)
+	require.Equal(t, want.Version, got.Version)
+	require.Equal(t, want.Path, got.Source)
 	switch got.Type {
 	case TypeGo:
-		check.Bool(t, got.goUp != nil, true)
-		check.Bool(t, got.goDown != nil, true)
+		require.NotNil(t, got.goUp)
+		require.NotNil(t, got.goDown)
 	case TypeSQL:
-		check.Bool(t, got.sql.Parsed, false)
+		require.False(t, got.sql.Parsed)
 	default:
 		t.Fatalf("unknown migration type: %s", got.Type)
 	}

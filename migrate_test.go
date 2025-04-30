@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/pressly/goose/v3/internal/check"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMigrationSort(t *testing.T) {
@@ -33,6 +33,7 @@ func newMigration(v int64, src string) *Migration {
 }
 
 func validateMigrationSort(t *testing.T, ms Migrations, sorted []int64) {
+	t.Helper()
 	for i, m := range ms {
 		if sorted[i] != m.Version {
 			t.Error("incorrect sorted version")
@@ -68,10 +69,10 @@ func TestCollectMigrations(t *testing.T) {
 	t.Run("no_migration_files_found", func(t *testing.T) {
 		tmp := t.TempDir()
 		err := os.MkdirAll(filepath.Join(tmp, "migrations-test"), 0755)
-		check.NoError(t, err)
+		require.NoError(t, err)
 		_, err = collectMigrationsFS(os.DirFS(tmp), "migrations-test", 0, math.MaxInt64, nil)
-		check.HasError(t, err)
-		check.Contains(t, err.Error(), "no migration files found")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "no migration files found")
 	})
 	t.Run("filesystem_registered_with_single_dirpath", func(t *testing.T) {
 		t.Cleanup(func() { clearMap(registeredGoMigrations) })
@@ -79,26 +80,26 @@ func TestCollectMigrations(t *testing.T) {
 		file3, file4 := "19081_a.go", "19082_b.go"
 		AddNamedMigrationContext(file1, nil, nil)
 		AddNamedMigrationContext(file2, nil, nil)
-		check.Number(t, len(registeredGoMigrations), 2)
+		require.Len(t, registeredGoMigrations, 2)
 		tmp := t.TempDir()
 		dir := filepath.Join(tmp, "migrations", "dir1")
 		err := os.MkdirAll(dir, 0755)
-		check.NoError(t, err)
+		require.NoError(t, err)
 		createEmptyFile(t, dir, file1)
 		createEmptyFile(t, dir, file2)
 		createEmptyFile(t, dir, file3)
 		createEmptyFile(t, dir, file4)
 		fsys := os.DirFS(tmp)
 		files, err := fs.ReadDir(fsys, "migrations/dir1")
-		check.NoError(t, err)
-		check.Number(t, len(files), 4)
+		require.NoError(t, err)
+		require.Len(t, files, 4)
 		all, err := collectMigrationsFS(fsys, "migrations/dir1", 0, math.MaxInt64, registeredGoMigrations)
-		check.NoError(t, err)
-		check.Number(t, len(all), 4)
-		check.Number(t, all[0].Version, 9081)
-		check.Number(t, all[1].Version, 9082)
-		check.Number(t, all[2].Version, 19081)
-		check.Number(t, all[3].Version, 19082)
+		require.NoError(t, err)
+		require.Len(t, all, 4)
+		require.EqualValues(t, 9081, all[0].Version)
+		require.EqualValues(t, 9082, all[1].Version)
+		require.EqualValues(t, 19081, all[2].Version)
+		require.EqualValues(t, 19082, all[3].Version)
 	})
 	t.Run("filesystem_registered_with_multiple_dirpath", func(t *testing.T) {
 		t.Cleanup(func() { clearMap(registeredGoMigrations) })
@@ -106,14 +107,14 @@ func TestCollectMigrations(t *testing.T) {
 		AddNamedMigrationContext(file1, nil, nil)
 		AddNamedMigrationContext(file2, nil, nil)
 		AddNamedMigrationContext(file3, nil, nil)
-		check.Number(t, len(registeredGoMigrations), 3)
+		require.Len(t, registeredGoMigrations, 3)
 		tmp := t.TempDir()
 		dir1 := filepath.Join(tmp, "migrations", "dir1")
 		dir2 := filepath.Join(tmp, "migrations", "dir2")
 		err := os.MkdirAll(dir1, 0755)
-		check.NoError(t, err)
+		require.NoError(t, err)
 		err = os.MkdirAll(dir2, 0755)
-		check.NoError(t, err)
+		require.NoError(t, err)
 		createEmptyFile(t, dir1, file1)
 		createEmptyFile(t, dir1, file2)
 		createEmptyFile(t, dir2, file3)
@@ -122,33 +123,33 @@ func TestCollectMigrations(t *testing.T) {
 		// even though 3 Go migrations have been registered.
 		{
 			all, err := collectMigrationsFS(fsys, "migrations/dir1", 0, math.MaxInt64, registeredGoMigrations)
-			check.NoError(t, err)
-			check.Number(t, len(all), 2)
-			check.Number(t, all[0].Version, 1)
-			check.Number(t, all[1].Version, 2)
+			require.NoError(t, err)
+			require.Len(t, all, 2)
+			require.EqualValues(t, 1, all[0].Version)
+			require.EqualValues(t, 2, all[1].Version)
 		}
 		// Validate if dirpath 2 is specified we only get the one Go migration in migrations/dir2 folder
 		// even though 3 Go migrations have been registered.
 		{
 			all, err := collectMigrationsFS(fsys, "migrations/dir2", 0, math.MaxInt64, registeredGoMigrations)
-			check.NoError(t, err)
-			check.Number(t, len(all), 1)
-			check.Number(t, all[0].Version, 1111)
+			require.NoError(t, err)
+			require.Len(t, all, 1)
+			require.EqualValues(t, 1111, all[0].Version)
 		}
 	})
 	t.Run("empty_filesystem_registered_manually", func(t *testing.T) {
 		t.Cleanup(func() { clearMap(registeredGoMigrations) })
 		AddNamedMigrationContext("00101_a.go", nil, nil)
 		AddNamedMigrationContext("00102_b.go", nil, nil)
-		check.Number(t, len(registeredGoMigrations), 2)
+		require.Len(t, registeredGoMigrations, 2)
 		tmp := t.TempDir()
 		err := os.MkdirAll(filepath.Join(tmp, "migrations"), 0755)
-		check.NoError(t, err)
+		require.NoError(t, err)
 		all, err := collectMigrationsFS(os.DirFS(tmp), "migrations", 0, math.MaxInt64, registeredGoMigrations)
-		check.NoError(t, err)
-		check.Number(t, len(all), 2)
-		check.Number(t, all[0].Version, 101)
-		check.Number(t, all[1].Version, 102)
+		require.NoError(t, err)
+		require.Len(t, all, 2)
+		require.EqualValues(t, 101, all[0].Version)
+		require.EqualValues(t, 102, all[1].Version)
 	})
 	t.Run("unregistered_go_migrations", func(t *testing.T) {
 		t.Cleanup(func() { clearMap(registeredGoMigrations) })
@@ -157,67 +158,67 @@ func TestCollectMigrations(t *testing.T) {
 		// valid looking file2 Go migration
 		AddNamedMigrationContext(file1, nil, nil)
 		AddNamedMigrationContext(file3, nil, nil)
-		check.Number(t, len(registeredGoMigrations), 2)
+		require.Len(t, registeredGoMigrations, 2)
 		tmp := t.TempDir()
 		dir1 := filepath.Join(tmp, "migrations", "dir1")
 		err := os.MkdirAll(dir1, 0755)
-		check.NoError(t, err)
+		require.NoError(t, err)
 		// Include the valid file2 with file1, file3. But remember, it has NOT been
 		// registered.
 		createEmptyFile(t, dir1, file1)
 		createEmptyFile(t, dir1, file2)
 		createEmptyFile(t, dir1, file3)
 		all, err := collectMigrationsFS(os.DirFS(tmp), "migrations/dir1", 0, math.MaxInt64, registeredGoMigrations)
-		check.NoError(t, err)
-		check.Number(t, len(all), 3)
-		check.Number(t, all[0].Version, 1)
-		check.Bool(t, all[0].Registered, true)
-		check.Number(t, all[1].Version, 998)
+		require.NoError(t, err)
+		require.Len(t, all, 3)
+		require.EqualValues(t, 1, all[0].Version)
+		require.True(t, all[0].Registered)
+		require.EqualValues(t, 998, all[1].Version)
 		// This migrations is marked unregistered and will lazily raise an error if/when this
 		// migration is run
-		check.Bool(t, all[1].Registered, false)
-		check.Number(t, all[2].Version, 999)
-		check.Bool(t, all[2].Registered, true)
+		require.False(t, all[1].Registered)
+		require.EqualValues(t, 999, all[2].Version)
+		require.True(t, all[2].Registered)
 	})
 	t.Run("with_skipped_go_files", func(t *testing.T) {
 		t.Cleanup(func() { clearMap(registeredGoMigrations) })
 		file1, file2, file3, file4 := "00001_a.go", "00002_b.sql", "00999_c_test.go", "embed.go"
 		AddNamedMigrationContext(file1, nil, nil)
-		check.Number(t, len(registeredGoMigrations), 1)
+		require.Len(t, registeredGoMigrations, 1)
 		tmp := t.TempDir()
 		dir1 := filepath.Join(tmp, "migrations", "dir1")
 		err := os.MkdirAll(dir1, 0755)
-		check.NoError(t, err)
+		require.NoError(t, err)
 		createEmptyFile(t, dir1, file1)
 		createEmptyFile(t, dir1, file2)
 		createEmptyFile(t, dir1, file3)
 		createEmptyFile(t, dir1, file4)
 		all, err := collectMigrationsFS(os.DirFS(tmp), "migrations/dir1", 0, math.MaxInt64, registeredGoMigrations)
-		check.NoError(t, err)
-		check.Number(t, len(all), 2)
-		check.Number(t, all[0].Version, 1)
-		check.Bool(t, all[0].Registered, true)
-		check.Number(t, all[1].Version, 2)
-		check.Bool(t, all[1].Registered, false)
+		require.NoError(t, err)
+		require.Len(t, all, 2)
+		require.EqualValues(t, 1, all[0].Version)
+		require.True(t, all[0].Registered)
+		require.EqualValues(t, 2, all[1].Version)
+		require.False(t, all[1].Registered)
 	})
 	t.Run("current_and_target", func(t *testing.T) {
 		t.Cleanup(func() { clearMap(registeredGoMigrations) })
 		file1, file2, file3 := "01001_a.go", "01002_b.sql", "01003_c.go"
 		AddNamedMigrationContext(file1, nil, nil)
 		AddNamedMigrationContext(file3, nil, nil)
-		check.Number(t, len(registeredGoMigrations), 2)
+		require.Len(t, registeredGoMigrations, 2)
 		tmp := t.TempDir()
 		dir1 := filepath.Join(tmp, "migrations", "dir1")
 		err := os.MkdirAll(dir1, 0755)
-		check.NoError(t, err)
+		require.NoError(t, err)
 		createEmptyFile(t, dir1, file1)
 		createEmptyFile(t, dir1, file2)
 		createEmptyFile(t, dir1, file3)
 		all, err := collectMigrationsFS(os.DirFS(tmp), "migrations/dir1", 1001, 1003, registeredGoMigrations)
-		check.NoError(t, err)
-		check.Number(t, len(all), 2)
-		check.Number(t, all[0].Version, 1002)
-		check.Number(t, all[1].Version, 1003)
+		require.NoError(t, err)
+		require.Len(t, all, 2)
+		require.EqualValues(t, 1002, all[0].Version)
+		require.EqualValues(t, 1003, all[1].Version)
 	})
 }
 
@@ -252,9 +253,10 @@ func TestVersionFilter(t *testing.T) {
 	}
 }
 func createEmptyFile(t *testing.T, dir, name string) {
+	t.Helper()
 	path := filepath.Join(dir, name)
 	f, err := os.Create(path)
-	check.NoError(t, err)
+	require.NoError(t, err)
 	defer f.Close()
 }
 

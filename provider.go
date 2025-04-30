@@ -7,12 +7,13 @@ import (
 	"fmt"
 	"io/fs"
 	"math"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/pressly/goose/v3/database"
+	"github.com/pressly/goose/v3/internal/controller"
+	"github.com/pressly/goose/v3/internal/gooseutil"
 	"github.com/pressly/goose/v3/internal/sqlparser"
 	"go.uber.org/multierr"
 )
@@ -23,13 +24,15 @@ type Provider struct {
 	// database.
 	mu sync.Mutex
 
-	db    *sql.DB
-	store database.Store
+	db               *sql.DB
+	store            *controller.StoreController
+	versionTableOnce sync.Once
 
 	fsys fs.FS
 	cfg  config
 
-	// migrations are ordered by version in ascending order.
+	// migrations are ordered by version in ascending order. This list will never be empty and
+	// contains all migrations known to the provider.
 	migrations []*Migration
 }
 
@@ -49,8 +52,6 @@ type Provider struct {
 // See [ProviderOption] for more information on configuring the provider.
 //
 // Unless otherwise specified, all methods on Provider are safe for concurrent use.
-//
-// Experimental: This API is experimental and may change in the future.
 func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption) (*Provider, error) {
 	if db == nil {
 		return nil, errors.New("db must not be nil")
@@ -116,16 +117,14 @@ func newProvider(
 	for version, m := range cfg.registered {
 		versionToGoMigration[version] = m
 	}
-	// Return an error if the global registry is explicitly disabled, but there are registered Go
-	// migrations.
+	// Skip adding global Go migrations if explicitly disabled.
 	if cfg.disableGlobalRegistry {
-		if len(global) > 0 {
-			return nil, errors.New("global registry disabled, but provider has registered go migrations")
-		}
+		// TODO(mf): let's add a warn-level log here to inform users if len(global) > 0. Would like
+		// to add this once we're on go1.21 and leverage the new slog package.
 	} else {
 		for version, m := range global {
 			if _, ok := versionToGoMigration[version]; ok {
-				return nil, fmt.Errorf("global go migration with version %d previously registered with provider", version)
+				return nil, fmt.Errorf("global go migration conflicts with provider-registered go migration with version %d", version)
 			}
 			versionToGoMigration[version] = m
 		}
@@ -143,7 +142,7 @@ func newProvider(
 		db:         db,
 		fsys:       fsys,
 		cfg:        cfg,
-		store:      store,
+		store:      controller.NewStoreController(store),
 		migrations: migrations,
 	}, nil
 }
@@ -154,10 +153,30 @@ func (p *Provider) Status(ctx context.Context) ([]*MigrationStatus, error) {
 	return p.status(ctx)
 }
 
+// HasPending returns true if there are pending migrations to apply, otherwise, it returns false. If
+// out-of-order migrations are disabled, yet some are detected, this method returns an error.
+//
+// Note, this method will not use a SessionLocker if one is configured. This allows callers to check
+// for pending migrations without blocking or being blocked by other operations.
+func (p *Provider) HasPending(ctx context.Context) (bool, error) {
+	return p.hasPending(ctx)
+}
+
+// GetVersions returns the max database version and the target version to migrate to.
+//
+// Note, this method will not use a SessionLocker if one is configured. This allows callers to check
+// for versions without blocking or being blocked by other operations.
+func (p *Provider) GetVersions(ctx context.Context) (current, target int64, err error) {
+	return p.getVersions(ctx)
+}
+
 // GetDBVersion returns the highest version recorded in the database, regardless of the order in
 // which migrations were applied. For example, if migrations were applied out of order (1,4,2,3),
 // this method returns 4. If no migrations have been applied, it returns 0.
 func (p *Provider) GetDBVersion(ctx context.Context) (int64, error) {
+	if p.cfg.disableVersioning {
+		return -1, errors.New("getting database version not supported when versioning is disabled")
+	}
 	return p.getDBMaxVersion(ctx, nil)
 }
 
@@ -214,12 +233,26 @@ func (p *Provider) ApplyVersion(ctx context.Context, version int64, direction bo
 // Up applies all pending migrations. If there are no new migrations to apply, this method returns
 // empty list and nil error.
 func (p *Provider) Up(ctx context.Context) ([]*MigrationResult, error) {
+	hasPending, err := p.HasPending(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !hasPending {
+		return nil, nil
+	}
 	return p.up(ctx, false, math.MaxInt64)
 }
 
 // UpByOne applies the next pending migration. If there is no next migration to apply, this method
-// returns [ErrNoNextVersion]. The returned list will always have exactly one migration result.
+// returns [ErrNoNextVersion].
 func (p *Provider) UpByOne(ctx context.Context) (*MigrationResult, error) {
+	hasPending, err := p.HasPending(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !hasPending {
+		return nil, ErrNoNextVersion
+	}
 	res, err := p.up(ctx, true, math.MaxInt64)
 	if err != nil {
 		return nil, err
@@ -247,6 +280,13 @@ func (p *Provider) UpByOne(ctx context.Context) (*MigrationResult, error) {
 // For example, if there are three new migrations (9,10,11) and the current database version is 8
 // with a requested version of 10, only versions 9,10 will be applied.
 func (p *Provider) UpTo(ctx context.Context, version int64) ([]*MigrationResult, error) {
+	hasPending, err := p.HasPending(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !hasPending {
+		return nil, nil
+	}
 	return p.up(ctx, false, version)
 }
 
@@ -303,7 +343,7 @@ func (p *Provider) up(
 	if version < 1 {
 		return nil, errInvalidVersion
 	}
-	conn, cleanup, err := p.initialize(ctx)
+	conn, cleanup, err := p.initialize(ctx, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize: %w", err)
 	}
@@ -321,10 +361,18 @@ func (p *Provider) up(
 		}
 		apply = p.migrations
 	} else {
-		// optimize(mf): Listing all migrations from the database isn't great. This is only required
-		// to support the allow missing (out-of-order) feature. For users that don't use this
-		// feature, we could just query the database for the current max version and then apply
-		// migrations greater than that version.
+		// optimize(mf): Listing all migrations from the database isn't great.
+		//
+		// The ideal implementation would be to query for the current max version and then apply
+		// migrations greater than that version. However, a nice property of the current
+		// implementation is that we can make stronger guarantees about unapplied migrations.
+		//
+		// In cases where users do not use out-of-order migrations, we want to surface an error if
+		// there are older unapplied migrations. See https://github.com/pressly/goose/issues/761 for
+		// more details.
+		//
+		// And in cases where users do use out-of-order migrations, we need to build a list of older
+		// migrations that need to be applied, so we need to query for all migrations anyways.
 		dbMigrations, err := p.store.ListMigrations(ctx, conn)
 		if err != nil {
 			return nil, err
@@ -332,9 +380,21 @@ func (p *Provider) up(
 		if len(dbMigrations) == 0 {
 			return nil, errMissingZeroVersion
 		}
-		apply, err = p.resolveUpMigrations(dbMigrations, version)
+		versions, err := gooseutil.UpVersions(
+			getVersionsFromMigrations(p.migrations),     // fsys versions
+			getVersionsFromListMigrations(dbMigrations), // db versions
+			version,
+			p.cfg.allowMissing,
+		)
 		if err != nil {
 			return nil, err
+		}
+		for _, v := range versions {
+			m, err := p.getMigration(v)
+			if err != nil {
+				return nil, err
+			}
+			apply = append(apply, m)
 		}
 	}
 	return p.runMigrations(ctx, conn, apply, sqlparser.DirectionUp, byOne)
@@ -345,7 +405,7 @@ func (p *Provider) down(
 	byOne bool,
 	version int64,
 ) (_ []*MigrationResult, retErr error) {
-	conn, cleanup, err := p.initialize(ctx)
+	conn, cleanup, err := p.initialize(ctx, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize: %w", err)
 	}
@@ -404,7 +464,7 @@ func (p *Provider) apply(
 	if err != nil {
 		return nil, err
 	}
-	conn, cleanup, err := p.initialize(ctx)
+	conn, cleanup, err := p.initialize(ctx, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize: %w", err)
 	}
@@ -436,8 +496,99 @@ func (p *Provider) apply(
 	return p.runMigrations(ctx, conn, []*Migration{m}, d, true)
 }
 
+func (p *Provider) getVersions(ctx context.Context) (current, target int64, retErr error) {
+	conn, cleanup, err := p.initialize(ctx, false)
+	if err != nil {
+		return -1, -1, fmt.Errorf("failed to initialize: %w", err)
+	}
+	defer func() {
+		retErr = multierr.Append(retErr, cleanup())
+	}()
+
+	target = p.migrations[len(p.migrations)-1].Version
+
+	// If versioning is disabled, we always have pending migrations and the target version is the
+	// last migration.
+	if p.cfg.disableVersioning {
+		return -1, target, nil
+	}
+
+	current, err = p.store.GetLatestVersion(ctx, conn)
+	if err != nil {
+		if errors.Is(err, database.ErrVersionNotFound) {
+			return -1, target, errMissingZeroVersion
+		}
+		return -1, target, err
+	}
+	return current, target, nil
+}
+
+func (p *Provider) hasPending(ctx context.Context) (_ bool, retErr error) {
+	conn, cleanup, err := p.initialize(ctx, false)
+	if err != nil {
+		return false, fmt.Errorf("failed to initialize: %w", err)
+	}
+	defer func() {
+		retErr = multierr.Append(retErr, cleanup())
+	}()
+
+	// If versioning is disabled, we always have pending migrations.
+	if p.cfg.disableVersioning {
+		return true, nil
+	}
+
+	// List all migrations from the database. Careful, optimizations here can lead to subtle bugs.
+	// We have 2 important cases to consider:
+	//
+	//  1.  Users have enabled out-of-order migrations, in which case we need to check if any
+	//      migrations are missing and report that there are pending migrations. Do not surface an
+	//      error because this is a valid state.
+	//
+	//  2.  Users have disabled out-of-order migrations (default), in which case we need to check if all
+	//      migrations have been applied. We cannot check for the highest applied version because we lose the
+	//      ability to surface an error if an out-of-order migration was introduced. It would be silently
+	//      ignored and the user would not know that they have unapplied migrations.
+	//
+	//      Maybe we could consider adding a flag to the provider such as IgnoreMissing, which would
+	//      allow silently ignoring missing migrations. This would be useful for users that have built
+	//      checks that prevent missing migrations from being introduced.
+
+	dbMigrations, err := p.store.ListMigrations(ctx, conn)
+	if err != nil {
+		return false, err
+	}
+	apply, err := gooseutil.UpVersions(
+		getVersionsFromMigrations(p.migrations),     // fsys versions
+		getVersionsFromListMigrations(dbMigrations), // db versions
+		math.MaxInt64,
+		p.cfg.allowMissing,
+	)
+	if err != nil {
+		return false, err
+	}
+	return len(apply) > 0, nil
+}
+
+func getVersionsFromMigrations(in []*Migration) []int64 {
+	out := make([]int64, 0, len(in))
+	for _, m := range in {
+		out = append(out, m.Version)
+	}
+	return out
+
+}
+
+func getVersionsFromListMigrations(in []*database.ListMigrationsResult) []int64 {
+	out := make([]int64, 0, len(in))
+	for _, m := range in {
+		out = append(out, m.Version)
+	}
+	return out
+
+}
+
 func (p *Provider) status(ctx context.Context) (_ []*MigrationStatus, retErr error) {
-	conn, cleanup, err := p.initialize(ctx)
+	conn, cleanup, err := p.initialize(ctx, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize: %w", err)
 	}
@@ -455,13 +606,17 @@ func (p *Provider) status(ctx context.Context) (_ []*MigrationStatus, retErr err
 			},
 			State: StatePending,
 		}
-		dbResult, err := p.store.GetMigration(ctx, conn, m.Version)
-		if err != nil && !errors.Is(err, database.ErrVersionNotFound) {
-			return nil, err
-		}
-		if dbResult != nil {
-			migrationStatus.State = StateApplied
-			migrationStatus.AppliedAt = dbResult.Timestamp
+		// If versioning is disabled, we can't check the database for applied migrations, so we
+		// assume all migrations are pending.
+		if !p.cfg.disableVersioning {
+			dbResult, err := p.store.GetMigration(ctx, conn, m.Version)
+			if err != nil && !errors.Is(err, database.ErrVersionNotFound) {
+				return nil, err
+			}
+			if dbResult != nil {
+				migrationStatus.State = StateApplied
+				migrationStatus.AppliedAt = dbResult.Timestamp
+			}
 		}
 		status = append(status, migrationStatus)
 	}
@@ -471,14 +626,11 @@ func (p *Provider) status(ctx context.Context) (_ []*MigrationStatus, retErr err
 
 // getDBMaxVersion returns the highest version recorded in the database, regardless of the order in
 // which migrations were applied. conn may be nil, in which case a connection is initialized.
-//
-// optimize(mf): we should only fetch the max version from the database, no need to fetch all
-// migrations only to get the max version. This means expanding the Store interface.
 func (p *Provider) getDBMaxVersion(ctx context.Context, conn *sql.Conn) (_ int64, retErr error) {
 	if conn == nil {
 		var cleanup func() error
 		var err error
-		conn, cleanup, err = p.initialize(ctx)
+		conn, cleanup, err = p.initialize(ctx, true)
 		if err != nil {
 			return 0, err
 		}
@@ -486,17 +638,13 @@ func (p *Provider) getDBMaxVersion(ctx context.Context, conn *sql.Conn) (_ int64
 			retErr = multierr.Append(retErr, cleanup())
 		}()
 	}
-	res, err := p.store.ListMigrations(ctx, conn)
+
+	latest, err := p.store.GetLatestVersion(ctx, conn)
 	if err != nil {
-		return 0, err
+		if errors.Is(err, database.ErrVersionNotFound) {
+			return 0, errMissingZeroVersion
+		}
+		return -1, err
 	}
-	if len(res) == 0 {
-		return 0, errMissingZeroVersion
-	}
-	// Sort in descending order.
-	sort.Slice(res, func(i, j int) bool {
-		return res[i].Version > res[j].Version
-	})
-	// Return the highest version.
-	return res[0].Version, nil
+	return latest, nil
 }
