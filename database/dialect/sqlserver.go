@@ -1,12 +1,19 @@
-package dialectquery
+package dialect
 
-import "fmt"
+import (
+	"fmt"
+)
 
-type Sqlserver struct{}
+// NewSqlserver returns a [Querier] for SQL Server dialect.
+func NewSqlserver() Querier {
+	return &sqlserver{}
+}
 
-var _ Querier = (*Sqlserver)(nil)
+type sqlserver struct{}
 
-func (s *Sqlserver) CreateTable(tableName string) string {
+var _ Querier = (*sqlserver)(nil)
+
+func (s *sqlserver) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (
 		id INT NOT NULL IDENTITY(1,1) PRIMARY KEY,
 		version_id BIGINT NOT NULL,
@@ -16,27 +23,27 @@ func (s *Sqlserver) CreateTable(tableName string) string {
 	return fmt.Sprintf(q, tableName)
 }
 
-func (s *Sqlserver) InsertVersion(tableName string) string {
+func (s *sqlserver) InsertVersion(tableName string) string {
 	q := `INSERT INTO %s (version_id, is_applied) VALUES (@p1, @p2)`
 	return fmt.Sprintf(q, tableName)
 }
 
-func (s *Sqlserver) DeleteVersion(tableName string) string {
+func (s *sqlserver) DeleteVersion(tableName string) string {
 	q := `DELETE FROM %s WHERE version_id=@p1`
 	return fmt.Sprintf(q, tableName)
 }
 
-func (s *Sqlserver) GetMigrationByVersion(tableName string) string {
+func (s *sqlserver) GetMigrationByVersion(tableName string) string {
 	q := `SELECT TOP 1 tstamp, is_applied FROM %s WHERE version_id=@p1 ORDER BY tstamp DESC`
 	return fmt.Sprintf(q, tableName)
 }
 
-func (s *Sqlserver) ListMigrations(tableName string) string {
+func (s *sqlserver) ListMigrations(tableName string) string {
 	q := `SELECT version_id, is_applied FROM %s ORDER BY id DESC`
 	return fmt.Sprintf(q, tableName)
 }
 
-func (s *Sqlserver) GetLatestVersion(tableName string) string {
+func (s *sqlserver) GetLatestVersion(tableName string) string {
 	q := `SELECT MAX(version_id) FROM %s`
 	return fmt.Sprintf(q, tableName)
 }

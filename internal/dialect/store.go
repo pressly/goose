@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pressly/goose/v3/internal/dialect/dialectquery"
+	"github.com/pressly/goose/v3/database"
+	"github.com/pressly/goose/v3/database/dialect"
 )
 
 // Store is the interface that wraps the basic methods for a database dialect.
@@ -46,31 +47,31 @@ type Store interface {
 }
 
 // NewStore returns a new Store for the given dialect.
-func NewStore(d Dialect) (Store, error) {
-	var querier dialectquery.Querier
+func NewStore(d database.Dialect) (Store, error) {
+	var querier dialect.Querier
 	switch d {
-	case Postgres:
-		querier = &dialectquery.Postgres{}
-	case Mysql:
-		querier = &dialectquery.Mysql{}
-	case Sqlite3:
-		querier = &dialectquery.Sqlite3{}
-	case Sqlserver:
-		querier = &dialectquery.Sqlserver{}
-	case Redshift:
-		querier = &dialectquery.Redshift{}
-	case Tidb:
-		querier = &dialectquery.Tidb{}
-	case Clickhouse:
-		querier = &dialectquery.Clickhouse{}
-	case Vertica:
-		querier = &dialectquery.Vertica{}
-	case Ydb:
-		querier = &dialectquery.Ydb{}
-	case Turso:
-		querier = &dialectquery.Turso{}
-	case Starrocks:
-		querier = &dialectquery.Starrocks{}
+	case database.DialectPostgres:
+		querier = dialect.NewPostgres()
+	case database.DialectMySQL:
+		querier = dialect.NewMysql()
+	case database.DialectSQLite3:
+		querier = dialect.NewSqlite3()
+	case database.DialectMSSQL:
+		querier = dialect.NewSqlserver()
+	case database.DialectRedshift:
+		querier = dialect.NewRedshift()
+	case database.DialectTiDB:
+		querier = dialect.NewTidb()
+	case database.DialectClickHouse:
+		querier = dialect.NewClickhouse()
+	case database.DialectVertica:
+		querier = dialect.NewVertica()
+	case database.DialectYdB:
+		querier = dialect.NewYDB()
+	case database.DialectTurso:
+		querier = dialect.NewTurso()
+	case database.DialectStarrocks:
+		querier = dialect.NewStarrocks()
 	default:
 		return nil, fmt.Errorf("unknown querier dialect: %v", d)
 	}
@@ -88,7 +89,7 @@ type ListMigrationsResult struct {
 }
 
 type store struct {
-	querier dialectquery.Querier
+	querier dialect.Querier
 }
 
 var _ Store = (*store)(nil)

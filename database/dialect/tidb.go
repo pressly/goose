@@ -1,14 +1,21 @@
-package dialectquery
+package dialect
 
-import "fmt"
+import (
+	"fmt"
+)
 
-type Vertica struct{}
+// NewTidb returns a [Querier] for TiDB dialect.
+func NewTidb() Querier {
+	return &Tidb{}
+}
 
-var _ Querier = (*Vertica)(nil)
+type Tidb struct{}
 
-func (v *Vertica) CreateTable(tableName string) string {
+var _ Querier = (*Tidb)(nil)
+
+func (t *Tidb) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (
-		id identity(1,1) NOT NULL,
+		id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT UNIQUE,
 		version_id bigint NOT NULL,
 		is_applied boolean NOT NULL,
 		tstamp timestamp NULL default now(),
@@ -17,27 +24,27 @@ func (v *Vertica) CreateTable(tableName string) string {
 	return fmt.Sprintf(q, tableName)
 }
 
-func (v *Vertica) InsertVersion(tableName string) string {
+func (t *Tidb) InsertVersion(tableName string) string {
 	q := `INSERT INTO %s (version_id, is_applied) VALUES (?, ?)`
 	return fmt.Sprintf(q, tableName)
 }
 
-func (v *Vertica) DeleteVersion(tableName string) string {
+func (t *Tidb) DeleteVersion(tableName string) string {
 	q := `DELETE FROM %s WHERE version_id=?`
 	return fmt.Sprintf(q, tableName)
 }
 
-func (v *Vertica) GetMigrationByVersion(tableName string) string {
+func (t *Tidb) GetMigrationByVersion(tableName string) string {
 	q := `SELECT tstamp, is_applied FROM %s WHERE version_id=? ORDER BY tstamp DESC LIMIT 1`
 	return fmt.Sprintf(q, tableName)
 }
 
-func (v *Vertica) ListMigrations(tableName string) string {
+func (t *Tidb) ListMigrations(tableName string) string {
 	q := `SELECT version_id, is_applied from %s ORDER BY id DESC`
 	return fmt.Sprintf(q, tableName)
 }
 
-func (v *Vertica) GetLatestVersion(tableName string) string {
+func (t *Tidb) GetLatestVersion(tableName string) string {
 	q := `SELECT MAX(version_id) FROM %s`
 	return fmt.Sprintf(q, tableName)
 }

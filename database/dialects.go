@@ -6,60 +6,73 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/pressly/goose/v3/internal/dialect/dialectquery"
+	"github.com/pressly/goose/v3/database/dialect"
 )
 
 // Dialect is the type of database dialect.
 type Dialect string
 
 const (
+	DialectCustom     Dialect = ""
 	DialectClickHouse Dialect = "clickhouse"
 	DialectMSSQL      Dialect = "mssql"
 	DialectMySQL      Dialect = "mysql"
 	DialectPostgres   Dialect = "postgres"
 	DialectRedshift   Dialect = "redshift"
 	DialectSQLite3    Dialect = "sqlite3"
+	DialectStarrocks  Dialect = "starrocks"
 	DialectTiDB       Dialect = "tidb"
 	DialectTurso      Dialect = "turso"
 	DialectVertica    Dialect = "vertica"
 	DialectYdB        Dialect = "ydb"
-	DialectStarrocks  Dialect = "starrocks"
 )
 
 // NewStore returns a new [Store] implementation for the given dialect.
-func NewStore(dialect Dialect, tablename string) (Store, error) {
+func NewStore(d Dialect, tablename string) (Store, error) {
+	if d == DialectCustom {
+		return nil, errors.New("custom dialect is not supported")
+	}
+	lookup := map[Dialect]dialect.Querier{
+		DialectClickHouse: dialect.NewClickhouse(),
+		DialectMSSQL:      dialect.NewSqlserver(),
+		DialectMySQL:      dialect.NewMysql(),
+		DialectPostgres:   dialect.NewPostgres(),
+		DialectRedshift:   dialect.NewRedshift(),
+		DialectSQLite3:    dialect.NewSqlite3(),
+		DialectTiDB:       dialect.NewTidb(),
+		DialectVertica:    dialect.NewVertica(),
+		DialectYdB:        dialect.NewYDB(),
+		DialectTurso:      dialect.NewTurso(),
+		DialectStarrocks:  dialect.NewStarrocks(),
+	}
+	querier, ok := lookup[d]
+	if !ok {
+		return nil, fmt.Errorf("unknown dialect: %q", d)
+	}
+	return NewStoreFromQuerier(tablename, querier)
+}
+
+// NewStoreFromQuerier returns a new [Store] implementation for the given querier.
+//
+// Most of the time you should use [NewStore] instead of this function, as it will automatically
+// create a dialect-specific querier for you. This function is useful if you want to use a custom
+// querier that is not part of the standard dialects.
+func NewStoreFromQuerier(tablename string, querier dialect.Querier) (Store, error) {
 	if tablename == "" {
 		return nil, errors.New("table name must not be empty")
 	}
-	if dialect == "" {
-		return nil, errors.New("dialect must not be empty")
-	}
-	lookup := map[Dialect]dialectquery.Querier{
-		DialectClickHouse: &dialectquery.Clickhouse{},
-		DialectMSSQL:      &dialectquery.Sqlserver{},
-		DialectMySQL:      &dialectquery.Mysql{},
-		DialectPostgres:   &dialectquery.Postgres{},
-		DialectRedshift:   &dialectquery.Redshift{},
-		DialectSQLite3:    &dialectquery.Sqlite3{},
-		DialectTiDB:       &dialectquery.Tidb{},
-		DialectVertica:    &dialectquery.Vertica{},
-		DialectYdB:        &dialectquery.Ydb{},
-		DialectTurso:      &dialectquery.Turso{},
-		DialectStarrocks:  &dialectquery.Starrocks{},
-	}
-	querier, ok := lookup[dialect]
-	if !ok {
-		return nil, fmt.Errorf("unknown dialect: %q", dialect)
+	if querier == nil {
+		return nil, errors.New("querier must not be nil")
 	}
 	return &store{
 		tablename: tablename,
-		querier:   dialectquery.NewQueryController(querier),
+		querier:   newQueryController(querier),
 	}, nil
 }
 
 type store struct {
 	tablename string
-	querier   *dialectquery.QueryController
+	querier   *queryController
 }
 
 var _ Store = (*store)(nil)
@@ -169,4 +182,26 @@ func (s *store) TableExists(ctx context.Context, db DBTxConn) (bool, error) {
 		return false, fmt.Errorf("failed to check if table exists: %w", err)
 	}
 	return exists, nil
+}
+
+var _ dialect.Querier = (*queryController)(nil)
+
+type queryController struct{ dialect.Querier }
+
+// newQueryController returns a new QueryController that wraps the given Querier.
+func newQueryController(querier dialect.Querier) *queryController {
+	return &queryController{Querier: querier}
+}
+
+// Optional methods
+
+// TableExists returns the SQL query string to check if the version table exists. If the Querier
+// does not implement this method, it will return an empty string.
+//
+// Returns a boolean value.
+func (c *queryController) TableExists(tableName string) string {
+	if t, ok := c.Querier.(interface{ TableExists(string) string }); ok {
+		return t.TableExists(tableName)
+	}
+	return ""
 }
