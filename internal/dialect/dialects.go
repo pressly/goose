@@ -15,4 +15,5 @@ const (
 	Ydb        Dialect = "ydb"
 	Turso      Dialect = "turso"
 	Starrocks  Dialect = "starrocks"
+	SpannerPG  Dialect = "spannerpg"
 )

@@ -41,6 +41,7 @@ go build -tags='no_postgres no_mysql no_sqlite3 no_ydb' -o goose ./cmd/goose
 # Available build tags:
 #   no_clickhouse  no_libsql   no_mssql    no_mysql
 #   no_postgres    no_sqlite3  no_vertica  no_ydb
+#   no_spannerpg
 ```
 
 For macOS users `goose` is available as a [Homebrew
@@ -97,6 +98,7 @@ Examples:
     goose vertica "vertica://user:password@localhost:5433/dbname?connection_load_balance=1" status
     goose ydb "grpcs://localhost:2135/local?go_query_mode=scripting&go_fake_tx=scripting&go_query_bind=declare,numeric" status
     goose starrocks "user:password@/dbname?parseTime=true&interpolateParams=true" status
+    goose spannerpg "user=postgres dbname=postgres sslmode=disable" status
 
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose status
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose create init sql
