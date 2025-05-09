@@ -55,7 +55,7 @@ func NewStore(d Dialect) (Store, error) {
 		querier = &dialectquery.Mysql{}
 	case Sqlite3:
 		querier = &dialectquery.Sqlite3{}
-	case Sqlserver:
+	case Mssql, Sqlserver:
 		querier = &dialectquery.Sqlserver{}
 	case Redshift:
 		querier = &dialectquery.Redshift{}
