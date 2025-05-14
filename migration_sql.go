@@ -42,7 +42,7 @@ func runSQLMigration(
 				_ = tx.Rollback()
 				return fmt.Errorf("failed to execute SQL query %q: %w", clearStatement(query), err)
 			}
-			if resInfo := formatResult(res); resInfo != "" {
+			if resInfo := formatResultInfo(res); resInfo != "" {
 				verboseInfo(resInfo)
 			}
 		}
@@ -78,7 +78,7 @@ func runSQLMigration(
 		if err != nil {
 			return fmt.Errorf("failed to execute SQL query %q: %w", clearStatement(query), err)
 		}
-		if resInfo := formatResult(res); resInfo != "" {
+		if resInfo := formatResultInfo(res); resInfo != "" {
 			verboseInfo(resInfo)
 		}
 	}
@@ -122,7 +122,7 @@ func clearStatement(s string) string {
 	return matchEmptyEOL.ReplaceAllString(s, ``)
 }
 
-func formatResult(res sql.Result) string {
+func formatResultInfo(res sql.Result) string {
 	resInfo := ""
 	if rowsAffected, err := res.RowsAffected(); err == nil {
 		resInfo += fmt.Sprintf("rows affected: %d", rowsAffected)
