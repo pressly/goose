@@ -443,7 +443,7 @@ func (p *Provider) runSQL(ctx context.Context, db database.DBTxConn, m *Migratio
 	}
 	for _, stmt := range statements {
 		if p.cfg.verbose {
-			p.cfg.logger.Printf("Excuting statement: %s", stmt)
+			p.cfg.logger.Printf("Executing statement: %s", stmt)
 		}
 		if _, err := db.ExecContext(ctx, stmt); err != nil {
 			return err
