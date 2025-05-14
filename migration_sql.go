@@ -36,10 +36,14 @@ func runSQLMigration(
 
 		for _, query := range statements {
 			verboseInfo("Executing statement: %s\n", clearStatement(query))
-			if _, err := tx.ExecContext(ctx, query); err != nil {
+			res, err := tx.ExecContext(ctx, query)
+			if err != nil {
 				verboseInfo("Rollback transaction")
 				_ = tx.Rollback()
 				return fmt.Errorf("failed to execute SQL query %q: %w", clearStatement(query), err)
+			}
+			if resInfo := formatResult(res); resInfo != "" {
+				verboseInfo(resInfo)
 			}
 		}
 
@@ -70,8 +74,12 @@ func runSQLMigration(
 	// NO TRANSACTION.
 	for _, query := range statements {
 		verboseInfo("Executing statement: %s", clearStatement(query))
-		if _, err := db.ExecContext(ctx, query); err != nil {
+		res, err := db.ExecContext(ctx, query)
+		if err != nil {
 			return fmt.Errorf("failed to execute SQL query %q: %w", clearStatement(query), err)
+		}
+		if resInfo := formatResult(res); resInfo != "" {
+			verboseInfo(resInfo)
 		}
 	}
 	if !noVersioning {
@@ -112,4 +120,18 @@ var (
 func clearStatement(s string) string {
 	s = matchSQLComments.ReplaceAllString(s, ``)
 	return matchEmptyEOL.ReplaceAllString(s, ``)
+}
+
+func formatResult(res sql.Result) string {
+	resInfo := ""
+	if rowsAffected, err := res.RowsAffected(); err == nil {
+		resInfo += fmt.Sprintf("rows affected: %d", rowsAffected)
+	}
+	if lastInsertId, err := res.LastInsertId(); err == nil {
+		resInfo += fmt.Sprintf(", last insert id: %d", lastInsertId)
+	}
+	if resInfo != "" {
+		resInfo = fmt.Sprintf("Executed statement (%s)", resInfo)
+	}
+	return resInfo
 }
