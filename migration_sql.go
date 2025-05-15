@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"regexp"
+	"strings"
 )
 
 // Run a migration specified in raw SQL.
@@ -43,7 +44,7 @@ func runSQLMigration(
 				return fmt.Errorf("failed to execute SQL query %q: %w", clearStatement(query), err)
 			}
 			if resInfo := formatResultInfo(res); resInfo != "" {
-				verboseInfo(resInfo)
+				verboseInfo("Executed statement (%s)", resInfo)
 			}
 		}
 
@@ -79,7 +80,7 @@ func runSQLMigration(
 			return fmt.Errorf("failed to execute SQL query %q: %w", clearStatement(query), err)
 		}
 		if resInfo := formatResultInfo(res); resInfo != "" {
-			verboseInfo(resInfo)
+			verboseInfo("Executed statement (%s)", resInfo)
 		}
 	}
 	if !noVersioning {
@@ -123,15 +124,14 @@ func clearStatement(s string) string {
 }
 
 func formatResultInfo(res sql.Result) string {
-	resInfo := ""
+	resultDetails := []string{}
 	if rowsAffected, err := res.RowsAffected(); err == nil {
-		resInfo += fmt.Sprintf("rows affected: %d", rowsAffected)
+		detail := fmt.Sprintf("rows affected: %d", rowsAffected)
+		resultDetails = append(resultDetails, detail)
 	}
 	if lastInsertId, err := res.LastInsertId(); err == nil {
-		resInfo += fmt.Sprintf(", last insert id: %d", lastInsertId)
+		detail := fmt.Sprintf("last insert id: %d", lastInsertId)
+		resultDetails = append(resultDetails, detail)
 	}
-	if resInfo != "" {
-		resInfo = fmt.Sprintf("Executed statement (%s)", resInfo)
-	}
-	return resInfo
+	return strings.Join(resultDetails, ", ")
 }
