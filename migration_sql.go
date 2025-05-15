@@ -5,7 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	"regexp"
-	"strings"
+
+	"github.com/pressly/goose/v3/internal/gooseutil"
 )
 
 // Run a migration specified in raw SQL.
@@ -43,7 +44,7 @@ func runSQLMigration(
 				_ = tx.Rollback()
 				return fmt.Errorf("failed to execute SQL query %q: %w", clearStatement(query), err)
 			}
-			if resInfo := formatResultInfo(res); resInfo != "" {
+			if resInfo := gooseutil.FormatSQLResultInfo(res); resInfo != "" {
 				verboseInfo("Executed statement (%s)", resInfo)
 			}
 		}
@@ -79,7 +80,7 @@ func runSQLMigration(
 		if err != nil {
 			return fmt.Errorf("failed to execute SQL query %q: %w", clearStatement(query), err)
 		}
-		if resInfo := formatResultInfo(res); resInfo != "" {
+		if resInfo := gooseutil.FormatSQLResultInfo(res); resInfo != "" {
 			verboseInfo("Executed statement (%s)", resInfo)
 		}
 	}
@@ -121,17 +122,4 @@ var (
 func clearStatement(s string) string {
 	s = matchSQLComments.ReplaceAllString(s, ``)
 	return matchEmptyEOL.ReplaceAllString(s, ``)
-}
-
-func formatResultInfo(res sql.Result) string {
-	resultDetails := []string{}
-	if rowsAffected, err := res.RowsAffected(); err == nil {
-		detail := fmt.Sprintf("rows affected: %d", rowsAffected)
-		resultDetails = append(resultDetails, detail)
-	}
-	if lastInsertId, err := res.LastInsertId(); err == nil {
-		detail := fmt.Sprintf("last insert id: %d", lastInsertId)
-		resultDetails = append(resultDetails, detail)
-	}
-	return strings.Join(resultDetails, ", ")
 }

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/pressly/goose/v3/database"
+	"github.com/pressly/goose/v3/internal/gooseutil"
 	"github.com/pressly/goose/v3/internal/sqlparser"
 	"github.com/sethvargo/go-retry"
 	"go.uber.org/multierr"
@@ -445,8 +446,14 @@ func (p *Provider) runSQL(ctx context.Context, db database.DBTxConn, m *Migratio
 		if p.cfg.verbose {
 			p.cfg.logger.Printf("Executing statement: %s", stmt)
 		}
-		if _, err := db.ExecContext(ctx, stmt); err != nil {
+		res, err := db.ExecContext(ctx, stmt)
+		if err != nil {
 			return err
+		}
+		if p.cfg.verbose {
+			if resInfo := gooseutil.FormatSQLResultInfo(res); resInfo != "" {
+				p.cfg.logger.Printf("Executed statement (%s)", resInfo)
+			}
 		}
 	}
 	return nil
