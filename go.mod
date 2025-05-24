@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.24.1
 
 require (
-	github.com/ClickHouse/clickhouse-go/v2 v2.34.0
+	github.com/ClickHouse/clickhouse-go/v2 v2.35.0
 	github.com/go-sql-driver/mysql v1.9.2
 	github.com/jackc/pgx/v5 v5.7.4
 	github.com/joho/godotenv v1.5.1
@@ -25,7 +25,7 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/ClickHouse/ch-go v0.65.1 // indirect
+	github.com/ClickHouse/ch-go v0.66.0 // indirect
 	github.com/andybalholm/brotli v1.1.1 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/coder/websocket v1.8.13 // indirect
