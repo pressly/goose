@@ -79,9 +79,9 @@ func testStore(
 	alreadyExists func(t *testing.T, err error),
 ) {
 	const (
-		tablename = "test_goose_db_version"
+		tableName = "test_goose_db_version"
 	)
-	store, err := database.NewStore(d, tablename)
+	store, err := database.NewStore(d, tableName)
 	require.NoError(t, err)
 	// Create the version table.
 	err = runTx(ctx, db, func(tx *sql.Tx) error {
