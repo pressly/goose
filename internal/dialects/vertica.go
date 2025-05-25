@@ -1,14 +1,23 @@
-package dialectquery
+package dialects
 
-import "fmt"
+import (
+	"fmt"
 
-type Tidb struct{}
+	"github.com/pressly/goose/v3/database/dialect"
+)
 
-var _ Querier = (*Tidb)(nil)
+// NewVertica returns a new [dialect.Querier] for Vertica dialect.
+func NewVertica() dialect.Querier {
+	return &vertica{}
+}
 
-func (t *Tidb) CreateTable(tableName string) string {
+type vertica struct{}
+
+var _ dialect.Querier = (*vertica)(nil)
+
+func (v *vertica) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (
-		id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT UNIQUE,
+		id identity(1,1) NOT NULL,
 		version_id bigint NOT NULL,
 		is_applied boolean NOT NULL,
 		tstamp timestamp NULL default now(),
@@ -17,27 +26,27 @@ func (t *Tidb) CreateTable(tableName string) string {
 	return fmt.Sprintf(q, tableName)
 }
 
-func (t *Tidb) InsertVersion(tableName string) string {
+func (v *vertica) InsertVersion(tableName string) string {
 	q := `INSERT INTO %s (version_id, is_applied) VALUES (?, ?)`
 	return fmt.Sprintf(q, tableName)
 }
 
-func (t *Tidb) DeleteVersion(tableName string) string {
+func (v *vertica) DeleteVersion(tableName string) string {
 	q := `DELETE FROM %s WHERE version_id=?`
 	return fmt.Sprintf(q, tableName)
 }
 
-func (t *Tidb) GetMigrationByVersion(tableName string) string {
+func (v *vertica) GetMigrationByVersion(tableName string) string {
 	q := `SELECT tstamp, is_applied FROM %s WHERE version_id=? ORDER BY tstamp DESC LIMIT 1`
 	return fmt.Sprintf(q, tableName)
 }
 
-func (t *Tidb) ListMigrations(tableName string) string {
+func (v *vertica) ListMigrations(tableName string) string {
 	q := `SELECT version_id, is_applied from %s ORDER BY id DESC`
 	return fmt.Sprintf(q, tableName)
 }
 
-func (t *Tidb) GetLatestVersion(tableName string) string {
+func (v *vertica) GetLatestVersion(tableName string) string {
 	q := `SELECT MAX(version_id) FROM %s`
 	return fmt.Sprintf(q, tableName)
 }

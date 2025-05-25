@@ -33,7 +33,7 @@ type ProviderOption interface {
 //	    return err
 //	}
 //	// Create a provider with the custom store.
-//	provider, err := goose.NewProvider("", db, nil, goose.WithStore(store))
+//	provider, err := goose.NewProvider(goose.DialectCustom, db, nil, goose.WithStore(store))
 //	if err != nil {
 //	    return err
 //	}
