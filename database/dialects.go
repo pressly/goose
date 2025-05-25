@@ -40,11 +40,11 @@ func NewStore(d Dialect, tableName string) (Store, error) {
 		DialectPostgres:   dialects.NewPostgres(),
 		DialectRedshift:   dialects.NewRedshift(),
 		DialectSQLite3:    dialects.NewSqlite3(),
+		DialectStarrocks:  dialects.NewStarrocks(),
 		DialectTiDB:       dialects.NewTidb(),
+		DialectTurso:      dialects.NewTurso(),
 		DialectVertica:    dialects.NewVertica(),
 		DialectYdB:        dialects.NewYDB(),
-		DialectTurso:      dialects.NewTurso(),
-		DialectStarrocks:  dialects.NewStarrocks(),
 	}
 	querier, ok := lookup[d]
 	if !ok {

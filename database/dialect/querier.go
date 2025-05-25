@@ -1,6 +1,9 @@
 package dialect
 
 // Querier is the interface that wraps the basic methods to create a dialect specific query.
+//
+// It is intended tio be using with [database.NewStoreFromQuerier] to create a new [database.Store]
+// implementation based on a custom querier.
 type Querier interface {
 	// CreateTable returns the SQL query string to create the db version table.
 	CreateTable(tableName string) string
