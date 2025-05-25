@@ -72,11 +72,11 @@ func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption
 	}
 	// Allow users to specify a custom store implementation, but only if they don't specify a
 	// dialect. If they specify a dialect, we'll use the default store implementation.
-	if dialect == "" && cfg.store == nil {
+	if dialect == DialectCustom && cfg.store == nil {
 		return nil, errors.New("dialect must not be empty")
 	}
-	if dialect != "" && cfg.store != nil {
-		return nil, errors.New("dialect must be empty when using a custom store implementation")
+	if dialect != DialectCustom && cfg.store != nil {
+		return nil, errors.New("dialect must be DialectCustom when using a custom store implementation")
 	}
 	var store database.Store
 	if dialect != "" {
