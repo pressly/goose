@@ -261,6 +261,7 @@ func TestProviderRun(t *testing.T) {
 		t.Run("no_versioning", func(t *testing.T) {
 			p, db := newProviderWithDB(t, goose.WithDisableVersioning(true))
 			_, err := p.ApplyVersion(ctx, 1, true)
+			require.NoError(t, err)
 			tables, err := getTableNames(db)
 			require.NoError(t, err)
 			// When versioning is disabled and a single migration is applied, the only table
