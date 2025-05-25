@@ -1,18 +1,20 @@
-package dialect
+package dialects
 
 import (
 	"fmt"
 	"strings"
+
+	"github.com/pressly/goose/v3/database/dialect"
 )
 
-// NewPostgres returns a new [Querier] for PostgreSQL dialect.
-func NewPostgres() QuerierExtender {
+// NewPostgres returns a new [dialect.Querier] for PostgreSQL dialect.
+func NewPostgres() dialect.QuerierExtender {
 	return &postgres{}
 }
 
 type postgres struct{}
 
-var _ QuerierExtender = (*postgres)(nil)
+var _ dialect.QuerierExtender = (*postgres)(nil)
 
 func (p *postgres) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (

@@ -1,17 +1,19 @@
-package dialect
+package dialects
 
 import (
 	"fmt"
+
+	"github.com/pressly/goose/v3/database/dialect"
 )
 
-// NewSqlite3 returns a [Querier] for SQLite3 dialect.
-func NewSqlite3() Querier {
+// NewSqlite3 returns a [dialect.Querier] for SQLite3 dialect.
+func NewSqlite3() dialect.Querier {
 	return &sqlite3{}
 }
 
 type sqlite3 struct{}
 
-var _ Querier = (*sqlite3)(nil)
+var _ dialect.Querier = (*sqlite3)(nil)
 
 func (s *sqlite3) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (

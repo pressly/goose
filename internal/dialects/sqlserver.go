@@ -1,17 +1,19 @@
-package dialect
+package dialects
 
 import (
 	"fmt"
+
+	"github.com/pressly/goose/v3/database/dialect"
 )
 
-// NewSqlserver returns a [Querier] for SQL Server dialect.
-func NewSqlserver() Querier {
+// NewSqlserver returns a [dialect.Querier] for SQL Server dialect.
+func NewSqlserver() dialect.Querier {
 	return &sqlserver{}
 }
 
 type sqlserver struct{}
 
-var _ Querier = (*sqlserver)(nil)
+var _ dialect.Querier = (*sqlserver)(nil)
 
 func (s *sqlserver) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (

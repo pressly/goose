@@ -1,4 +1,4 @@
-package dialect
+package legacystore
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/database/dialect"
+	"github.com/pressly/goose/v3/internal/dialects"
 )
 
 // Store is the interface that wraps the basic methods for a database dialect.
@@ -51,27 +52,27 @@ func NewStore(d database.Dialect) (Store, error) {
 	var querier dialect.Querier
 	switch d {
 	case database.DialectPostgres:
-		querier = dialect.NewPostgres()
+		querier = dialects.NewPostgres()
 	case database.DialectMySQL:
-		querier = dialect.NewMysql()
+		querier = dialects.NewMysql()
 	case database.DialectSQLite3:
-		querier = dialect.NewSqlite3()
+		querier = dialects.NewSqlite3()
 	case database.DialectMSSQL:
-		querier = dialect.NewSqlserver()
+		querier = dialects.NewSqlserver()
 	case database.DialectRedshift:
-		querier = dialect.NewRedshift()
+		querier = dialects.NewRedshift()
 	case database.DialectTiDB:
-		querier = dialect.NewTidb()
+		querier = dialects.NewTidb()
 	case database.DialectClickHouse:
-		querier = dialect.NewClickhouse()
+		querier = dialects.NewClickhouse()
 	case database.DialectVertica:
-		querier = dialect.NewVertica()
+		querier = dialects.NewVertica()
 	case database.DialectYdB:
-		querier = dialect.NewYDB()
+		querier = dialects.NewYDB()
 	case database.DialectTurso:
-		querier = dialect.NewTurso()
+		querier = dialects.NewTurso()
 	case database.DialectStarrocks:
-		querier = dialect.NewStarrocks()
+		querier = dialects.NewStarrocks()
 	default:
 		return nil, fmt.Errorf("unknown querier dialect: %v", d)
 	}

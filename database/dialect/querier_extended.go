@@ -1,28 +1,22 @@
 package dialect
 
-// QuerierExtender is an extension of the Querier interface that provides optional optimizations and
-// database-specific features. While not required by the core package, implementing these methods
-// can improve performance and functionality for specific databases.
+// QuerierExtender extends the [Querier] interface with optional database-specific optimizations.
+// While not required, implementing these methods can improve performance.
 //
-// IMPORTANT: This interface may be expanded in future versions. Implementors MUST be prepared to
-// update their implementations when new methods are added, either by implementing the new
-// functionality or returning an empty string.
+// IMPORTANT: This interface may be expanded in future versions. Implementors must be prepared to
+// update their implementations when new methods are added.
 //
-// Example usage to verify implementation:
+// Example compile-time check:
 //
 //	var _ QuerierExtender = (*CustomQuerierExtended)(nil)
 //
-// In short, it's exported to allows implementors to have a compile-time check that they are
+// In short, it's exported to allow implementors to have a compile-time check that they are
 // implementing the interface correctly.
 type QuerierExtender interface {
 	Querier
 
-	// TableExists returns the SQL query string to check if a table exists in the database.
-	// Implementing this method allows the system to optimize table existence checks by using
-	// database-specific system catalogs (e.g., pg_tables for PostgreSQL, sqlite_master for SQLite)
-	// instead of generic SQL queries.
-	//
-	// Return an empty string if the database does not provide an efficient way to check table
-	// existence.
+	// TableExists returns a database-specific SQL query to check if a table exists. For example,
+	// implementations might query system catalogs like pg_tables or sqlite_master. Return empty
+	// string if not supported.
 	TableExists(tableName string) string
 }

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/pressly/goose/v3/database"
-	"github.com/pressly/goose/v3/internal/dialect"
+	"github.com/pressly/goose/v3/internal/legacystore"
 )
 
 // Dialect is the type of database dialect. It is an alias for [database.Dialect].
@@ -26,10 +26,10 @@ const (
 )
 
 func init() {
-	store, _ = dialect.NewStore(DialectPostgres)
+	store, _ = legacystore.NewStore(DialectPostgres)
 }
 
-var store dialect.Store
+var store legacystore.Store
 
 // SetDialect sets the dialect to use for the goose package.
 func SetDialect(s string) error {
@@ -61,6 +61,6 @@ func SetDialect(s string) error {
 		return fmt.Errorf("%q: unknown dialect", s)
 	}
 	var err error
-	store, err = dialect.NewStore(d)
+	store, err = legacystore.NewStore(d)
 	return err
 }

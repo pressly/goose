@@ -1,17 +1,19 @@
-package dialect
+package dialects
 
 import (
 	"fmt"
+
+	"github.com/pressly/goose/v3/database/dialect"
 )
 
-// NewMysql returns a new [Querier] for MySQL dialect.
-func NewMysql() QuerierExtender {
+// NewMysql returns a new [dialect.Querier] for MySQL dialect.
+func NewMysql() dialect.QuerierExtender {
 	return &mysql{}
 }
 
 type mysql struct{}
 
-var _ QuerierExtender = (*mysql)(nil)
+var _ dialect.QuerierExtender = (*mysql)(nil)
 
 func (m *mysql) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (

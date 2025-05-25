@@ -1,17 +1,19 @@
-package dialect
+package dialects
 
 import (
 	"fmt"
+
+	"github.com/pressly/goose/v3/database/dialect"
 )
 
-// NewVertica returns a new [Querier] for Vertica dialect.
-func NewVertica() Querier {
+// NewVertica returns a new [dialect.Querier] for Vertica dialect.
+func NewVertica() dialect.Querier {
 	return &vertica{}
 }
 
 type vertica struct{}
 
-var _ Querier = (*vertica)(nil)
+var _ dialect.Querier = (*vertica)(nil)
 
 func (v *vertica) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (

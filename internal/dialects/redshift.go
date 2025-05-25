@@ -1,17 +1,19 @@
-package dialect
+package dialects
 
 import (
 	"fmt"
+
+	"github.com/pressly/goose/v3/database/dialect"
 )
 
-// Redshift returns a new [Querier] for Redshift dialect.
-func NewRedshift() Querier {
+// Redshift returns a new [dialect.Querier] for Redshift dialect.
+func NewRedshift() dialect.Querier {
 	return &redshift{}
 }
 
 type redshift struct{}
 
-var _ Querier = (*redshift)(nil)
+var _ dialect.Querier = (*redshift)(nil)
 
 func (r *redshift) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (

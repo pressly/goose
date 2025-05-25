@@ -1,17 +1,19 @@
-package dialect
+package dialects
 
 import (
 	"fmt"
+
+	"github.com/pressly/goose/v3/database/dialect"
 )
 
-// NewStarrocks returns a [Querier] for StarRocks dialect.
-func NewStarrocks() Querier {
+// NewStarrocks returns a [dialect.Querier] for StarRocks dialect.
+func NewStarrocks() dialect.Querier {
 	return &starrocks{}
 }
 
 type starrocks struct{}
 
-var _ Querier = (*starrocks)(nil)
+var _ dialect.Querier = (*starrocks)(nil)
 
 func (m *starrocks) CreateTable(tableName string) string {
 	q := `CREATE TABLE IF NOT EXISTS %s (

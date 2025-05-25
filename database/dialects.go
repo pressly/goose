@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/pressly/goose/v3/database/dialect"
+	"github.com/pressly/goose/v3/internal/dialects"
 )
 
 // Dialect is the type of database dialect.
@@ -33,17 +34,17 @@ func NewStore(d Dialect, tablename string) (Store, error) {
 		return nil, errors.New("custom dialect is not supported")
 	}
 	lookup := map[Dialect]dialect.Querier{
-		DialectClickHouse: dialect.NewClickhouse(),
-		DialectMSSQL:      dialect.NewSqlserver(),
-		DialectMySQL:      dialect.NewMysql(),
-		DialectPostgres:   dialect.NewPostgres(),
-		DialectRedshift:   dialect.NewRedshift(),
-		DialectSQLite3:    dialect.NewSqlite3(),
-		DialectTiDB:       dialect.NewTidb(),
-		DialectVertica:    dialect.NewVertica(),
-		DialectYdB:        dialect.NewYDB(),
-		DialectTurso:      dialect.NewTurso(),
-		DialectStarrocks:  dialect.NewStarrocks(),
+		DialectClickHouse: dialects.NewClickhouse(),
+		DialectMSSQL:      dialects.NewSqlserver(),
+		DialectMySQL:      dialects.NewMysql(),
+		DialectPostgres:   dialects.NewPostgres(),
+		DialectRedshift:   dialects.NewRedshift(),
+		DialectSQLite3:    dialects.NewSqlite3(),
+		DialectTiDB:       dialects.NewTidb(),
+		DialectVertica:    dialects.NewVertica(),
+		DialectYdB:        dialects.NewYDB(),
+		DialectTurso:      dialects.NewTurso(),
+		DialectStarrocks:  dialects.NewStarrocks(),
 	}
 	querier, ok := lookup[d]
 	if !ok {

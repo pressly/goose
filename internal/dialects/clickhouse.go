@@ -1,17 +1,19 @@
-package dialect
+package dialects
 
 import (
 	"fmt"
+
+	"github.com/pressly/goose/v3/database/dialect"
 )
 
-// NewClickhouse returns a new [Querier] for Clickhouse dialect.
-func NewClickhouse() Querier {
+// NewClickhouse returns a new [dialect.Querier] for Clickhouse dialect.
+func NewClickhouse() dialect.Querier {
 	return &clickhouse{}
 }
 
 type clickhouse struct{}
 
-var _ Querier = (*clickhouse)(nil)
+var _ dialect.Querier = (*clickhouse)(nil)
 
 func (c *clickhouse) CreateTable(tableName string) string {
 	q := `CREATE TABLE IF NOT EXISTS %s (
