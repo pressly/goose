@@ -258,6 +258,17 @@ func TestProviderRun(t *testing.T) {
 		require.Error(t, err)
 		require.ErrorIs(t, err, goose.ErrAlreadyApplied)
 		require.Contains(t, err.Error(), "version 1: migration already applied")
+		t.Run("no_versioning", func(t *testing.T) {
+			p, db := newProviderWithDB(t, goose.WithDisableVersioning(true))
+			_, err := p.ApplyVersion(ctx, 1, true)
+			require.NoError(t, err)
+			tables, err := getTableNames(db)
+			require.NoError(t, err)
+			// When versioning is disabled and a single migration is applied, the only table
+			// expected is whatever the migration creates. No goose table is created.
+			knownTables := []string{"users"}
+			require.Equal(t, knownTables, tables)
+		})
 	})
 	t.Run("status", func(t *testing.T) {
 		ctx := context.Background()

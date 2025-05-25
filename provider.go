@@ -472,6 +472,16 @@ func (p *Provider) apply(
 		retErr = multierr.Append(retErr, cleanup())
 	}()
 
+	d := sqlparser.DirectionDown
+	if direction {
+		d = sqlparser.DirectionUp
+	}
+
+	if p.cfg.disableVersioning {
+		// If versioning is disabled, we simply run the migration.
+		return p.runMigrations(ctx, conn, []*Migration{m}, d, true)
+	}
+
 	result, err := p.store.GetMigration(ctx, conn, version)
 	if err != nil && !errors.Is(err, database.ErrVersionNotFound) {
 		return nil, err
@@ -488,10 +498,6 @@ func (p *Provider) apply(
 	//    b. migration is not applied, this is an error (ErrNotApplied)
 	if !direction && result == nil {
 		return nil, fmt.Errorf("version %d: %w", version, ErrNotApplied)
-	}
-	d := sqlparser.DirectionDown
-	if direction {
-		d = sqlparser.DirectionUp
 	}
 	return p.runMigrations(ctx, conn, []*Migration{m}, d, true)
 }
