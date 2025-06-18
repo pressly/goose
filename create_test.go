@@ -82,7 +82,7 @@ func TestSequential(t *testing.T) {
 
 		// check that the files are in order
 		for i, f := range files {
-			expected := fmt.Sprintf("%05v", i+inc)
+			expected := fmt.Sprintf("%05v", (i*inc)+inc)
 			if !strings.HasPrefix(f.Name(), expected) {
 				t.Errorf("failed to find %s prefix in %s", expected, f.Name())
 			}
