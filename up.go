@@ -3,7 +3,9 @@ package goose
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 )
@@ -39,6 +41,9 @@ func UpTo(db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
 }
 
 func UpToContext(ctx context.Context, db *sql.DB, dir string, version int64, opts ...OptionsFunc) error {
+
+	CheckDirExists(dir)
+
 	option := &options{}
 	for _, f := range opts {
 		f(option)
@@ -165,17 +170,20 @@ func Up(db *sql.DB, dir string, opts ...OptionsFunc) error {
 
 // UpContext applies all available migrations.
 func UpContext(ctx context.Context, db *sql.DB, dir string, opts ...OptionsFunc) error {
+	CheckDirExists(dir)
 	return UpToContext(ctx, db, dir, maxVersion, opts...)
 }
 
 // UpByOne migrates up by a single version.
 func UpByOne(db *sql.DB, dir string, opts ...OptionsFunc) error {
+	CheckDirExists(dir)
 	ctx := context.Background()
 	return UpByOneContext(ctx, db, dir, opts...)
 }
 
 // UpByOneContext migrates up by a single version.
 func UpByOneContext(ctx context.Context, db *sql.DB, dir string, opts ...OptionsFunc) error {
+	CheckDirExists(dir)
 	opts = append(opts, withApplyUpByOne())
 	return UpToContext(ctx, db, dir, maxVersion, opts...)
 }
@@ -218,4 +226,19 @@ func findMissingMigrations(knownMigrations, newMigrations Migrations, dbMaxVersi
 		return missing[i].Version < missing[j].Version
 	})
 	return missing
+}
+
+// check if directory exists
+func CheckDirExists(dir string) error {
+	info, err := os.Stat(dir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return errors.New("this directory was not found: " + dir)
+		}
+		return err
+	}
+	if !info.IsDir() {
+		return errors.New(dir + " is this a directory?")
+	}
+	return nil
 }
