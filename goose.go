@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"io/fs"
 	"strconv"
+
+	"github.com/pressly/goose/v3/internal/generator"
+	"github.com/pressly/goose/v3/internal/parser"
 )
 
 // Deprecated: VERSION will no longer be supported in the next major release.
@@ -138,4 +141,14 @@ func run(ctx context.Context, command string, db *sql.DB, dir string, args []str
 		return fmt.Errorf("%q: no such command", command)
 	}
 	return nil
+}
+
+// Generate reads SQL queries from the specified queries directory and generates
+// type-safe Go code based on the schema information from migrations.
+func Generate(migrationDir, queriesDir, outDir string) error {
+	tables, err := parser.ParseMigrationFiles(migrationDir)
+	if err != nil {
+		return err
+	}
+	return generator.Generate(tables, queriesDir, outDir)
 }
