@@ -46,6 +46,8 @@ func SetDialect(s string) error {
 		d = DialectMySQL
 	case "sqlite3", "sqlite":
 		d = DialectSQLite3
+	case "spanner":
+		d = DialectSpanner
 	case "mssql", "azuresql", "sqlserver":
 		d = DialectMSSQL
 	case "redshift":
