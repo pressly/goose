@@ -20,6 +20,17 @@ func TestPostgres(t *testing.T) {
 	testDatabase(t, database.DialectPostgres, db, "testdata/migrations/postgres")
 }
 
+func TestSpanner(t *testing.T) {
+	t.Parallel()
+
+	db, cleanup, err := testdb.NewSpanner()
+	require.NoError(t, err)
+	t.Cleanup(cleanup)
+	require.NoError(t, db.Ping())
+
+	testDatabase(t, database.DialectSpanner, db, "testdata/migrations/spanner")
+}
+
 func TestClickhouse(t *testing.T) {
 	t.Parallel()
 
