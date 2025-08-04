@@ -1,3 +1,8 @@
+//go:build !no_spanner
+// +build !no_spanner
+
+package main
+
 import (
 	"database/sql"
 	"fmt"
