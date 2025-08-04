@@ -23,7 +23,12 @@ const (
 )
 
 // newSpanner spins up a Cloud Spanner emulator and connects to it using the Go SQL driver.
-func newSpanner() (*sql.DB, func(), error) {
+func newSpanner(opts ...OptionsFunc) (*sql.DB, func(), error) {
+	option := &options{}
+	for _, f := range opts {
+		f(option)
+	}
+
 	pool, err := dockertest.NewPool("")
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to connect to docker: %v", err)
