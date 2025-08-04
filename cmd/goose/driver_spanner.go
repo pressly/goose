@@ -10,6 +10,7 @@ import (
 	_ "github.com/googleapis/go-sql-spanner"
 )
 
+//nolint:unused // this might be used later
 func connect(projectId, instanceId, databaseId string) error {
 	dsn := fmt.Sprintf("projects/%s/instances/%s/databases/%s", projectId, instanceId, databaseId)
 	db, err := sql.Open("spanner", dsn)
