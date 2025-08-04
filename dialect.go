@@ -23,6 +23,9 @@ const (
 	DialectTurso      Dialect = database.DialectTurso
 	DialectVertica    Dialect = database.DialectVertica
 	DialectYdB        Dialect = database.DialectYdB
+
+	// Dialects only available to the [Provider].
+	DialectAuroraDSQL Dialect = database.DialectAuroraDSQL
 )
 
 func init() {
