@@ -18,7 +18,7 @@ const (
 	DialectPostgres   Dialect = database.DialectPostgres
 	DialectRedshift   Dialect = database.DialectRedshift
 	DialectSQLite3    Dialect = database.DialectSQLite3
-	DialectSpanner 	  Dialect = database.DialectSpanner
+	DialectSpanner    Dialect = database.DialectSpanner
 	DialectStarrocks  Dialect = database.DialectStarrocks
 	DialectTiDB       Dialect = database.DialectTiDB
 	DialectTurso      Dialect = database.DialectTurso
