@@ -360,6 +360,17 @@ INSERT INTO owners (owner_name) VALUES ('seed-user-3');
 		assertStatus(t, status[1], goose.StatePending, newSource(goose.TypeSQL, "00002_partial_error.sql", 2), true)
 		assertStatus(t, status[2], goose.StatePending, newSource(goose.TypeSQL, "00003_insert_data.sql", 3), true)
 	})
+	t.Run("isolate_ddl", func(t *testing.T) {
+		ctx := context.Background()
+		p, _ := newProviderWithDB(t, goose.WithIsolateDDL(true))
+		// Apply all migrations
+		res, err := p.Up(ctx)
+		require.NoError(t, err)
+		require.Len(t, res, 7)
+		currentVersion, err := p.GetDBVersion(ctx)
+		require.NoError(t, err)
+		require.EqualValues(t, 7, currentVersion)
+	})
 }
 
 func TestConcurrentProvider(t *testing.T) {
