@@ -41,6 +41,8 @@ var (
 	noColor      = flags.Bool("no-color", false, "disable color output (NO_COLOR env variable supported)")
 	timeout      = flags.Duration("timeout", 0, "maximum allowed duration for queries to run; e.g., 1h13m")
 	envFile      = flags.String("env", "", "load environment variables from file (default .env)")
+	queriesDir   = flags.String("queries", "./sql/queries", "directory with SQL query files")
+	outputDir    = flags.String("out", "./generated", "output directory for generated Go code")
 )
 
 var version string
@@ -105,10 +107,16 @@ func main() {
 		*dir = envConfig.dir
 	}
 
-	switch args[0] {
+	command := args[0]
+	switch command {
 	case "init":
 		if err := gooseInit(*dir); err != nil {
 			log.Fatalf("goose run: %v", err)
+		}
+		return
+	case "generate":
+		if err := goose.Generate(*dir, *queriesDir, *outputDir); err != nil {
+			log.Fatalf("goose generate: %v", err)
 		}
 		return
 	case "create":
@@ -278,7 +286,7 @@ Examples:
     goose sqlite3 ./foo.db up
 
     goose postgres "user=postgres dbname=postgres sslmode=disable" status
-    goose mysql "user:password@/dbname?parseTime=true" status
+    goose mysql "user:password@/dbname?parseTime=true&multiStatements=true" status
     goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
     goose tidb "user:password@/dbname?parseTime=true" status
     goose mssql "sqlserver://user:password@dbname:1433?database=master" status
@@ -290,7 +298,7 @@ Examples:
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose status
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose create init sql
     GOOSE_DRIVER=postgres GOOSE_DBSTRING="user=postgres dbname=postgres sslmode=disable" goose status
-    GOOSE_DRIVER=mysql GOOSE_DBSTRING="user:password@/dbname" goose status
+    GOOSE_DRIVER=mysql GOOSE_DBSTRING="user:password@/dbname?parseTime=true&multiStatements=true" goose status
     GOOSE_DRIVER=redshift GOOSE_DBSTRING="postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" goose status
     GOOSE_DRIVER=turso GOOSE_DBSTRING="libsql://dbname.turso.io?authToken=token" goose status
     GOOSE_DRIVER=clickhouse GOOSE_DBSTRING="clickhouse://user:password@qwerty.clickhouse.cloud:9440/dbname?secure=true&skip_verify=false" goose status
