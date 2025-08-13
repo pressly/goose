@@ -258,6 +258,17 @@ func TestProviderRun(t *testing.T) {
 		require.Error(t, err)
 		require.ErrorIs(t, err, goose.ErrAlreadyApplied)
 		require.Contains(t, err.Error(), "version 1: migration already applied")
+		t.Run("no_versioning", func(t *testing.T) {
+			p, db := newProviderWithDB(t, goose.WithDisableVersioning(true))
+			_, err := p.ApplyVersion(ctx, 1, true)
+			require.NoError(t, err)
+			tables, err := getTableNames(db)
+			require.NoError(t, err)
+			// When versioning is disabled and a single migration is applied, the only table
+			// expected is whatever the migration creates. No goose table is created.
+			knownTables := []string{"users"}
+			require.Equal(t, knownTables, tables)
+		})
 	})
 	t.Run("status", func(t *testing.T) {
 		ctx := context.Background()
@@ -348,6 +359,17 @@ INSERT INTO owners (owner_name) VALUES ('seed-user-3');
 		assertStatus(t, status[0], goose.StateApplied, newSource(goose.TypeSQL, "00001_users_table.sql", 1), false)
 		assertStatus(t, status[1], goose.StatePending, newSource(goose.TypeSQL, "00002_partial_error.sql", 2), true)
 		assertStatus(t, status[2], goose.StatePending, newSource(goose.TypeSQL, "00003_insert_data.sql", 3), true)
+	})
+	t.Run("isolate_ddl", func(t *testing.T) {
+		ctx := context.Background()
+		p, _ := newProviderWithDB(t, goose.WithIsolateDDL(true))
+		// Apply all migrations
+		res, err := p.Up(ctx)
+		require.NoError(t, err)
+		require.Len(t, res, 7)
+		currentVersion, err := p.GetDBVersion(ctx)
+		require.NoError(t, err)
+		require.EqualValues(t, 7, currentVersion)
 	})
 }
 
@@ -749,7 +771,7 @@ func TestCustomStoreTableExists(t *testing.T) {
 	store, err := database.NewStore(database.DialectSQLite3, goose.DefaultTablename)
 	require.NoError(t, err)
 	for i := 0; i < 2; i++ {
-		p, err := goose.NewProvider("", db, newFsys(),
+		p, err := goose.NewProvider(goose.DialectCustom, db, newFsys(),
 			goose.WithStore(&customStoreSQLite3{store}),
 		)
 		require.NoError(t, err)

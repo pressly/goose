@@ -24,7 +24,7 @@ func TestNewProvider(t *testing.T) {
 	}
 	t.Run("invalid", func(t *testing.T) {
 		// Empty dialect not allowed
-		_, err = goose.NewProvider("", db, fsys)
+		_, err = goose.NewProvider(goose.DialectCustom, db, fsys)
 		require.Error(t, err)
 		// Invalid dialect not allowed
 		_, err = goose.NewProvider("unknown-dialect", db, fsys)
@@ -59,7 +59,7 @@ func TestNewProvider(t *testing.T) {
 		// Custom store allowed
 		store, err := database.NewStore(goose.DialectSQLite3, "custom_table")
 		require.NoError(t, err)
-		_, err = goose.NewProvider("", db, nil, goose.WithStore(store))
+		_, err = goose.NewProvider(goose.DialectCustom, db, nil, goose.WithStore(store))
 		require.Error(t, err)
 	})
 }

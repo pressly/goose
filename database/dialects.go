@@ -6,78 +6,94 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/pressly/goose/v3/internal/dialect/dialectquery"
+	"github.com/pressly/goose/v3/database/dialect"
+	"github.com/pressly/goose/v3/internal/dialects"
 )
 
 // Dialect is the type of database dialect.
 type Dialect string
 
 const (
+	DialectCustom     Dialect = ""
 	DialectClickHouse Dialect = "clickhouse"
+	DialectAuroraDSQL Dialect = "dsql"
 	DialectMSSQL      Dialect = "mssql"
 	DialectMySQL      Dialect = "mysql"
 	DialectPostgres   Dialect = "postgres"
 	DialectRedshift   Dialect = "redshift"
 	DialectSQLite3    Dialect = "sqlite3"
+	DialectStarrocks  Dialect = "starrocks"
 	DialectTiDB       Dialect = "tidb"
 	DialectTurso      Dialect = "turso"
 	DialectVertica    Dialect = "vertica"
 	DialectYdB        Dialect = "ydb"
-	DialectStarrocks  Dialect = "starrocks"
 )
 
 // NewStore returns a new [Store] implementation for the given dialect.
-func NewStore(dialect Dialect, tablename string) (Store, error) {
-	if tablename == "" {
+func NewStore(d Dialect, tableName string) (Store, error) {
+	if d == DialectCustom {
+		return nil, errors.New("custom dialect is not supported")
+	}
+	lookup := map[Dialect]dialect.Querier{
+		DialectClickHouse: dialects.NewClickhouse(),
+		DialectAuroraDSQL: dialects.NewAuroraDSQL(),
+		DialectMSSQL:      dialects.NewSqlserver(),
+		DialectMySQL:      dialects.NewMysql(),
+		DialectPostgres:   dialects.NewPostgres(),
+		DialectRedshift:   dialects.NewRedshift(),
+		DialectSQLite3:    dialects.NewSqlite3(),
+		DialectStarrocks:  dialects.NewStarrocks(),
+		DialectTiDB:       dialects.NewTidb(),
+		DialectTurso:      dialects.NewTurso(),
+		DialectVertica:    dialects.NewVertica(),
+		DialectYdB:        dialects.NewYDB(),
+	}
+	querier, ok := lookup[d]
+	if !ok {
+		return nil, fmt.Errorf("unknown dialect: %q", d)
+	}
+	return NewStoreFromQuerier(tableName, querier)
+}
+
+// NewStoreFromQuerier returns a new [Store] implementation for the given querier.
+//
+// Most of the time you should use [NewStore] instead of this function, as it will automatically
+// create a dialect-specific querier for you. This function is useful if you want to use a custom
+// querier that is not part of the standard dialects.
+func NewStoreFromQuerier(tableName string, querier dialect.Querier) (Store, error) {
+	if tableName == "" {
 		return nil, errors.New("table name must not be empty")
 	}
-	if dialect == "" {
-		return nil, errors.New("dialect must not be empty")
-	}
-	lookup := map[Dialect]dialectquery.Querier{
-		DialectClickHouse: &dialectquery.Clickhouse{},
-		DialectMSSQL:      &dialectquery.Sqlserver{},
-		DialectMySQL:      &dialectquery.Mysql{},
-		DialectPostgres:   &dialectquery.Postgres{},
-		DialectRedshift:   &dialectquery.Redshift{},
-		DialectSQLite3:    &dialectquery.Sqlite3{},
-		DialectTiDB:       &dialectquery.Tidb{},
-		DialectVertica:    &dialectquery.Vertica{},
-		DialectYdB:        &dialectquery.Ydb{},
-		DialectTurso:      &dialectquery.Turso{},
-		DialectStarrocks:  &dialectquery.Starrocks{},
-	}
-	querier, ok := lookup[dialect]
-	if !ok {
-		return nil, fmt.Errorf("unknown dialect: %q", dialect)
+	if querier == nil {
+		return nil, errors.New("querier must not be nil")
 	}
 	return &store{
-		tablename: tablename,
-		querier:   dialectquery.NewQueryController(querier),
+		tableName: tableName,
+		querier:   newQueryController(querier),
 	}, nil
 }
 
 type store struct {
-	tablename string
-	querier   *dialectquery.QueryController
+	tableName string
+	querier   *queryController
 }
 
 var _ Store = (*store)(nil)
 
 func (s *store) Tablename() string {
-	return s.tablename
+	return s.tableName
 }
 
 func (s *store) CreateVersionTable(ctx context.Context, db DBTxConn) error {
-	q := s.querier.CreateTable(s.tablename)
+	q := s.querier.CreateTable(s.tableName)
 	if _, err := db.ExecContext(ctx, q); err != nil {
-		return fmt.Errorf("failed to create version table %q: %w", s.tablename, err)
+		return fmt.Errorf("failed to create version table %q: %w", s.tableName, err)
 	}
 	return nil
 }
 
 func (s *store) Insert(ctx context.Context, db DBTxConn, req InsertRequest) error {
-	q := s.querier.InsertVersion(s.tablename)
+	q := s.querier.InsertVersion(s.tableName)
 	if _, err := db.ExecContext(ctx, q, req.Version, true); err != nil {
 		return fmt.Errorf("failed to insert version %d: %w", req.Version, err)
 	}
@@ -85,7 +101,7 @@ func (s *store) Insert(ctx context.Context, db DBTxConn, req InsertRequest) erro
 }
 
 func (s *store) Delete(ctx context.Context, db DBTxConn, version int64) error {
-	q := s.querier.DeleteVersion(s.tablename)
+	q := s.querier.DeleteVersion(s.tableName)
 	if _, err := db.ExecContext(ctx, q, version); err != nil {
 		return fmt.Errorf("failed to delete version %d: %w", version, err)
 	}
@@ -97,7 +113,7 @@ func (s *store) GetMigration(
 	db DBTxConn,
 	version int64,
 ) (*GetMigrationResult, error) {
-	q := s.querier.GetMigrationByVersion(s.tablename)
+	q := s.querier.GetMigrationByVersion(s.tableName)
 	var result GetMigrationResult
 	if err := db.QueryRowContext(ctx, q, version).Scan(
 		&result.Timestamp,
@@ -112,7 +128,7 @@ func (s *store) GetMigration(
 }
 
 func (s *store) GetLatestVersion(ctx context.Context, db DBTxConn) (int64, error) {
-	q := s.querier.GetLatestVersion(s.tablename)
+	q := s.querier.GetLatestVersion(s.tableName)
 	var version sql.NullInt64
 	if err := db.QueryRowContext(ctx, q).Scan(&version); err != nil {
 		return -1, fmt.Errorf("failed to get latest version: %w", err)
@@ -127,7 +143,7 @@ func (s *store) ListMigrations(
 	ctx context.Context,
 	db DBTxConn,
 ) ([]*ListMigrationsResult, error) {
-	q := s.querier.ListMigrations(s.tablename)
+	q := s.querier.ListMigrations(s.tableName)
 	rows, err := db.QueryContext(ctx, q)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list migrations: %w", err)
@@ -158,7 +174,7 @@ func (s *store) ListMigrations(
 //
 
 func (s *store) TableExists(ctx context.Context, db DBTxConn) (bool, error) {
-	q := s.querier.TableExists(s.tablename)
+	q := s.querier.TableExists(s.tableName)
 	if q == "" {
 		return false, errors.ErrUnsupported
 	}
@@ -169,4 +185,26 @@ func (s *store) TableExists(ctx context.Context, db DBTxConn) (bool, error) {
 		return false, fmt.Errorf("failed to check if table exists: %w", err)
 	}
 	return exists, nil
+}
+
+var _ dialect.Querier = (*queryController)(nil)
+
+type queryController struct{ dialect.Querier }
+
+// newQueryController returns a new QueryController that wraps the given Querier.
+func newQueryController(querier dialect.Querier) *queryController {
+	return &queryController{Querier: querier}
+}
+
+// Optional methods
+
+// TableExists returns the SQL query string to check if the version table exists. If the Querier
+// does not implement this method, it will return an empty string.
+//
+// Returns a boolean value.
+func (c *queryController) TableExists(tableName string) string {
+	if t, ok := c.Querier.(interface{ TableExists(string) string }); ok {
+		return t.TableExists(tableName)
+	}
+	return ""
 }
