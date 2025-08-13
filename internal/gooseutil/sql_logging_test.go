@@ -39,7 +39,7 @@ func TestFormatSQLResultInfo(t *testing.T) {
 
 	// Nothing supported
 	got := FormatSQLResultInfo(nothingSupportedRes)
-	require.Equal(t, "", got)
+	require.Empty(t, got)
 
 	// Both supported
 	got = FormatSQLResultInfo(bothSupportedRes)
