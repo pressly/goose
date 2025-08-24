@@ -6,9 +6,7 @@ import (
 	"github.com/pressly/goose/v3/database/dialect"
 )
 
-// NewVertica returns a new [dialect.Querier] for Vertica dialect.
-//
-// DEPRECATED: Vertica support is deprecated and will be removed in a future release.
+// NewYDB returns a new [dialect.Querier] for Vertica dialect.
 func NewYDB() dialect.Querier {
 	return &ydb{}
 }
