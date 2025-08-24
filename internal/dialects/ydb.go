@@ -6,7 +6,7 @@ import (
 	"github.com/pressly/goose/v3/database/dialect"
 )
 
-// NewVertica returns a new [dialect.Querier] for Vertica dialect.
+// NewYDB returns a new [dialect.Querier] for Vertica dialect.
 func NewYDB() dialect.Querier {
 	return &ydb{}
 }

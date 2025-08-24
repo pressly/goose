@@ -7,6 +7,8 @@ import (
 )
 
 // NewVertica returns a new [dialect.Querier] for Vertica dialect.
+//
+// DEPRECATED: Vertica support is deprecated and will be removed in a future release.
 func NewVertica() dialect.Querier {
 	return &vertica{}
 }

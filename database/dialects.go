@@ -25,8 +25,10 @@ const (
 	DialectStarrocks  Dialect = "starrocks"
 	DialectTiDB       Dialect = "tidb"
 	DialectTurso      Dialect = "turso"
-	DialectVertica    Dialect = "vertica"
 	DialectYdB        Dialect = "ydb"
+
+	// DEPRECATED: Vertica support is deprecated and will be removed in a future release.
+	DialectVertica Dialect = "vertica"
 )
 
 // NewStore returns a new [Store] implementation for the given dialect.

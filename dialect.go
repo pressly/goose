@@ -21,11 +21,13 @@ const (
 	DialectStarrocks  Dialect = database.DialectStarrocks
 	DialectTiDB       Dialect = database.DialectTiDB
 	DialectTurso      Dialect = database.DialectTurso
-	DialectVertica    Dialect = database.DialectVertica
 	DialectYdB        Dialect = database.DialectYdB
 
 	// Dialects only available to the [Provider].
 	DialectAuroraDSQL Dialect = database.DialectAuroraDSQL
+
+	// DEPRECATED: Vertica support is deprecated and will be removed in a future release.
+	DialectVertica Dialect = database.DialectVertica
 )
 
 func init() {
