@@ -27,7 +27,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
       - name: Install Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go-version }}
       - name: Check Go code formatting
