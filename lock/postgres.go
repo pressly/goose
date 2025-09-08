@@ -32,6 +32,8 @@ func NewPostgresSessionLocker(opts ...SessionLockerOption) (SessionLocker, error
 			intervalDuration: 2 * time.Second,
 			failureThreshold: 30,
 		},
+		heartbeatInterval: 0, // Not used by PostgreSQL advisory locks
+		staleTimeout:      0, // Not used by PostgreSQL advisory locks
 	}
 	for _, opt := range opts {
 		if err := opt.apply(&cfg); err != nil {
