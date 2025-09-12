@@ -53,6 +53,20 @@ func WithStore(store database.Store) ProviderOption {
 	})
 }
 
+// WithTableName sets the name of the database table used to track history of applied migrations.
+// This option cannot be used together with [WithStore], since the table name is set on the store.
+//
+// Default is "goose_db_version".
+func WithTableName(name string) ProviderOption {
+	return configFunc(func(c *config) error {
+		if name == "" {
+			return errors.New("table name must not be empty")
+		}
+		c.tableName = name
+		return nil
+	})
+}
+
 // WithVerbose enables verbose logging.
 func WithVerbose(b bool) ProviderOption {
 	return configFunc(func(c *config) error {
@@ -183,7 +197,8 @@ func WithIsolateDDL(b bool) ProviderOption {
 }
 
 type config struct {
-	store database.Store
+	tableName string
+	store     database.Store
 
 	verbose         bool
 	excludePaths    map[string]bool
