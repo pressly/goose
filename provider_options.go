@@ -19,24 +19,15 @@ type ProviderOption interface {
 	apply(*config) error
 }
 
-// WithStore configures the provider with a custom [database.Store] implementation.
+// WithStore configures the provider with a custom [database.Store], allowing users to bring their
+// own implementation of the store interface. When this option is used, the dialect parameter of
+// [NewProvider] must be set to [DialectCustom].
 //
-// By default, the provider uses the [database.NewStore] function to create a store backed by the
-// given dialect. However, this option allows users to provide their own implementation or call
-// [database.NewStore] with custom options, such as setting the table name.
+// This option cannot be used together with [WithTableName], since the table name is set on the
+// store.
 //
-// Example:
-//
-//	// Create a store with a custom table name.
-//	store, err := database.NewStore(database.DialectPostgres, "my_custom_table_name")
-//	if err != nil {
-//	    return err
-//	}
-//	// Create a provider with the custom store.
-//	provider, err := goose.NewProvider(goose.DialectCustom, db, nil, goose.WithStore(store))
-//	if err != nil {
-//	    return err
-//	}
+// By default, the provider uses the [database.NewStore] function to create a store backed by one of
+// the officially supported dialects.
 func WithStore(store database.Store) ProviderOption {
 	return configFunc(func(c *config) error {
 		if c.store != nil {
