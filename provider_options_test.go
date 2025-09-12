@@ -69,7 +69,7 @@ func TestNewProvider(t *testing.T) {
 		const tableName = "custom_table"
 		store, err := database.NewStore(goose.DialectSQLite3, tableName)
 		require.NoError(t, err)
-		require.Equal(t, store.Tablename(), tableName)
+		require.Equal(t, tableName, store.Tablename())
 		_, err = goose.NewProvider(goose.DialectCustom, db, fsys, goose.WithStore(store))
 		require.NoError(t, err)
 		// Custom table name allowed on dialect-based store
