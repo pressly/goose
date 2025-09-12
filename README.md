@@ -122,7 +122,7 @@ Options:
   -ssl-key string
         file path to SSL key in pem format (only support on mysql)
   -table string
-        migrations table name (default "goose_db_version"). If you use a schema that is not `public`, you should set `schemaname.goose_db-version` when running commands.
+        migrations table name (default "goose_db_version"). If you use a schema that is not `public`, you should set `schemaname.goose_db_version` when running commands.
   -timeout duration
         maximum allowed duration for queries to run; e.g., 1h13m
   -v    enable verbose mode
