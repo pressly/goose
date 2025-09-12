@@ -1,6 +1,7 @@
 package goose
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"errors"
@@ -78,10 +79,14 @@ func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption
 	if dialect != DialectCustom && cfg.store != nil {
 		return nil, errors.New("custom store must not be specified when using one of the default dialects, use DialectCustom instead")
 	}
+	// Allow table name to be set only if store is not set.
+	if cfg.tableName != "" && cfg.store != nil {
+		return nil, errors.New("WithTableName cannot be used with WithStore; set the table name directly on your custom store")
+	}
 	var store database.Store
 	if dialect != "" {
 		var err error
-		store, err = database.NewStore(dialect, DefaultTablename)
+		store, err = database.NewStore(dialect, cmp.Or(cfg.tableName, DefaultTablename))
 		if err != nil {
 			return nil, err
 		}
