@@ -81,7 +81,7 @@ func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption
 	}
 	// Allow table name to be set only if store is not set.
 	if cfg.tableName != "" && cfg.store != nil {
-		return nil, errors.New("cannot set table name when store is set, set table name on the store instead")
+		return nil, errors.New("WithTableName cannot be used with WithStore; set the table name directly on your custom store")
 	}
 	var store database.Store
 	if dialect != "" {
