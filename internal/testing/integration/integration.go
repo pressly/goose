@@ -36,14 +36,14 @@ func collectMigrations(t *testing.T, dir string) []collected {
 	return all
 }
 
-func testDatabase(t *testing.T, dialect database.Dialect, db *sql.DB, migrationsDir string) {
+func testDatabase(t *testing.T, dialect database.Dialect, db *sql.DB, migrationsDir string, opts ...goose.ProviderOption) {
 	t.Helper()
 
 	ctx := context.Background()
 	// collect all migration files from the testdata directory
 	wantFiles := collectMigrations(t, migrationsDir)
 	// initialize a new goose provider
-	p, err := goose.NewProvider(dialect, db, os.DirFS(migrationsDir))
+	p, err := goose.NewProvider(dialect, db, os.DirFS(migrationsDir), opts...)
 	require.NoError(t, err)
 	require.Equal(t, len(wantFiles), len(p.ListSources()), "number of migrations")
 	// run all up migrations

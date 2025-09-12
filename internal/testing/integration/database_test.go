@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/internal/testing/testdb"
 	"github.com/stretchr/testify/require"
@@ -18,6 +19,17 @@ func TestPostgres(t *testing.T) {
 	require.NoError(t, db.Ping())
 
 	testDatabase(t, database.DialectPostgres, db, "testdata/migrations/postgres")
+}
+
+func TestSpanner(t *testing.T) {
+	t.Parallel()
+
+	db, cleanup, err := testdb.NewSpanner()
+	require.NoError(t, err)
+	t.Cleanup(cleanup)
+	require.NoError(t, db.Ping())
+
+	testDatabase(t, database.DialectSpanner, db, "testdata/migrations/spanner", goose.WithIsolateDDL(true))
 }
 
 func TestClickhouse(t *testing.T) {
