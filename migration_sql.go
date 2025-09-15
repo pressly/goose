@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	"regexp"
+
+	"github.com/pressly/goose/v3/internal/gooseutil"
 )
 
 // Run a migration specified in raw SQL.
@@ -36,10 +38,14 @@ func runSQLMigration(
 
 		for _, query := range statements {
 			verboseInfo("Executing statement: %s\n", clearStatement(query))
-			if _, err := tx.ExecContext(ctx, query); err != nil {
+			res, err := tx.ExecContext(ctx, query)
+			if err != nil {
 				verboseInfo("Rollback transaction")
 				_ = tx.Rollback()
 				return fmt.Errorf("failed to execute SQL query %q: %w", clearStatement(query), err)
+			}
+			if resInfo := gooseutil.FormatSQLResultInfo(res); resInfo != "" {
+				verboseInfo("Executed statement (%s)", resInfo)
 			}
 		}
 
@@ -70,8 +76,12 @@ func runSQLMigration(
 	// NO TRANSACTION.
 	for _, query := range statements {
 		verboseInfo("Executing statement: %s", clearStatement(query))
-		if _, err := db.ExecContext(ctx, query); err != nil {
+		res, err := db.ExecContext(ctx, query)
+		if err != nil {
 			return fmt.Errorf("failed to execute SQL query %q: %w", clearStatement(query), err)
+		}
+		if resInfo := gooseutil.FormatSQLResultInfo(res); resInfo != "" {
+			verboseInfo("Executed statement (%s)", resInfo)
 		}
 	}
 	if !noVersioning {
