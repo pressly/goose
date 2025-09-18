@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"math"
 	"strconv"
 	"strings"
@@ -64,7 +65,6 @@ func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption
 		registered:      make(map[int64]*Migration),
 		excludePaths:    make(map[string]bool),
 		excludeVersions: make(map[int64]bool),
-		logger:          &stdLogger{},
 	}
 	for _, opt := range opts {
 		if err := opt.apply(&cfg); err != nil {
@@ -82,6 +82,11 @@ func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption
 	// Allow table name to be set only if store is not set.
 	if cfg.tableName != "" && cfg.store != nil {
 		return nil, errors.New("WithTableName cannot be used with WithStore; set the table name directly on your custom store")
+	}
+
+	// Set default logger if neither was provided
+	if cfg.slogger == nil && cfg.logger == nil {
+		cfg.logger = &stdLogger{}
 	}
 	var store database.Store
 	if dialect != "" {
@@ -440,7 +445,11 @@ func (p *Provider) down(
 	}
 	// We never migrate the zero version down.
 	if dbMigrations[0].Version == 0 {
-		p.printf("no migrations to run, current version: 0")
+		p.logf(ctx,
+			"no migrations to run, current version: 0",
+			"no migrations to run",
+			slog.Int64("version", 0),
+		)
 		return nil, nil
 	}
 	var apply []*Migration
