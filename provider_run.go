@@ -500,6 +500,7 @@ func (p *Provider) runSQL(ctx context.Context, db database.DBTxConn, m *Migratio
 			slog.String("source", filepath.Base(m.Source)),
 			slog.Int64("version", m.Version),
 			slog.String("type", string(m.Type)),
+			slog.String("direction", string(sqlparser.FromBool(direction))),
 		)
 		if _, err := db.ExecContext(ctx, stmt); err != nil {
 			return err
