@@ -7,6 +7,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+- Add `*slog.Logger` support to goose provider (#989)
+- Add convenience `WithTableName` provider option (#985)
+- Minor bug fixes and dependency upgrades
+
 ## [v3.25.0] - 2025-08-24
 
 - Upgrade go deps (#976)
