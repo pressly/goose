@@ -1,6 +1,7 @@
 package goose
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"errors"
@@ -9,6 +10,7 @@ import (
 	"log/slog"
 	"path/filepath"
 	"runtime/debug"
+	"slices"
 	"time"
 
 	"github.com/pressly/goose/v3/database"
@@ -72,13 +74,17 @@ func (p *Provider) logf(ctx context.Context, legacyMsg string, slogMsg string, a
 		return
 	}
 	if p.cfg.slogger != nil {
+		// Sort attributes by key for consistent ordering
+		slices.SortFunc(attrs, func(a, b slog.Attr) int {
+			return cmp.Compare(a.Key, b.Key)
+		})
 		// Use slog with structured attributes
-		args := make([]any, len(attrs))
-		for i, attr := range attrs {
-			args[i] = attr
-		}
+		args := make([]any, 0, len(attrs)+1)
 		// Add the logger=goose identifier
 		args = append(args, slog.String("logger", "goose"))
+		for _, attr := range attrs {
+			args = append(args, attr)
+		}
 		p.cfg.slogger.InfoContext(ctx, slogMsg, args...)
 	} else if p.cfg.logger != nil {
 		p.cfg.logger.Printf("goose: %s", legacyMsg)
@@ -487,9 +493,14 @@ func (p *Provider) runSQL(ctx context.Context, db database.DBTxConn, m *Migratio
 		statements = m.sql.Down
 	}
 	for _, stmt := range statements {
-		if p.cfg.verbose {
-			p.cfg.logger.Printf("Excuting statement: %s", stmt)
-		}
+		p.logf(ctx,
+			fmt.Sprintf("Executing statement: %s", stmt),
+			"executing statement",
+			slog.String("statement", stmt),
+			slog.String("source", filepath.Base(m.Source)),
+			slog.Int64("version", m.Version),
+			slog.String("type", string(m.Type)),
+		)
 		if _, err := db.ExecContext(ctx, stmt); err != nil {
 			return err
 		}
