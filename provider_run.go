@@ -1,13 +1,16 @@
 package goose
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"io/fs"
+	"log/slog"
+	"path/filepath"
 	"runtime/debug"
-	"strings"
+	"slices"
 	"time"
 
 	"github.com/pressly/goose/v3/database"
@@ -66,14 +69,25 @@ func (p *Provider) prepareMigration(fsys fs.FS, m *Migration, direction bool) er
 	return fmt.Errorf("invalid migration type: %+v", m)
 }
 
-// printf is a helper function that prints the given message if verbose is enabled. It also prepends
-// the "goose: " prefix to the message.
-func (p *Provider) printf(msg string, args ...interface{}) {
-	if p.cfg.verbose {
-		if !strings.HasPrefix(msg, "goose:") {
-			msg = "goose: " + msg
+func (p *Provider) logf(ctx context.Context, legacyMsg string, slogMsg string, attrs ...slog.Attr) {
+	if !p.cfg.verbose {
+		return
+	}
+	if p.cfg.slogger != nil {
+		// Sort attributes by key for consistent ordering
+		slices.SortFunc(attrs, func(a, b slog.Attr) int {
+			return cmp.Compare(a.Key, b.Key)
+		})
+		// Use slog with structured attributes
+		args := make([]any, 0, len(attrs)+1)
+		// Add the logger=goose identifier
+		args = append(args, slog.String("logger", "goose"))
+		for _, attr := range attrs {
+			args = append(args, attr)
 		}
-		p.cfg.logger.Printf(msg, args...)
+		p.cfg.slogger.InfoContext(ctx, slogMsg, args...)
+	} else if p.cfg.logger != nil {
+		p.cfg.logger.Printf("goose: %s", legacyMsg)
 	}
 }
 
@@ -94,7 +108,11 @@ func (p *Provider) runMigrations(
 			if err != nil {
 				return nil, err
 			}
-			p.printf("no migrations to run, current version: %d", maxVersion)
+			p.logf(ctx,
+				fmt.Sprintf("no migrations to run, current version: %d", maxVersion),
+				"no migrations to run",
+				slog.Int64("current_version", maxVersion),
+			)
 		}
 		return nil, nil
 	}
@@ -150,14 +168,34 @@ func (p *Provider) runMigrations(
 		}
 		result.Duration = time.Since(start)
 		results = append(results, result)
-		p.printf("%s", result)
+		// Log the result of the migration.
+		var state string
+		if result.Empty {
+			state = "empty"
+		} else {
+			state = "applied"
+		}
+		p.logf(ctx,
+			result.String(),
+			"migration completed",
+			slog.String("source", filepath.Base(result.Source.Path)),
+			slog.String("direction", result.Direction),
+			slog.Float64("duration_seconds", result.Duration.Seconds()),
+			slog.String("state", state),
+			slog.Int64("version", result.Source.Version),
+			slog.String("type", string(result.Source.Type)),
+		)
 	}
 	if !p.cfg.disableVersioning && !byOne {
 		maxVersion, err := p.getDBMaxVersion(ctx, conn)
 		if err != nil {
 			return nil, err
 		}
-		p.printf("successfully migrated database, current version: %d", maxVersion)
+		p.logf(ctx,
+			fmt.Sprintf("successfully migrated database, current version: %d", maxVersion),
+			"successfully migrated database",
+			slog.Int64("current_version", maxVersion),
+		)
 	}
 	return results, nil
 }
@@ -455,9 +493,15 @@ func (p *Provider) runSQL(ctx context.Context, db database.DBTxConn, m *Migratio
 		statements = m.sql.Down
 	}
 	for _, stmt := range statements {
-		if p.cfg.verbose {
-			p.cfg.logger.Printf("Excuting statement: %s", stmt)
-		}
+		p.logf(ctx,
+			fmt.Sprintf("Executing statement: %s", stmt),
+			"executing statement",
+			slog.String("statement", stmt),
+			slog.String("source", filepath.Base(m.Source)),
+			slog.Int64("version", m.Version),
+			slog.String("type", string(m.Type)),
+			slog.String("direction", string(sqlparser.FromBool(direction))),
+		)
 		if _, err := db.ExecContext(ctx, stmt); err != nil {
 			return err
 		}

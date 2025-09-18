@@ -3,6 +3,7 @@ package goose
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/lock"
@@ -170,10 +171,38 @@ func WithDisableVersioning(b bool) ProviderOption {
 	})
 }
 
-// WithLogger will set a custom Logger, which will override the default logger.
+// WithLogger will set a custom Logger, which will override the default logger. Cannot be used
+// together with [WithSlog].
 func WithLogger(l Logger) ProviderOption {
 	return configFunc(func(c *config) error {
+		if l == nil {
+			return errors.New("logger must not be nil")
+		}
+		if c.slogger != nil {
+			return errors.New("cannot use both WithLogger and WithSlog")
+		}
 		c.logger = l
+		return nil
+	})
+}
+
+// WithSlog will set a custom [*slog.Logger] for structured logging. This enables rich structured
+// logging with attributes like source, direction, duration, etc. Cannot be used together with
+// [WithLogger].
+//
+// Example:
+//
+//	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+//	p, err := goose.NewProvider("postgres", db, fs, goose.WithSlog(logger))
+func WithSlog(logger *slog.Logger) ProviderOption {
+	return configFunc(func(c *config) error {
+		if logger == nil {
+			return errors.New("slog logger must not be nil")
+		}
+		if c.logger != nil {
+			return errors.New("cannot use both WithLogger and WithSlog")
+		}
+		c.slogger = logger
 		return nil
 	})
 }
@@ -209,7 +238,10 @@ type config struct {
 	disableGlobalRegistry bool
 	isolateDDL            bool
 
-	logger Logger
+	// Only a single logger can be set, they are mutually exclusive. If neither is set, a default
+	// [Logger] will be set to maintain backward compatibility in /v3.
+	logger  Logger
+	slogger *slog.Logger
 }
 
 type configFunc func(*config) error
