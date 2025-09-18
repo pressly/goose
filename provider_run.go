@@ -180,7 +180,7 @@ func (p *Provider) runMigrations(
 			"migration completed",
 			slog.String("source", filepath.Base(result.Source.Path)),
 			slog.String("direction", result.Direction),
-			slog.Duration("duration", result.Duration),
+			slog.Float64("duration_seconds", result.Duration.Seconds()),
 			slog.String("state", state),
 			slog.Int64("version", result.Source.Version),
 			slog.String("type", string(result.Source.Type)),
