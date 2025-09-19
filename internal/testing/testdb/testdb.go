@@ -12,6 +12,11 @@ func NewPostgres(options ...OptionsFunc) (db *sql.DB, cleanup func(), err error)
 	return newPostgres(options...)
 }
 
+// NewSpanner starts a Spanner docker container. Returns db connection and a docker cleanup function.
+func NewSpanner(options ...OptionsFunc) (db *sql.DB, cleanup func(), err error) {
+	return newSpanner(options...)
+}
+
 // NewMariaDB starts a MariaDB docker container. Returns a db connection and a docker cleanup function.
 func NewMariaDB(options ...OptionsFunc) (db *sql.DB, cleanup func(), err error) {
 	return newMariaDB(options...)
