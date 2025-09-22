@@ -9,7 +9,7 @@ import (
 	"github.com/pressly/goose/v3/lock"
 )
 
-const (
+var (
 	// DefaultTablename is the default name of the database table used to track history of applied
 	// migrations.
 	DefaultTablename = "goose_db_version"
