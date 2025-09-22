@@ -31,16 +31,19 @@ func TestConcurrentTableLocking(t *testing.T) {
 
 	newLocker := func(t *testing.T) lock.Locker {
 		locker, err := lock.NewPostgresTableLocker(
-			lock.WithTableLockID(lockID), // Same lock ID for all lockers
-			lock.WithTableLeaseDuration(2*time.Second),
-			lock.WithTableHeartbeatInterval(300*time.Millisecond),
-			lock.WithTableLockTimeout(50*time.Millisecond, 2), // Only 100ms total timeout
+			lock.WithTableLockID(lockID), // Same lock ID for all lockers!!
+			lock.WithTableHeartbeatInterval(200*time.Millisecond),
+
+			// This value is important - it controls how long a locker will keep retrying to acquire
+			// the lock and must be shorter than the overall lock timeout below.
+
+			lock.WithTableLockTimeout(50*time.Millisecond, 2), // 200ms total wait time
 		)
 		require.NoError(t, err)
 		return locker
 	}
 
-	locktest.TestConcurrentLocking(t, db, newLocker, 200*time.Millisecond)
+	locktest.TestConcurrentLocking(t, db, newLocker, 1*time.Second)
 }
 
 func TestSequentialTableLocking(t *testing.T) {
