@@ -166,16 +166,16 @@ func (p *Provider) Status(ctx context.Context) ([]*MigrationStatus, error) {
 // HasPending returns true if there are pending migrations to apply, otherwise, it returns false. If
 // out-of-order migrations are disabled, yet some are detected, this method returns an error.
 //
-// Note, this method will not use a SessionLocker if one is configured. This allows callers to check
-// for pending migrations without blocking or being blocked by other operations.
+// Note, this method will not use a SessionLocker or Locker if one is configured. This allows
+// callers to check for pending migrations without blocking or being blocked by other operations.
 func (p *Provider) HasPending(ctx context.Context) (bool, error) {
 	return p.hasPending(ctx)
 }
 
 // GetVersions returns the max database version and the target version to migrate to.
 //
-// Note, this method will not use a SessionLocker if one is configured. This allows callers to check
-// for versions without blocking or being blocked by other operations.
+// Note, this method will not use a SessionLocker or Locker if one is configured. This allows
+// callers to check for versions without blocking or being blocked by other operations.
 func (p *Provider) GetVersions(ctx context.Context) (current, target int64, err error) {
 	return p.getVersions(ctx)
 }

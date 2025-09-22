@@ -274,30 +274,55 @@ func beginTx(ctx context.Context, conn *sql.Conn, fn func(tx *sql.Tx) error) (re
 	return tx.Commit()
 }
 
-func (p *Provider) initialize(ctx context.Context, useSessionLocker bool) (*sql.Conn, func() error, error) {
+func (p *Provider) initialize(ctx context.Context, useLocker bool) (*sql.Conn, func() error, error) {
 	p.mu.Lock()
 	conn, err := p.db.Conn(ctx)
 	if err != nil {
 		p.mu.Unlock()
 		return nil, nil, err
 	}
-	// cleanup is a function that cleans up the connection, and optionally, the session lock.
+	// cleanup is a function that cleans up the connection, and optionally, the lock.
 	cleanup := func() error {
 		p.mu.Unlock()
 		return conn.Close()
 	}
-	if useSessionLocker && p.cfg.sessionLocker != nil && p.cfg.lockEnabled {
-		l := p.cfg.sessionLocker
-		if err := l.SessionLock(ctx, conn); err != nil {
-			return nil, nil, multierr.Append(err, cleanup())
+
+	// Handle locking if enabled and requested
+	if useLocker && p.cfg.lockEnabled {
+		// Session locker (connection-based locking)
+		if p.cfg.sessionLocker != nil {
+			l := p.cfg.sessionLocker
+			if err := l.SessionLock(ctx, conn); err != nil {
+				return nil, nil, multierr.Append(err, cleanup())
+			}
+			// A lock was acquired, so we need to unlock the session when we're done. This is done
+			// by returning a cleanup function that unlocks the session and closes the connection.
+			cleanup = func() error {
+				p.mu.Unlock()
+				// Use a detached context to unlock the session. This is because the context passed
+				// to SessionLock may have been canceled, and we don't want to cancel the unlock.
+				return multierr.Append(
+					l.SessionUnlock(context.WithoutCancel(ctx), conn),
+					conn.Close(),
+				)
+			}
 		}
-		// A lock was acquired, so we need to unlock the session when we're done. This is done by
-		// returning a cleanup function that unlocks the session and closes the connection.
-		cleanup = func() error {
-			p.mu.Unlock()
-			// Use a detached context to unlock the session. This is because the context passed to
-			// SessionLock may have been canceled, and we don't want to cancel the unlock.
-			return multierr.Append(l.SessionUnlock(context.WithoutCancel(ctx), conn), conn.Close())
+		// General locker (db-based locking)
+		if p.cfg.locker != nil {
+			l := p.cfg.locker
+			if err := l.Lock(ctx, p.db); err != nil {
+				return nil, nil, multierr.Append(err, cleanup())
+			}
+			// A lock was acquired, so we need to unlock when we're done.
+			cleanup = func() error {
+				p.mu.Unlock()
+				// Use a detached context to unlock. This is because the context passed to Lock may
+				// have been canceled, and we don't want to cancel the unlock.
+				return multierr.Append(
+					l.Unlock(context.WithoutCancel(ctx), p.db),
+					conn.Close(),
+				)
+			}
 		}
 	}
 	// If versioning is enabled, ensure the version table exists. For ad-hoc migrations, we don't
@@ -375,9 +400,9 @@ func (p *Provider) tryEnsureVersionTable(ctx context.Context, conn *sql.Conn) er
 				}
 				return p.store.Insert(ctx, tx, database.InsertRequest{Version: 0})
 			}); err != nil {
-				// Mark the error as retryable so we can try again. It's possible that another instance
-				// is creating the table at the same time and the checks above will succeed on the next
-				// iteration.
+				// Mark the error as retryable so we can try again. It's possible that another
+				// instance is creating the table at the same time and the checks above will succeed
+				// on the next iteration.
 				return retry.RetryableError(fmt.Errorf("create version table: %w", err))
 			}
 		}
