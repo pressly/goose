@@ -41,6 +41,7 @@ jobs:
         run: go install github.com/mfridman/tparse@main
       - name: Run tests
         run: |
+          make add-gowork
           mkdir -p bin
           go vet ./...
           go build ./...
