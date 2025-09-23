@@ -1,4 +1,4 @@
-package integration
+package locking_test
 
 import (
 	"context"
@@ -194,7 +194,7 @@ func TestPostgresProviderLocking(t *testing.T) {
 		p, err := goose.NewProvider(
 			goose.DialectPostgres,
 			db,
-			os.DirFS("testdata/migrations/postgres"),
+			os.DirFS("../integration/testdata/migrations/postgres"),
 			goose.WithSessionLocker(sessionLocker), // Use advisory session lock mode.
 		)
 		require.NoError(t, err)
@@ -413,7 +413,7 @@ func TestPostgresPending(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode.")
 	}
-	const testDir = "testdata/migrations/postgres"
+	const testDir = "../integration/testdata/migrations/postgres"
 
 	db, cleanup, err := testdb.NewPostgres()
 	require.NoError(t, err)
@@ -455,7 +455,7 @@ func TestPostgresPending(t *testing.T) {
 	})
 
 	// apply all migrations
-	p, err := goose.NewProvider(goose.DialectPostgres, db, os.DirFS("testdata/migrations/postgres"))
+	p, err := goose.NewProvider(goose.DialectPostgres, db, os.DirFS("../integration/testdata/migrations/postgres"))
 	require.NoError(t, err)
 	_, err = p.Up(context.Background())
 	require.NoError(t, err)

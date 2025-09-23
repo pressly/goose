@@ -1,4 +1,4 @@
-package integration
+package locking_test
 
 import (
 	"context"
@@ -109,7 +109,7 @@ func TestLockerImplementations(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	t.Run("PostgresTableLocker unique", func(t *testing.T) {
+	t.Run("postgres_table_locker_unique", func(t *testing.T) {
 		t.Parallel()
 
 		db, cleanup, err := testdb.NewPostgres()
@@ -139,7 +139,7 @@ func TestLockerImplementations(t *testing.T) {
 			return p
 		})
 	})
-	t.Run("PostgresTableLocker shared", func(t *testing.T) {
+	t.Run("postgres_table_locker_shared", func(t *testing.T) {
 		t.Parallel()
 
 		db, cleanup, err := testdb.NewPostgres()
@@ -166,7 +166,7 @@ func TestLockerImplementations(t *testing.T) {
 			return p
 		})
 	})
-	t.Run("PostgresSessionLocker unique", func(t *testing.T) {
+	t.Run("postgres_session_locker_unique", func(t *testing.T) {
 		t.Parallel()
 
 		db, cleanup, err := testdb.NewPostgres()
@@ -197,7 +197,7 @@ func TestLockerImplementations(t *testing.T) {
 			return p
 		})
 	})
-	t.Run("PostgresSessionLocker shared", func(t *testing.T) {
+	t.Run("postgres_session_locker_shared", func(t *testing.T) {
 		t.Parallel()
 
 		db, cleanup, err := testdb.NewPostgres()
@@ -234,11 +234,13 @@ func TestPostgresTableLockerIntegration(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(cleanup)
 
-	t.Run("BasicLockUnlock", func(t *testing.T) {
+	t.Run("basic_lock_unlock", func(t *testing.T) {
+		t.Parallel()
+
 		// Create a table locker with very short timeouts for testing
 		locker, err := lock.NewPostgresTableLocker(
 			lock.WithTableName("test_locks"),
-			lock.WithTableLockID(1),
+			lock.WithTableLockID(rand.Int64()),
 			lock.WithTableLeaseDuration(5*time.Second),
 			lock.WithTableHeartbeatInterval(1*time.Second),
 			lock.WithTableLockTimeout(100*time.Millisecond, 2), // Very short timeout
@@ -248,20 +250,16 @@ func TestPostgresTableLockerIntegration(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		// Test acquiring the lock
-		t.Log("Attempting to acquire lock...")
 		err = locker.Lock(ctx, db)
 		require.NoError(t, err)
-		t.Log("Lock acquired successfully")
 
-		// Test releasing the lock
-		t.Log("Attempting to release lock...")
 		err = locker.Unlock(ctx, db)
 		require.NoError(t, err)
-		t.Log("Lock released successfully")
 	})
 
-	t.Run("CleanupStaleLocks", func(t *testing.T) {
+	t.Run("cleanup_stale_locks", func(t *testing.T) {
+		t.Parallel()
+
 		lockID := rand.Int64()
 
 		// Create a locker with very short lease to test cleanup functionality
@@ -301,17 +299,18 @@ func TestPostgresTableLockerIntegration(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("WithLogger", func(t *testing.T) {
-		// Create a logger that captures logs for testing
+	t.Run("with_logger", func(t *testing.T) {
+		t.Parallel()
+
 		var logOutput strings.Builder
 		logger := slog.New(slog.NewTextHandler(&logOutput, &slog.HandlerOptions{
-			Level: slog.LevelDebug, // Capture debug messages
+			Level: slog.LevelDebug,
 		}))
 
 		// Create a table locker with logging enabled
 		locker, err := lock.NewPostgresTableLocker(
 			lock.WithTableName("test_locks_with_logger"),
-			lock.WithTableLockID(999),
+			lock.WithTableLockID(rand.Int64()),
 			lock.WithTableLeaseDuration(2*time.Second),
 			lock.WithTableHeartbeatInterval(500*time.Millisecond),
 			lock.WithTableLogger(logger),
@@ -333,10 +332,8 @@ func TestPostgresTableLockerIntegration(t *testing.T) {
 
 		// Check that we got some log output
 		logs := logOutput.String()
-		require.Contains(t, logs, "Successfully acquired lock", "Should log successful lock acquisition")
-		require.Contains(t, logs, "Successfully released lock", "Should log successful lock release")
-		require.Contains(t, logs, "Heartbeat updated lease", "Should log heartbeat updates")
-
-		t.Logf("Lock operations generated logs:\n%s", logs)
+		require.Contains(t, logs, "successfully acquired lock")
+		require.Contains(t, logs, "successfully released lock")
+		require.Contains(t, logs, "heartbeat updated lease")
 	})
 }
