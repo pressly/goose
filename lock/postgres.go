@@ -24,7 +24,7 @@ import (
 // Defaults:
 //
 //	Table: "goose_lock"
-//	Lock ID: 5887940537704921958 (crc64 of "goose")
+//	Lock ID: 4097083626 (crc64 of "goose")
 //	Lock retry: 5s intervals, 5min timeout
 //	Unlock retry: 2s intervals, 1min timeout
 //

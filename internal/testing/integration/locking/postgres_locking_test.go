@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"hash/crc64"
+	"hash/crc32"
 	"math/rand/v2"
 	"os"
 	"sort"
@@ -473,7 +473,7 @@ func TestPostgresPending(t *testing.T) {
 SELECT pg_sleep_for('4 seconds');
 `)},
 	}
-	lockID := int64(crc64.Checksum([]byte(t.Name()), crc64.MakeTable(crc64.ECMA)))
+	lockID := int64(crc32.Checksum([]byte(t.Name()), crc32.MakeTable(crc32.IEEE)))
 	// Create a new provider with the new migration file
 	sessionLocker, err := lock.NewPostgresSessionLocker(lock.WithLockTimeout(1, 10), lock.WithLockID(lockID)) // Timeout 5min. Try every 1s up to 10 times.
 	require.NoError(t, err)
