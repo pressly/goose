@@ -145,12 +145,12 @@ func (l *postgresSessionLocker) SessionUnlock(ctx context.Context, conn *sql.Con
 
 			Here is output from a session that has a lock held:
 
-			SELECT pid,granted,((classid::bigint<<32)|objid::bigint)AS goose_lock_id FROM pg_locks
-			WHERE locktype='advisory';
+			SELECT pid, granted, ((classid::bigint << 32) | objid::bigint) AS goose_lock_id FROM
+			pg_locks WHERE locktype = 'advisory';
 
 			| pid | granted | goose_lock_id       |
 			|-----|---------|---------------------|
-			| 191 | t       | 5887940537704921958 |
+			| 191 | t       | 4097083626          |
 
 			A forceful way to unlock the session is to terminate the backend with SIGTERM:
 
