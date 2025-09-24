@@ -1,12 +1,12 @@
-package integration
+package locking_test
 
 import (
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
-	"hash/crc64"
-	"math/rand"
+	"hash/crc32"
+	"math/rand/v2"
 	"os"
 	"sort"
 	"sync"
@@ -134,8 +134,7 @@ func TestPostgresSessionLocker(t *testing.T) {
 		require.True(t, exists)
 	})
 	t.Run("unlock_with_different_connection_error", func(t *testing.T) {
-		rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-		randomLockID := rng.Int63n(90000) + 10000
+		randomLockID := rand.Int64()
 		ctx := context.Background()
 		locker, err := lock.NewPostgresSessionLocker(
 			lock.WithLockID(randomLockID),
@@ -195,7 +194,7 @@ func TestPostgresProviderLocking(t *testing.T) {
 		p, err := goose.NewProvider(
 			goose.DialectPostgres,
 			db,
-			os.DirFS("testdata/migrations/postgres"),
+			os.DirFS("../testdata/migrations/postgres"),
 			goose.WithSessionLocker(sessionLocker), // Use advisory session lock mode.
 		)
 		require.NoError(t, err)
@@ -414,7 +413,7 @@ func TestPostgresPending(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode.")
 	}
-	const testDir = "testdata/migrations/postgres"
+	const testDir = "../testdata/migrations/postgres"
 
 	db, cleanup, err := testdb.NewPostgres()
 	require.NoError(t, err)
@@ -456,7 +455,7 @@ func TestPostgresPending(t *testing.T) {
 	})
 
 	// apply all migrations
-	p, err := goose.NewProvider(goose.DialectPostgres, db, os.DirFS("testdata/migrations/postgres"))
+	p, err := goose.NewProvider(goose.DialectPostgres, db, os.DirFS("../testdata/migrations/postgres"))
 	require.NoError(t, err)
 	_, err = p.Up(context.Background())
 	require.NoError(t, err)
@@ -474,7 +473,7 @@ func TestPostgresPending(t *testing.T) {
 SELECT pg_sleep_for('4 seconds');
 `)},
 	}
-	lockID := int64(crc64.Checksum([]byte(t.Name()), crc64.MakeTable(crc64.ECMA)))
+	lockID := int64(crc32.Checksum([]byte(t.Name()), crc32.MakeTable(crc32.IEEE)))
 	// Create a new provider with the new migration file
 	sessionLocker, err := lock.NewPostgresSessionLocker(lock.WithLockTimeout(1, 10), lock.WithLockID(lockID)) // Timeout 5min. Try every 1s up to 10 times.
 	require.NoError(t, err)

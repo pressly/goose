@@ -69,7 +69,8 @@ func WithVerbose(b bool) ProviderOption {
 
 // WithSessionLocker enables locking using the provided SessionLocker.
 //
-// If WithSessionLocker is not called, locking is disabled.
+// If WithSessionLocker is not called, locking is disabled. Must not be used together with
+// [WithLocker].
 func WithSessionLocker(locker lock.SessionLocker) ProviderOption {
 	return configFunc(func(c *config) error {
 		if c.lockEnabled {
@@ -78,11 +79,38 @@ func WithSessionLocker(locker lock.SessionLocker) ProviderOption {
 		if c.sessionLocker != nil {
 			return errors.New("session locker already set")
 		}
+		if c.locker != nil {
+			return errors.New("locker already set; cannot use both SessionLocker and Locker")
+		}
 		if locker == nil {
 			return errors.New("session locker must not be nil")
 		}
 		c.lockEnabled = true
 		c.sessionLocker = locker
+		return nil
+	})
+}
+
+// WithLocker enables locking using the provided Locker.
+//
+// If WithLocker is not called, locking is disabled. Must not be used together with
+// [WithSessionLocker].
+func WithLocker(locker lock.Locker) ProviderOption {
+	return configFunc(func(c *config) error {
+		if c.lockEnabled {
+			return errors.New("lock already enabled")
+		}
+		if c.locker != nil {
+			return errors.New("locker already set")
+		}
+		if c.sessionLocker != nil {
+			return errors.New("session locker already set; cannot use both SessionLocker and Locker")
+		}
+		if locker == nil {
+			return errors.New("locker must not be nil")
+		}
+		c.lockEnabled = true
+		c.locker = locker
 		return nil
 	})
 }
@@ -231,6 +259,7 @@ type config struct {
 	// Locking options
 	lockEnabled   bool
 	sessionLocker lock.SessionLocker
+	locker        lock.Locker
 
 	// Feature
 	disableVersioning     bool
