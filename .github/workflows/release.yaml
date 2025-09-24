@@ -19,6 +19,7 @@ jobs:
       - name: Generate release notes
         continue-on-error: true
         run: ./scripts/release-notes.sh ${{github.ref_name}} > ${{runner.temp}}/release_notes.txt
+      - run: make add-gowork
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
