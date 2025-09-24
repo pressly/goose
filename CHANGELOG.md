@@ -11,7 +11,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add convenience `WithTableName` provider option (#985)
 - Minor bug fixes and dependency upgrades
 - Add general purpose `Locker` interface to support DB locking with a table-based posgtes
-  implementation
+  implementation (#993 for more details)
   - Add `WithLocker` and `lock.NewPostgresTableLocker` to goose provider
   - Unlike `SessionLocker`, this usees a `*sql.DB` connection pool
 
