@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/pressly/goose/v3"
-	"github.com/pressly/goose/v3/internal/testing/locktest"
 	"github.com/pressly/goose/v3/internal/testing/testdb"
 	"github.com/pressly/goose/v3/lock"
+	"github.com/pressly/goose/v3/lock/locktesting"
 	"github.com/pressly/goose/v3/testdata"
 	"github.com/stretchr/testify/require"
 )
@@ -43,7 +43,7 @@ func TestConcurrentTableLocking(t *testing.T) {
 		return locker
 	}
 
-	locktest.TestConcurrentLocking(t, db, newLocker, 1*time.Second)
+	locktesting.TestConcurrentLocking(t, db, newLocker, 1*time.Second)
 }
 
 func TestSequentialTableLocking(t *testing.T) {
@@ -119,7 +119,7 @@ func TestLockerImplementations(t *testing.T) {
 		// Use the same lock ID for all providers so they compete for the same table row
 		sharedLockID := rand.Int64()
 
-		locktest.TestProviderLocking(t, func(t *testing.T) *goose.Provider {
+		locktesting.TestProviderLocking(t, func(t *testing.T) *goose.Provider {
 			t.Helper()
 
 			// Create a UNIQUE table-based locker instance per provider, but same lock ID
@@ -153,7 +153,7 @@ func TestLockerImplementations(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		locktest.TestProviderLocking(t, func(t *testing.T) *goose.Provider {
+		locktesting.TestProviderLocking(t, func(t *testing.T) *goose.Provider {
 			t.Helper()
 
 			p, err := goose.NewProvider(
@@ -176,7 +176,7 @@ func TestLockerImplementations(t *testing.T) {
 		// Use the same lock ID for all providers so they compete for the same advisory lock
 		sharedLockID := rand.Int64()
 
-		locktest.TestProviderLocking(t, func(t *testing.T) *goose.Provider {
+		locktesting.TestProviderLocking(t, func(t *testing.T) *goose.Provider {
 			t.Helper()
 
 			// Each provider gets a UNIQUE session locker instance, but same lock ID
@@ -211,7 +211,7 @@ func TestLockerImplementations(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		locktest.TestProviderLocking(t, func(t *testing.T) *goose.Provider {
+		locktesting.TestProviderLocking(t, func(t *testing.T) *goose.Provider {
 			t.Helper()
 
 			p, err := goose.NewProvider(

@@ -1,10 +1,9 @@
-package locktest
+package locktesting
 
 import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log/slog"
 	"sync"
 	"testing"
 	"time"
@@ -56,7 +55,7 @@ func TestProviderLocking(
 
 	for i := range count {
 		g.Go(func() error {
-			ctx := t.Context()
+			ctx := context.Background()
 			migrationResults, err := providers[i].Up(ctx)
 			if err != nil {
 				return err
@@ -123,13 +122,14 @@ func TestConcurrentLocking(
 	lockTimeout time.Duration,
 ) {
 	t.Helper()
+	ctx := context.Background()
 
 	// TODO(mf): I wonder if there's a better way to do logging in tests that conditionally enables
 	// it. Maybe using testing.T.Log? But that doesn't have levels. Maybe use a global flag to
 	// enable debug logging in tests?
 
 	// logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	logger := slog.New(slog.DiscardHandler)
+	// logger := slog.New(slog.DiscardHandler)
 
 	// Number of concurrent lockers to test
 	const count = 5
@@ -149,27 +149,27 @@ func TestConcurrentLocking(
 		go func() {
 			defer wg.Done()
 
-			ctx, cancel := context.WithTimeout(t.Context(), lockTimeout)
+			ctx, cancel := context.WithTimeout(ctx, lockTimeout)
 			defer cancel()
 
 			// Try to acquire the lock
 			if err := lockers[i].Lock(ctx, db); err != nil {
-				logger.Debug("Locker failed to acquire lock", slog.Int("locker", i), slog.String("error", err.Error()))
+				// logger.Debug("Locker failed to acquire lock", slog.Int("locker", i), slog.String("error", err.Error()))
 				return
 			}
 
 			successCh <- i
-			logger.Debug("Locker acquired lock", slog.Int("locker", i))
+			// logger.Debug("Locker acquired lock", slog.Int("locker", i))
 
 			// Hold the lock long enough for all other goroutines to exhaust their retries. This
 			// ensures only ONE locker succeeds in the concurrent test
 			time.Sleep(lockTimeout * 2)
 
 			// Release the lock
-			if err := lockers[i].Unlock(t.Context(), db); err != nil {
+			if err := lockers[i].Unlock(ctx, db); err != nil {
 				t.Errorf("Locker %d failed to release lock: %v", i, err)
 			} else {
-				logger.Debug("Locker released lock", slog.Int("locker", i))
+				// logger.Debug("Locker released lock", slog.Int("locker", i))
 			}
 		}()
 	}
@@ -195,5 +195,5 @@ func TestConcurrentLocking(
 	}
 
 	require.Equal(t, 1, len(successful), "Exactly one locker should acquire the lock")
-	logger.Debug("Concurrent locking test passed", slog.Int("winning_locker", successful[0]))
+	// logger.Debug("Concurrent locking test passed", slog.Int("winning_locker", successful[0]))
 }
