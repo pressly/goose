@@ -40,7 +40,7 @@ func TestProviderLocking(
 	}
 	// Sanity check - ensure providers have migration sources
 	sources := providers[0].ListSources()
-	require.Greater(t, len(sources), 0, "no migration sources found - check provider fsys")
+	require.NotEmpty(t, sources, "no migration sources found - check provider fsys")
 	maxVersion := sources[len(sources)-1].Version
 	// Ensure all providers have the same sources
 	for _, p := range providers {
@@ -168,9 +168,10 @@ func TestConcurrentLocking(
 			// Release the lock
 			if err := lockers[i].Unlock(ctx, db); err != nil {
 				t.Errorf("Locker %d failed to release lock: %v", i, err)
-			} else {
-				// logger.Debug("Locker released lock", slog.Int("locker", i))
 			}
+			// } else {
+			// logger.Debug("Locker released lock", slog.Int("locker", i))
+			// }
 		}()
 	}
 	// Wait for all goroutines with timeout
@@ -194,6 +195,6 @@ func TestConcurrentLocking(
 		successful = append(successful, id)
 	}
 
-	require.Equal(t, 1, len(successful), "Exactly one locker should acquire the lock")
+	require.Len(t, successful, 1, "Exactly one locker should acquire the lock")
 	// logger.Debug("Concurrent locking test passed", slog.Int("winning_locker", successful[0]))
 }
