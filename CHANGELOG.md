@@ -7,13 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
-- Add `*slog.Logger` support to goose provider (#989)
+- Add `*slog.Logger` support to goose provider via option `WithSlog` (#989)
 - Add convenience `WithTableName` provider option (#985)
 - Minor bug fixes and dependency upgrades
-- Add general purpose `Locker` interface to support DB locking with a table-based posgtes
-  implementation (#993 for more details)
-  - Add `WithLocker` and `lock.NewPostgresTableLocker` to goose provider
-  - Unlike `SessionLocker`, this usees a `*sql.DB` connection pool
+- Add general purpose `Locker` interface to support DB locking with a table-based Postgres
+  implementation via `lock.NewPostgresTableLocker` (#993 for more details)
+  - Unlike `SessionLocker`, this uses the `*sql.DB` connection pool
+  - Add `WithLocker` option to goose provider
 
 ## [v3.25.0] - 2025-08-24
 
