@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+## [v3.26.0] - 2025-10-03
+
 - Add `*slog.Logger` support to goose provider via option `WithSlog` (#989)
 - Add convenience `WithTableName` provider option (#985)
 - Minor bug fixes and dependency upgrades
@@ -289,7 +291,8 @@ Here's a quick summary:
 - Add new `context.Context`-aware functions and methods, for both sql and go migrations.
 - Return error when no migration files found or dir is not a directory.
 
-[Unreleased]: https://github.com/pressly/goose/compare/v3.25.0...HEAD
+[Unreleased]: https://github.com/pressly/goose/compare/v3.26.0...HEAD
+[v3.26.0]: https://github.com/pressly/goose/compare/v3.25.0...v3.26.0
 [v3.25.0]: https://github.com/pressly/goose/compare/v3.24.3...v3.25.0
 [v3.24.3]: https://github.com/pressly/goose/compare/v3.24.2...v3.24.3
 [v3.24.2]: https://github.com/pressly/goose/compare/v3.24.1...v3.24.2
