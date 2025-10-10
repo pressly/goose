@@ -13,6 +13,7 @@ type Dialect = database.Dialect
 const (
 	DialectCustom     Dialect = database.DialectCustom
 	DialectClickHouse Dialect = database.DialectClickHouse
+	DialectDuckDB     Dialect = database.DialectDuckDB
 	DialectMSSQL      Dialect = database.DialectMSSQL
 	DialectMySQL      Dialect = database.DialectMySQL
 	DialectPostgres   Dialect = database.DialectPostgres
@@ -46,6 +47,8 @@ func SetDialect(s string) error {
 		d = DialectMySQL
 	case "sqlite3", "sqlite":
 		d = DialectSQLite3
+	case "duckdb":
+		d = DialectDuckDB
 	case "mssql", "azuresql", "sqlserver":
 		d = DialectMSSQL
 	case "redshift":
