@@ -16,13 +16,14 @@ type duckdb struct{}
 var _ dialect.Querier = (*duckdb)(nil)
 
 func (d *duckdb) CreateTable(tableName string) string {
-	q := `CREATE TABLE %s (
-		id INTEGER PRIMARY KEY,
+	q := `CREATE SEQUENCE IF NOT EXISTS %s_id_seq START 1;
+	CREATE TABLE %s (
+		id INTEGER PRIMARY KEY DEFAULT nextval('%s_id_seq'),
 		version_id BIGINT NOT NULL,
 		is_applied BOOLEAN NOT NULL,
 		tstamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	)`
-	return fmt.Sprintf(q, tableName)
+	return fmt.Sprintf(q, tableName, tableName, tableName)
 }
 
 func (d *duckdb) InsertVersion(tableName string) string {
