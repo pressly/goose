@@ -27,12 +27,6 @@ dist:
 	GOOS=windows GOARCH=amd64 go build -o ./bin/goose-windows64.exe  ./cmd/goose
 	GOOS=windows GOARCH=386   go build -o ./bin/goose-windows386.exe ./cmd/goose
 
-.PHONY: build-duckdb
-build-duckdb:
-	@mkdir -p ./bin
-	go build -tags duckdb -ldflags="-s -w" -o ./bin/goose-duckdb ./cmd/goose
-	@echo "Built goose-duckdb binary with DuckDB support"
-
 .PHONY: clean
 clean:
 	@find . -type f -name '*.FAIL' -delete
@@ -104,11 +98,34 @@ test-ydb: add-gowork
 test-starrocks: add-gowork
 	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestStarrocks' | tparse --follow -sort=elapsed
 
-test-duckdb: add-gowork
+test-duckdb: add-gowork tools
 	go test -tags duckdb $(GO_TEST_FLAGS) ./internal/testing/integration -run='TestDuckDB' | tparse --follow -sort=elapsed
 
 test-integration: add-gowork
 	go test $(GO_TEST_FLAGS) ./internal/testing/integration/... | tparse --follow -sort=elapsed -trimpath=auto -all
+
+#
+# Duckdb-related targets (default off)
+#
+
+.PHONY: build-duckdb
+build-duckdb:
+	@mkdir -p ./bin
+	go build -tags duckdb -o ./bin/goose-duckdb ./cmd/goose
+	@echo "Built ./bin/goose-duckdb (with debug symbols, ~97MB)"
+
+.PHONY: build-duckdb-nodebug
+build-duckdb-nodebug:
+	@mkdir -p ./bin
+	go build -tags duckdb -ldflags="-s -w" -o ./bin/goose-duckdb-nodebug ./cmd/goose
+	@echo "Built ./bin/goose-duckdb-nodebug (stripped, ~73MB)"
+
+.PHONY: build-duckdb-nodebug-compressed
+build-duckdb-nodebug-compressed: build-duckdb-nodebug
+	@command -v upx >/dev/null 2>&1 || { echo "ERROR: UPX not installed. Install with: sudo apt-get install upx-ucl"; exit 1; }
+	@cp ./bin/goose-duckdb-nodebug ./bin/goose-duckdb-nodebug-compressed
+	@upx --best --lzma ./bin/goose-duckdb-nodebug-compressed
+	@echo "Built ./bin/goose-duckdb-nodebug-compressed (stripped + UPX, ~18MB)"
 
 #
 # Docker-related targets
