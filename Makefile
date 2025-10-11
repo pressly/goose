@@ -27,6 +27,12 @@ dist:
 	GOOS=windows GOARCH=amd64 go build -o ./bin/goose-windows64.exe  ./cmd/goose
 	GOOS=windows GOARCH=386   go build -o ./bin/goose-windows386.exe ./cmd/goose
 
+.PHONY: build-duckdb
+build-duckdb:
+	@mkdir -p ./bin
+	go build -tags duckdb -ldflags="-s -w" -o ./bin/goose-duckdb ./cmd/goose
+	@echo "Built goose-duckdb binary with DuckDB support"
+
 .PHONY: clean
 clean:
 	@find . -type f -name '*.FAIL' -delete

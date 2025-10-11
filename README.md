@@ -43,6 +43,18 @@ go build -tags='no_postgres no_mysql no_sqlite3 no_ydb' -o goose ./cmd/goose
 #   no_postgres    no_sqlite3  no_vertica  no_ydb
 ```
 
+Need DuckDB support? Build with the opt-in `duckdb` tag:
+
+```shell
+go build -tags duckdb -ldflags="-s -w" -o goose ./cmd/goose
+
+# Or use the Makefile
+make build-duckdb
+
+# Note: DuckDB support requires CGo and increases binary size (~73MB vs ~54MB)
+# due to embedding the DuckDB engine.
+```
+
 For macOS users `goose` is available as a [Homebrew
 Formulae](https://formulae.brew.sh/formula/goose#default):
 
