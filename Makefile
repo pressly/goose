@@ -140,18 +140,6 @@ build-duckdb-nodebug-compressed: build-duckdb-nodebug
 	@upx --best --lzma ./bin/goose-duckdb-nodebug-compressed
 	@echo "Built ./bin/goose-duckdb-nodebug-compressed (stripped + UPX, ~18MB)"
 
-.PHONY: build-duckdb-arm64
-build-duckdb-arm64:
-	@mkdir -p ./bin
-	GOOS=linux GOARCH=arm64 go build -tags duckdb -o ./bin/goose-duckdb-linux-arm64 ./cmd/goose
-	@echo "Built ./bin/goose-duckdb-linux-arm64 (with debug symbols, ~97MB)"
-
-.PHONY: build-duckdb-arm64-nodebug
-build-duckdb-arm64-nodebug:
-	@mkdir -p ./bin
-	GOOS=linux GOARCH=arm64 go build -tags duckdb -ldflags="-s -w" -o ./bin/goose-duckdb-linux-arm64-nodebug ./cmd/goose
-	@echo "Built ./bin/goose-duckdb-linux-arm64-nodebug (stripped, ~73MB) - recommended for Raspberry Pi"
-
 #
 # Docker-related targets
 #
