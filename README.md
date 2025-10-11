@@ -46,13 +46,18 @@ go build -tags='no_postgres no_mysql no_sqlite3 no_ydb' -o goose ./cmd/goose
 Need DuckDB support? Build with the opt-in `duckdb` tag:
 
 ```shell
+# Regular build with debug symbols (~97MB)
+go build -tags duckdb -o goose ./cmd/goose
+
+# Stripped build without debug symbols (~73MB)
 go build -tags duckdb -ldflags="-s -w" -o goose ./cmd/goose
 
-# Or use the Makefile
-make build-duckdb
+# Or use the Makefile targets:
+make build-duckdb                      # With debug symbols (~97MB)
+make build-duckdb-nodebug              # Stripped (~73MB)
+make build-duckdb-nodebug-compressed   # Stripped + UPX compressed (~18MB, requires upx)
 
-# Note: DuckDB support requires CGo and increases binary size (~73MB vs ~54MB)
-# due to embedding the DuckDB engine.
+# Note: DuckDB support requires CGo due to embedding the DuckDB engine.
 ```
 
 For macOS users `goose` is available as a [Homebrew

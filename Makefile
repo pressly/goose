@@ -27,6 +27,19 @@ dist:
 	GOOS=windows GOARCH=amd64 go build -o ./bin/goose-windows64.exe  ./cmd/goose
 	GOOS=windows GOARCH=386   go build -o ./bin/goose-windows386.exe ./cmd/goose
 
+.PHONY: build-nodebug
+build-nodebug:
+	@mkdir -p ./bin
+	go build -ldflags="-s -w" -o ./bin/goose-nodebug ./cmd/goose
+	@echo "Built ./bin/goose-nodebug (stripped, ~37MB)"
+
+.PHONY: build-nodebug-compressed
+build-nodebug-compressed: build-nodebug
+	@command -v upx >/dev/null 2>&1 || { echo "ERROR: UPX not installed. Install with: sudo apt-get install upx-ucl"; exit 1; }
+	@cp ./bin/goose-nodebug ./bin/goose-nodebug-compressed
+	@upx --best --lzma ./bin/goose-nodebug-compressed
+	@echo "Built ./bin/goose-nodebug-compressed (stripped + UPX, ~9MB)"
+
 .PHONY: clean
 clean:
 	@find . -type f -name '*.FAIL' -delete
