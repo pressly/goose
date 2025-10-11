@@ -82,6 +82,11 @@ require (
 	modernc.org/memory v1.11.0 // indirect
 )
 
+// Google split their genproto module. Old dependencies pull in google.golang.org/genproto,
+// but new code expects google.golang.org/genproto/googleapis/rpc. This replace ensures
+// everything uses the new split module structure.
+replace google.golang.org/genproto => google.golang.org/genproto/googleapis/rpc v0.0.0-20241104194629-dd2ea8efbc28
+
 retract (
 	v3.21.0 // Invalid replace directives
 	v3.12.2 // Invalid module reference
