@@ -262,6 +262,7 @@ Drivers:
     postgres
     mysql
     sqlite3
+    duckdb
     mssql
     redshift
     tidb
@@ -276,6 +277,9 @@ Examples:
     goose sqlite3 ./foo.db create fetch_user_data go
     goose sqlite3 ./foo.db up
 
+    goose duckdb ./foo.db status
+    goose duckdb ./foo.db up
+
     goose postgres "user=postgres dbname=postgres sslmode=disable" status
     goose mysql "user:password@/dbname?parseTime=true" status
     goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
@@ -287,6 +291,7 @@ Examples:
 
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose status
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose create init sql
+    GOOSE_DRIVER=duckdb GOOSE_DBSTRING=./foo.db goose status
     GOOSE_DRIVER=postgres GOOSE_DBSTRING="user=postgres dbname=postgres sslmode=disable" goose status
     GOOSE_DRIVER=mysql GOOSE_DBSTRING="user:password@/dbname" goose status
     GOOSE_DRIVER=redshift GOOSE_DBSTRING="postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" goose status
