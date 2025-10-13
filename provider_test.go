@@ -16,6 +16,7 @@ func TestProvider(t *testing.T) {
 	dir := t.TempDir()
 	db, err := sql.Open("sqlite", filepath.Join(dir, "sql_embed.db"))
 	require.NoError(t, err)
+	defer db.Close()
 	t.Run("empty", func(t *testing.T) {
 		_, err := goose.NewProvider(goose.DialectSQLite3, db, fstest.MapFS{})
 		require.Error(t, err)
