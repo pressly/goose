@@ -85,6 +85,7 @@ type GetMigrationResult struct {
 }
 
 type ListMigrationsResult struct {
+	Timestamp time.Time
 	VersionID int64
 	IsApplied bool
 }
@@ -154,12 +155,14 @@ func (s *store) ListMigrations(ctx context.Context, db *sql.DB, tableName string
 
 	var migrations []*ListMigrationsResult
 	for rows.Next() {
+		var timestamp time.Time
 		var version int64
 		var isApplied bool
-		if err := rows.Scan(&version, &isApplied); err != nil {
+		if err := rows.Scan(&timestamp, &version, &isApplied); err != nil {
 			return nil, err
 		}
 		migrations = append(migrations, &ListMigrationsResult{
+			Timestamp: timestamp,
 			VersionID: version,
 			IsApplied: isApplied,
 		})
