@@ -3,7 +3,6 @@ package goose
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -39,26 +38,36 @@ func StatusContext(ctx context.Context, db *sql.DB, dir string, opts ...OptionsF
 		return fmt.Errorf("failed to ensure DB version: %w", err)
 	}
 
-	log.Printf("    Applied At                  Migration")
-	log.Printf("    =======================================")
-	for _, migration := range migrations {
-		if err := printMigrationStatus(ctx, db, migration.Version, filepath.Base(migration.Source)); err != nil {
-			return fmt.Errorf("failed to print status: %w", err)
+	// Fetch all migrations from the database in a single query
+	dbMigrations, err := store.ListMigrations(ctx, db, TableName())
+	if err != nil {
+		return fmt.Errorf("failed to list migrations: %w", err)
+	}
+
+	// Build a map of version_id to migration result for quick lookup
+	dbMigrationMap := make(map[int64]*struct {
+		Timestamp time.Time
+		IsApplied bool
+	})
+	for _, m := range dbMigrations {
+		dbMigrationMap[m.VersionID] = &struct {
+			Timestamp time.Time
+			IsApplied bool
+		}{
+			Timestamp: m.Timestamp,
+			IsApplied: m.IsApplied,
 		}
 	}
 
-	return nil
-}
+	log.Printf("    Applied At                  Migration")
+	log.Printf("    =======================================")
+	for _, migration := range migrations {
+		appliedAt := "Pending"
+		if m, exists := dbMigrationMap[migration.Version]; exists && m.IsApplied {
+			appliedAt = m.Timestamp.Format(time.ANSIC)
+		}
+		log.Printf("    %-24s -- %v", appliedAt, filepath.Base(migration.Source))
+	}
 
-func printMigrationStatus(ctx context.Context, db *sql.DB, version int64, script string) error {
-	m, err := store.GetMigration(ctx, db, TableName(), version)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return fmt.Errorf("failed to query the latest migration: %w", err)
-	}
-	appliedAt := "Pending"
-	if m != nil && m.IsApplied {
-		appliedAt = m.Timestamp.Format(time.ANSIC)
-	}
-	log.Printf("    %-24s -- %v", appliedAt, script)
 	return nil
 }
