@@ -46,6 +46,15 @@ func TestNewProvider(t *testing.T) {
 			goose.WithStore(store),
 		)
 		require.Error(t, err)
+		// Cannot set empty table name
+		_, err = goose.NewProvider(goose.DialectSQLite3, db, nil, goose.WithTableName(""))
+		require.Error(t, err)
+		// Cannot set table name when custom store is set
+		_, err = goose.NewProvider(goose.DialectCustom, db, nil,
+			goose.WithStore(store),
+			goose.WithTableName("custom_table"),
+		)
+		require.Error(t, err)
 	})
 	t.Run("valid", func(t *testing.T) {
 		// Valid dialect, db, and fsys allowed
@@ -57,9 +66,14 @@ func TestNewProvider(t *testing.T) {
 		)
 		require.NoError(t, err)
 		// Custom store allowed
-		store, err := database.NewStore(goose.DialectSQLite3, "custom_table")
+		const tableName = "custom_table"
+		store, err := database.NewStore(goose.DialectSQLite3, tableName)
 		require.NoError(t, err)
-		_, err = goose.NewProvider(goose.DialectCustom, db, nil, goose.WithStore(store))
-		require.Error(t, err)
+		require.Equal(t, tableName, store.Tablename())
+		_, err = goose.NewProvider(goose.DialectCustom, db, fsys, goose.WithStore(store))
+		require.NoError(t, err)
+		// Custom table name allowed on dialect-based store
+		_, err = goose.NewProvider(goose.DialectSQLite3, db, fsys, goose.WithTableName("some_table"))
+		require.NoError(t, err)
 	})
 }

@@ -18,9 +18,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: "stable"
+      - run: make add-gowork
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v8
         with:

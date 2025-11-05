@@ -27,7 +27,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
       - name: Install Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go-version }}
       - name: Check Go code formatting
@@ -41,6 +41,7 @@ jobs:
         run: go install github.com/mfridman/tparse@main
       - name: Run tests
         run: |
+          make add-gowork
           mkdir -p bin
           go vet ./...
           go build ./...
