@@ -52,6 +52,35 @@ brew install goose
 
 See [installation documentation](https://pressly.github.io/goose/installation/) for more details.
 
+# Docker
+
+Build a minimal image for distributing the CLI:
+
+```shell
+docker build -t goose:latest .
+```
+
+The image ships with a `goose` entrypoint and uses `/migrations` as the working directory, so you can mount migrations and pass commands directly:
+
+```shell
+docker run --rm \
+  -v "$(pwd)/migrations:/migrations:ro" \
+  -e GOOSE_DRIVER=sqlite3 \
+  -e GOOSE_DBSTRING=./foo.db \
+  goose:latest \
+  status
+```
+
+Need a multi-arch or trimmed-down build? The Dockerfile accepts standard BuildKit arguments:
+
+```shell
+# Multi-architecture image
+docker buildx build --platform linux/amd64,linux/arm64 -t ghcr.io/your-org/goose:latest .
+
+# Build without specific drivers
+docker build --build-arg GOOSE_BUILD_TAGS="no_mysql no_postgres" -t goose:lite .
+```
+
 # Usage
 
 <details>
@@ -491,6 +520,8 @@ production.
 The gopher mascot was designed by [Renée French](https://reneefrench.blogspot.com/) / [CC
 3.0.](https://creativecommons.org/licenses/by/3.0/) For more info check out the [Go
 Blog](https://go.dev/blog/gopher). Adapted by Ellen.
+
+Based on original work by [Pressly Inc](https://github.com/pressly) & [contributors](https://github.com/pressly/goose/graphs/contributors). Original repo can be found [here](https://github.com/pressly/goose).
 
 ## License
 
