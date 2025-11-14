@@ -1,5 +1,4 @@
 //go:build no_mysql
-// +build no_mysql
 
 package main
 
