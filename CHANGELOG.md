@@ -7,6 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+- Add preliminary Spanner dialect support (#966)
+- Remove `StatementBegin` and `StatementEnd` annotations from SQL migration templates
+  - This is only required for more complex statements that include semicolons within them, such as
+    stored procedures or functions. For simple statements, these annotations are not needed. See
+    [docs](https://pressly.github.io/goose/documentation/annotations/#complex-statements) for more
+    details.
+
 ## [v3.26.0] - 2025-10-03
 
 - Add `*slog.Logger` support to goose provider via option `WithSlog` (#989)
