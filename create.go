@@ -16,8 +16,14 @@ type tmplVars struct {
 }
 
 var (
-	sequential = false
+	sequential       = false
+	seqInc     int64 = 1
 )
+
+// SetSeqIncrement set the value serial migrations are incremented by
+func SetSeqIncrement(i int64) {
+	seqInc = i
+}
 
 // SetSequential set whether to use sequential versioning instead of timestamp based versioning
 func SetSequential(s bool) {
@@ -41,9 +47,9 @@ func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, m
 		}
 
 		if last, err := vMigrations.Last(); err == nil {
-			version = fmt.Sprintf(seqVersionTemplate, last.Version+1)
+			version = fmt.Sprintf(seqVersionTemplate, last.Version+seqInc)
 		} else {
-			version = fmt.Sprintf(seqVersionTemplate, int64(1))
+			version = fmt.Sprintf(seqVersionTemplate, seqInc)
 		}
 	}
 
