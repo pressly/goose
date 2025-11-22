@@ -1,11 +1,9 @@
 module github.com/pressly/goose/v3
 
-go 1.24.0
-
-toolchain go1.24.5
+go 1.25.3
 
 require (
-	github.com/ClickHouse/clickhouse-go/v2 v2.40.3
+	github.com/ClickHouse/clickhouse-go/v2 v2.41.0
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/joho/godotenv v1.5.1
