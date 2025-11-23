@@ -16,7 +16,7 @@ type ydb struct{}
 var _ dialect.Querier = (*ydb)(nil)
 
 func formatYDBTableName(tableName string) string {
-	return "`" + tableName + "`"
+	return fmt.Sprintf("`%s`", tableName)
 }
 
 func (c *ydb) CreateTable(tableName string) string {
