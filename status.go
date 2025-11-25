@@ -11,33 +11,26 @@ import (
 	"github.com/pressly/goose/v3/internal/legacystore"
 )
 
-type statusLine struct {
-	Version   int64
-	AppliedAt time.Time
-	Pending   bool
-	Source    string
-}
-
-type statusLines []*statusLine
+type (
+	statusLine struct {
+		Version   int64
+		AppliedAt time.Time
+		Pending   bool
+		Source    string
+	}
+	statusLines struct {
+		contents []*statusLine
+		order    func(si, sj *statusLine) bool
+	}
+)
 
 // helpers so we can use pkg sort
-func (s statusLines) Len() int      { return len(s) }
-func (s statusLines) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+func (s statusLines) Len() int      { return len(s.contents) }
+func (s statusLines) Swap(i, j int) { s.contents[i], s.contents[j] = s.contents[j], s.contents[i] }
 func (s statusLines) Less(i, j int) bool {
-	lineI := s[i]
-	lineJ := s[j]
-	// Pending migrations always come later:
-	if lineI.Pending != lineJ.Pending {
-		// lineJ is pending ---> lineI goes first and return value true means lineI < lineJ
-		return lineJ.Pending
-	}
-	if !lineI.AppliedAt.Equal(lineJ.AppliedAt) {
-		return lineI.AppliedAt.Before(lineJ.AppliedAt)
-	}
-	if lineI.Version != lineJ.Version {
-		return lineI.Version < lineJ.Version
-	}
-	return lineI.Source < lineJ.Source
+	lineI := s.contents[i]
+	lineJ := s.contents[j]
+	return s.order(lineI, lineJ)
 }
 
 // Status prints the status of all migrations.
@@ -83,7 +76,7 @@ func StatusContext(ctx context.Context, db *sql.DB, dir string, opts ...OptionsF
 	}
 
 	// Gather 1 status line for each migration in the FS, enriched with application timestamp from DB if applied:
-	var statusOutput statusLines
+	var lines []*statusLine
 	for _, fsM := range fsMigrations {
 		line := statusLine{
 			Version:   fsM.Version,
@@ -95,13 +88,14 @@ func StatusContext(ctx context.Context, db *sql.DB, dir string, opts ...OptionsF
 			line.Pending = false
 			line.AppliedAt = dbM.Timestamp
 		}
-		statusOutput = append(statusOutput, &line)
+		lines = append(lines, &line)
 	}
-	sort.Sort(statusOutput)
+
+	sort.Sort(statusLines{contents: lines, order: lessByVersionOrSource})
 
 	log.Printf("    Applied At                  Migration")
 	log.Printf("    =======================================")
-	for _, migration := range statusOutput {
+	for _, migration := range lines {
 		appliedAt := "Pending"
 		if !migration.Pending {
 			appliedAt = migration.AppliedAt.Format(time.ANSIC)
@@ -110,4 +104,23 @@ func StatusContext(ctx context.Context, db *sql.DB, dir string, opts ...OptionsF
 	}
 
 	return nil
+}
+
+func lessByVersionOrSource(si, sj *statusLine) bool {
+	if si.Version != sj.Version {
+		return si.Version < sj.Version
+	}
+	return si.Source < sj.Source
+}
+
+func lessByAppliedAt(si, sj *statusLine) bool {
+	// Pending migrations always come later:
+	if si.Pending != sj.Pending {
+		// lineJ is pending ---> lineI goes first and return value true means lineI < lineJ
+		return sj.Pending
+	}
+	if !si.AppliedAt.Equal(sj.AppliedAt) {
+		return si.AppliedAt.Before(sj.AppliedAt)
+	}
+	return lessByVersionOrSource(si, sj)
 }
