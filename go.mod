@@ -16,7 +16,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/tursodatabase/libsql-client-go v0.0.0-20240902231107-85af5b9d094d
 	github.com/vertica/vertica-sql-go v1.3.4
-	github.com/ydb-platform/ydb-go-sdk-auth-environ v0.5.0
+	github.com/ydb-platform/ydb-go-sdk-auth-environ v0.5.1
 	github.com/ydb-platform/ydb-go-sdk/v3 v3.118.2
 	github.com/ziutek/mymysql v1.5.4
 	go.uber.org/multierr v1.11.0
