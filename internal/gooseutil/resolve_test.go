@@ -8,25 +8,26 @@ import (
 )
 
 func TestResolveVersions(t *testing.T) {
+	t.Parallel()
 	t.Run("not_allow_missing", func(t *testing.T) {
 		// Nothing to apply nil
 		got, err := UpVersions(nil, nil, math.MaxInt64, false)
 		require.NoError(t, err)
-		require.Equal(t, 0, len(got))
+		require.Empty(t, got)
 		// Nothing to apply empty
 		got, err = UpVersions([]int64{}, []int64{}, math.MaxInt64, false)
 		require.NoError(t, err)
-		require.Equal(t, 0, len(got))
+		require.Empty(t, got)
 
 		// Nothing new
 		got, err = UpVersions([]int64{1, 2, 3}, []int64{1, 2, 3}, math.MaxInt64, false)
 		require.NoError(t, err)
-		require.Equal(t, 0, len(got))
+		require.Empty(t, got)
 
 		// All new
 		got, err = UpVersions([]int64{1, 2, 3}, []int64{}, math.MaxInt64, false)
 		require.NoError(t, err)
-		require.Equal(t, 3, len(got))
+		require.Len(t, got, 3)
 		require.Equal(t, int64(1), got[0])
 		require.Equal(t, int64(2), got[1])
 		require.Equal(t, int64(3), got[2])
@@ -34,23 +35,23 @@ func TestResolveVersions(t *testing.T) {
 		// Squashed, no new
 		got, err = UpVersions([]int64{3}, []int64{3}, math.MaxInt64, false)
 		require.NoError(t, err)
-		require.Equal(t, 0, len(got))
+		require.Empty(t, got)
 		// Squashed, 1 new
 		got, err = UpVersions([]int64{3, 4}, []int64{3}, math.MaxInt64, false)
 		require.NoError(t, err)
-		require.Equal(t, 1, len(got))
+		require.Len(t, got, 1)
 		require.Equal(t, int64(4), got[0])
 
 		// Some new with target
 		got, err = UpVersions([]int64{1, 2, 3, 4, 5}, []int64{1, 2}, 4, false)
 		require.NoError(t, err)
-		require.Equal(t, 2, len(got))
+		require.Len(t, got, 2)
 		require.Equal(t, int64(3), got[0])
 		require.Equal(t, int64(4), got[1]) // up to and including target
 		// Some new with zero target
 		got, err = UpVersions([]int64{1, 2, 3, 4, 5}, []int64{1, 2}, 0, false)
 		require.NoError(t, err)
-		require.Equal(t, 0, len(got))
+		require.Empty(t, got)
 
 		// Error: one missing migrations with max target
 		_, err = UpVersions([]int64{1, 2, 3, 4}, []int64{1 /* 2*/, 3}, math.MaxInt64, false)
@@ -84,7 +85,7 @@ func TestResolveVersions(t *testing.T) {
 
 			got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2 */, 3}, 1, false)
 			require.NoError(t, err)
-			require.Equal(t, 0, len(got))
+			require.Empty(t, got)
 			got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2 */, 3}, 2, false)
 			require.Error(t, err)
 			require.Equal(t,
@@ -117,21 +118,21 @@ func TestResolveVersions(t *testing.T) {
 		// Nothing to apply nil
 		got, err := UpVersions(nil, nil, math.MaxInt64, true)
 		require.NoError(t, err)
-		require.Equal(t, 0, len(got))
+		require.Empty(t, got)
 		// Nothing to apply empty
 		got, err = UpVersions([]int64{}, []int64{}, math.MaxInt64, true)
 		require.NoError(t, err)
-		require.Equal(t, 0, len(got))
+		require.Empty(t, got)
 
 		// Nothing new
 		got, err = UpVersions([]int64{1, 2, 3}, []int64{1, 2, 3}, math.MaxInt64, true)
 		require.NoError(t, err)
-		require.Equal(t, 0, len(got))
+		require.Empty(t, got)
 
 		// All new
 		got, err = UpVersions([]int64{1, 2, 3}, []int64{}, math.MaxInt64, true)
 		require.NoError(t, err)
-		require.Equal(t, 3, len(got))
+		require.Len(t, got, 3)
 		require.Equal(t, int64(1), got[0])
 		require.Equal(t, int64(2), got[1])
 		require.Equal(t, int64(3), got[2])
@@ -139,34 +140,34 @@ func TestResolveVersions(t *testing.T) {
 		// Squashed, no new
 		got, err = UpVersions([]int64{3}, []int64{3}, math.MaxInt64, true)
 		require.NoError(t, err)
-		require.Equal(t, 0, len(got))
+		require.Empty(t, got)
 		// Squashed, 1 new
 		got, err = UpVersions([]int64{3, 4}, []int64{3}, math.MaxInt64, true)
 		require.NoError(t, err)
-		require.Equal(t, 1, len(got))
+		require.Len(t, got, 1)
 		require.Equal(t, int64(4), got[0])
 
 		// Some new with target
 		got, err = UpVersions([]int64{1, 2, 3, 4, 5}, []int64{1, 2}, 4, true)
 		require.NoError(t, err)
-		require.Equal(t, 2, len(got))
+		require.Len(t, got, 2)
 		require.Equal(t, int64(3), got[0])
 		require.Equal(t, int64(4), got[1]) // up to and including target
 		// Some new with zero target
 		got, err = UpVersions([]int64{1, 2, 3, 4, 5}, []int64{1, 2}, 0, true)
 		require.NoError(t, err)
-		require.Equal(t, 0, len(got))
+		require.Empty(t, got)
 
 		// No error: one missing
 		got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2*/, 3}, math.MaxInt64, true)
 		require.NoError(t, err)
-		require.Equal(t, 1, len(got))
+		require.Len(t, got, 1)
 		require.Equal(t, int64(2), got[0]) // missing
 
 		// No error: multiple missing and new with max target
 		got, err = UpVersions([]int64{1, 2, 3, 4, 5}, []int64{ /* 1 */ 2 /* 3 */, 4}, math.MaxInt64, true)
 		require.NoError(t, err)
-		require.Equal(t, 3, len(got))
+		require.Len(t, got, 3)
 		require.Equal(t, int64(1), got[0]) // missing
 		require.Equal(t, int64(3), got[1]) // missing
 		require.Equal(t, int64(5), got[2])
@@ -174,23 +175,23 @@ func TestResolveVersions(t *testing.T) {
 		t.Run("target_lower_than_max", func(t *testing.T) {
 			got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2 */, 3}, 1, true)
 			require.NoError(t, err)
-			require.Equal(t, 0, len(got))
+			require.Empty(t, got)
 			got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2 */, 3}, 2, true)
 			require.NoError(t, err)
-			require.Equal(t, 1, len(got))
+			require.Len(t, got, 1)
 			require.Equal(t, int64(2), got[0]) // missing
 			got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2 */, 3}, 3, true)
 			require.NoError(t, err)
-			require.Equal(t, 1, len(got))
+			require.Len(t, got, 1)
 			require.Equal(t, int64(2), got[0]) // missing
 
 			got, err = UpVersions([]int64{1, 2, 3, 4, 5, 6}, []int64{1 /* 2 */, 3, 4 /* 5*/, 6}, 4, true)
 			require.NoError(t, err)
-			require.Equal(t, 1, len(got))
+			require.Len(t, got, 1)
 			require.Equal(t, int64(2), got[0]) // missing
 			got, err = UpVersions([]int64{1, 2, 3, 4, 5, 6}, []int64{1 /* 2 */, 3, 4 /* 5*/, 6}, 6, true)
 			require.NoError(t, err)
-			require.Equal(t, 2, len(got))
+			require.Len(t, got, 2)
 			require.Equal(t, int64(2), got[0]) // missing
 			require.Equal(t, int64(5), got[1]) // missing
 		})

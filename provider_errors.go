@@ -42,3 +42,7 @@ func (e *PartialError) Error() string {
 		e.Failed.Source.Type, e.Failed.Source.Version, e.Err,
 	)
 }
+
+func (e *PartialError) Unwrap() error {
+	return e.Err
+}

@@ -1,5 +1,4 @@
 //go:build !no_vertica
-// +build !no_vertica
 
 package main
 

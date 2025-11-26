@@ -1,13 +1,16 @@
 package goose
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"io/fs"
+	"log/slog"
+	"path/filepath"
 	"runtime/debug"
-	"strings"
+	"slices"
 	"time"
 
 	"github.com/pressly/goose/v3/database"
@@ -66,14 +69,25 @@ func (p *Provider) prepareMigration(fsys fs.FS, m *Migration, direction bool) er
 	return fmt.Errorf("invalid migration type: %+v", m)
 }
 
-// printf is a helper function that prints the given message if verbose is enabled. It also prepends
-// the "goose: " prefix to the message.
-func (p *Provider) printf(msg string, args ...interface{}) {
-	if p.cfg.verbose {
-		if !strings.HasPrefix(msg, "goose:") {
-			msg = "goose: " + msg
+func (p *Provider) logf(ctx context.Context, legacyMsg string, slogMsg string, attrs ...slog.Attr) {
+	if !p.cfg.verbose {
+		return
+	}
+	if p.cfg.slogger != nil {
+		// Sort attributes by key for consistent ordering
+		slices.SortFunc(attrs, func(a, b slog.Attr) int {
+			return cmp.Compare(a.Key, b.Key)
+		})
+		// Use slog with structured attributes
+		args := make([]any, 0, len(attrs)+1)
+		// Add the logger=goose identifier
+		args = append(args, slog.String("logger", "goose"))
+		for _, attr := range attrs {
+			args = append(args, attr)
 		}
-		p.cfg.logger.Printf(msg, args...)
+		p.cfg.slogger.InfoContext(ctx, slogMsg, args...)
+	} else if p.cfg.logger != nil {
+		p.cfg.logger.Printf("goose: %s", legacyMsg)
 	}
 }
 
@@ -94,7 +108,11 @@ func (p *Provider) runMigrations(
 			if err != nil {
 				return nil, err
 			}
-			p.printf("no migrations to run, current version: %d", maxVersion)
+			p.logf(ctx,
+				fmt.Sprintf("no migrations to run, current version: %d", maxVersion),
+				"no migrations to run",
+				slog.Int64("current_version", maxVersion),
+			)
 		}
 		return nil, nil
 	}
@@ -150,14 +168,34 @@ func (p *Provider) runMigrations(
 		}
 		result.Duration = time.Since(start)
 		results = append(results, result)
-		p.printf("%s", result)
+		// Log the result of the migration.
+		var state string
+		if result.Empty {
+			state = "empty"
+		} else {
+			state = "applied"
+		}
+		p.logf(ctx,
+			result.String(),
+			"migration completed",
+			slog.String("source", filepath.Base(result.Source.Path)),
+			slog.String("direction", result.Direction),
+			slog.Float64("duration_seconds", result.Duration.Seconds()),
+			slog.String("state", state),
+			slog.Int64("version", result.Source.Version),
+			slog.String("type", string(result.Source.Type)),
+		)
 	}
 	if !p.cfg.disableVersioning && !byOne {
 		maxVersion, err := p.getDBMaxVersion(ctx, conn)
 		if err != nil {
 			return nil, err
 		}
-		p.printf("successfully migrated database, current version: %d", maxVersion)
+		p.logf(ctx,
+			fmt.Sprintf("successfully migrated database, current version: %d", maxVersion),
+			"successfully migrated database",
+			slog.Int64("current_version", maxVersion),
+		)
 	}
 	return results, nil
 }
@@ -172,9 +210,9 @@ func (p *Provider) runIndividually(
 	if err != nil {
 		return err
 	}
-	if useTx {
+	if useTx && !p.cfg.isolateDDL {
 		return beginTx(ctx, conn, func(tx *sql.Tx) error {
-			if err := runMigration(ctx, tx, m, direction); err != nil {
+			if err := p.runMigration(ctx, tx, m, direction); err != nil {
 				return err
 			}
 			return p.maybeInsertOrDelete(ctx, tx, m.Version, direction)
@@ -189,12 +227,12 @@ func (p *Provider) runIndividually(
 		//
 		// For now, we guard against this scenario by checking the max open connections and
 		// returning an error in the prepareMigration function.
-		if err := runMigration(ctx, p.db, m, direction); err != nil {
+		if err := p.runMigration(ctx, p.db, m, direction); err != nil {
 			return err
 		}
 		return p.maybeInsertOrDelete(ctx, p.db, m.Version, direction)
 	case TypeSQL:
-		if err := runMigration(ctx, conn, m, direction); err != nil {
+		if err := p.runMigration(ctx, conn, m, direction); err != nil {
 			return err
 		}
 		return p.maybeInsertOrDelete(ctx, conn, m.Version, direction)
@@ -236,33 +274,55 @@ func beginTx(ctx context.Context, conn *sql.Conn, fn func(tx *sql.Tx) error) (re
 	return tx.Commit()
 }
 
-func (p *Provider) initialize(ctx context.Context, useSessionLocker bool) (*sql.Conn, func() error, error) {
+func (p *Provider) initialize(ctx context.Context, useLocker bool) (*sql.Conn, func() error, error) {
 	p.mu.Lock()
 	conn, err := p.db.Conn(ctx)
 	if err != nil {
 		p.mu.Unlock()
 		return nil, nil, err
 	}
-	// cleanup is a function that cleans up the connection, and optionally, the session lock.
+	// cleanup is a function that cleans up the connection, and optionally, the lock.
 	cleanup := func() error {
 		p.mu.Unlock()
 		return conn.Close()
 	}
-	if useSessionLocker && p.cfg.sessionLocker != nil && p.cfg.lockEnabled {
-		l := p.cfg.sessionLocker
-		if err := l.SessionLock(ctx, conn); err != nil {
-			return nil, nil, multierr.Append(err, cleanup())
+
+	// Handle locking if enabled and requested
+	if useLocker && p.cfg.lockEnabled {
+		// Session locker (connection-based locking)
+		if p.cfg.sessionLocker != nil {
+			l := p.cfg.sessionLocker
+			if err := l.SessionLock(ctx, conn); err != nil {
+				return nil, nil, multierr.Append(err, cleanup())
+			}
+			// A lock was acquired, so we need to unlock the session when we're done. This is done
+			// by returning a cleanup function that unlocks the session and closes the connection.
+			cleanup = func() error {
+				p.mu.Unlock()
+				// Use a detached context to unlock the session. This is because the context passed
+				// to SessionLock may have been canceled, and we don't want to cancel the unlock.
+				return multierr.Append(
+					l.SessionUnlock(context.WithoutCancel(ctx), conn),
+					conn.Close(),
+				)
+			}
 		}
-		// A lock was acquired, so we need to unlock the session when we're done. This is done by
-		// returning a cleanup function that unlocks the session and closes the connection.
-		cleanup = func() error {
-			p.mu.Unlock()
-			// Use a detached context to unlock the session. This is because the context passed to
-			// SessionLock may have been canceled, and we don't want to cancel the unlock.
-			//
-			// TODO(mf): use context.WithoutCancel added in go1.21
-			detachedCtx := context.Background()
-			return multierr.Append(l.SessionUnlock(detachedCtx, conn), conn.Close())
+		// General locker (db-based locking)
+		if p.cfg.locker != nil {
+			l := p.cfg.locker
+			if err := l.Lock(ctx, p.db); err != nil {
+				return nil, nil, multierr.Append(err, cleanup())
+			}
+			// A lock was acquired, so we need to unlock when we're done.
+			cleanup = func() error {
+				p.mu.Unlock()
+				// Use a detached context to unlock. This is because the context passed to Lock may
+				// have been canceled, and we don't want to cancel the unlock.
+				return multierr.Append(
+					l.Unlock(context.WithoutCancel(ctx), p.db),
+					conn.Close(),
+				)
+			}
 		}
 	}
 	// If versioning is enabled, ensure the version table exists. For ad-hoc migrations, we don't
@@ -299,36 +359,54 @@ func (p *Provider) tryEnsureVersionTable(ctx context.Context, conn *sql.Conn) er
 	b := retry.NewConstant(1 * time.Second)
 	b = retry.WithMaxRetries(3, b)
 	return retry.Do(ctx, b, func(ctx context.Context) error {
-		if e, ok := p.store.(interface {
-			TableExists(context.Context, database.DBTxConn, string) (bool, error)
-		}); ok {
-			exists, err := e.TableExists(ctx, conn, p.store.Tablename())
-			if err != nil {
-				return fmt.Errorf("failed to check if version table exists: %w", err)
-			}
-			if exists {
-				return nil
-			}
-		} else {
-			// This chicken-and-egg behavior is the fallback for all existing implementations of the
-			// Store interface. We check if the version table exists by querying for the initial
-			// version, but the table may not exist yet. It's important this runs outside of a
-			// transaction to avoid failing the transaction.
+		exists, err := p.store.TableExists(ctx, conn)
+		if err == nil && exists {
+			return nil
+		} else if err != nil && errors.Is(err, errors.ErrUnsupported) {
+			// Fallback strategy for checking table existence:
+			//
+			// When direct table existence checks aren't supported, we attempt to query the initial
+			// migration (version 0). This approach has two implications:
+			//
+			//  1. If the table exists, the query succeeds and confirms existence
+			//  2. If the table doesn't exist, the query fails and generates an error log
+			//
+			// Note: This check must occur outside any transaction, as a failed query would
+			// otherwise cause the entire transaction to roll back. The error logs generated by this
+			// approach are expected and can be safely ignored.
 			if res, err := p.store.GetMigration(ctx, conn, 0); err == nil && res != nil {
 				return nil
 			}
+			// Fallthrough to create the table.
+		} else if err != nil {
+			return fmt.Errorf("check if version table exists: %w", err)
 		}
-		if err := beginTx(ctx, conn, func(tx *sql.Tx) error {
-			if err := p.store.CreateVersionTable(ctx, tx); err != nil {
-				return err
+
+		if p.cfg.isolateDDL {
+			// If isolation is enabled, we create the version table separately to ensure subsequent
+			// DML operations are not mixed with DDL.
+			if err := p.store.CreateVersionTable(ctx, conn); err != nil {
+				return retry.RetryableError(fmt.Errorf("create version table: %w", err))
 			}
-			return p.store.Insert(ctx, tx, database.InsertRequest{Version: 0})
-		}); err != nil {
-			// Mark the error as retryable so we can try again. It's possible that another instance
-			// is creating the table at the same time and the checks above will succeed on the next
-			// iteration.
-			return retry.RetryableError(fmt.Errorf("failed to create version table: %w", err))
+			if err := p.store.Insert(ctx, conn, database.InsertRequest{Version: 0}); err != nil {
+				return retry.RetryableError(fmt.Errorf("insert zero version: %w", err))
+			}
+		} else {
+			// If DDL isolation is not enabled, we can create the version table and insert the zero
+			// version in a single transaction.
+			if err := beginTx(ctx, conn, func(tx *sql.Tx) error {
+				if err := p.store.CreateVersionTable(ctx, tx); err != nil {
+					return err
+				}
+				return p.store.Insert(ctx, tx, database.InsertRequest{Version: 0})
+			}); err != nil {
+				// Mark the error as retryable so we can try again. It's possible that another
+				// instance is creating the table at the same time and the checks above will succeed
+				// on the next iteration.
+				return retry.RetryableError(fmt.Errorf("create version table: %w", err))
+			}
 		}
+
 		return nil
 	})
 }
@@ -385,19 +463,19 @@ func isEmpty(m *Migration, direction bool) bool {
 
 // runMigration is a helper function that runs the migration in the given direction. It must only be
 // called after the migration has been parsed and initialized.
-func runMigration(ctx context.Context, db database.DBTxConn, m *Migration, direction bool) error {
+func (p *Provider) runMigration(ctx context.Context, db database.DBTxConn, m *Migration, direction bool) error {
 	switch m.Type {
 	case TypeGo:
-		return runGo(ctx, db, m, direction)
+		return p.runGo(ctx, db, m, direction)
 	case TypeSQL:
-		return runSQL(ctx, db, m, direction)
+		return p.runSQL(ctx, db, m, direction)
 	}
 	return fmt.Errorf("invalid migration type: %q", m.Type)
 }
 
 // runGo is a helper function that runs the given Go functions in the given direction. It must only
 // be called after the migration has been initialized.
-func runGo(ctx context.Context, db database.DBTxConn, m *Migration, direction bool) (retErr error) {
+func (p *Provider) runGo(ctx context.Context, db database.DBTxConn, m *Migration, direction bool) (retErr error) {
 	defer func() {
 		if r := recover(); r != nil {
 			retErr = fmt.Errorf("panic: %v\n%s", r, debug.Stack())
@@ -429,7 +507,7 @@ func runGo(ctx context.Context, db database.DBTxConn, m *Migration, direction bo
 
 // runSQL is a helper function that runs the given SQL statements in the given direction. It must
 // only be called after the migration has been parsed.
-func runSQL(ctx context.Context, db database.DBTxConn, m *Migration, direction bool) error {
+func (p *Provider) runSQL(ctx context.Context, db database.DBTxConn, m *Migration, direction bool) error {
 	if !m.sql.Parsed {
 		return fmt.Errorf("sql migrations must be parsed")
 	}
@@ -440,6 +518,15 @@ func runSQL(ctx context.Context, db database.DBTxConn, m *Migration, direction b
 		statements = m.sql.Down
 	}
 	for _, stmt := range statements {
+		p.logf(ctx,
+			fmt.Sprintf("Executing statement: %s", stmt),
+			"executing statement",
+			slog.String("statement", stmt),
+			slog.String("source", filepath.Base(m.Source)),
+			slog.Int64("version", m.Version),
+			slog.String("type", string(m.Type)),
+			slog.String("direction", string(sqlparser.FromBool(direction))),
+		)
 		if _, err := db.ExecContext(ctx, stmt); err != nil {
 			return err
 		}

@@ -1,5 +1,4 @@
 //go:build !no_ydb
-// +build !no_ydb
 
 package main
 

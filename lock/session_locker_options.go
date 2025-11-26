@@ -9,8 +9,8 @@ const (
 	// DefaultLockID is the id used to lock the database for migrations. It is a crc64 hash of the
 	// string "goose". This is used to ensure that the lock is unique to goose.
 	//
-	// crc64.Checksum([]byte("goose"), crc64.MakeTable(crc64.ECMA))
-	DefaultLockID int64 = 5887940537704921958
+	// crc32.Checksum([]byte("goose"), crc32.MakeTable(crc32.IEEE))
+	DefaultLockID int64 = 4097083626
 )
 
 // SessionLockerOption is used to configure a SessionLocker.
@@ -44,7 +44,7 @@ func WithLockTimeout(period, failureThreshold uint64) SessionLockerOption {
 			return errors.New("failure threshold must be greater than 0, minimum is 1")
 		}
 		c.lockProbe = probe{
-			periodSeconds:    time.Duration(period) * time.Second,
+			intervalDuration: time.Duration(period) * time.Second,
 			failureThreshold: failureThreshold,
 		}
 		return nil
@@ -67,7 +67,7 @@ func WithUnlockTimeout(period, failureThreshold uint64) SessionLockerOption {
 			return errors.New("failure threshold must be greater than 0, minimum is 1")
 		}
 		c.unlockProbe = probe{
-			periodSeconds:    time.Duration(period) * time.Second,
+			intervalDuration: time.Duration(period) * time.Second,
 			failureThreshold: failureThreshold,
 		}
 		return nil
@@ -84,7 +84,7 @@ type sessionLockerConfig struct {
 // total timeout will be the period times the failure threshold.
 type probe struct {
 	// How often (in seconds) to perform the probe.
-	periodSeconds time.Duration
+	intervalDuration time.Duration
 	// Number of times to retry the probe.
 	failureThreshold uint64
 }

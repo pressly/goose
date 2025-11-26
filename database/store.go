@@ -27,8 +27,7 @@ type Store interface {
 	// Tablename is the name of the version table. This table is used to record applied migrations
 	// and must not be an empty string.
 	Tablename() string
-	// CreateVersionTable creates the version table, which is used to track migrations. When
-	// creating this table, the implementation MUST also insert a row for the initial version (0).
+	// CreateVersionTable creates the version table, which is used to track migrations.
 	CreateVersionTable(ctx context.Context, db DBTxConn) error
 	// Insert a version id into the version table.
 	Insert(ctx context.Context, db DBTxConn, req InsertRequest) error
