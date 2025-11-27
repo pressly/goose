@@ -8,7 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## Unreleased
 
 - Support [environ credentials](https://github.com/ydb-platform/ydb-go-sdk-auth-environ/?tab=readme-ov-file#auth-environment-variables)
-  for YDB using parameter `use_env_credentials` in connection string.
+  for YDB using connection string parameter `use_env_credentials`.
   Example:
   ```bash
   export YDB_ACCESS_TOKEN_CREDENTIALS="my-secret-token"
