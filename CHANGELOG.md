@@ -7,6 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+- Support [environ credentials](https://github.com/ydb-platform/ydb-go-sdk-auth-environ/?tab=readme-ov-file#auth-environment-variables)
+  for YDB using connection string parameter `use_env_credentials`.
+  Example:
+  ```bash
+  export YDB_ACCESS_TOKEN_CREDENTIALS="my-secret-token"
+  goose ydb "grpcs://localhost:2135/local?go_query_mode=scripting&go_fake_tx=scripting&go_query_bind=declare,numeric&use_env_credentials" status
+  ```
 - Add preliminary Spanner dialect support (#966)
 - Remove `StatementBegin` and `StatementEnd` annotations from SQL migration templates
   - This is only required for more complex statements that include semicolons within them, such as

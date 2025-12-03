@@ -95,7 +95,7 @@ Examples:
     goose tidb "user:password@/dbname?parseTime=true" status
     goose mssql "sqlserver://user:password@hostname:1433?database=master" status
     goose clickhouse "tcp://127.0.0.1:9000" status
-    goose ydb "grpcs://localhost:2135/local?go_query_mode=scripting&go_fake_tx=scripting&go_query_bind=declare,numeric" status
+    goose ydb "grpcs://localhost:2135/local?go_query_mode=scripting&go_fake_tx=scripting&go_query_bind=declare,numeric&use_env_credentials" status
     goose starrocks "user:password@/dbname?parseTime=true&interpolateParams=true" status
 
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose status
