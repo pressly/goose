@@ -25,7 +25,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Install Go
         uses: actions/setup-go@v6
         with:
@@ -38,7 +38,11 @@ jobs:
             exit 1
           fi
       - name: Install tparse
-        run: go install github.com/mfridman/tparse@main
+        run: |
+          mkdir -p $HOME/.local/bin
+          curl -L -o $HOME/.local/bin/tparse https://github.com/mfridman/tparse/releases/latest/download/tparse_linux_x86_64
+          chmod +x $HOME/.local/bin/tparse
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Run tests
         run: |
           make add-gowork
