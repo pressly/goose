@@ -112,15 +112,3 @@ func lessByVersionOrSource(si, sj *statusLine) bool {
 	}
 	return si.Source < sj.Source
 }
-
-func lessByAppliedAt(si, sj *statusLine) bool {
-	// Pending migrations always come later:
-	if si.Pending != sj.Pending {
-		// lineJ is pending ---> lineI goes first and return value true means lineI < lineJ
-		return sj.Pending
-	}
-	if !si.AppliedAt.Equal(sj.AppliedAt) {
-		return si.AppliedAt.Before(sj.AppliedAt)
-	}
-	return lessByVersionOrSource(si, sj)
-}
