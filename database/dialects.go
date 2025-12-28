@@ -36,7 +36,8 @@ const (
 
 // ParseDialect returns the corresponding [Dialect], if any, for a given string with external
 // origin. A supported [Dialect] value, like [DialectPostgres], may have multiple supported
-// aliases, e.g. "postgres" or "pgx".
+// aliases, e.g. "postgres" or "pgx". Use this function to ensure that a [Dialect] instance
+// passed to any function that accepts a [Dialect] is a valid [Dialect].
 func ParseDialect(s string) (d Dialect, err error) {
 	// Every non-error return value from this function must have an entry in the [NewStore] lookup map.
 	switch s {
