@@ -1,8 +1,6 @@
 package goose
 
 import (
-	"fmt"
-
 	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/internal/legacystore"
 )
@@ -39,36 +37,10 @@ var store legacystore.Store
 
 // SetDialect sets the dialect to use for the goose package.
 func SetDialect(s string) error {
-	var d Dialect
-	switch s {
-	case "postgres", "pgx":
-		d = DialectPostgres
-	case "mysql":
-		d = DialectMySQL
-	case "sqlite3", "sqlite":
-		d = DialectSQLite3
-	case "spanner":
-		d = DialectSpanner
-	case "mssql", "azuresql", "sqlserver":
-		d = DialectMSSQL
-	case "redshift":
-		d = DialectRedshift
-	case "tidb":
-		d = DialectTiDB
-	case "clickhouse":
-		d = DialectClickHouse
-	case "vertica":
-		d = DialectVertica
-	case "ydb":
-		d = DialectYdB
-	case "turso":
-		d = DialectTurso
-	case "starrocks":
-		d = DialectStarrocks
-	default:
-		return fmt.Errorf("%q: unknown dialect", s)
+	d, err := database.ParseDialect(s)
+	if err != nil {
+		return err
 	}
-	var err error
 	store, err = legacystore.NewStore(d)
 	return err
 }
