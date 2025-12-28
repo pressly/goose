@@ -90,8 +90,11 @@ func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption
 	}
 	var store database.Store
 	if dialect != "" {
-		var err error
-		store, err = database.NewStore(dialect, cmp.Or(cfg.tableName, DefaultTablename))
+		d, err := database.ParseDialect(string(dialect))
+		if err != nil {
+			return nil, fmt.Errorf("error parsing dialect %q: %v", dialect, err)
+		}
+		store, err = database.NewStore(d, cmp.Or(cfg.tableName, DefaultTablename))
 		if err != nil {
 			return nil, err
 		}

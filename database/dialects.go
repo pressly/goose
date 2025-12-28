@@ -13,6 +13,8 @@ import (
 // Dialect is the type of database dialect.
 type Dialect string
 
+var ErrUnknownDialect = errors.New("unknown dialect")
+
 const (
 	DialectCustom     Dialect = ""
 	DialectClickHouse Dialect = "clickhouse"
@@ -34,7 +36,7 @@ const (
 
 // ParseDialect returns the corresponding [Dialect] for a given string with external origin.
 // A supported [Dialect], i.e. one of the Dialect values above, may have multiple external
-// aliases; for example, both "postgres" and "pgx" map to DialectPostgres.
+// aliases. All non-error return values must have a corresponding [dialect.Querier].
 func ParseDialect(s string) (d Dialect, err error) {
 	switch s {
 	case "postgres", "pgx":
@@ -64,7 +66,7 @@ func ParseDialect(s string) (d Dialect, err error) {
 	case "dsql":
 		d = DialectAuroraDSQL
 	default:
-		err = fmt.Errorf("%q: unknown dialect", s)
+		err = ErrUnknownDialect
 	}
 	return
 }
@@ -89,13 +91,9 @@ func NewStore(d Dialect, tableName string) (Store, error) {
 		DialectVertica:    dialects.NewVertica(),
 		DialectYdB:        dialects.NewYDB(),
 	}
-	p, err := ParseDialect(string(d))
-	if err != nil {
-		return nil, fmt.Errorf("unsupported dialect %q", d)
-	}
-	querier, ok := lookup[p]
+	querier, ok := lookup[d]
 	if !ok {
-		return nil, fmt.Errorf("unknown dialect: %q", d)
+		return nil, ErrUnknownDialect
 	}
 	return NewStoreFromQuerier(tableName, querier)
 }
