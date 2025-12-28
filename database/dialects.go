@@ -13,10 +13,6 @@ import (
 // Dialect is the type of database dialect.
 type Dialect string
 
-func (d Dialect) String() string {
-	return string(d)
-}
-
 const (
 	DialectCustom     Dialect = ""
 	DialectClickHouse Dialect = "clickhouse"
