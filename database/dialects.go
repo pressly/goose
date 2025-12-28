@@ -61,6 +61,8 @@ func ParseDialect(s string) (d Dialect, err error) {
 		d = DialectTurso
 	case "starrocks":
 		d = DialectStarrocks
+	case "dsql":
+		d = DialectAuroraDSQL
 	default:
 		err = fmt.Errorf("%q: unknown dialect", s)
 	}
