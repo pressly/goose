@@ -34,10 +34,11 @@ const (
 	DialectVertica Dialect = "vertica"
 )
 
-// ParseDialect returns the corresponding [Dialect] for a given string with external origin.
-// A supported [Dialect], i.e. one of the Dialect values above, may have multiple external
-// aliases. All non-error return values must have a corresponding [dialect.Querier].
+// ParseDialect returns the corresponding [Dialect], if any, for a given string with external
+// origin. A supported [Dialect] value, like [DialectPostgres], may have multiple supported
+// aliases, e.g. "postgres" or "pgx".
 func ParseDialect(s string) (d Dialect, err error) {
+	// Every non-error return value from this function must have an entry in the [NewStore] lookup map.
 	switch s {
 	case "postgres", "pgx":
 		d = DialectPostgres
@@ -71,7 +72,8 @@ func ParseDialect(s string) (d Dialect, err error) {
 	return
 }
 
-// NewStore returns a new [Store] implementation for the given dialect.
+// NewStore returns a new [Store] implementation for the given dialect. The
+// dialect must be a valid [Dialect] value; see [ParseDialect].
 func NewStore(d Dialect, tableName string) (Store, error) {
 	if d == DialectCustom {
 		return nil, errors.New("custom dialect is not supported")
