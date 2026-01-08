@@ -248,13 +248,14 @@ func usage() {
 }
 
 var (
-	usagePrefix = `Usage: goose [OPTIONS] DRIVER DBSTRING COMMAND
+	usagePrefix = `Usage: goose DRIVER DBSTRING [OPTIONS] COMMAND
 
 or
 
 Set environment key
 GOOSE_DRIVER=DRIVER
 GOOSE_DBSTRING=DBSTRING
+GOOSE_MIGRATION_DIR=MIGRATION_DIR
 
 Usage: goose [OPTIONS] COMMAND
 
@@ -262,11 +263,13 @@ Drivers:
     postgres
     mysql
     sqlite3
+    spanner
     mssql
     redshift
     tidb
     clickhouse
     ydb
+    starrocks
     turso
 
 Examples:

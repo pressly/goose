@@ -58,7 +58,7 @@ See [installation documentation](https://pressly.github.io/goose/installation/) 
 <summary>Click to show <code>goose help</code> output</summary>
 
 ```
-Usage: goose [OPTIONS] DRIVER DBSTRING COMMAND
+Usage: goose DRIVER DBSTRING [OPTIONS] COMMAND
 
 or
 
@@ -80,6 +80,7 @@ Drivers:
     clickhouse
     ydb
     starrocks
+    turso
 
 Examples:
     goose sqlite3 ./foo.db status
