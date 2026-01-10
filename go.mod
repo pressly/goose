@@ -20,7 +20,7 @@ require (
 	github.com/ziutek/mymysql v1.5.4
 	go.uber.org/multierr v1.11.0
 	golang.org/x/sync v0.19.0
-	modernc.org/sqlite v1.42.2
+	modernc.org/sqlite v1.43.0
 )
 
 require (
