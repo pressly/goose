@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+- Support [environ credentials](https://github.com/ydb-platform/ydb-go-sdk-auth-environ/?tab=readme-ov-file#auth-environment-variables)
+  for YDB using connection string parameter `use_env_credentials`.
 - Add preliminary Spanner dialect support (#966)
 - Remove `StatementBegin` and `StatementEnd` annotations from SQL migration templates
   - This is only required for more complex statements that include semicolons within them, such as
