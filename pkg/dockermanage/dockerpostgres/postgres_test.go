@@ -1,6 +1,7 @@
 package dockerpostgres_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"log/slog"
@@ -82,4 +83,43 @@ func TestManagedLabel(t *testing.T) {
 	ids, err := m.ListManaged(ctx)
 	require.NoError(t, err)
 	require.Contains(t, ids, instance.Container.ID)
+}
+
+func TestExecPgDump(t *testing.T) {
+	t.Parallel()
+
+	m := newManager(t)
+	ctx := t.Context()
+
+	instance, err := dockerpostgres.Start(ctx, m)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		assert.NoError(t, m.Remove(context.WithoutCancel(ctx), instance.Container.ID))
+	})
+
+	// Wait until Postgres is actually accepting connections.
+	err = m.WaitReady(ctx, instance.Container, func(ctx context.Context, c *dockermanage.Container) error {
+		conn, err := pgx.Connect(ctx, instance.DSN())
+		if err != nil {
+			return err
+		}
+		return errors.Join(conn.Ping(ctx), conn.Close(ctx))
+	})
+	require.NoError(t, err)
+
+	var stdout, stderr bytes.Buffer
+	result, err := m.Exec(ctx, instance.Container.ID, dockermanage.ExecOptions{
+		Cmd: []string{
+			"pg_dump",
+			"-U", instance.User,
+			"-d", instance.Database,
+			"--schema-only",
+		},
+		Stdout: &stdout,
+		Stderr: &stderr,
+	})
+	require.NoError(t, err)
+	require.Equal(t, 0, result.ExitCode, "stderr: %s", stderr.String())
+	require.Contains(t, stdout.String(), "PostgreSQL database dump")
+	require.Contains(t, stdout.String(), "PostgreSQL database dump complete")
 }

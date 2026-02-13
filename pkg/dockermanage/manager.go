@@ -2,6 +2,7 @@ package dockermanage
 
 import (
 	"context"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -301,9 +302,104 @@ func (m *Manager) RemoveManaged(ctx context.Context) error {
 	return nil
 }
 
+// ExecOptions configures a command to run inside a container.
+type ExecOptions struct {
+	Cmd    []string  // Command and arguments
+	Env    []string  // Optional environment variables
+	Stdout io.Writer // Where to write stdout (nil → discard)
+	Stderr io.Writer // Where to write stderr (nil → discard)
+}
+
+// ExecResult holds the outcome of an exec invocation.
+type ExecResult struct {
+	ExitCode int
+}
+
+// Exec runs a command inside a running container and streams its output.
+func (m *Manager) Exec(ctx context.Context, containerID string, opts ExecOptions) (*ExecResult, error) {
+	if len(opts.Cmd) == 0 {
+		return nil, errors.New("cmd must not be empty")
+	}
+	stdout := opts.Stdout
+	if stdout == nil {
+		stdout = io.Discard
+	}
+	stderr := opts.Stderr
+	if stderr == nil {
+		stderr = io.Discard
+	}
+
+	createResp, err := m.client.ExecCreate(ctx, containerID, client.ExecCreateOptions{
+		Cmd:          opts.Cmd,
+		Env:          opts.Env,
+		AttachStdout: true,
+		AttachStderr: true,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("exec create: %w", err)
+	}
+
+	attachResp, err := m.client.ExecAttach(ctx, createResp.ID, client.ExecAttachOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("exec attach: %w", err)
+	}
+	defer attachResp.Close()
+
+	if err := demuxDockerStream(attachResp.Reader, stdout, stderr); err != nil {
+		return nil, fmt.Errorf("exec stream: %w", err)
+	}
+
+	inspectResp, err := m.client.ExecInspect(ctx, createResp.ID, client.ExecInspectOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("exec inspect: %w", err)
+	}
+
+	m.logger.Info(
+		"docker exec completed",
+		slog.String("container_id", containerID),
+		slog.Int("exit_code", inspectResp.ExitCode),
+	)
+	return &ExecResult{ExitCode: inspectResp.ExitCode}, nil
+}
+
 // Close closes the underlying Docker client.
 func (m *Manager) Close() error {
 	return m.client.Close()
+}
+
+// Docker multiplexed stream constants. When TTY is disabled, Docker prefixes each output frame with
+// an 8-byte header: [streamType(1), padding(3), payloadSize(4 big-endian)].
+const (
+	streamStdout     byte = 1
+	streamStderr     byte = 2
+	streamHeaderSize      = 8
+)
+
+// demuxDockerStream reads a Docker multiplexed stream and routes each frame to the appropriate
+// writer based on its stream type.
+func demuxDockerStream(r io.Reader, stdout, stderr io.Writer) error {
+	var header [streamHeaderSize]byte
+	for {
+		if _, err := io.ReadFull(r, header[:]); err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return err
+		}
+		payloadSize := int64(binary.BigEndian.Uint32(header[4:]))
+		var dst io.Writer
+		switch header[0] {
+		case streamStdout:
+			dst = stdout
+		case streamStderr:
+			dst = stderr
+		default:
+			dst = io.Discard
+		}
+		if _, err := io.CopyN(dst, r, payloadSize); err != nil {
+			return err
+		}
+	}
 }
 
 func (m *Manager) pullImageIfNotExists(ctx context.Context, imageName string, progressWriter io.Writer) (retErr error) {
