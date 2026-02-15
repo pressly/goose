@@ -48,6 +48,15 @@ var version string
 func main() {
 	ctx := context.Background()
 
+	// Handle dump command before global flag parsing because it has its own flag set and
+	// xflag.ParseToEnd would reject dump-specific flags like --docker.
+	if len(os.Args) > 1 && os.Args[1] == "dump" {
+		if err := runDump(ctx, os.Args[2:]); err != nil {
+			log.Fatalf("goose dump: %v", err)
+		}
+		return
+	}
+
 	flags.Usage = usage
 
 	if err := xflag.ParseToEnd(flags, os.Args[1:]); err != nil {
@@ -313,6 +322,7 @@ Commands:
     create NAME [sql|go] Creates new migration file with the current timestamp
     fix                  Apply sequential ordering to migrations
     validate             Check migration files without running them
+    dump                 Export PostgreSQL schema using pg_dump (run goose dump -h for details)
 `
 )
 
