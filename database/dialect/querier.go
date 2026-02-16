@@ -17,7 +17,7 @@ type Querier interface {
 	GetMigrationByVersion(tableName string) string
 	// ListMigrations returns the SQL query string to list all migrations in descending order by id.
 	//
-	// The query should return the version_id and is_applied columns.
+	// The query should return the timestamp, version_id, and is_applied columns.
 	ListMigrations(tableName string) string
 	// GetLatestVersion returns the SQL query string to get the last version_id from the db version
 	// table. Returns a nullable int64 value.
