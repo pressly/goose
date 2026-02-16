@@ -18,6 +18,7 @@ func TestGoMigrationByOne(t *testing.T) {
 	require.NoError(t, goose.SetDialect("sqlite3"))
 	db, err := sql.Open("sqlite", ":memory:")
 	require.NoError(t, err)
+	defer db.Close()
 	dir := "testdata"
 	files, err := filepath.Glob(dir + "/*.go")
 	require.NoError(t, err)

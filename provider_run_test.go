@@ -495,6 +495,7 @@ func TestNoVersioning(t *testing.T) {
 	dbName := fmt.Sprintf("test_%s.db", randomAlphaNumeric(8))
 	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), dbName))
 	require.NoError(t, err)
+	defer db.Close()
 	fsys := os.DirFS(filepath.Join("testdata", "no-versioning", "migrations"))
 	const (
 		// Total owners created by the seed files.
@@ -712,6 +713,7 @@ func TestSQLiteSharedCache(t *testing.T) {
 	t.Run("shared_cache", func(t *testing.T) {
 		db, err := sql.Open("sqlite", "file::memory:?cache=shared")
 		require.NoError(t, err)
+		defer db.Close()
 		fsys := fstest.MapFS{"00001_a.sql": newMapFile(`-- +goose Up`)}
 		p, err := goose.NewProvider(goose.DialectSQLite3, db, fsys,
 			goose.WithGoMigrations(
@@ -725,6 +727,7 @@ func TestSQLiteSharedCache(t *testing.T) {
 	t.Run("no_shared_cache", func(t *testing.T) {
 		db, err := sql.Open("sqlite", "file::memory:")
 		require.NoError(t, err)
+		defer db.Close()
 		fsys := fstest.MapFS{"00001_a.sql": newMapFile(`-- +goose Up`)}
 		p, err := goose.NewProvider(goose.DialectSQLite3, db, fsys,
 			goose.WithGoMigrations(
@@ -1062,6 +1065,9 @@ func newDB(t *testing.T) *sql.DB {
 	dbName := fmt.Sprintf("test_%s.db", randomAlphaNumeric(8))
 	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), dbName))
 	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = db.Close()
+	})
 	return db
 }
 
