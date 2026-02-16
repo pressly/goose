@@ -13,6 +13,8 @@ import (
 // Dialect is the type of database dialect.
 type Dialect string
 
+var ErrUnknownDialect = errors.New("unknown dialect")
+
 const (
 	DialectCustom     Dialect = ""
 	DialectClickHouse Dialect = "clickhouse"
@@ -32,7 +34,47 @@ const (
 	DialectVertica Dialect = "vertica"
 )
 
-// NewStore returns a new [Store] implementation for the given dialect.
+// ParseDialect returns the corresponding [Dialect], if any, for a given string with external
+// origin. A supported [Dialect] value, like [DialectPostgres], may have multiple supported
+// aliases, e.g. "postgres" or "pgx". Use this function to ensure that a [Dialect] instance
+// passed to any function that accepts a [Dialect] is a valid [Dialect].
+func ParseDialect(s string) (d Dialect, err error) {
+	// Every non-error return value from this function must have an entry in the [NewStore] lookup map.
+	switch s {
+	case "postgres", "pgx":
+		d = DialectPostgres
+	case "mysql":
+		d = DialectMySQL
+	case "sqlite3", "sqlite":
+		d = DialectSQLite3
+	case "spanner":
+		d = DialectSpanner
+	case "mssql", "azuresql", "sqlserver":
+		d = DialectMSSQL
+	case "redshift":
+		d = DialectRedshift
+	case "tidb":
+		d = DialectTiDB
+	case "clickhouse":
+		d = DialectClickHouse
+	case "vertica":
+		d = DialectVertica
+	case "ydb":
+		d = DialectYdB
+	case "turso":
+		d = DialectTurso
+	case "starrocks":
+		d = DialectStarrocks
+	case "dsql":
+		d = DialectAuroraDSQL
+	default:
+		err = ErrUnknownDialect
+	}
+	return
+}
+
+// NewStore returns a new [Store] implementation for the given dialect. The
+// dialect must be a valid [Dialect] value; see [ParseDialect].
 func NewStore(d Dialect, tableName string) (Store, error) {
 	if d == DialectCustom {
 		return nil, errors.New("custom dialect is not supported")
@@ -54,7 +96,7 @@ func NewStore(d Dialect, tableName string) (Store, error) {
 	}
 	querier, ok := lookup[d]
 	if !ok {
-		return nil, fmt.Errorf("unknown dialect: %q", d)
+		return nil, ErrUnknownDialect
 	}
 	return NewStoreFromQuerier(tableName, querier)
 }
