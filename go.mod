@@ -19,11 +19,11 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/tursodatabase/libsql-client-go v0.0.0-20240902231107-85af5b9d094d
 	github.com/vertica/vertica-sql-go v1.3.4
-	github.com/ydb-platform/ydb-go-sdk/v3 v3.126.4
+	github.com/ydb-platform/ydb-go-sdk/v3 v3.127.0
 	github.com/ziutek/mymysql v1.5.4
 	go.uber.org/multierr v1.11.0
 	golang.org/x/sync v0.19.0
-	modernc.org/sqlite v1.44.3
+	modernc.org/sqlite v1.46.1
 )
 
 require (
