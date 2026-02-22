@@ -145,9 +145,7 @@ func TestConcurrentLocking(
 
 	// Start multiple goroutines trying to acquire the same lock
 	for i := range count {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 
 			ctx, cancel := context.WithTimeout(ctx, lockTimeout)
 			defer cancel()
@@ -172,7 +170,7 @@ func TestConcurrentLocking(
 			// } else {
 			// logger.Debug("Locker released lock", slog.Int("locker", i))
 			// }
-		}()
+		})
 	}
 	// Wait for all goroutines with timeout
 	done := make(chan struct{})
