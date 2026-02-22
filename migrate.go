@@ -121,7 +121,7 @@ func (ms Migrations) timestamped() (Migrations, error) {
 func (ms Migrations) String() string {
 	var str strings.Builder
 	for _, m := range ms {
-		str.WriteString(fmt.Sprintln(m))
+		fmt.Fprintln(&str, m)
 	}
 	return str.String()
 }
