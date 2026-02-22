@@ -15,9 +15,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Minimum Go version is now 1.25**
 - SQL migration templates no longer include `StatementBegin` and `StatementEnd` annotations. These
   are only needed for complex statements containing semicolons (e.g., stored procedures). See
   [docs](https://pressly.github.io/goose/documentation/annotations/#complex-statements) for details.
+- Various dependency upgrades
 
 ## [v3.26.0] - 2025-10-03
 
