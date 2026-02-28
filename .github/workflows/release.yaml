@@ -21,7 +21,7 @@ jobs:
         run: ./scripts/release-notes.sh ${{github.ref_name}} > ${{runner.temp}}/release_notes.txt
       - run: make add-gowork
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v7
         with:
           distribution: goreleaser
           version: "~> v2"
