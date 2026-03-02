@@ -38,6 +38,8 @@ var (
 	sslcert      = flags.String("ssl-cert", "", "file path to SSL certificates in pem format (only support on mysql)")
 	sslkey       = flags.String("ssl-key", "", "file path to SSL key in pem format (only support on mysql)")
 	noVersioning = flags.Bool("no-versioning", false, "apply migration commands with no versioning, in file order, from directory pointed to")
+	statusLimitN = flags.Int("n", 0, "limit status output to last N migrations (status command only)")
+	statusLimit  = flags.Int("limit", 0, "alias for -n (status command only)")
 	noColor      = flags.Bool("no-color", false, "disable color output (NO_COLOR env variable supported)")
 	timeout      = flags.Duration("timeout", 0, "maximum allowed duration for queries to run; e.g., 1h13m")
 	envFile      = flags.String("env", "", "load environment variables from file (default .env)")
@@ -151,6 +153,19 @@ func main() {
 	}
 
 	driver, dbstring, command := args[0], args[1], args[2]
+	// status-specific flags are registered globally due to xflag.ParseToEnd parsing flags
+	// interspersed with positional args.
+	if *statusLimitN != 0 || *statusLimit != 0 {
+		if command != "status" {
+			log.Fatalf("-%s/-%s can only be used with the status command", "n", "limit")
+		}
+		if *statusLimitN != 0 && *statusLimit != 0 && *statusLimitN != *statusLimit {
+			log.Fatalf("-n and -limit must match when both are set")
+		}
+		if *statusLimitN < 0 || *statusLimit < 0 {
+			log.Fatalf("status limit must be >= 0")
+		}
+	}
 	db, err := goose.OpenDBWithDriver(driver, normalizeDBString(driver, dbstring, *certfile, *sslcert, *sslkey))
 	if err != nil {
 		log.Fatalf("-dbstring=%q: %v", dbstring, err)
@@ -174,6 +189,15 @@ func main() {
 	}
 	if *noVersioning {
 		options = append(options, goose.WithNoVersioning())
+	}
+	if command == "status" {
+		limit := *statusLimitN
+		if limit == 0 {
+			limit = *statusLimit
+		}
+		if limit > 0 {
+			options = append(options, goose.WithStatusLimit(limit))
+		}
 	}
 	if timeout != nil && *timeout != 0 {
 		var cancel context.CancelFunc
@@ -308,7 +332,7 @@ Commands:
     down-to VERSION      Roll back to a specific VERSION
     redo                 Re-run the latest migration
     reset                Roll back all migrations
-    status               Dump the migration status for the current DB
+	status [-n N]         Dump the migration status for the current DB
     version              Print the current version of the database
     create NAME [sql|go] Creates new migration file with the current timestamp
     fix                  Apply sequential ordering to migrations
@@ -317,23 +341,23 @@ Commands:
 )
 
 var sqlMigrationTemplate = template.Must(template.New("goose.sql-migration").Parse(`-- Thank you for giving goose a try!
--- 
+--
 -- This file was automatically created running goose init. If you're familiar with goose
 -- feel free to remove/rename this file, write some SQL and goose up. Briefly,
--- 
+--
 -- Documentation can be found here: https://pressly.github.io/goose
 --
 -- A single goose .sql file holds both Up and Down migrations.
--- 
+--
 -- All goose .sql files are expected to have a -- +goose Up annotation.
 -- The -- +goose Down annotation is optional, but recommended, and must come after the Up annotation.
--- 
--- The -- +goose NO TRANSACTION annotation may be added to the top of the file to run statements 
+--
+-- The -- +goose NO TRANSACTION annotation may be added to the top of the file to run statements
 -- outside a transaction. Both Up and Down migrations within this file will be run without a transaction.
--- 
--- More complex statements that have semicolons within them must be annotated with 
+--
+-- More complex statements that have semicolons within them must be annotated with
 -- the -- +goose StatementBegin and -- +goose StatementEnd annotations to be properly recognized.
--- 
+--
 -- Use GitHub issues for reporting bugs and requesting features, enjoy!
 
 -- +goose Up
