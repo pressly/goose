@@ -12,6 +12,7 @@ type options struct {
 	allowMissing bool
 	applyUpByOne bool
 	noVersioning bool
+	statusLimit  int
 }
 
 type OptionsFunc func(o *options)
@@ -22,6 +23,12 @@ func WithAllowMissing() OptionsFunc {
 
 func WithNoVersioning() OptionsFunc {
 	return func(o *options) { o.noVersioning = true }
+}
+
+// WithStatusLimit limits the number of migrations printed by the status command.
+// A value <= 0 means no limit.
+func WithStatusLimit(n int) OptionsFunc {
+	return func(o *options) { o.statusLimit = n }
 }
 
 func WithNoColor(b bool) OptionsFunc {
