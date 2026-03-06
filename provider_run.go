@@ -528,7 +528,7 @@ func (p *Provider) runSQL(ctx context.Context, db database.DBTxConn, m *Migratio
 			slog.String("direction", string(sqlparser.FromBool(direction))),
 		)
 		if _, err := db.ExecContext(ctx, stmt); err != nil {
-			return err
+			return fmt.Errorf("failed to execute statement %q: %w", stmt, err)
 		}
 	}
 	return nil
