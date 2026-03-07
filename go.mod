@@ -11,8 +11,8 @@ require (
 	github.com/mfridman/interpolate v0.0.2
 	github.com/mfridman/xflag v0.1.0
 	github.com/microsoft/go-mssqldb v1.9.6
-	github.com/moby/moby/api v1.53.0
-	github.com/moby/moby/client v0.2.2
+	github.com/moby/moby/api v1.54.0
+	github.com/moby/moby/client v0.3.0
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/stretchr/testify v1.11.1
 	github.com/tursodatabase/libsql-client-go v0.0.0-20251219100830-236aa1ff8acc
