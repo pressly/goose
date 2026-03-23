@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -58,6 +59,34 @@ func TestLiteBinary(t *testing.T) {
 			require.NoError(t, err)
 			require.Contains(t, out, c.out)
 		}
+	})
+	t.Run("status_limit", func(t *testing.T) {
+		t.Parallel()
+		dir := t.TempDir()
+		dbPath := filepath.Join(dir, "sql.db")
+		_, err := cli.run("-dir=testdata/migrations", "sqlite3", dbPath, "up")
+		require.NoError(t, err)
+
+		out, err := cli.run("-dir=testdata/migrations", "sqlite3", dbPath, "status", "-n", "2")
+		require.NoError(t, err)
+		require.Equal(t, 2, strings.Count(out, "--"))
+		require.Contains(t, out, "00004_insert_data.sql")
+		require.Contains(t, out, "00005_posts_view.sql")
+		require.NotContains(t, out, "00003_comments_table.sql")
+	})
+	t.Run("status_default_prints_all", func(t *testing.T) {
+		t.Parallel()
+		dir := t.TempDir()
+		dbPath := filepath.Join(dir, "sql.db")
+		total := countSQLFiles(t, "testdata/migrations")
+		_, err := cli.run("-dir=testdata/migrations", "sqlite3", dbPath, "up")
+		require.NoError(t, err)
+
+		out, err := cli.run("-dir=testdata/migrations", "sqlite3", dbPath, "status")
+		require.NoError(t, err)
+		require.Equal(t, total, strings.Count(out, "--"))
+		require.Contains(t, out, "00001_users_table.sql")
+		require.Contains(t, out, "00005_posts_view.sql")
 	})
 	t.Run("gh_issue_532", func(t *testing.T) {
 		// https://github.com/pressly/goose/issues/532
