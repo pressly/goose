@@ -30,6 +30,7 @@ var (
 	dir          = flags.String("dir", DefaultMigrationDir, "directory with migration files, (GOOSE_MIGRATION_DIR env variable supported)")
 	table        = flags.String("table", "", "migrations table name")
 	verbose      = flags.Bool("v", false, "enable verbose mode")
+	debugFlag    = flags.Bool("debug", false, "enable debug mode")
 	help         = flags.Bool("h", false, "print help")
 	versionFlag  = flags.Bool("version", false, "print version")
 	certfile     = flags.String("certfile", "", "file path to root CA's certificates in pem format (only support on mysql)")
@@ -80,6 +81,9 @@ func main() {
 	if *verbose {
 		goose.SetVerbose(true)
 	}
+	if *debugFlag {
+		goose.SetDebug(true)
+	}
 	if *sequential {
 		goose.SetSequential(true)
 	}
@@ -127,7 +131,7 @@ func main() {
 		}
 		return
 	case "validate":
-		if err := printValidate(*dir, *verbose); err != nil {
+		if err := printValidate(*dir, *verbose, *debugFlag); err != nil {
 			log.Fatalf("goose validate: %v", err)
 		}
 		return
@@ -383,20 +387,18 @@ func gatherFilenames(filename string) ([]string, error) {
 	return filenames, nil
 }
 
-func printValidate(filename string, verbose bool) error {
+func printValidate(filename string, verbose, debug bool) error {
 	filenames, err := gatherFilenames(filename)
 	if err != nil {
 		return err
 	}
 	stats, err := migrationstats.GatherStats(
 		migrationstats.NewFileWalker(filenames...),
-		false,
+		debug,
 	)
 	if err != nil {
 		return err
 	}
-	// TODO(mf): we should introduce a --debug flag, which allows printing
-	// more internal debug information and leave verbose for additional information.
 	if !verbose {
 		return nil
 	}
