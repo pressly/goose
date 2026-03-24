@@ -307,7 +307,7 @@ func (p *Provider) UpTo(ctx context.Context, version int64) ([]*MigrationResult,
 // the migration version. This only applies in scenarios where migrations are allowed to be applied
 // out of order.
 func (p *Provider) Down(ctx context.Context) (*MigrationResult, error) {
-	res, err := p.down(ctx, true, 0)
+	res, err := p.down(ctx, true, sentinelVersion())
 	if err != nil {
 		return nil, err
 	}
@@ -395,6 +395,7 @@ func (p *Provider) up(
 			getVersionsFromListMigrations(dbMigrations), // db versions
 			version,
 			p.cfg.allowMissing,
+			sentinelVersion(),
 		)
 		if err != nil {
 			return nil, err
@@ -582,6 +583,7 @@ func (p *Provider) hasPending(ctx context.Context) (_ bool, retErr error) {
 		getVersionsFromListMigrations(dbMigrations), // db versions
 		math.MaxInt64,
 		p.cfg.allowMissing,
+		sentinelVersion(),
 	)
 	if err != nil {
 		return false, err
