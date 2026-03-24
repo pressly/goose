@@ -18,7 +18,7 @@ func DownContext(ctx context.Context, db *sql.DB, dir string, opts ...OptionsFun
 	for _, f := range opts {
 		f(option)
 	}
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+	migrations, err := CollectMigrations(dir, sentinelVersion(), maxVersion)
 	if err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func DownToContext(ctx context.Context, db *sql.DB, dir string, version int64, o
 	for _, f := range opts {
 		f(option)
 	}
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+	migrations, err := CollectMigrations(dir, sentinelVersion(), maxVersion)
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func DownToContext(ctx context.Context, db *sql.DB, dir string, version int64, o
 			return err
 		}
 
-		if currentVersion == 0 {
+		if currentVersion == sentinelVersion() {
 			log.Printf("goose: no migrations to run. current version: %d", currentVersion)
 			return nil
 		}

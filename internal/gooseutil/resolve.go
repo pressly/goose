@@ -21,6 +21,7 @@ func UpVersions(
 	dbVersions []int64,
 	target int64,
 	allowMissing bool,
+	sentinelVersion int64,
 ) ([]int64, error) {
 	// Sort the list of versions in the filesystem. This should already be sorted, but we do this
 	// just in case.
@@ -28,7 +29,7 @@ func UpVersions(
 
 	// dbAppliedVersions is a map of all applied migrations in the database.
 	dbAppliedVersions := make(map[int64]bool, len(dbVersions))
-	var dbMaxVersion int64
+	dbMaxVersion := sentinelVersion
 	for _, v := range dbVersions {
 		dbAppliedVersions[v] = true
 		if v > dbMaxVersion {
