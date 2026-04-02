@@ -1269,3 +1269,216 @@ DROP VIEW posts_view;
 -- +goose Down
 `
 )
+
+func TestAllowZeroVersionProvider(t *testing.T) {
+	// Not parallel: mutates global state.
+	goose.SetAllowZeroVersion(true)
+	t.Cleanup(func() { goose.SetAllowZeroVersion(false) })
+
+	migration0 := `
+-- +goose Up
+CREATE TABLE zero_table (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
+-- +goose Down
+DROP TABLE zero_table;
+`
+	migration1 := `
+-- +goose Up
+CREATE TABLE one_table (id INTEGER PRIMARY KEY, value TEXT NOT NULL);
+-- +goose Down
+DROP TABLE one_table;
+`
+	fsys := fstest.MapFS{
+		"00000_zero_table.sql": newMapFile(migration0),
+		"00001_one_table.sql":  newMapFile(migration1),
+	}
+
+	tableExists := func(t *testing.T, db *sql.DB, table string) bool {
+		t.Helper()
+		var count int
+		err := db.QueryRow(
+			"SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?", table,
+		).Scan(&count)
+		require.NoError(t, err)
+		return count == 1
+	}
+
+	t.Run("up_and_down_all", func(t *testing.T) {
+		db := newDB(t)
+		p, err := goose.NewProvider(goose.DialectSQLite3, db, fsys,
+			goose.WithVerbose(testing.Verbose()),
+		)
+		require.NoError(t, err)
+		ctx := context.Background()
+
+		results, err := p.Up(ctx)
+		require.NoError(t, err)
+		require.Len(t, results, 2)
+		require.Equal(t, int64(0), results[0].Source.Version)
+		require.Equal(t, int64(1), results[1].Source.Version)
+		require.True(t, tableExists(t, db, "zero_table"))
+		require.True(t, tableExists(t, db, "one_table"))
+
+		ver, err := p.GetDBVersion(ctx)
+		require.NoError(t, err)
+		require.Equal(t, int64(1), ver)
+
+		res, err := p.Down(ctx)
+		require.NoError(t, err)
+		require.Equal(t, int64(1), res.Source.Version)
+		res, err = p.Down(ctx)
+		require.NoError(t, err)
+		require.Equal(t, int64(0), res.Source.Version)
+
+		_, err = p.Down(ctx)
+		require.ErrorIs(t, err, goose.ErrNoNextVersion)
+		require.False(t, tableExists(t, db, "zero_table"))
+		require.False(t, tableExists(t, db, "one_table"))
+	})
+	t.Run("up_to_zero", func(t *testing.T) {
+		db := newDB(t)
+		p, err := goose.NewProvider(goose.DialectSQLite3, db, fsys,
+			goose.WithVerbose(testing.Verbose()),
+		)
+		require.NoError(t, err)
+		ctx := context.Background()
+
+		results, err := p.UpTo(ctx, 0)
+		require.NoError(t, err)
+		require.Len(t, results, 1)
+		require.Equal(t, int64(0), results[0].Source.Version)
+		require.True(t, tableExists(t, db, "zero_table"))
+		require.False(t, tableExists(t, db, "one_table"))
+
+		ver, err := p.GetDBVersion(ctx)
+		require.NoError(t, err)
+		require.Equal(t, int64(0), ver)
+	})
+	t.Run("apply_version_zero", func(t *testing.T) {
+		db := newDB(t)
+		p, err := goose.NewProvider(goose.DialectSQLite3, db, fsys,
+			goose.WithVerbose(testing.Verbose()),
+		)
+		require.NoError(t, err)
+		ctx := context.Background()
+
+		res, err := p.ApplyVersion(ctx, 0, true)
+		require.NoError(t, err)
+		require.Equal(t, int64(0), res.Source.Version)
+		require.True(t, tableExists(t, db, "zero_table"))
+
+		_, err = p.ApplyVersion(ctx, 0, true)
+		require.ErrorIs(t, err, goose.ErrAlreadyApplied)
+
+		res, err = p.ApplyVersion(ctx, 0, false)
+		require.NoError(t, err)
+		require.Equal(t, int64(0), res.Source.Version)
+		require.False(t, tableExists(t, db, "zero_table"))
+	})
+	t.Run("list_sources_includes_zero", func(t *testing.T) {
+		db := newDB(t)
+		p, err := goose.NewProvider(goose.DialectSQLite3, db, fsys,
+			goose.WithVerbose(testing.Verbose()),
+		)
+		require.NoError(t, err)
+
+		sources := p.ListSources()
+		require.Len(t, sources, 2)
+		require.Equal(t, int64(0), sources[0].Version)
+		require.Equal(t, int64(1), sources[1].Version)
+	})
+	t.Run("sentinel_is_negative_one", func(t *testing.T) {
+		db := newDB(t)
+		p, err := goose.NewProvider(goose.DialectSQLite3, db, fsys,
+			goose.WithVerbose(testing.Verbose()),
+		)
+		require.NoError(t, err)
+
+		_, err = p.HasPending(context.Background())
+		require.NoError(t, err)
+
+		var sentinel int64
+		err = db.QueryRow("SELECT MIN(version_id) FROM goose_db_version").Scan(&sentinel)
+		require.NoError(t, err)
+		require.Equal(t, int64(-1), sentinel)
+	})
+}
+
+func TestAllowZeroVersionLegacyGlobalAPI(t *testing.T) {
+	// Not parallel: mutates global state.
+	goose.SetAllowZeroVersion(true)
+	t.Cleanup(func() { goose.SetAllowZeroVersion(false) })
+
+	migration0 := `
+-- +goose Up
+CREATE TABLE legacy_zero (id INTEGER PRIMARY KEY);
+-- +goose Down
+DROP TABLE legacy_zero;
+`
+	migration1 := `
+-- +goose Up
+CREATE TABLE legacy_one (id INTEGER PRIMARY KEY);
+-- +goose Down
+DROP TABLE legacy_one;
+`
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "00000_zero.sql"), []byte(migration0), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "00001_one.sql"), []byte(migration1), 0644))
+
+	db := newDB(t)
+	require.NoError(t, goose.SetDialect("sqlite3"))
+
+	tableExists := func(t *testing.T, table string) bool {
+		t.Helper()
+		var count int
+		err := db.QueryRow(
+			"SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?", table,
+		).Scan(&count)
+		require.NoError(t, err)
+		return count == 1
+	}
+
+	t.Run("up_applies_version_zero", func(t *testing.T) {
+		require.NoError(t, goose.Up(db, dir))
+		require.True(t, tableExists(t, "legacy_zero"))
+		require.True(t, tableExists(t, "legacy_one"))
+
+		ver, err := goose.GetDBVersion(db)
+		require.NoError(t, err)
+		require.Equal(t, int64(1), ver)
+	})
+	t.Run("down_rolls_back_to_zero", func(t *testing.T) {
+		require.NoError(t, goose.Down(db, dir))
+		require.False(t, tableExists(t, "legacy_one"))
+		require.True(t, tableExists(t, "legacy_zero"))
+
+		ver, err := goose.GetDBVersion(db)
+		require.NoError(t, err)
+		require.Equal(t, int64(0), ver)
+	})
+	t.Run("down_rolls_back_version_zero", func(t *testing.T) {
+		require.NoError(t, goose.Down(db, dir))
+		require.False(t, tableExists(t, "legacy_zero"))
+
+		ver, err := goose.GetDBVersion(db)
+		require.NoError(t, err)
+		require.Equal(t, int64(-1), ver)
+	})
+}
+
+func TestZeroVersionRejectedByDefault(t *testing.T) {
+	t.Parallel()
+
+	t.Run("provider_rejects_zero_version_file", func(t *testing.T) {
+		db := newDB(t)
+		fsys := fstest.MapFS{
+			"00000_bad.sql": newMapFile("-- +goose Up\nCREATE TABLE x (id INT);"),
+		}
+		_, err := goose.NewProvider(goose.DialectSQLite3, db, fsys)
+		require.ErrorIs(t, err, goose.ErrNoMigrations)
+	})
+	t.Run("numeric_component_rejects_zero", func(t *testing.T) {
+		_, err := goose.NumericComponent("00000_foo.sql")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "migration version must be greater than zero")
+	})
+}
