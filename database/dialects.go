@@ -17,6 +17,7 @@ const (
 	DialectCustom     Dialect = ""
 	DialectClickHouse Dialect = "clickhouse"
 	DialectAuroraDSQL Dialect = "dsql"
+	DialectDuckDB     Dialect = "duckdb"
 	DialectMSSQL      Dialect = "mssql"
 	DialectMySQL      Dialect = "mysql"
 	DialectPostgres   Dialect = "postgres"
@@ -40,6 +41,7 @@ func NewStore(d Dialect, tableName string) (Store, error) {
 	lookup := map[Dialect]dialect.Querier{
 		DialectClickHouse: dialects.NewClickhouse(),
 		DialectAuroraDSQL: dialects.NewAuroraDSQL(),
+		DialectDuckDB:     dialects.NewDuckDB(),
 		DialectMSSQL:      dialects.NewSqlserver(),
 		DialectMySQL:      dialects.NewMysql(),
 		DialectPostgres:   dialects.NewPostgres(),
