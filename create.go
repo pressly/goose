@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"text/template"
 	"time"
+
+	"github.com/pressly/goose/v3/internal/legacystore"
 )
 
 type tmplVars struct {
@@ -53,7 +55,11 @@ func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, m
 		if migrationType == "go" {
 			tmpl = goSQLMigrationTemplate
 		} else {
-			tmpl = sqlMigrationTemplate
+			if currentStoreSupportsTx() {
+				tmpl = sqlMigrationTemplate
+			} else {
+				tmpl = sqlNoTxMigrationTemplate
+			}
 		}
 	}
 
@@ -91,6 +97,22 @@ SELECT 'up SQL query';
 -- +goose Down
 SELECT 'down SQL query';
 `))
+
+var sqlNoTxMigrationTemplate = template.Must(template.New("goose.sql-migration-no-tx").Parse(`-- +goose NO TRANSACTION
+
+-- +goose Up
+SELECT 'up SQL query';
+
+-- +goose Down
+SELECT 'down SQL query';
+`))
+
+func currentStoreSupportsTx() bool {
+	if txSupporter, ok := store.(legacystore.TxSupporter); ok {
+		return txSupporter.SupportsTx()
+	}
+	return true
+}
 
 var goSQLMigrationTemplate = template.Must(template.New("goose.go-migration").Parse(`package migrations
 
