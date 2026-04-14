@@ -20,6 +20,7 @@ const (
 	DialectSQLite3    Dialect = database.DialectSQLite3
 	DialectSpanner    Dialect = database.DialectSpanner
 	DialectStarrocks  Dialect = database.DialectStarrocks
+	DialectTDengine   Dialect = database.DialectTDengine
 	DialectTiDB       Dialect = database.DialectTiDB
 	DialectTurso      Dialect = database.DialectTurso
 	DialectYdB        Dialect = database.DialectYdB
@@ -65,6 +66,8 @@ func SetDialect(s string) error {
 		d = DialectTurso
 	case "starrocks":
 		d = DialectStarrocks
+	case "tdengine":
+		d = DialectTDengine
 	default:
 		return fmt.Errorf("%q: unknown dialect", s)
 	}
