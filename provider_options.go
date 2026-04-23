@@ -244,6 +244,23 @@ func WithIsolateDDL(b bool) ProviderOption {
 	})
 }
 
+// WithDisableTransactions disables all transaction usage. This is useful for databases that do not
+// support transactions at all, such as chDB (embedded ClickHouse).
+//
+// This differs from [WithIsolateDDL], which separates DDL and DML operations but may still use
+// transactions for individual operations. WithDisableTransactions ensures that BEGIN/COMMIT are
+// never issued.
+//
+// Note: this option is incompatible with Go migrations that use [GoFunc.RunTx], which requires a
+// *sql.Tx. If any registered Go migration uses RunTx, the provider will return an error at
+// construction time.
+func WithDisableTransactions(b bool) ProviderOption {
+	return configFunc(func(c *config) error {
+		c.disableTransactions = b
+		return nil
+	})
+}
+
 type config struct {
 	tableName string
 	store     database.Store
@@ -266,6 +283,7 @@ type config struct {
 	allowMissing          bool
 	disableGlobalRegistry bool
 	isolateDDL            bool
+	disableTransactions   bool
 
 	// Only a single logger can be set, they are mutually exclusive. If neither is set, a default
 	// [Logger] will be set to maintain backward compatibility in /v3.
