@@ -55,6 +55,12 @@ func TestNewProvider(t *testing.T) {
 			goose.WithTableName("custom_table"),
 		)
 		require.Error(t, err)
+		// Cannot set store placeholder format when custom store is set
+		_, err = goose.NewProvider(goose.DialectCustom, db, nil,
+			goose.WithStore(store),
+			goose.WithStorePlaceholderFormat(database.PlaceholderQuestion),
+		)
+		require.Error(t, err)
 	})
 	t.Run("valid", func(t *testing.T) {
 		// Valid dialect, db, and fsys allowed
@@ -74,6 +80,11 @@ func TestNewProvider(t *testing.T) {
 		require.NoError(t, err)
 		// Custom table name allowed on dialect-based store
 		_, err = goose.NewProvider(goose.DialectSQLite3, db, fsys, goose.WithTableName("some_table"))
+		require.NoError(t, err)
+		// Store placeholder format allowed on dialect-based store
+		_, err = goose.NewProvider(goose.DialectSQLite3, db, fsys,
+			goose.WithStorePlaceholderFormat(database.PlaceholderQuestion),
+		)
 		require.NoError(t, err)
 	})
 }

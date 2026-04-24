@@ -84,6 +84,9 @@ func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption
 	if cfg.tableName != "" && cfg.store != nil {
 		return nil, errors.New("WithTableName cannot be used with WithStore; set the table name directly on your custom store")
 	}
+	if len(cfg.storeOptions) > 0 && cfg.store != nil {
+		return nil, errors.New("store options cannot be used with WithStore; configure the custom store directly")
+	}
 
 	// Set default logger if neither was provided
 	if cfg.slogger == nil && cfg.logger == nil {
@@ -92,7 +95,7 @@ func NewProvider(dialect Dialect, db *sql.DB, fsys fs.FS, opts ...ProviderOption
 	var store database.Store
 	if dialect != "" {
 		var err error
-		store, err = database.NewStore(dialect, cmp.Or(cfg.tableName, DefaultTablename))
+		store, err = database.NewStore(dialect, cmp.Or(cfg.tableName, DefaultTablename), cfg.storeOptions...)
 		if err != nil {
 			return nil, err
 		}
