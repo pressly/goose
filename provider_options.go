@@ -59,6 +59,18 @@ func WithTableName(name string) ProviderOption {
 	})
 }
 
+// WithStorePlaceholderFormat configures the placeholder format used by goose's default version
+// table store queries.
+//
+// This option cannot be used together with [WithStore], since a custom store is responsible for its
+// own query format.
+func WithStorePlaceholderFormat(format database.PlaceholderFormat) ProviderOption {
+	return configFunc(func(c *config) error {
+		c.storeOptions = append(c.storeOptions, database.WithPlaceholderFormat(format))
+		return nil
+	})
+}
+
 // WithVerbose enables verbose logging.
 func WithVerbose(b bool) ProviderOption {
 	return configFunc(func(c *config) error {
@@ -245,8 +257,9 @@ func WithIsolateDDL(b bool) ProviderOption {
 }
 
 type config struct {
-	tableName string
-	store     database.Store
+	tableName    string
+	store        database.Store
+	storeOptions []database.StoreOption
 
 	verbose         bool
 	excludePaths    map[string]bool
