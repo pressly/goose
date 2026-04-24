@@ -110,7 +110,7 @@ func testStore(
 	require.NoError(t, err)
 
 	// Insert 5 migrations in addition to the zero migration.
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		err = runConn(ctx, db, func(conn *sql.Conn) error {
 			err := store.Insert(ctx, conn, database.InsertRequest{Version: int64(i)})
 			require.NoError(t, err)
@@ -128,7 +128,7 @@ func testStore(
 		require.NoError(t, err)
 		require.Len(t, res, 6)
 		// Check versions are in descending order.
-		for i := 0; i < 6; i++ {
+		for i := range 6 {
 			require.EqualValues(t, res[i].Version, 5-i)
 		}
 		return nil
@@ -154,7 +154,7 @@ func testStore(
 		require.NoError(t, err)
 		require.Len(t, res, 3)
 		// Check that the remaining versions are in descending order.
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			require.EqualValues(t, res[i].Version, 2-i)
 		}
 		return nil
@@ -162,7 +162,7 @@ func testStore(
 	require.NoError(t, err)
 
 	// Get remaining migrations one by one.
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		err = runConn(ctx, db, func(conn *sql.Conn) error {
 			res, err := store.GetMigration(ctx, conn, int64(i))
 			require.NoError(t, err)

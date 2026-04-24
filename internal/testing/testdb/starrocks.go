@@ -15,7 +15,7 @@ import (
 const (
 	// https://hub.docker.com/r/starrocks/allin1-ubuntu
 	STARROCKS_IMAGE   = "starrocks/allin1-ubuntu"
-	STARROCKS_VERSION = "3.2-latest"
+	STARROCKS_VERSION = "3.5.11"
 
 	STARROCKS_USER    = "root"
 	STARROCKS_INIT_DB = "migrations"

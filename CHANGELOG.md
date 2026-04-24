@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [Unreleased]
 
 - Support [environ credentials](https://github.com/ydb-platform/ydb-go-sdk-auth-environ/?tab=readme-ov-file#auth-environment-variables)
   for YDB using connection string parameter `use_env_credentials`.
@@ -15,6 +15,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     stored procedures or functions. For simple statements, these annotations are not needed. See
     [docs](https://pressly.github.io/goose/documentation/annotations/#complex-statements) for more
     details.
+
+## [v3.27.0] - 2026-02-22
+
+### Added
+
+- Preliminary Spanner dialect support (#966)
+
+### Changed
+
+- **Minimum Go version is now 1.25**
+- SQL migration templates no longer include `StatementBegin` and `StatementEnd` annotations. These
+  are only needed for complex statements containing semicolons (e.g., stored procedures). See
+  [docs](https://pressly.github.io/goose/documentation/annotations/#complex-statements) for details.
+- Various dependency upgrades
 
 ## [v3.26.0] - 2025-10-03
 
@@ -300,7 +314,8 @@ Here's a quick summary:
 - Add new `context.Context`-aware functions and methods, for both sql and go migrations.
 - Return error when no migration files found or dir is not a directory.
 
-[Unreleased]: https://github.com/pressly/goose/compare/v3.26.0...HEAD
+[Unreleased]: https://github.com/pressly/goose/compare/v3.27.0...HEAD
+[v3.27.0]: https://github.com/pressly/goose/compare/v3.26.0...v3.27.0
 [v3.26.0]: https://github.com/pressly/goose/compare/v3.25.0...v3.26.0
 [v3.25.0]: https://github.com/pressly/goose/compare/v3.24.3...v3.25.0
 [v3.24.3]: https://github.com/pressly/goose/compare/v3.24.2...v3.24.3
