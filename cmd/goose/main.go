@@ -271,6 +271,7 @@ Drivers:
     ydb
     starrocks
     turso
+	spark
 
 Examples:
     goose sqlite3 ./foo.db status
@@ -287,6 +288,7 @@ Examples:
     goose clickhouse "tcp://127.0.0.1:9000" status
     goose ydb "grpcs://localhost:2135/local?go_query_mode=scripting&go_fake_tx=scripting&go_query_bind=declare,numeric" status
     goose turso "libsql://dbname.turso.io?authToken=token" status
+	goose spark "hive://user:password@127.0.0.1:10000/default?auth=LDAP" status
 
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose status
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose create init sql
@@ -295,6 +297,7 @@ Examples:
     GOOSE_DRIVER=redshift GOOSE_DBSTRING="postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" goose status
     GOOSE_DRIVER=turso GOOSE_DBSTRING="libsql://dbname.turso.io?authToken=token" goose status
     GOOSE_DRIVER=clickhouse GOOSE_DBSTRING="clickhouse://user:password@qwerty.clickhouse.cloud:9440/dbname?secure=true&skip_verify=false" goose status
+	GOOSE_DRIVER=spark GOOSE_DBSTRING="hive://user:password@127.0.0.1:10000/default?auth=LDAP" goose status
 
 Options:
 `
