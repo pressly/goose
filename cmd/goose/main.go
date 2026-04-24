@@ -45,6 +45,15 @@ var (
 
 var version string
 
+func versionFromBuildInfo() string {
+	buildInfo, ok := debug.ReadBuildInfo()
+	if ok && buildInfo != nil && buildInfo.Main.Version != "" {
+		return buildInfo.Main.Version
+	}
+
+	return ""
+}
+
 func main() {
 	ctx := context.Background()
 
@@ -56,9 +65,8 @@ func main() {
 	}
 
 	if *versionFlag {
-		buildInfo, ok := debug.ReadBuildInfo()
-		if version == "" && ok && buildInfo != nil && buildInfo.Main.Version != "" {
-			version = buildInfo.Main.Version
+		if version == "" {
+			version = versionFromBuildInfo()
 		}
 		fmt.Printf("goose version: %s\n", strings.TrimSpace(version))
 		return
