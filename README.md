@@ -98,6 +98,7 @@ Examples:
     goose clickhouse "tcp://127.0.0.1:9000" status
     goose ydb "grpcs://localhost:2135/local?go_query_mode=scripting&go_fake_tx=scripting&go_query_bind=declare,numeric" status
     goose starrocks "user:password@/dbname?parseTime=true&interpolateParams=true" status
+    goose spark "hive://user:password@127.0.0.1:10000/default?auth=LDAP" status
 
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose status
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose create init sql
@@ -105,6 +106,7 @@ Examples:
     GOOSE_DRIVER=mysql GOOSE_DBSTRING="user:password@/dbname" goose status
     GOOSE_DRIVER=redshift GOOSE_DBSTRING="postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" goose status
     GOOSE_DRIVER=clickhouse GOOSE_DBSTRING="clickhouse://user:password@qwerty.clickhouse.cloud:9440/dbname?secure=true&skip_verify=false" goose status
+    GOOSE_DRIVER=spark GOOSE_DBSTRING="hive://user:password@127.0.0.1:10000/default?auth=LDAP" goose status
 
 Options:
 
@@ -249,6 +251,7 @@ export GOOSE_DRIVER=DRIVER
 export GOOSE_DBSTRING=DBSTRING
 export GOOSE_MIGRATION_DIR=MIGRATION_DIR
 export GOOSE_TABLE=TABLENAME
+export GOOSE_SPARK_STORAGE_FORMAT=PAIMON
 ```
 
 **2. Via `.env` files with corresponding variables. `.env` file example**:
@@ -258,7 +261,12 @@ GOOSE_DRIVER=postgres
 GOOSE_DBSTRING=postgres://admin:admin@localhost:5432/admin_db
 GOOSE_MIGRATION_DIR=./migrations
 GOOSE_TABLE=custom.goose_migrations
+GOOSE_SPARK_STORAGE_FORMAT=PAIMON
 ```
+
+`GOOSE_SPARK_STORAGE_FORMAT` affects only the `spark` dialect and controls the table format used for
+the goose version table. Supported values are `PAIMON` and `ICEBERG`. If unset or invalid, goose
+falls back to `PAIMON`.
 
 Loading from `.env` files is enabled by default. To disable this feature, set the `-env=none` flag.
 If you want to load from a specific file, set the `-env` flag to the file path.

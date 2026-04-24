@@ -23,6 +23,7 @@ const (
 	DialectTiDB       Dialect = database.DialectTiDB
 	DialectTurso      Dialect = database.DialectTurso
 	DialectYdB        Dialect = database.DialectYdB
+	DialectSpark      Dialect = database.DialectSpark
 
 	// Dialects only available to the [Provider].
 	DialectAuroraDSQL Dialect = database.DialectAuroraDSQL
@@ -65,6 +66,8 @@ func SetDialect(s string) error {
 		d = DialectTurso
 	case "starrocks":
 		d = DialectStarrocks
+	case "spark":
+		d = DialectSpark
 	default:
 		return fmt.Errorf("%q: unknown dialect", s)
 	}
