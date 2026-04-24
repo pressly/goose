@@ -247,13 +247,11 @@ func WithIsolateDDL(b bool) ProviderOption {
 // WithDisableTransactions disables all transaction usage. This is useful for databases that do not
 // support transactions at all, such as chDB (embedded ClickHouse).
 //
-// This differs from [WithIsolateDDL], which separates DDL and DML operations but may still use
-// transactions for individual operations. WithDisableTransactions ensures that BEGIN/COMMIT are
-// never issued.
-//
-// Note: this option is incompatible with Go migrations that use [GoFunc.RunTx], which requires a
-// *sql.Tx. If any registered Go migration uses RunTx, the provider will return an error at
-// construction time.
+// Today, this guards the same transaction sites as [WithIsolateDDL]. The key differences are:
+//   - Semantic: WithIsolateDDL signals "separate DDL from DML," while this option signals
+//     "the database does not support transactions at all."
+//   - Validation: this option rejects Go migrations that use [GoFunc.RunTx] at construction
+//     time, since a *sql.Tx cannot be created when transactions are disabled.
 func WithDisableTransactions(b bool) ProviderOption {
 	return configFunc(func(c *config) error {
 		c.disableTransactions = b
