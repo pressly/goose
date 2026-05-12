@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -48,5 +49,44 @@ func TestSequential(t *testing.T) {
 		if !strings.HasPrefix(f.Name(), expected) {
 			t.Errorf("failed to find %s prefix in %s", expected, f.Name())
 		}
+	}
+}
+
+func TestCreateSQLTemplateByTxCapability(t *testing.T) {
+	t.Cleanup(func() {
+		_ = SetDialect("postgres")
+	})
+
+	createAndRead := func(t *testing.T, dialect, name string) string {
+		t.Helper()
+		if err := SetDialect(dialect); err != nil {
+			t.Fatalf("set dialect: %v", err)
+		}
+		dir := t.TempDir()
+		if err := Create(nil, dir, name, "sql"); err != nil {
+			t.Fatalf("create migration: %v", err)
+		}
+		files, err := os.ReadDir(dir)
+		if err != nil {
+			t.Fatalf("read dir: %v", err)
+		}
+		if len(files) != 1 {
+			t.Fatalf("expected 1 file, got %d", len(files))
+		}
+		content, err := os.ReadFile(filepath.Join(dir, files[0].Name()))
+		if err != nil {
+			t.Fatalf("read migration file: %v", err)
+		}
+		return string(content)
+	}
+
+	tdengineSQL := createAndRead(t, "tdengine", "tdengine_no_tx")
+	if !strings.Contains(tdengineSQL, "-- +goose NO TRANSACTION") {
+		t.Fatalf("expected tdengine SQL template to include NO TRANSACTION annotation")
+	}
+
+	postgresSQL := createAndRead(t, "postgres", "postgres_tx")
+	if strings.Contains(postgresSQL, "-- +goose NO TRANSACTION") {
+		t.Fatalf("expected postgres SQL template not to include NO TRANSACTION annotation")
 	}
 }

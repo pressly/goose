@@ -112,6 +112,13 @@ func main() {
 		}
 		return
 	case "create":
+		// For create command we may not open a DB connection, so use configured driver (if any)
+		// to select a dialect-aware SQL template (e.g. NO TRANSACTION for tdengine).
+		if envConfig.driver != "" {
+			if err := goose.SetDialect(envConfig.driver); err != nil {
+				log.Fatalf("goose create: %v", err)
+			}
+		}
 		if err := goose.RunContext(ctx, "create", nil, *dir, args[1:]...); err != nil {
 			log.Fatalf("goose run: %v", err)
 		}
@@ -271,6 +278,7 @@ Drivers:
     ydb
     starrocks
     turso
+    tdengine
 
 Examples:
     goose sqlite3 ./foo.db status
@@ -287,6 +295,7 @@ Examples:
     goose clickhouse "tcp://127.0.0.1:9000" status
     goose ydb "grpcs://localhost:2135/local?go_query_mode=scripting&go_fake_tx=scripting&go_query_bind=declare,numeric" status
     goose turso "libsql://dbname.turso.io?authToken=token" status
+    goose tdengine "root:taosdata@ws(localhost:6041)/" status
 
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose status
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose create init sql
@@ -295,6 +304,7 @@ Examples:
     GOOSE_DRIVER=redshift GOOSE_DBSTRING="postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" goose status
     GOOSE_DRIVER=turso GOOSE_DBSTRING="libsql://dbname.turso.io?authToken=token" goose status
     GOOSE_DRIVER=clickhouse GOOSE_DBSTRING="clickhouse://user:password@qwerty.clickhouse.cloud:9440/dbname?secure=true&skip_verify=false" goose status
+    GOOSE_DRIVER=tdengine GOOSE_DBSTRING="root:taosdata@ws(localhost:6041)/" goose status
 
 Options:
 `

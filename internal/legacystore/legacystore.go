@@ -24,6 +24,8 @@ type Store interface {
 	// CreateVersionTable creates the version table within a transaction.
 	// This table is used to store goose migrations.
 	CreateVersionTable(ctx context.Context, tx *sql.Tx, tableName string) error
+	// CreateVersionTableNoTx creates the version table without a transaction.
+	CreateVersionTableNoTx(ctx context.Context, db *sql.DB, tableName string) error
 
 	// InsertVersion inserts a version id into the version table within a transaction.
 	InsertVersion(ctx context.Context, tx *sql.Tx, tableName string, version int64) error
@@ -45,6 +47,13 @@ type Store interface {
 	//
 	// If there are no migrations, an empty slice is returned with no error.
 	ListMigrations(ctx context.Context, db *sql.DB, tableName string) ([]*ListMigrationsResult, error)
+}
+
+// TxSupporter is an optional interface to declare transaction capability.
+//
+// If a Store does not implement this interface, goose assumes transactions are supported.
+type TxSupporter interface {
+	SupportsTx() bool
 }
 
 // NewStore returns a new Store for the given dialect.
@@ -75,6 +84,8 @@ func NewStore(d database.Dialect) (Store, error) {
 		querier = dialects.NewTurso()
 	case database.DialectStarrocks:
 		querier = dialects.NewStarrocks()
+	case database.DialectTDengine:
+		querier = dialects.NewTDengine()
 	default:
 		return nil, fmt.Errorf("unknown querier dialect: %v", d)
 	}
@@ -100,6 +111,12 @@ var _ Store = (*store)(nil)
 func (s *store) CreateVersionTable(ctx context.Context, tx *sql.Tx, tableName string) error {
 	q := s.querier.CreateTable(tableName)
 	_, err := tx.ExecContext(ctx, q)
+	return err
+}
+
+func (s *store) CreateVersionTableNoTx(ctx context.Context, db *sql.DB, tableName string) error {
+	q := s.querier.CreateTable(tableName)
+	_, err := db.ExecContext(ctx, q)
 	return err
 }
 
@@ -170,4 +187,14 @@ func (s *store) ListMigrations(ctx context.Context, db *sql.DB, tableName string
 		return nil, err
 	}
 	return migrations, nil
+}
+
+// SupportsTx returns whether the current dialect supports transaction operations.
+//
+// If the dialect does not provide this capability, default to true for backward compatibility.
+func (s *store) SupportsTx() bool {
+	if v, ok := s.querier.(interface{ SupportsTx() bool }); ok {
+		return v.SupportsTx()
+	}
+	return true
 }

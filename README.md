@@ -16,8 +16,8 @@ Manage your **database schema** by creating incremental SQL changes or Go functi
 #### Features
 
 - Works against multiple databases:
-  - Postgres, MySQL, Spanner, SQLite, YDB, ClickHouse, MSSQL, Vertica, and
-    more.
+  - Postgres, MySQL, Spanner, SQLite, YDB, ClickHouse, MSSQL, TDengine,
+    Vertica, and more.
 - Supports Go migrations written as plain functions.
 - Supports [embedded](https://pkg.go.dev/embed/) migrations.
 - Out-of-order migrations.
@@ -39,8 +39,8 @@ Binary too big? Build a lite version by excluding the drivers you don't need:
 go build -tags='no_postgres no_mysql no_sqlite3 no_ydb' -o goose ./cmd/goose
 
 # Available build tags:
-#   no_clickhouse  no_libsql   no_mssql    no_mysql
-#   no_postgres    no_sqlite3  no_vertica  no_ydb
+#   no_clickhouse  no_libsql    no_mssql    no_mysql
+#   no_postgres    no_sqlite3   no_tdengine no_vertica  no_ydb
 ```
 
 For macOS users `goose` is available as a [Homebrew
@@ -81,6 +81,7 @@ Drivers:
     ydb
     starrocks
     turso
+    tdengine
 
 Examples:
     goose sqlite3 ./foo.db status
@@ -98,6 +99,7 @@ Examples:
     goose clickhouse "tcp://127.0.0.1:9000" status
     goose ydb "grpcs://localhost:2135/local?go_query_mode=scripting&go_fake_tx=scripting&go_query_bind=declare,numeric" status
     goose starrocks "user:password@/dbname?parseTime=true&interpolateParams=true" status
+    goose tdengine "root:taosdata@ws(localhost:6041)/" status
 
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose status
     GOOSE_DRIVER=sqlite3 GOOSE_DBSTRING=./foo.db goose create init sql
@@ -105,6 +107,7 @@ Examples:
     GOOSE_DRIVER=mysql GOOSE_DBSTRING="user:password@/dbname" goose status
     GOOSE_DRIVER=redshift GOOSE_DBSTRING="postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" goose status
     GOOSE_DRIVER=clickhouse GOOSE_DBSTRING="clickhouse://user:password@qwerty.clickhouse.cloud:9440/dbname?secure=true&skip_verify=false" goose status
+    GOOSE_DRIVER=tdengine GOOSE_DBSTRING="root:taosdata@ws(localhost:6041)/" goose status
 
 Options:
 

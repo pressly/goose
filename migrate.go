@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pressly/goose/v3/internal/legacystore"
 	"go.uber.org/multierr"
 )
 
@@ -253,19 +254,61 @@ func EnsureDBVersionContext(ctx context.Context, db *sql.DB) (int64, error) {
 // createVersionTable creates the db version table and inserts the
 // initial 0 value into it.
 func createVersionTable(ctx context.Context, db *sql.DB) error {
+	if !legacyStoreSupportsTx(store) {
+		return createVersionTableNoTx(ctx, db)
+	}
 	txn, err := db.BeginTx(ctx, nil)
 	if err != nil {
+		if isTxUnsupportedErr(err) {
+			return createVersionTableNoTx(ctx, db)
+		}
 		return err
 	}
 	if err := store.CreateVersionTable(ctx, txn, TableName()); err != nil {
 		_ = txn.Rollback()
+		if isTxUnsupportedErr(err) {
+			return createVersionTableNoTx(ctx, db)
+		}
 		return err
 	}
 	if err := store.InsertVersion(ctx, txn, TableName(), 0); err != nil {
 		_ = txn.Rollback()
+		if isTxUnsupportedErr(err) {
+			return createVersionTableNoTx(ctx, db)
+		}
 		return err
 	}
-	return txn.Commit()
+	if err := txn.Commit(); err != nil {
+		if isTxUnsupportedErr(err) {
+			return createVersionTableNoTx(ctx, db)
+		}
+		return err
+	}
+	return nil
+}
+
+func createVersionTableNoTx(ctx context.Context, db *sql.DB) error {
+	if err := store.CreateVersionTableNoTx(ctx, db, TableName()); err != nil {
+		return err
+	}
+	return store.InsertVersionNoTx(ctx, db, TableName(), 0)
+}
+
+func legacyStoreSupportsTx(s legacystore.Store) bool {
+	if v, ok := s.(legacystore.TxSupporter); ok {
+		return v.SupportsTx()
+	}
+	return true
+}
+
+func isTxUnsupportedErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "does not support transaction") ||
+		strings.Contains(msg, "not support transaction") ||
+		strings.Contains(msg, "websocket does not support transaction")
 }
 
 // GetDBVersion is an alias for EnsureDBVersion, but returns -1 in error.

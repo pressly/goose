@@ -24,6 +24,7 @@ const (
 	DialectSQLite3    Dialect = "sqlite3"
 	DialectSpanner    Dialect = "spanner"
 	DialectStarrocks  Dialect = "starrocks"
+	DialectTDengine   Dialect = "tdengine"
 	DialectTiDB       Dialect = "tidb"
 	DialectTurso      Dialect = "turso"
 	DialectYdB        Dialect = "ydb"
@@ -47,6 +48,7 @@ func NewStore(d Dialect, tableName string) (Store, error) {
 		DialectSQLite3:    dialects.NewSqlite3(),
 		DialectSpanner:    dialects.NewSpanner(),
 		DialectStarrocks:  dialects.NewStarrocks(),
+		DialectTDengine:   dialects.NewTDengine(),
 		DialectTiDB:       dialects.NewTidb(),
 		DialectTurso:      dialects.NewTurso(),
 		DialectVertica:    dialects.NewVertica(),
