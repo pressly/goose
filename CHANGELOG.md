@@ -7,6 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- MySQL/MariaDB table-based `Locker` implementation via `lock.NewMySQLTableLocker`
+  - Mirrors the Postgres table locker introduced in #993 but uses MySQL syntax (no `RETURNING`,
+    `INSERT IGNORE` + guarded `UPDATE`, `information_schema.tables` for existence checks)
+  - Shares the same `TableLockerOption` set as the Postgres table locker
+
 ## [v3.27.1] - 2026-04-24
 
 ### Changed
