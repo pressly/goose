@@ -263,6 +263,7 @@ Drivers:
     postgres
     mysql
     sqlite3
+    oracle
     spanner
     mssql
     redshift
@@ -281,6 +282,7 @@ Examples:
 
     goose postgres "user=postgres dbname=postgres sslmode=disable" status
     goose mysql "user:password@/dbname?parseTime=true" status
+    goose oracle "user/password@localhost:1521/ORCLPDB1" status
     goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
     goose tidb "user:password@/dbname?parseTime=true" status
     goose mssql "sqlserver://user:password@dbname:1433?database=master" status

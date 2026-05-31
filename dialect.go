@@ -15,6 +15,7 @@ const (
 	DialectClickHouse Dialect = database.DialectClickHouse
 	DialectMSSQL      Dialect = database.DialectMSSQL
 	DialectMySQL      Dialect = database.DialectMySQL
+	DialectOracle     Dialect = database.DialectOracle
 	DialectPostgres   Dialect = database.DialectPostgres
 	DialectRedshift   Dialect = database.DialectRedshift
 	DialectSQLite3    Dialect = database.DialectSQLite3
@@ -65,6 +66,8 @@ func SetDialect(s string) error {
 		d = DialectTurso
 	case "starrocks":
 		d = DialectStarrocks
+	case "oracle":
+		d = DialectOracle
 	default:
 		return fmt.Errorf("%q: unknown dialect", s)
 	}

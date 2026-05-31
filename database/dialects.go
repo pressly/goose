@@ -19,6 +19,7 @@ const (
 	DialectAuroraDSQL Dialect = "dsql"
 	DialectMSSQL      Dialect = "mssql"
 	DialectMySQL      Dialect = "mysql"
+	DialectOracle     Dialect = "oracle"
 	DialectPostgres   Dialect = "postgres"
 	DialectRedshift   Dialect = "redshift"
 	DialectSQLite3    Dialect = "sqlite3"
@@ -42,6 +43,7 @@ func NewStore(d Dialect, tableName string) (Store, error) {
 		DialectAuroraDSQL: dialects.NewAuroraDSQL(),
 		DialectMSSQL:      dialects.NewSqlserver(),
 		DialectMySQL:      dialects.NewMysql(),
+		DialectOracle:     dialects.NewOracle(),
 		DialectPostgres:   dialects.NewPostgres(),
 		DialectRedshift:   dialects.NewRedshift(),
 		DialectSQLite3:    dialects.NewSqlite3(),

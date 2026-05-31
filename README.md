@@ -16,7 +16,7 @@ Manage your **database schema** by creating incremental SQL changes or Go functi
 #### Features
 
 - Works against multiple databases:
-  - Postgres, MySQL, MariaDB, Spanner, SQLite,
+  - Postgres, MySQL, MariaDB, Oracle, Spanner, SQLite,
     YDB, ClickHouse, MSSQL, Vertica, and more.
 - Supports Go migrations written as plain functions.
 - Supports [embedded](https://pkg.go.dev/embed/) migrations.
@@ -40,7 +40,8 @@ go build -tags='no_postgres no_mysql no_sqlite3 no_ydb' -o goose ./cmd/goose
 
 # Available build tags:
 #   no_clickhouse  no_libsql   no_mssql    no_mysql
-#   no_postgres    no_sqlite3  no_vertica  no_ydb
+#   no_oracle      no_postgres no_sqlite3  no_vertica
+#   no_ydb
 ```
 
 For macOS users `goose` is available as a [Homebrew
@@ -73,6 +74,7 @@ Drivers:
     postgres
     mysql
     sqlite3
+    oracle
     spanner
     mssql
     redshift
@@ -91,6 +93,7 @@ Examples:
 
     goose postgres "user=postgres dbname=postgres sslmode=disable" status
     goose mysql "user:password@/dbname?parseTime=true" status
+    goose oracle "user/password@localhost:1521/ORCLPDB1" status
     goose spanner "projects/project/instances/instance/databases/database" status
     goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
     goose tidb "user:password@/dbname?parseTime=true" status
