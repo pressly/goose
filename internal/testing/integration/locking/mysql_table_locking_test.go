@@ -204,6 +204,11 @@ func TestMySQLTableLockerIntegration(t *testing.T) {
 
 		lockID := rand.Int64()
 
+		var logOutput strings.Builder
+		t.Cleanup(func() {
+			t.Logf("locker logs:\n%s", logOutput.String())
+		})
+
 		// Create a locker with very short lease to test cleanup functionality
 		locker, err := lock.NewMySQLTableLocker(
 			lock.WithTableLockID(lockID),
@@ -214,9 +219,16 @@ func TestMySQLTableLockerIntegration(t *testing.T) {
 
 		ctx := context.Background()
 
-		// Acquire the lock
-		err = locker.Lock(ctx, db)
+		// Acquire the lock. Use a cancellable context so we can stop locker1's heartbeat below: the
+		// heartbeat goroutine derives its context from the one passed to Lock.
+		locker1Ctx, cancelLocker1 := context.WithCancel(ctx)
+		err = locker.Lock(locker1Ctx, db)
 		require.NoError(t, err)
+
+		// Simulate the lock holder crashing: cancel its context to stop the heartbeat without
+		// releasing the lock row. Without this, the heartbeat keeps renewing the lease and it never
+		// goes stale, so locker2 could never acquire it.
+		cancelLocker1()
 
 		// Let the lease expire by waiting longer than lease duration. MySQL DATETIME(6) is
 		// server-side, so we wait long enough to ensure the lease has demonstrably expired.
