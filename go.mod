@@ -11,13 +11,13 @@ require (
 	github.com/mfridman/interpolate v0.0.2
 	github.com/mfridman/xflag v0.1.0
 	github.com/microsoft/go-mssqldb v1.10.0
-	github.com/moby/moby/api v1.54.2
-	github.com/moby/moby/client v0.4.1
+	github.com/moby/moby/api v1.55.0
+	github.com/moby/moby/client v0.5.0
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/stretchr/testify v1.11.1
 	github.com/tursodatabase/libsql-client-go v0.0.0-20251219100830-236aa1ff8acc
 	github.com/vertica/vertica-sql-go v1.3.6
-	github.com/ydb-platform/ydb-go-sdk/v3 v3.139.6
+	github.com/ydb-platform/ydb-go-sdk/v3 v3.141.0
 	github.com/ziutek/mymysql v1.5.4
 	go.uber.org/multierr v1.11.0
 	golang.org/x/sync v0.21.0
