@@ -157,7 +157,7 @@ func (s *store) ListMigrations(
 	var migrations []*ListMigrationsResult
 	for rows.Next() {
 		var result ListMigrationsResult
-		if err := rows.Scan(&result.Version, &result.IsApplied); err != nil {
+		if err := rows.Scan(&result.Timestamp, &result.Version, &result.IsApplied); err != nil {
 			return nil, fmt.Errorf("failed to scan list migrations result: %w", err)
 		}
 		migrations = append(migrations, &result)
