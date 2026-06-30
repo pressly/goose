@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"strings"
 	"sync"
@@ -51,12 +50,18 @@ const (
 type stateMachine struct {
 	state   parserState
 	verbose bool
+	logger  interface {
+		Printf(format string, v ...any)
+	}
 }
 
-func newStateMachine(begin parserState, verbose bool) *stateMachine {
+func newStateMachine(begin parserState, verbose bool, logger interface {
+	Printf(format string, v ...any)
+}) *stateMachine {
 	return &stateMachine{
 		state:   begin,
 		verbose: verbose,
+		logger:  logger,
 	}
 }
 
@@ -76,8 +81,8 @@ const (
 
 func (s *stateMachine) print(msg string, args ...any) {
 	msg = "StateMachine: " + msg
-	if s.verbose {
-		log.Printf(grayColor+msg+resetColor, args...)
+	if s.verbose && s.logger != nil {
+		s.logger.Printf(grayColor+msg+resetColor, args...)
 	}
 }
 
@@ -100,7 +105,15 @@ var bufferPool = sync.Pool{
 // within a statement. For these cases, we provide the explicit annotations
 // 'StatementBegin' and 'StatementEnd' to allow the script to
 // tell us to ignore semicolons.
-func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []string, useTx bool, err error) {
+func ParseSQLMigration(
+	r io.Reader,
+	direction Direction,
+	debug bool,
+	logger interface {
+		Println(v ...any)
+		Printf(format string, v ...any)
+	},
+) (stmts []string, useTx bool, err error) {
 	scanBufPtr := bufferPool.Get().(*[]byte)
 	scanBuf := *scanBufPtr
 	defer bufferPool.Put(scanBufPtr)
@@ -108,15 +121,15 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 	scanner := bufio.NewScanner(r)
 	scanner.Buffer(scanBuf, scanBufSize)
 
-	stateMachine := newStateMachine(start, debug)
+	stateMachine := newStateMachine(start, debug, logger)
 	useTx = true
 	useEnvsub := false
 
 	var buf bytes.Buffer
 	for scanner.Scan() {
 		line := scanner.Text()
-		if debug {
-			log.Println(line)
+		if debug && logger != nil {
+			logger.Println(line)
 		}
 		if stateMachine.get() == start && strings.TrimSpace(line) == "" {
 			continue

@@ -57,7 +57,7 @@ func (p *Provider) prepareMigration(fsys fs.FS, m *Migration, direction bool) er
 		if m.sql.Parsed {
 			return nil
 		}
-		parsed, err := sqlparser.ParseAllFromFS(fsys, m.Source, false)
+		parsed, err := sqlparser.ParseAllFromFS(fsys, m.Source, p.cfg.debugMode)
 		if err != nil {
 			return err
 		}
