@@ -21,6 +21,7 @@ import (
 	"github.com/mfridman/xflag"
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/internal/migrationstats"
+	"github.com/pressly/goose/v3/lock"
 )
 
 var (
@@ -41,6 +42,7 @@ var (
 	noColor      = flags.Bool("no-color", false, "disable color output (NO_COLOR env variable supported)")
 	timeout      = flags.Duration("timeout", 0, "maximum allowed duration for queries to run; e.g., 1h13m")
 	envFile      = flags.String("env", "", "load environment variables from file (default .env)")
+	lockMode     = flags.String("lock", "", "lock mode: none, session, table (GOOSE_LOCK env variable supported)")
 )
 
 var version string
@@ -165,6 +167,38 @@ func main() {
 	if len(args) > 3 {
 		arguments = append(arguments, args[3:]...)
 	}
+
+	if timeout != nil && *timeout != 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, *timeout)
+		defer cancel()
+	}
+
+	// Determine lock mode: flag takes precedence over env variable
+	effectiveLockMode := firstNonEmpty(*lockMode, envConfig.lock)
+
+	// Create locker if lock mode is specified (this will fail fast if driver doesn't support it)
+	sessionLocker, locker, err := newLocker(driver, effectiveLockMode)
+	if err != nil {
+		log.Fatalf("goose: %v", err)
+	}
+
+	// If locking is enabled, use the Provider API
+	if sessionLocker != nil || locker != nil {
+		tableName := firstNonEmpty(*table, envConfig.table, goose.DefaultTablename)
+		cfg := &runConfig{
+			tableName:    tableName,
+			verbose:      *verbose,
+			allowMissing: *allowMissing,
+			noVersioning: *noVersioning,
+		}
+		if err := runWithProvider(ctx, db, driver, *dir, command, arguments, sessionLocker, locker, cfg); err != nil {
+			log.Fatalf("goose run: %v", err)
+		}
+		return
+	}
+
+	// Use the legacy API when no locking is configured
 	options := []goose.OptionsFunc{}
 	if *noColor || envConfig.noColor {
 		options = append(options, goose.WithNoColor(true))
@@ -174,11 +208,6 @@ func main() {
 	}
 	if *noVersioning {
 		options = append(options, goose.WithNoVersioning())
-	}
-	if timeout != nil && *timeout != 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, *timeout)
-		defer cancel()
 	}
 	if err := goose.RunWithOptionsContext(
 		ctx,
@@ -295,6 +324,19 @@ Examples:
     GOOSE_DRIVER=redshift GOOSE_DBSTRING="postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" goose status
     GOOSE_DRIVER=turso GOOSE_DBSTRING="libsql://dbname.turso.io?authToken=token" goose status
     GOOSE_DRIVER=clickhouse GOOSE_DBSTRING="clickhouse://user:password@qwerty.clickhouse.cloud:9440/dbname?secure=true&skip_verify=false" goose status
+
+Locking:
+    Use the -lock flag or GOOSE_LOCK environment variable to enable locking.
+    This prevents concurrent migrations from running at the same time.
+
+    Lock modes:
+        none     No locking (default)
+        session  Session-level advisory lock (PostgreSQL only)
+        table    Table-based distributed lock (PostgreSQL only)
+
+    Examples:
+        goose -lock=session postgres "user=postgres dbname=postgres sslmode=disable" up
+        GOOSE_LOCK=table goose postgres "user=postgres dbname=postgres sslmode=disable" up
 
 Options:
 `
@@ -426,6 +468,7 @@ type envConfig struct {
 	dir      string
 	table    string
 	noColor  bool
+	lock     string
 }
 
 func loadEnvConfig() *envConfig {
@@ -437,6 +480,7 @@ func loadEnvConfig() *envConfig {
 		dir:      envOr("GOOSE_MIGRATION_DIR", DefaultMigrationDir),
 		// https://no-color.org/
 		noColor: noColorBool,
+		lock:    envOr("GOOSE_LOCK", ""),
 	}
 }
 
@@ -446,6 +490,7 @@ func (c *envConfig) listEnvs() []envVar {
 		{Name: "GOOSE_DBSTRING", Value: c.dbstring},
 		{Name: "GOOSE_MIGRATION_DIR", Value: c.dir},
 		{Name: "GOOSE_TABLE", Value: c.table},
+		{Name: "GOOSE_LOCK", Value: c.lock},
 		{Name: "NO_COLOR", Value: strconv.FormatBool(c.noColor)},
 	}
 }
@@ -472,4 +517,249 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+// newLocker creates a locker based on the driver and lock mode. If the lock mode is empty or
+// "none", it returns nil. If the driver does not support the requested lock mode, it returns an
+// error.
+//
+// Supported lock modes:
+//   - "none" or "": No locking (default)
+//   - "session": Session-level advisory locking (PostgreSQL only)
+//   - "table": Table-based distributed locking (PostgreSQL only)
+func newLocker(driver, mode string) (lock.SessionLocker, lock.Locker, error) {
+	if mode == "" || mode == "none" {
+		return nil, nil, nil
+	}
+
+	switch mode {
+	case "session":
+		switch driver {
+		case "postgres", "pgx", "redshift":
+			locker, err := lock.NewPostgresSessionLocker()
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to create postgres session locker: %w", err)
+			}
+			return locker, nil, nil
+		default:
+			return nil, nil, fmt.Errorf("driver %q does not support session locking; only postgres, pgx, and redshift support this feature", driver)
+		}
+	case "table":
+		switch driver {
+		case "postgres", "pgx", "redshift":
+			locker, err := lock.NewPostgresTableLocker()
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to create postgres table locker: %w", err)
+			}
+			return nil, locker, nil
+		default:
+			return nil, nil, fmt.Errorf("driver %q does not support table locking; only postgres, pgx, and redshift support this feature", driver)
+		}
+	default:
+		return nil, nil, fmt.Errorf("invalid lock mode %q; valid options are: none, session, table", mode)
+	}
+}
+
+// runWithProvider executes a migration command using the Provider API with optional locking support.
+func runWithProvider(
+	ctx context.Context,
+	db *sql.DB,
+	driver string,
+	dir string,
+	command string,
+	args []string,
+	sessionLocker lock.SessionLocker,
+	locker lock.Locker,
+	cfg *runConfig,
+) error {
+	// Map driver to dialect for the Provider
+	var dialect goose.Dialect
+	switch driver {
+	case "postgres", "pgx":
+		dialect = goose.DialectPostgres
+	case "mysql", "tidb":
+		dialect = goose.DialectMySQL
+	case "sqlite3", "sqlite":
+		dialect = goose.DialectSQLite3
+	case "mssql", "sqlserver", "azuresql":
+		dialect = goose.DialectMSSQL
+	case "redshift":
+		dialect = goose.DialectRedshift
+	case "clickhouse":
+		dialect = goose.DialectClickHouse
+	case "vertica":
+		dialect = goose.DialectVertica
+	case "ydb":
+		dialect = goose.DialectYdB
+	case "turso", "libsql":
+		dialect = goose.DialectTurso
+	case "starrocks":
+		dialect = goose.DialectStarrocks
+	case "spanner":
+		dialect = goose.DialectSpanner
+	default:
+		return fmt.Errorf("unsupported driver %q for provider", driver)
+	}
+
+	// Build provider options
+	var opts []goose.ProviderOption
+
+	if cfg.tableName != "" {
+		opts = append(opts, goose.WithTableName(cfg.tableName))
+	}
+	if cfg.verbose {
+		opts = append(opts, goose.WithVerbose(true))
+	}
+	if cfg.allowMissing {
+		opts = append(opts, goose.WithAllowOutofOrder(true))
+	}
+	if cfg.noVersioning {
+		opts = append(opts, goose.WithDisableVersioning(true))
+	}
+	if sessionLocker != nil {
+		opts = append(opts, goose.WithSessionLocker(sessionLocker))
+	}
+	if locker != nil {
+		opts = append(opts, goose.WithLocker(locker))
+	}
+
+	provider, err := goose.NewProvider(dialect, db, os.DirFS(dir), opts...)
+	if err != nil {
+		return fmt.Errorf("failed to create provider: %w", err)
+	}
+
+	switch command {
+	case "up":
+		results, err := provider.Up(ctx)
+		if err != nil {
+			return err
+		}
+		for _, r := range results {
+			log.Printf("OK   %s (%s)\n", r.Source.Path, r.Duration.Round(1000*1000))
+		}
+		return nil
+
+	case "up-by-one":
+		result, err := provider.UpByOne(ctx)
+		if err != nil {
+			if errors.Is(err, goose.ErrNoNextVersion) {
+				log.Println("goose: no migrations to run")
+				return nil
+			}
+			return err
+		}
+		log.Printf("OK   %s (%s)\n", result.Source.Path, result.Duration.Round(1000*1000))
+		return nil
+
+	case "up-to":
+		if len(args) == 0 {
+			return fmt.Errorf("up-to requires a VERSION argument")
+		}
+		version, err := strconv.ParseInt(args[0], 10, 64)
+		if err != nil {
+			return fmt.Errorf("version must be a number (got %q)", args[0])
+		}
+		results, err := provider.UpTo(ctx, version)
+		if err != nil {
+			return err
+		}
+		for _, r := range results {
+			log.Printf("OK   %s (%s)\n", r.Source.Path, r.Duration.Round(1000*1000))
+		}
+		return nil
+
+	case "down":
+		result, err := provider.Down(ctx)
+		if err != nil {
+			if errors.Is(err, goose.ErrNoNextVersion) {
+				log.Println("goose: no migrations to run")
+				return nil
+			}
+			return err
+		}
+		log.Printf("OK   %s (%s)\n", result.Source.Path, result.Duration.Round(1000*1000))
+		return nil
+
+	case "down-to":
+		if len(args) == 0 {
+			return fmt.Errorf("down-to requires a VERSION argument")
+		}
+		version, err := strconv.ParseInt(args[0], 10, 64)
+		if err != nil {
+			return fmt.Errorf("version must be a number (got %q)", args[0])
+		}
+		results, err := provider.DownTo(ctx, version)
+		if err != nil {
+			return err
+		}
+		for _, r := range results {
+			log.Printf("OK   %s (%s)\n", r.Source.Path, r.Duration.Round(1000*1000))
+		}
+		return nil
+
+	case "redo":
+		// Down then up the latest migration
+		downResult, err := provider.Down(ctx)
+		if err != nil {
+			if errors.Is(err, goose.ErrNoNextVersion) {
+				return fmt.Errorf("no migrations to redo")
+			}
+			return err
+		}
+		log.Printf("OK   %s (down) (%s)\n", downResult.Source.Path, downResult.Duration.Round(1000*1000))
+
+		upResult, err := provider.UpByOne(ctx)
+		if err != nil {
+			return err
+		}
+		log.Printf("OK   %s (up) (%s)\n", upResult.Source.Path, upResult.Duration.Round(1000*1000))
+		return nil
+
+	case "reset":
+		results, err := provider.DownTo(ctx, 0)
+		if err != nil {
+			return err
+		}
+		for _, r := range results {
+			log.Printf("OK   %s (%s)\n", r.Source.Path, r.Duration.Round(1000*1000))
+		}
+		return nil
+
+	case "status":
+		results, err := provider.Status(ctx)
+		if err != nil {
+			return err
+		}
+		log.Println("    Applied At                  Migration")
+		log.Println("    =======================================")
+		for _, r := range results {
+			var appliedAt string
+			if r.State == goose.StatePending {
+				appliedAt = "Pending"
+			} else {
+				appliedAt = r.AppliedAt.Format("Mon Jan 02 15:04:05 2006")
+			}
+			log.Printf("    %-24s -- %s\n", appliedAt, r.Source.Path)
+		}
+		return nil
+
+	case "version":
+		version, err := provider.GetDBVersion(ctx)
+		if err != nil {
+			return err
+		}
+		log.Printf("goose: version %d\n", version)
+		return nil
+
+	default:
+		return fmt.Errorf("command %q is not supported with locking; use without -lock flag", command)
+	}
+}
+
+// runConfig holds the configuration for running migrations.
+type runConfig struct {
+	tableName    string
+	verbose      bool
+	allowMissing bool
+	noVersioning bool
 }
