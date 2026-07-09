@@ -27,6 +27,7 @@ const (
 	DialectTiDB       Dialect = "tidb"
 	DialectTurso      Dialect = "turso"
 	DialectYdB        Dialect = "ydb"
+	DialectDM         Dialect = "dm"
 
 	// DEPRECATED: Vertica support is deprecated and will be removed in a future release.
 	DialectVertica Dialect = "vertica"

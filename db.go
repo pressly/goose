@@ -37,10 +37,12 @@ func OpenDBWithDriver(driver string, dbstring string) (*sql.DB, error) {
 		driver = "pgx"
 	case "starrocks":
 		driver = "mysql"
+	case string(DialectDM):
+		driver = string(DialectDM)
 	}
 
 	switch driver {
-	case "postgres", "pgx", "sqlite3", "sqlite", "spanner", "mysql", "sqlserver", "clickhouse", "vertica", "azuresql", "ydb", "libsql", "starrocks":
+	case "postgres", "pgx", "sqlite3", "sqlite", "spanner", "mysql", "sqlserver", "clickhouse", "vertica", "azuresql", "ydb", "libsql", "starrocks", string(DialectDM):
 		return sql.Open(driver, dbstring)
 	default:
 		return nil, fmt.Errorf("unsupported driver %s", driver)
