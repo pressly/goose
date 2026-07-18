@@ -308,8 +308,7 @@ func (s *mysqlStore) CleanupStaleLocks(ctx context.Context, db *sql.DB) (_ []int
 	for rows.Next() {
 		var lockID int64
 		if err := rows.Scan(&lockID); err != nil {
-			retErr = multierr.Append(retErr, rows.Close())
-			return nil, fmt.Errorf("scan cleaned lock ID: %w", err)
+			return nil, multierr.Append(fmt.Errorf("scan cleaned lock ID: %w", err), rows.Close())
 		}
 		cleanedLocks = append(cleanedLocks, lockID)
 	}

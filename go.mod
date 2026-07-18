@@ -3,25 +3,25 @@ module github.com/pressly/goose/v3
 go 1.25.7
 
 require (
-	github.com/ClickHouse/clickhouse-go/v2 v2.45.0
+	github.com/ClickHouse/clickhouse-go/v2 v2.46.0
 	github.com/containerd/errdefs v1.0.0
-	github.com/go-sql-driver/mysql v1.9.3
-	github.com/jackc/pgx/v5 v5.9.2
+	github.com/go-sql-driver/mysql v1.10.0
+	github.com/jackc/pgx/v5 v5.10.0
 	github.com/joho/godotenv v1.5.1
 	github.com/mfridman/interpolate v0.0.2
 	github.com/mfridman/xflag v0.1.0
-	github.com/microsoft/go-mssqldb v1.9.8
-	github.com/moby/moby/api v1.54.2
-	github.com/moby/moby/client v0.4.1
+	github.com/microsoft/go-mssqldb v1.10.0
+	github.com/moby/moby/api v1.55.0
+	github.com/moby/moby/client v0.5.0
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/stretchr/testify v1.11.1
 	github.com/tursodatabase/libsql-client-go v0.0.0-20251219100830-236aa1ff8acc
 	github.com/vertica/vertica-sql-go v1.3.6
-	github.com/ydb-platform/ydb-go-sdk/v3 v3.135.0
+	github.com/ydb-platform/ydb-go-sdk/v3 v3.141.1
 	github.com/ziutek/mymysql v1.5.4
 	go.uber.org/multierr v1.11.0
-	golang.org/x/sync v0.20.0
-	modernc.org/sqlite v1.49.1
+	golang.org/x/sync v0.21.0
+	modernc.org/sqlite v1.53.0
 )
 
 require (
@@ -66,24 +66,24 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
-	github.com/ydb-platform/ydb-go-genproto v0.0.0-20260311095541-ebbf792c1180 // indirect
+	github.com/ydb-platform/ydb-go-genproto v0.0.0-20260428144813-1c07baab7f7b // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.68.0 // indirect
 	go.opentelemetry.io/otel v1.43.0 // indirect
 	go.opentelemetry.io/otel/metric v1.43.0 // indirect
 	go.opentelemetry.io/otel/trace v1.43.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/crypto v0.50.0 // indirect
+	golang.org/x/crypto v0.52.0 // indirect
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
-	golang.org/x/net v0.53.0 // indirect
-	golang.org/x/sys v0.43.0 // indirect
-	golang.org/x/text v0.36.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
+	golang.org/x/text v0.37.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260420184626-e10c466a9529 // indirect
 	google.golang.org/grpc v1.80.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	howett.net/plist v1.0.1 // indirect
-	modernc.org/libc v1.72.1 // indirect
+	modernc.org/libc v1.73.4 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
