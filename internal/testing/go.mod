@@ -1,6 +1,6 @@
 module github.com/pressly/goose/v3/internal/testing
 
-go 1.26
+go 1.25.8
 
 require (
 	cloud.google.com/go/spanner v1.93.0
