@@ -252,14 +252,20 @@ func EnsureDBVersionContext(ctx context.Context, db *sql.DB) (int64, error) {
 
 // createVersionTable creates the db version table and inserts the
 // initial 0 value into it.
+// StarRocks and other databases that reject DDL in transactions use
+// the NoTx variants.
 func createVersionTable(ctx context.Context, db *sql.DB) error {
 	txn, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	if err := store.CreateVersionTable(ctx, txn, TableName()); err != nil {
+		// StarRocks & friends: DDL in transaction is rejected. Fall back to NoTx.
 		_ = txn.Rollback()
-		return err
+		if err := store.CreateVersionTableNoTx(ctx, db, TableName()); err != nil {
+			return err
+		}
+		return store.InsertVersionNoTx(ctx, db, TableName(), 0)
 	}
 	if err := store.InsertVersion(ctx, txn, TableName(), 0); err != nil {
 		_ = txn.Rollback()
