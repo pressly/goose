@@ -495,6 +495,10 @@ The gopher mascot was designed by [Renée French](https://reneefrench.blogspot.c
 3.0.](https://creativecommons.org/licenses/by/3.0/) For more info check out the [Go
 Blog](https://go.dev/blog/gopher). Adapted by Ellen.
 
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for development notes and a checklist for adding SQL dialects or integrations.
+
 ## License
 
 Licensed under [MIT License](./LICENSE)
