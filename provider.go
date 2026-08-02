@@ -10,9 +10,11 @@ import (
 	"log/slog"
 	"maps"
 	"math"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/internal/controller"
@@ -616,7 +618,9 @@ func (p *Provider) status(ctx context.Context) (_ []*MigrationStatus, retErr err
 	}()
 
 	status := make([]*MigrationStatus, 0, len(p.migrations))
+	sourceVersions := make(map[int64]struct{}, len(p.migrations))
 	for _, m := range p.migrations {
+		sourceVersions[m.Version] = struct{}{}
 		migrationStatus := &MigrationStatus{
 			Source: &Source{
 				Type:    m.Type,
@@ -638,6 +642,43 @@ func (p *Provider) status(ctx context.Context) (_ []*MigrationStatus, retErr err
 			}
 		}
 		status = append(status, migrationStatus)
+	}
+
+	// Also surface DB-applied versions that have no local source so status reflects
+	// production reality even with a partial checkout (#1073).
+	if !p.cfg.disableVersioning {
+		dbMigrations, err := p.store.ListMigrations(ctx, conn)
+		if err != nil {
+			return nil, err
+		}
+		for _, dbm := range dbMigrations {
+			if !dbm.IsApplied {
+				continue
+			}
+			if dbm.Version == 0 {
+				// Skip the zero/bootstrap version row.
+				continue
+			}
+			if _, ok := sourceVersions[dbm.Version]; ok {
+				continue
+			}
+			// ListMigrations may not include timestamps; fetch details when available.
+			var appliedAt time.Time
+			if res, err := p.store.GetMigration(ctx, conn, dbm.Version); err == nil && res != nil {
+				appliedAt = res.Timestamp
+			}
+			status = append(status, &MigrationStatus{
+				Source: &Source{
+					Version: dbm.Version,
+				},
+				State:     StateUntracked,
+				AppliedAt: appliedAt,
+			})
+		}
+		// Keep ascending version order after appending DB-only rows.
+		sort.SliceStable(status, func(i, j int) bool {
+			return status[i].Source.Version < status[j].Source.Version
+		})
 	}
 
 	return status, nil

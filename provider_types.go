@@ -77,10 +77,10 @@ const (
 	// StateApplied is a migration that has been applied to the database and exists on the
 	// filesystem.
 	StateApplied State = "applied"
-
-	// TODO(mf): we could also add a third state for untracked migrations. This would be useful for
-	// migrations that were manually applied to the database, but not versioned. Or the Source was
-	// deleted, but the migration still exists in the database. StateUntracked State = "untracked"
+	// StateUntracked is a migration that is recorded as applied in the database, but has no
+	// corresponding source on the filesystem (or registered Go migrations). This commonly happens
+	// when an operator runs status against a production DB with a partial local checkout.
+	StateUntracked State = "untracked"
 )
 
 // MigrationStatus represents the status of a single migration.
