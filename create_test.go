@@ -53,7 +53,12 @@ func TestSequential(t *testing.T) {
 }
 
 func TestCreateDuplicateFile(t *testing.T) {
+	prev := timestampFormat
+	timestampFormat = "STATIC"
+	t.Cleanup(func() { timestampFormat = prev })
+
 	dir := t.TempDir()
+
 	if err := Create(nil, dir, "add_users", "sql"); err != nil {
 		t.Fatalf("first create should succeed: %v", err)
 	}
