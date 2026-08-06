@@ -1,6 +1,7 @@
 package goose
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -48,5 +49,19 @@ func TestSequential(t *testing.T) {
 		if !strings.HasPrefix(f.Name(), expected) {
 			t.Errorf("failed to find %s prefix in %s", expected, f.Name())
 		}
+	}
+}
+
+func TestCreateDuplicateFile(t *testing.T) {
+	dir := t.TempDir()
+	if err := Create(nil, dir, "add_users", "sql"); err != nil {
+		t.Fatalf("first create should succeed: %v", err)
+	}
+	err := Create(nil, dir, "add_users", "sql")
+	if err == nil {
+		t.Fatal("second create should have failed, got nil")
+	}
+	if !errors.Is(err, os.ErrExist) {
+		t.Fatalf("want os.ErrExist, got %v", err)
 	}
 }
