@@ -1,0 +1,9 @@
+<clickhouse>
+    <!-- ch2 is a plain replica; it points at the Keeper hosted on ch1. -->
+    <zookeeper>
+        <node>
+            <host>ch1</host>
+            <port>9181</port>
+        </node>
+    </zookeeper>
+</clickhouse>

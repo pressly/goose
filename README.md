@@ -78,6 +78,7 @@ Drivers:
     redshift
     tidb
     clickhouse
+    clickhouse-replicated
     ydb
     starrocks
     turso
@@ -424,6 +425,34 @@ func main() {
 
 Note that we pass `"migrations"` as directory argument in `Up` because embedding saves directory
 structure.
+
+## ClickHouse replicated cluster dialect
+
+`clickhouse-replicated` is a sibling of the `clickhouse` dialect that targets multi-replica
+ClickHouse clusters. It writes `goose_db_version` via `ReplicatedMergeTree` with `ON CLUSTER` DDL,
+`insert_quorum` on inserts, and `mutations_sync` on deletes so version state stays consistent
+across replicas.
+
+Users select it explicitly (`goose clickhouse-replicated ...` on the CLI, or
+`database.DialectClickHouseReplicated` in code) — it is a separate dialect, not an automatic
+upgrade of `clickhouse`. The column layout deliberately differs from stock `clickhouse` so an old
+CLI cannot silently mis-mutate a replicated table.
+
+Configuration comes from `GOOSE_CLICKHOUSE_*` environment variables (matching functional options
+are available on `database.NewClickhouseReplicated(...)`):
+
+| Env var                              | Option                             | Default | Notes                                           |
+|--------------------------------------|------------------------------------|---------|-------------------------------------------------|
+| `GOOSE_CLICKHOUSE_CLUSTER`           | `WithClickhouseCluster`            | *(none)*| **Required.** Cluster name for `ON CLUSTER` DDL.|
+| `GOOSE_CLICKHOUSE_ZK_PATH`           | `WithClickhouseZooKeeperPath`      | *(empty)* | Empty → rely on `default_replica_path` macro. |
+| `GOOSE_CLICKHOUSE_REPLICA_NAME`      | `WithClickhouseReplicaName`        | *(empty)* | Empty → rely on `default_replica_name` macro. |
+| `GOOSE_CLICKHOUSE_INSERT_QUORUM`     | `WithClickhouseInsertQuorum`       | `auto`  | Numeric values (e.g. `3`) or `auto`/`off`.      |
+| `GOOSE_CLICKHOUSE_MUTATIONS_SYNC`    | `WithClickhouseMutationsSync`      | `2`     | `mutations_sync` for `ALTER … DELETE`.          |
+| `GOOSE_CLICKHOUSE_DELETE_ON_CLUSTER` | `WithClickhouseDeleteOnCluster`    | `false` | Set true to add `ON CLUSTER` to down-migration. |
+
+A runnable two-node compose stack for local testing lives under
+[`internal/testing/integration/clickhouse-replicated/`](./internal/testing/integration/clickhouse-replicated/README.md).
+It is not wired into CI.
 
 ## Go Migrations
 
