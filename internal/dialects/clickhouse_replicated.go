@@ -57,9 +57,16 @@ func WithClickhouseInsertQuorum(v string) ClickhouseReplicatedOption {
 // (https://clickhouse.com/docs/concepts/best-practices/avoid-mutations).
 // Duplicate rows for the same version_id are collapsed automatically by
 // background merges of the ReplicatedReplacingMergeTree engine, and read
-// queries derive current state per version using argMax(is_applied, tstamp)
-// with select_sequential_consistency=1 for cross-replica read-after-write
-// correctness.
+// queries derive current state per version using argMax(is_applied, tstamp).
+// Reads also carry select_sequential_consistency=1 so that, when writes were
+// quorum-committed (see WithClickhouseInsertQuorum), a read landing on a
+// lagging replica will wait for it to catch up to the last quorum insert to
+// the version table. That only scopes visibility of already-written
+// bookkeeping rows; it is not a compare-and-swap on the insert, does not
+// serialize concurrent readers, and does not coordinate migration DDL. This
+// dialect therefore does not make it safe to run multiple goose migrators
+// concurrently against the same cluster — external interlocking is still
+// required.
 //
 // GOOSE_CLICKHOUSE_CLUSTER (or [WithClickhouseCluster]) is required; if empty,
 // [CreateTable] returns an error explaining how to set it.

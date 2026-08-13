@@ -21,8 +21,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Down-migrations insert a tombstone row (`is_applied = 0`) instead of issuing an
   `ALTER … DELETE` mutation. The version table uses `ReplicatedReplacingMergeTree(tstamp)` so
   background merges collapse duplicate rows per `version_id` automatically. Read queries use
-  `argMax(is_applied, tstamp)` with `select_sequential_consistency=1` for cross-replica
-  read-after-write correctness.
+  `argMax(is_applied, tstamp)` and set `select_sequential_consistency=1`, which — for writes that
+  actually went through a quorum (see `GOOSE_CLICKHOUSE_INSERT_QUORUM`) — makes a read landing on
+  a lagging replica wait until it has caught up to the last quorum-committed write to
+  `goose_db_version`. That scopes only bookkeeping-row *visibility*; it is not a compare-and-swap
+  on the bookkeeping insert, does not serialize concurrent readers, and does not coordinate the
+  migration DDL. Running multiple `goose` migrators concurrently against the same cluster is
+  therefore still unsafe — concurrent-run interlocking must be arranged outside of ClickHouse.
   - Removed (unreleased) options `WithClickhouseMutationsSync` and `WithClickhouseDeleteOnCluster`
     and their env vars `GOOSE_CLICKHOUSE_MUTATIONS_SYNC` and `GOOSE_CLICKHOUSE_DELETE_ON_CLUSTER`
     — no longer needed since the dialect no longer issues mutations.
