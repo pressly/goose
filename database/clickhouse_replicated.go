@@ -12,12 +12,10 @@ type ClickhouseReplicatedOption = dialects.ClickhouseReplicatedOption
 
 // Environment variable names read by the clickhouse-replicated dialect.
 const (
-	EnvClickhouseCluster         = dialects.EnvClickhouseCluster
-	EnvClickhouseZKPath          = dialects.EnvClickhouseZKPath
-	EnvClickhouseReplicaName     = dialects.EnvClickhouseReplicaName
-	EnvClickhouseInsertQuorum    = dialects.EnvClickhouseInsertQuorum
-	EnvClickhouseMutationsSync   = dialects.EnvClickhouseMutationsSync
-	EnvClickhouseDeleteOnCluster = dialects.EnvClickhouseDeleteOnCluster
+	EnvClickhouseCluster      = dialects.EnvClickhouseCluster
+	EnvClickhouseZKPath       = dialects.EnvClickhouseZKPath
+	EnvClickhouseReplicaName  = dialects.EnvClickhouseReplicaName
+	EnvClickhouseInsertQuorum = dialects.EnvClickhouseInsertQuorum
 )
 
 // ErrClickhouseReplicatedNoCluster is returned by [NewClickhouseReplicated]
@@ -45,24 +43,11 @@ func WithClickhouseReplicaName(v string) ClickhouseReplicatedOption {
 	return dialects.WithClickhouseReplicaName(v)
 }
 
-// WithClickhouseInsertQuorum sets the insert_quorum setting used on the
-// InsertVersion query. Overrides GOOSE_CLICKHOUSE_INSERT_QUORUM. Default:
-// "auto".
+// WithClickhouseInsertQuorum sets the insert_quorum setting used on both the
+// InsertVersion (up-migration) and DeleteVersion (down-migration tombstone)
+// queries. Overrides GOOSE_CLICKHOUSE_INSERT_QUORUM. Default: "auto".
 func WithClickhouseInsertQuorum(v string) ClickhouseReplicatedOption {
 	return dialects.WithClickhouseInsertQuorum(v)
-}
-
-// WithClickhouseMutationsSync sets the mutations_sync setting used on the
-// DeleteVersion query. Overrides GOOSE_CLICKHOUSE_MUTATIONS_SYNC. Default: 2.
-func WithClickhouseMutationsSync(n int) ClickhouseReplicatedOption {
-	return dialects.WithClickhouseMutationsSync(n)
-}
-
-// WithClickhouseDeleteOnCluster controls whether the DeleteVersion query
-// includes an ON CLUSTER clause. Overrides GOOSE_CLICKHOUSE_DELETE_ON_CLUSTER.
-// Default: false (rely on ReplicatedMergeTree replication log).
-func WithClickhouseDeleteOnCluster(v bool) ClickhouseReplicatedOption {
-	return dialects.WithClickhouseDeleteOnCluster(v)
 }
 
 // NewClickhouseReplicated returns a [dialect.Querier] for the

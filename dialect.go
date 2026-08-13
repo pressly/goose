@@ -35,12 +35,10 @@ const (
 // Environment variable names read by the clickhouse-replicated dialect. See
 // [database.NewClickhouseReplicated] for the full list of options.
 const (
-	EnvClickhouseCluster         = database.EnvClickhouseCluster
-	EnvClickhouseZKPath          = database.EnvClickhouseZKPath
-	EnvClickhouseReplicaName     = database.EnvClickhouseReplicaName
-	EnvClickhouseInsertQuorum    = database.EnvClickhouseInsertQuorum
-	EnvClickhouseMutationsSync   = database.EnvClickhouseMutationsSync
-	EnvClickhouseDeleteOnCluster = database.EnvClickhouseDeleteOnCluster
+	EnvClickhouseCluster      = database.EnvClickhouseCluster
+	EnvClickhouseZKPath       = database.EnvClickhouseZKPath
+	EnvClickhouseReplicaName  = database.EnvClickhouseReplicaName
+	EnvClickhouseInsertQuorum = database.EnvClickhouseInsertQuorum
 )
 
 func init() {

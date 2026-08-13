@@ -14,6 +14,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     `INSERT IGNORE` + guarded `UPDATE`, `information_schema.tables` for existence checks)
   - Shares the same `TableLockerOption` set as the Postgres table locker
 
+### Changed
+
+- `clickhouse-replicated` dialect now uses an **insert-mostly** design per ClickHouse's
+  [avoid mutations](https://clickhouse.com/docs/concepts/best-practices/avoid-mutations) guidance.
+  Down-migrations insert a tombstone row (`is_applied = 0`) instead of issuing an
+  `ALTER … DELETE` mutation. The version table uses `ReplicatedReplacingMergeTree(tstamp)` so
+  background merges collapse duplicate rows per `version_id` automatically. Read queries use
+  `argMax(is_applied, tstamp)` with `select_sequential_consistency=1` for cross-replica
+  read-after-write correctness.
+  - Removed (unreleased) options `WithClickhouseMutationsSync` and `WithClickhouseDeleteOnCluster`
+    and their env vars `GOOSE_CLICKHOUSE_MUTATIONS_SYNC` and `GOOSE_CLICKHOUSE_DELETE_ON_CLUSTER`
+    — no longer needed since the dialect no longer issues mutations.
+  - `GOOSE_CLICKHOUSE_INSERT_QUORUM` / `WithClickhouseInsertQuorum` now applies to both up and
+    down writes.
+
 ## [v3.27.3] - 2026-07-22
 
 ### Changed

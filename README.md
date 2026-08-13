@@ -429,11 +429,23 @@ structure.
 ## ClickHouse replicated cluster dialect
 
 `clickhouse-replicated` is a sibling of the `clickhouse` dialect that targets multi-replica
-ClickHouse clusters. It writes `goose_db_version` via `ReplicatedMergeTree` with `ON CLUSTER` DDL,
-`insert_quorum` on inserts, and `mutations_sync` on deletes so version state stays consistent
-across replicas.
+ClickHouse clusters. It writes `goose_db_version` via `ReplicatedReplacingMergeTree(tstamp)` with
+`ON CLUSTER` DDL so the table exists on every replica with consistent schema.
 
-Users select it explicitly (`goose clickhouse-replicated ...` on the CLI, or
+The dialect follows an **insert-mostly** design in line with ClickHouse's
+[avoid mutations](https://clickhouse.com/docs/concepts/best-practices/avoid-mutations) guidance:
+
+- Up-migrations `INSERT` a row with `is_applied = 1`.
+- Down-migrations `INSERT` a tombstone row with `is_applied = 0` — **no `ALTER … DELETE` mutation
+  is ever issued.** Both writes use `insert_quorum` for cross-replica durability.
+- Read queries derive the current state per `version_id` using `argMax(is_applied, tstamp)`, so the
+  latest-`tstamp` row (whether an apply or a tombstone) wins. All reads set
+  `select_sequential_consistency=1` so a query landing on a lagging replica waits until it has
+  caught up to the last quorum-committed write.
+- Duplicate rows for the same `version_id` are collapsed automatically by background merges of the
+  `ReplacingMergeTree` engine; no manual pruning is required.
+
+Users select the dialect explicitly (`goose clickhouse-replicated ...` on the CLI, or
 `database.DialectClickHouseReplicated` in code) — it is a separate dialect, not an automatic
 upgrade of `clickhouse`. The column layout deliberately differs from stock `clickhouse` so an old
 CLI cannot silently mis-mutate a replicated table.
@@ -446,9 +458,7 @@ are available on `database.NewClickhouseReplicated(...)`):
 | `GOOSE_CLICKHOUSE_CLUSTER`           | `WithClickhouseCluster`            | *(none)*| **Required.** Cluster name for `ON CLUSTER` DDL.|
 | `GOOSE_CLICKHOUSE_ZK_PATH`           | `WithClickhouseZooKeeperPath`      | *(empty)* | Empty → rely on `default_replica_path` macro. |
 | `GOOSE_CLICKHOUSE_REPLICA_NAME`      | `WithClickhouseReplicaName`        | *(empty)* | Empty → rely on `default_replica_name` macro. |
-| `GOOSE_CLICKHOUSE_INSERT_QUORUM`     | `WithClickhouseInsertQuorum`       | `auto`  | Numeric values (e.g. `3`) or `auto`/`off`.      |
-| `GOOSE_CLICKHOUSE_MUTATIONS_SYNC`    | `WithClickhouseMutationsSync`      | `2`     | `mutations_sync` for `ALTER … DELETE`.          |
-| `GOOSE_CLICKHOUSE_DELETE_ON_CLUSTER` | `WithClickhouseDeleteOnCluster`    | `false` | Set true to add `ON CLUSTER` to down-migration. |
+| `GOOSE_CLICKHOUSE_INSERT_QUORUM`     | `WithClickhouseInsertQuorum`       | `auto`  | Numeric values (e.g. `3`) or `auto`/`off`. Applied to both up and down writes. |
 
 A runnable two-node compose stack for local testing lives under
 [`internal/testing/integration/clickhouse-replicated/`](./internal/testing/integration/clickhouse-replicated/README.md).
