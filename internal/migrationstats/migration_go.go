@@ -18,9 +18,9 @@ const (
 )
 
 type goMigration struct {
-	name                     string
-	useTx                    *bool
-	upFuncName, downFuncName string
+	name                   string
+	useTx                  *bool
+	upFuncNil, downFuncNil bool
 }
 
 func parseGoFile(r io.Reader) (*goMigration, error) {
@@ -91,22 +91,12 @@ func parseInitFunc(fd *ast.FuncDecl) (*goMigration, error) {
 		if len(call.Args) != 2 {
 			return nil, fmt.Errorf("registered goose functions have 2 arguments: got %d", len(call.Args))
 		}
-		getNameFromExpr := func(expr ast.Expr) (string, error) {
-			arg, ok := expr.(*ast.Ident)
-			if !ok {
-				return "", fmt.Errorf("failed to assert argument identifier: got %T", arg)
-			}
-			return arg.Name, nil
-		}
-		var err error
-		gf.upFuncName, err = getNameFromExpr(call.Args[0])
-		if err != nil {
-			return nil, err
-		}
-		gf.downFuncName, err = getNameFromExpr(call.Args[1])
-		if err != nil {
-			return nil, err
-		}
+		// The only thing we need to know about each argument is whether a
+		// migration function was supplied or not. Anything that is not the nil
+		// identifier counts as a function, which covers named functions,
+		// qualified names such as pkg.Up001 and inlined function literals.
+		gf.upFuncNil = isNilIdent(call.Args[0])
+		gf.downFuncNil = isNilIdent(call.Args[1])
 	}
 	// validation
 	switch gf.name {
@@ -124,13 +114,11 @@ func parseInitFunc(fd *ast.FuncDecl) (*goMigration, error) {
 	if gf.useTx == nil {
 		return nil, errors.New("validation error: failed to identify transaction: got nil bool")
 	}
-	// The up and down functions can either be named Go functions or "nil", an
-	// empty string means there is a flaw in our parsing logic of the Go source code.
-	if gf.upFuncName == "" {
-		return nil, fmt.Errorf("validation error: up function is empty string")
-	}
-	if gf.downFuncName == "" {
-		return nil, fmt.Errorf("validation error: down function is empty string")
-	}
 	return gf, nil
+}
+
+// isNilIdent reports whether the expression is the nil identifier.
+func isNilIdent(expr ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	return ok && ident.Name == "nil"
 }
