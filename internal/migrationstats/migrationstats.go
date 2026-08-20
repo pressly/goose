@@ -52,7 +52,7 @@ func GatherStats(fw FileWalker, debug bool) ([]*Stats, error) {
 			if err != nil {
 				return fmt.Errorf("failed to parse file %q: %w", filename, err)
 			}
-			up, down = nilAsNumber(m.upFuncName), nilAsNumber(m.downFuncName)
+			up, down = nilAsNumber(m.upFuncNil), nilAsNumber(m.downFuncNil)
 			tx = *m.useTx
 		}
 		stats = append(stats, &Stats{
@@ -70,9 +70,9 @@ func GatherStats(fw FileWalker, debug bool) ([]*Stats, error) {
 	return stats, nil
 }
 
-func nilAsNumber(s string) int {
-	if s != "nil" {
-		return 1
+func nilAsNumber(isNil bool) int {
+	if isNil {
+		return 0
 	}
-	return 0
+	return 1
 }

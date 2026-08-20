@@ -12,21 +12,31 @@ import (
 func TestParsingGoMigrations(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name                     string
-		input                    string
-		wantUpName, wantDownName string
-		wantTx                   bool
+		name                   string
+		input                  string
+		wantUpNil, wantDownNil bool
+		wantTx                 bool
 	}{
 		// AddMigration
-		{"upAndDown", upAndDown, "up001", "down001", true},
-		{"downOnly", downOnly, "nil", "down002", true},
-		{"upOnly", upOnly, "up003", "nil", true},
-		{"upAndDownNil", upAndDownNil, "nil", "nil", true},
+		{"upAndDown", upAndDown, false, false, true},
+		{"downOnly", downOnly, true, false, true},
+		{"upOnly", upOnly, false, true, true},
+		{"upAndDownNil", upAndDownNil, true, true, true},
 		// AddMigrationNoTx
-		{"upAndDownNoTx", upAndDownNoTx, "up001", "down001", false},
-		{"downOnlyNoTx", downOnlyNoTx, "nil", "down002", false},
-		{"upOnlyNoTx", upOnlyNoTx, "up003", "nil", false},
-		{"upAndDownNilNoTx", upAndDownNilNoTx, "nil", "nil", false},
+		{"upAndDownNoTx", upAndDownNoTx, false, false, false},
+		{"downOnlyNoTx", downOnlyNoTx, true, false, false},
+		{"upOnlyNoTx", upOnlyNoTx, false, true, false},
+		{"upAndDownNilNoTx", upAndDownNilNoTx, true, true, false},
+		// Inlined function literals, see https://github.com/pressly/goose/issues/519
+		{"upAndDownInline", upAndDownInline, false, false, true},
+		{"upInlineDownNil", upInlineDownNil, false, true, true},
+		{"upNilDownInline", upNilDownInline, true, false, true},
+		{"upAndDownInlineNoTx", upAndDownInlineNoTx, false, false, false},
+		{"upAndDownInlineContext", upAndDownInlineContext, false, false, true},
+		{"upAndDownInlineNoTxContext", upAndDownInlineNoTxContext, false, false, false},
+		{"upInlineDownNamed", upInlineDownNamed, false, false, true},
+		// Functions referenced through another package
+		{"upAndDownQualified", upAndDownQualified, false, false, true},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -34,8 +44,34 @@ func TestParsingGoMigrations(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, g.useTx)
 			require.Equal(t, tc.wantTx, *g.useTx)
-			require.Equal(t, tc.wantDownName, g.downFuncName)
-			require.Equal(t, tc.wantUpName, g.upFuncName)
+			require.Equal(t, tc.wantDownNil, g.downFuncNil)
+			require.Equal(t, tc.wantUpNil, g.upFuncNil)
+		})
+	}
+}
+
+func TestGoMigrationStatsInline(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name             string
+		input            string
+		wantUp, wantDown int
+		wantTx           bool
+	}{
+		{"upAndDownInline", upAndDownInline, 1, 1, true},
+		{"upInlineDownNil", upInlineDownNil, 1, 0, true},
+		{"upNilDownInline", upNilDownInline, 0, 1, true},
+		{"upAndDownInlineNoTx", upAndDownInlineNoTx, 1, 1, false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			filename := filepath.Join(dir, "001_"+tc.name+".go")
+			require.NoError(t, os.WriteFile(filename, []byte(tc.input), 0o644))
+			stats, err := GatherStats(NewFileWalker(filename), false)
+			require.NoError(t, err)
+			require.Len(t, stats, 1)
+			checkGoStats(t, stats[0], filepath.Base(filename), 1, tc.wantUp, tc.wantDown, tc.wantTx)
 		})
 	}
 }
@@ -90,6 +126,10 @@ func TestParsingGoMigrationsError(t *testing.T) {
 	_, err = parseGoFile(strings.NewReader(wrongName))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "AddMigration, AddMigrationNoTx, AddMigrationContext, AddMigrationNoTxContext")
+
+	_, err = parseGoFile(strings.NewReader(wrongArgCount))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "registered goose functions have 2 arguments: got 1")
 }
 
 var (
@@ -222,5 +262,125 @@ import (
 
 func init() {
 	goose.AddMigrationWrongName(nil, nil)
+}`
+
+	wrongArgCount = `package testgo
+
+import (
+	"database/sql"
+
+	"github.com/pressly/goose/v3"
+)
+
+func init() {
+	goose.AddMigration(nil)
+}`
+)
+
+var (
+	upAndDownInline = `package testgo
+
+import (
+	"database/sql"
+
+	"github.com/pressly/goose/v3"
+)
+
+func init() {
+	goose.AddMigration(func(tx *sql.Tx) error { return nil }, func(tx *sql.Tx) error { return nil })
+}`
+
+	upInlineDownNil = `package testgo
+
+import (
+	"database/sql"
+
+	"github.com/pressly/goose/v3"
+)
+
+func init() {
+	goose.AddMigration(func(tx *sql.Tx) error { return nil }, nil)
+}`
+
+	upNilDownInline = `package testgo
+
+import (
+	"database/sql"
+
+	"github.com/pressly/goose/v3"
+)
+
+func init() {
+	goose.AddMigration(nil, func(tx *sql.Tx) error { return nil })
+}`
+
+	upAndDownInlineNoTx = `package testgo
+
+import (
+	"database/sql"
+
+	"github.com/pressly/goose/v3"
+)
+
+func init() {
+	goose.AddMigrationNoTx(func(db *sql.DB) error { return nil }, func(db *sql.DB) error { return nil })
+}`
+
+	upAndDownInlineContext = `package testgo
+
+import (
+	"context"
+	"database/sql"
+
+	"github.com/pressly/goose/v3"
+)
+
+func init() {
+	goose.AddMigrationContext(
+		func(ctx context.Context, tx *sql.Tx) error { return nil },
+		func(ctx context.Context, tx *sql.Tx) error { return nil },
+	)
+}`
+
+	upAndDownInlineNoTxContext = `package testgo
+
+import (
+	"context"
+	"database/sql"
+
+	"github.com/pressly/goose/v3"
+)
+
+func init() {
+	goose.AddMigrationNoTxContext(
+		func(ctx context.Context, db *sql.DB) error { return nil },
+		func(ctx context.Context, db *sql.DB) error { return nil },
+	)
+}`
+
+	upInlineDownNamed = `package testgo
+
+import (
+	"database/sql"
+
+	"github.com/pressly/goose/v3"
+)
+
+func init() {
+	goose.AddMigration(func(tx *sql.Tx) error { return nil }, down004)
+}
+
+func down004(tx *sql.Tx) error { return nil }`
+
+	upAndDownQualified = `package testgo
+
+import (
+	"github.com/pressly/goose/v3"
+
+	"example.com/migrations"
+)
+
+func init() {
+	goose.AddMigration(migrations.Up005, migrations.Down005)
 }`
 )
