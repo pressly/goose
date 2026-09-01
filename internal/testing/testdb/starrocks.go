@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -73,9 +74,8 @@ func newStarrocks(opts ...OptionsFunc) (*sql.DB, func(), error) {
 	)
 	var db *sql.DB
 
-	// Exponential backoff-retry, because the application in the container
-	// might not be ready to accept connections yet. Add an extra sleep
-	// because container take much longer to startup.
+	// Exponential backoff-retry because the frontend can accept connections before a backend is
+	// available. Creating a table requires at least one alive backend.
 	pool.MaxWait = time.Minute * 2
 	if err := pool.Retry(func() error {
 		var err error
@@ -93,11 +93,55 @@ func newStarrocks(opts ...OptionsFunc) (*sql.DB, func(), error) {
 			return fmt.Errorf("could not set default initial database: %v", err)
 		}
 
-		return db.Ping()
+		if err := db.Ping(); err != nil {
+			return err
+		}
+		return checkStarrocksBackend(db)
 	},
 	); err != nil {
 		return nil, cleanup, fmt.Errorf("could not connect to docker database: %v", err)
 	}
 
 	return db, cleanup, nil
+}
+
+func checkStarrocksBackend(db *sql.DB) error {
+	rows, err := db.Query("SHOW BACKENDS")
+	if err != nil {
+		return fmt.Errorf("could not query StarRocks backends: %v", err)
+	}
+	defer rows.Close()
+
+	columns, err := rows.Columns()
+	if err != nil {
+		return fmt.Errorf("could not get StarRocks backend columns: %v", err)
+	}
+	aliveIndex := -1
+	for i, column := range columns {
+		if strings.EqualFold(column, "Alive") {
+			aliveIndex = i
+			break
+		}
+	}
+	if aliveIndex == -1 {
+		return fmt.Errorf("StarRocks backend status does not include an Alive column")
+	}
+
+	values := make([]sql.RawBytes, len(columns))
+	dest := make([]any, len(columns))
+	for i := range values {
+		dest[i] = &values[i]
+	}
+	for rows.Next() {
+		if err := rows.Scan(dest...); err != nil {
+			return fmt.Errorf("could not scan StarRocks backend status: %v", err)
+		}
+		if strings.EqualFold(string(values[aliveIndex]), "true") {
+			return nil
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("could not read StarRocks backend status: %v", err)
+	}
+	return fmt.Errorf("no alive StarRocks backends")
 }
