@@ -25,6 +25,9 @@ func StatusContext(ctx context.Context, db *sql.DB, dir string, opts ...OptionsF
 	if err != nil {
 		return fmt.Errorf("failed to collect migrations: %w", err)
 	}
+	if option.statusLimit > 0 && len(migrations) > option.statusLimit {
+		migrations = migrations[len(migrations)-option.statusLimit:]
+	}
 	if option.noVersioning {
 		log.Printf("    Applied At                  Migration")
 		log.Printf("    =======================================")

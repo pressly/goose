@@ -71,16 +71,21 @@ func newStarrocks(opts ...OptionsFunc) (*sql.DB, func(), error) {
 		container.GetPort("9030/tcp"), // Fetch port dynamically assigned to container,
 		"",
 	)
-	var db *sql.DB
+	// Add explicit timeouts; StarRocks can accept TCP but drop MySQL protocol
+	// connections during initialization which shows up as unexpected EOF.
+	dsn += "&timeout=30s&readTimeout=30s&writeTimeout=30s"
+
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return nil, cleanup, err
+	}
 
 	// Exponential backoff-retry, because the application in the container
 	// might not be ready to accept connections yet. Add an extra sleep
 	// because container take much longer to startup.
-	pool.MaxWait = time.Minute * 2
+	pool.MaxWait = time.Minute * 4
 	if err := pool.Retry(func() error {
-		var err error
-		db, err = sql.Open("mysql", dsn)
-		if err != nil {
+		if err := db.Ping(); err != nil {
 			return err
 		}
 
@@ -93,11 +98,31 @@ func newStarrocks(opts ...OptionsFunc) (*sql.DB, func(), error) {
 			return fmt.Errorf("could not set default initial database: %v", err)
 		}
 
-		return db.Ping()
+		// StarRocks FE may accept connections before any usable BE is available.
+		// Goose migrations create OLAP tables which require a healthy backend.
+		return starrocksWaitOlapReady(db)
 	},
 	); err != nil {
 		return nil, cleanup, fmt.Errorf("could not connect to docker database: %v", err)
 	}
 
 	return db, cleanup, nil
+}
+
+func starrocksWaitOlapReady(db *sql.DB) error {
+	const table = "__goose_backend_healthcheck"
+	_, _ = db.Exec("DROP TABLE IF EXISTS " + table)
+
+	// Minimal OLAP table; create will fail with "available backends: []" until BE is ready.
+	create := `CREATE TABLE ` + table + ` (
+		k1 INT
+	) DUPLICATE KEY(k1)
+	DISTRIBUTED BY HASH(k1) BUCKETS 1
+	PROPERTIES ("replication_num" = "1")`
+
+	if _, err := db.Exec(create); err != nil {
+		return err
+	}
+	_, err := db.Exec("DROP TABLE IF EXISTS " + table)
+	return err
 }
