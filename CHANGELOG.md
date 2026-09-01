@@ -9,6 +9,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- CLI: register the `azuresql` driver (`github.com/microsoft/go-mssqldb/azuread`), enabling Microsoft
+  Entra ID (Azure AD) authentication for Azure SQL via `fedauth` connection string parameters, e.g.
+  `fedauth=ActiveDirectoryDefault`. Excluded when building with the `no_mssql` or `no_azuresql` tags.
 - MySQL/MariaDB table-based `Locker` implementation via `lock.NewMySQLTableLocker`
   - Mirrors the Postgres table locker introduced in #993 but uses MySQL syntax (no `RETURNING`,
     `INSERT IGNORE` + guarded `UPDATE`, `information_schema.tables` for existence checks)
