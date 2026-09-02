@@ -17,6 +17,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     `INSERT IGNORE` + guarded `UPDATE`, `information_schema.tables` for existence checks)
   - Shares the same `TableLockerOption` set as the Postgres table locker
 
+### Changed
+
+- Bump minimum Go version to 1.26.0
+- Various dependency upgrades
+
 ## [v3.27.3] - 2026-07-22
 
 ### Changed
