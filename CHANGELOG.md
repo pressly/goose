@@ -21,6 +21,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Bump minimum Go version to 1.26.0
 - Various dependency upgrades
+- ClickHouse: new `goose_db_version` tables are created with `ORDER BY (version_id)` instead of
+  `ORDER BY (date)`. Existing tables are unchanged. (#1085)
+- MySQL/TiDB: the `tstamp` column is now `DATETIME` instead of `TIMESTAMP`, which is capped at
+  2038-01-19. Only newly created tables are affected; existing tables can be updated with: (#1053)
+
+  ```sql
+  ALTER TABLE goose_db_version MODIFY tstamp datetime NULL DEFAULT CURRENT_TIMESTAMP;
+  ```
+
+### Fixed
+
+- `goose create` returns a clear "file exists" error instead of `%!w(<nil>)` when the migration
+  file already exists (#1104)
 
 ## [v3.27.3] - 2026-07-22
 
