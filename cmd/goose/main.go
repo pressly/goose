@@ -34,6 +34,7 @@ var (
 	versionFlag  = flags.Bool("version", false, "print version")
 	certfile     = flags.String("certfile", "", "file path to root CA's certificates in pem format (only support on mysql)")
 	sequential   = flags.Bool("s", false, "use sequential numbering for new migrations")
+	inc          = flags.Int("inc", 1, "The value to increment sequential migrations by")
 	allowMissing = flags.Bool("allow-missing", false, "applies missing (out-of-order) migrations")
 	sslcert      = flags.String("ssl-cert", "", "file path to SSL certificates in pem format (only support on mysql)")
 	sslkey       = flags.String("ssl-key", "", "file path to SSL key in pem format (only support on mysql)")
@@ -82,6 +83,10 @@ func main() {
 	}
 	if *sequential {
 		goose.SetSequential(true)
+	}
+
+	if inc != nil && *inc > 0 {
+		goose.SetSeqIncrement(int64(*inc))
 	}
 
 	// The order of precedence should be: flag > env variable > default value.
