@@ -17,7 +17,7 @@ func RedoContext(ctx context.Context, db *sql.DB, dir string, opts ...OptionsFun
 	for _, f := range opts {
 		f(option)
 	}
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+	migrations, err := CollectMigrations(dir, sentinelVersion(), maxVersion)
 	if err != nil {
 		return err
 	}

@@ -21,7 +21,7 @@ func StatusContext(ctx context.Context, db *sql.DB, dir string, opts ...OptionsF
 	for _, f := range opts {
 		f(option)
 	}
-	migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+	migrations, err := CollectMigrations(dir, sentinelVersion(), maxVersion)
 	if err != nil {
 		return fmt.Errorf("failed to collect migrations: %w", err)
 	}
