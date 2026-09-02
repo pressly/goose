@@ -22,6 +22,7 @@ func parseSQLFile(r io.Reader, debug bool) (*sqlMigration, error) {
 		bytes.NewReader(by),
 		sqlparser.DirectionUp,
 		debug,
+		nil,
 	)
 	if err != nil {
 		return nil, err
@@ -30,6 +31,7 @@ func parseSQLFile(r io.Reader, debug bool) (*sqlMigration, error) {
 		bytes.NewReader(by),
 		sqlparser.DirectionDown,
 		debug,
+		nil,
 	)
 	if err != nil {
 		return nil, err

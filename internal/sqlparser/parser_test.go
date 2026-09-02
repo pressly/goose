@@ -67,7 +67,7 @@ func TestSplitStatements(t *testing.T) {
 
 	for i, test := range tt {
 		// up
-		stmts, _, err := ParseSQLMigration(strings.NewReader(test.sql), DirectionUp, debug)
+		stmts, _, err := ParseSQLMigration(strings.NewReader(test.sql), DirectionUp, debug, nil)
 		if err != nil {
 			t.Error(fmt.Errorf("tt[%v] unexpected error: %w", i, err))
 		}
@@ -76,7 +76,7 @@ func TestSplitStatements(t *testing.T) {
 		}
 
 		// down
-		stmts, _, err = ParseSQLMigration(strings.NewReader(test.sql), DirectionDown, debug)
+		stmts, _, err = ParseSQLMigration(strings.NewReader(test.sql), DirectionDown, debug, nil)
 		if err != nil {
 			t.Error(fmt.Errorf("tt[%v] unexpected error: %w", i, err))
 		}
@@ -97,7 +97,7 @@ func TestInvalidUp(t *testing.T) {
 	for _, entry := range entries {
 		by, err := os.ReadFile(filepath.Join(testdataDir, entry.Name()))
 		require.NoError(t, err)
-		_, _, err = ParseSQLMigration(strings.NewReader(string(by)), DirectionUp, false)
+		_, _, err = ParseSQLMigration(strings.NewReader(string(by)), DirectionUp, false, nil)
 		require.Error(t, err)
 	}
 }
@@ -121,7 +121,7 @@ func TestUseTransactions(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		_, useTx, err := ParseSQLMigration(f, DirectionUp, debug)
+		_, useTx, err := ParseSQLMigration(f, DirectionUp, debug, nil)
 		if err != nil {
 			t.Error(err)
 		}
@@ -141,7 +141,7 @@ func TestParsingErrors(t *testing.T) {
 		downFirst,
 	}
 	for i, sql := range tt {
-		_, _, err := ParseSQLMigration(strings.NewReader(sql), DirectionUp, debug)
+		_, _, err := ParseSQLMigration(strings.NewReader(sql), DirectionUp, debug, nil)
 		if err == nil {
 			t.Errorf("expected error on tt[%v] %q", i, sql)
 		}
@@ -412,7 +412,7 @@ func testValid(t *testing.T, dir string, count int, direction Direction) {
 	f, err := os.Open(filepath.Join(dir, "input.sql"))
 	require.NoError(t, err)
 	t.Cleanup(func() { f.Close() })
-	statements, _, err := ParseSQLMigration(f, direction, debug)
+	statements, _, err := ParseSQLMigration(f, direction, debug, nil)
 	require.NoError(t, err)
 	require.Equal(t, len(statements), count)
 	compareStatements(t, dir, statements, direction)
@@ -503,7 +503,7 @@ CREATE TABLE post (
 	PRIMARY KEY(id)
 );
 `
-	_, _, err := ParseSQLMigration(strings.NewReader(s), DirectionUp, debug)
+	_, _, err := ParseSQLMigration(strings.NewReader(s), DirectionUp, debug, nil)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "variable substitution failed: $SOME_UNSET_VAR: required env var not set:")
 }
