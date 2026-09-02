@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"maps"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -638,6 +639,38 @@ func (p *Provider) status(ctx context.Context) (_ []*MigrationStatus, retErr err
 			}
 		}
 		status = append(status, migrationStatus)
+	}
+
+	if !p.cfg.disableVersioning {
+		dbMigrations, err := p.store.ListMigrations(ctx, conn)
+		if err != nil {
+			return nil, err
+		}
+		known := make(map[int64]struct{}, len(p.migrations))
+		for _, m := range p.migrations {
+			known[m.Version] = struct{}{}
+		}
+		for _, dbm := range dbMigrations {
+			if dbm.Version == 0 {
+				continue
+			}
+			if _, ok := known[dbm.Version]; ok {
+				continue
+			}
+			applied := &MigrationStatus{
+				Source: &Source{Version: dbm.Version},
+				State:  StateMissing,
+			}
+			if dbResult, err := p.store.GetMigration(ctx, conn, dbm.Version); err == nil && dbResult != nil {
+				applied.AppliedAt = dbResult.Timestamp
+			} else if err != nil && !errors.Is(err, database.ErrVersionNotFound) {
+				return nil, err
+			}
+			status = append(status, applied)
+		}
+		slices.SortFunc(status, func(a, b *MigrationStatus) int {
+			return cmp.Compare(a.Source.Version, b.Source.Version)
+		})
 	}
 
 	return status, nil
