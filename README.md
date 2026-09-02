@@ -82,6 +82,7 @@ Drivers:
     redshift
     tidb
     clickhouse
+    clickhouse-replicated
     ydb
     starrocks
     turso
@@ -429,6 +430,57 @@ func main() {
 
 Note that we pass `"migrations"` as directory argument in `Up` because embedding saves directory
 structure.
+
+## ClickHouse replicated cluster dialect
+
+`clickhouse-replicated` is a sibling of the `clickhouse` dialect that targets multi-replica
+ClickHouse clusters. It writes `goose_db_version` via `ReplicatedReplacingMergeTree(tstamp)` with
+`ON CLUSTER` DDL so the table exists on every replica with consistent schema.
+
+The dialect follows an **insert-mostly** design in line with ClickHouse's
+[avoid mutations](https://clickhouse.com/docs/concepts/best-practices/avoid-mutations) guidance:
+
+- Up-migrations `INSERT` a row with `is_applied = 1`.
+- Down-migrations `INSERT` a tombstone row with `is_applied = 0` — **no `ALTER … DELETE` mutation
+  is ever issued.** Both up and down writes carry the same `insert_quorum` setting, so their
+  replicated-durability behaviour is symmetric (whatever quorum you configure applies to both;
+  with `insert_quorum='off'` or `'1'` neither is quorum-durable).
+- Read queries derive the current state per `version_id` using `argMax(is_applied, tstamp)`, so the
+  latest-`tstamp` row (whether an apply or a tombstone) wins. All reads set
+  `select_sequential_consistency=1`, which — for writes that actually went through a quorum —
+  makes a query landing on a lagging replica wait until it has caught up to the last
+  quorum-committed write to `goose_db_version`. This only affects visibility of already-written
+  bookkeeping rows on the read side; it does not serialize concurrent readers against each other
+  or provide any coordination for the migration DDL itself. With `insert_quorum='off'` or `'1'`
+  even that read-side guard is a no-op.
+- Duplicate rows for the same `version_id` are collapsed automatically by background merges of the
+  `ReplacingMergeTree` engine; no manual pruning is required.
+
+Users select the dialect explicitly (`goose clickhouse-replicated ...` on the CLI, or
+`database.DialectClickHouseReplicated` in code) — it is a separate dialect, not an automatic
+upgrade of `clickhouse`. The column layout deliberately differs from stock `clickhouse` so an old
+CLI cannot silently mis-mutate a replicated table.
+
+Configuration comes from `GOOSE_CLICKHOUSE_*` environment variables (matching functional options
+are available on `database.NewClickhouseReplicated(...)`):
+
+| Env var                              | Option                             | Default | Notes                                           |
+|--------------------------------------|------------------------------------|---------|-------------------------------------------------|
+| `GOOSE_CLICKHOUSE_CLUSTER`           | `WithClickhouseCluster`            | *(none)*| **Required.** Cluster name for `ON CLUSTER` DDL.|
+| `GOOSE_CLICKHOUSE_ZK_PATH`           | `WithClickhouseZooKeeperPath`      | *(empty)* | Empty → rely on `default_replica_path` macro. |
+| `GOOSE_CLICKHOUSE_REPLICA_NAME`      | `WithClickhouseReplicaName`        | *(empty)* | Empty → rely on `default_replica_name` macro. |
+| `GOOSE_CLICKHOUSE_INSERT_QUORUM`     | `WithClickhouseInsertQuorum`       | `auto`  | Numeric values (e.g. `3`) or `auto`/`off`. Applied to both up and down writes. |
+
+> [!IMPORTANT]
+> This dialect does **not** make it safe to run `goose` migrators concurrently against the same
+> cluster. `insert_quorum` and `select_sequential_consistency=1` only scope the visibility of
+> individual `goose_db_version` rows — they do not serialize concurrent readers against each
+> other, do not turn the bookkeeping insert into a compare-and-swap, and give no coordination for
+> the migration DDL itself. Two racing goose runs can each read the same "latest applied" state,
+> each decide the next migration is theirs to run, and each submit its `ON CLUSTER` DDL to the
+> Keeper DDL queue independently. ClickHouse does not offer a distributed-lock primitive suitable
+> for cross-cluster mutual exclusion, so concurrent-run interlocking must be arranged outside of
+> ClickHouse.
 
 ## Go Migrations
 

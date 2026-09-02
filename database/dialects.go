@@ -14,19 +14,20 @@ import (
 type Dialect string
 
 const (
-	DialectCustom     Dialect = ""
-	DialectClickHouse Dialect = "clickhouse"
-	DialectAuroraDSQL Dialect = "dsql"
-	DialectMSSQL      Dialect = "mssql"
-	DialectMySQL      Dialect = "mysql"
-	DialectPostgres   Dialect = "postgres"
-	DialectRedshift   Dialect = "redshift"
-	DialectSQLite3    Dialect = "sqlite3"
-	DialectSpanner    Dialect = "spanner"
-	DialectStarrocks  Dialect = "starrocks"
-	DialectTiDB       Dialect = "tidb"
-	DialectTurso      Dialect = "turso"
-	DialectYdB        Dialect = "ydb"
+	DialectCustom               Dialect = ""
+	DialectClickHouse           Dialect = "clickhouse"
+	DialectClickHouseReplicated Dialect = "clickhouse-replicated"
+	DialectAuroraDSQL           Dialect = "dsql"
+	DialectMSSQL                Dialect = "mssql"
+	DialectMySQL                Dialect = "mysql"
+	DialectPostgres             Dialect = "postgres"
+	DialectRedshift             Dialect = "redshift"
+	DialectSQLite3              Dialect = "sqlite3"
+	DialectSpanner              Dialect = "spanner"
+	DialectStarrocks            Dialect = "starrocks"
+	DialectTiDB                 Dialect = "tidb"
+	DialectTurso                Dialect = "turso"
+	DialectYdB                  Dialect = "ydb"
 
 	// DEPRECATED: Vertica support is deprecated and will be removed in a future release.
 	DialectVertica Dialect = "vertica"
@@ -36,6 +37,13 @@ const (
 func NewStore(d Dialect, tableName string) (Store, error) {
 	if d == DialectCustom {
 		return nil, errors.New("custom dialect is not supported")
+	}
+	if d == DialectClickHouseReplicated {
+		querier, err := NewClickhouseReplicated()
+		if err != nil {
+			return nil, err
+		}
+		return NewStoreFromQuerier(tableName, querier)
 	}
 	lookup := map[Dialect]dialect.Querier{
 		DialectClickHouse: dialects.NewClickhouse(),

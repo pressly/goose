@@ -269,6 +269,7 @@ Drivers:
     redshift
     tidb
     clickhouse
+    clickhouse-replicated
     ydb
     starrocks
     turso

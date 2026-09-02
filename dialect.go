@@ -11,24 +11,34 @@ import (
 type Dialect = database.Dialect
 
 const (
-	DialectCustom     Dialect = database.DialectCustom
-	DialectClickHouse Dialect = database.DialectClickHouse
-	DialectMSSQL      Dialect = database.DialectMSSQL
-	DialectMySQL      Dialect = database.DialectMySQL
-	DialectPostgres   Dialect = database.DialectPostgres
-	DialectRedshift   Dialect = database.DialectRedshift
-	DialectSQLite3    Dialect = database.DialectSQLite3
-	DialectSpanner    Dialect = database.DialectSpanner
-	DialectStarrocks  Dialect = database.DialectStarrocks
-	DialectTiDB       Dialect = database.DialectTiDB
-	DialectTurso      Dialect = database.DialectTurso
-	DialectYdB        Dialect = database.DialectYdB
+	DialectCustom               Dialect = database.DialectCustom
+	DialectClickHouse           Dialect = database.DialectClickHouse
+	DialectClickHouseReplicated Dialect = database.DialectClickHouseReplicated
+	DialectMSSQL                Dialect = database.DialectMSSQL
+	DialectMySQL                Dialect = database.DialectMySQL
+	DialectPostgres             Dialect = database.DialectPostgres
+	DialectRedshift             Dialect = database.DialectRedshift
+	DialectSQLite3              Dialect = database.DialectSQLite3
+	DialectSpanner              Dialect = database.DialectSpanner
+	DialectStarrocks            Dialect = database.DialectStarrocks
+	DialectTiDB                 Dialect = database.DialectTiDB
+	DialectTurso                Dialect = database.DialectTurso
+	DialectYdB                  Dialect = database.DialectYdB
 
 	// Dialects only available to the [Provider].
 	DialectAuroraDSQL Dialect = database.DialectAuroraDSQL
 
 	// DEPRECATED: Vertica support is deprecated and will be removed in a future release.
 	DialectVertica Dialect = database.DialectVertica
+)
+
+// Environment variable names read by the clickhouse-replicated dialect. See
+// [database.NewClickhouseReplicated] for the full list of options.
+const (
+	EnvClickhouseCluster      = database.EnvClickhouseCluster
+	EnvClickhouseZKPath       = database.EnvClickhouseZKPath
+	EnvClickhouseReplicaName  = database.EnvClickhouseReplicaName
+	EnvClickhouseInsertQuorum = database.EnvClickhouseInsertQuorum
 )
 
 func init() {
@@ -57,6 +67,8 @@ func SetDialect(s string) error {
 		d = DialectTiDB
 	case "clickhouse":
 		d = DialectClickHouse
+	case "clickhouse-replicated":
+		d = DialectClickHouseReplicated
 	case "vertica":
 		d = DialectVertica
 	case "ydb":
