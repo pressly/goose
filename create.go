@@ -58,11 +58,10 @@ func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, m
 	}
 
 	path := filepath.Join(dir, filename)
-	if _, err := os.Stat(path); !os.IsNotExist(err) {
-		return fmt.Errorf("failed to create migration file: %w", err)
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	if errors.Is(err, os.ErrExist) {
+		return fmt.Errorf("failed to create migration file: %w", os.ErrExist)
 	}
-
-	f, err := os.Create(path)
 	if err != nil {
 		return fmt.Errorf("failed to create migration file: %w", err)
 	}
