@@ -232,13 +232,40 @@ func mergeArgs(config *envConfig, args []string) []string {
 	if len(args) < 1 {
 		return args
 	}
-	if s := config.driver; s != "" {
-		args = append([]string{s}, args...)
+
+	// Explicit positional arguments should win over environment values.
+	if len(args) >= 3 {
+		return args
 	}
-	if s := config.dbstring; s != "" {
-		args = append([]string{args[0], s}, args[1:]...)
+
+	// Command-first form: goose COMMAND [ARGS...]
+	if isDBCommand(args[0]) {
+		if s := config.driver; s != "" {
+			args = append([]string{s}, args...)
+		}
+		if s := config.dbstring; s != "" {
+			args = append([]string{args[0], s}, args[1:]...)
+		}
+		return args
 	}
+
+	// Driver-first short form: goose DRIVER COMMAND
+	if len(args) == 2 && isDBCommand(args[1]) {
+		if s := config.dbstring; s != "" {
+			args = append([]string{args[0], s}, args[1:]...)
+		}
+	}
+
 	return args
+}
+
+func isDBCommand(s string) bool {
+	switch s {
+	case "up", "up-by-one", "up-to", "down", "down-to", "redo", "reset", "status", "version":
+		return true
+	default:
+		return false
+	}
 }
 
 func usage() {
