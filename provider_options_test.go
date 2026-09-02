@@ -16,6 +16,7 @@ func TestNewProvider(t *testing.T) {
 	dir := t.TempDir()
 	db, err := sql.Open("sqlite", filepath.Join(dir, "sql_embed.db"))
 	require.NoError(t, err)
+	defer db.Close()
 	fsys := fstest.MapFS{
 		"1_foo.sql": {Data: []byte(migration1)},
 		"2_bar.sql": {Data: []byte(migration2)},

@@ -34,6 +34,7 @@ func TestDialectStore(t *testing.T) {
 	t.Run("sqlite3", func(t *testing.T) {
 		db, err := sql.Open("sqlite", ":memory:")
 		require.NoError(t, err)
+		defer db.Close()
 		testStore(context.Background(), t, database.DialectSQLite3, db, func(t *testing.T, err error) {
 			t.Helper()
 			var sqliteErr *sqlite.Error
@@ -47,6 +48,7 @@ func TestDialectStore(t *testing.T) {
 		dir := t.TempDir()
 		db, err := sql.Open("sqlite", filepath.Join(dir, "sql_embed.db"))
 		require.NoError(t, err)
+		defer db.Close()
 		store, err := database.NewStore(database.DialectSQLite3, "foo")
 		require.NoError(t, err)
 		err = store.CreateVersionTable(context.Background(), db)
