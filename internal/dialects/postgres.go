@@ -42,7 +42,7 @@ func (p *postgres) GetMigrationByVersion(tableName string) string {
 }
 
 func (p *postgres) ListMigrations(tableName string) string {
-	q := `SELECT version_id, is_applied from %s ORDER BY id DESC`
+	q := `SELECT tstamp, version_id, is_applied from %s ORDER BY id DESC`
 	return fmt.Sprintf(q, tableName)
 }
 
