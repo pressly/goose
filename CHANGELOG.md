@@ -7,6 +7,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- `goose create` now detects a version collision (same-second timestamps, or sequential
+  `last+1` races) and bumps the version, retrying the atomic `O_EXCL` create. Different
+  names no longer share a version. Exact filename collisions still return `os.ErrExist`
+  (#1116). `timestampFormat` is unchanged.
+- Legacy `CollectMigrations` returns an error for duplicate versions instead of panicking
+  in `Migrations.Less`, matching the provider collect path (#1116).
+
 ## [v3.28.0] - 2026-09-02
 
 ### Added

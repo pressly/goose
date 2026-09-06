@@ -34,9 +34,6 @@ type Migrations []*Migration
 func (ms Migrations) Len() int      { return len(ms) }
 func (ms Migrations) Swap(i, j int) { ms[i], ms[j] = ms[j], ms[i] }
 func (ms Migrations) Less(i, j int) bool {
-	if ms[i].Version == ms[j].Version {
-		panic(fmt.Sprintf("goose: duplicate version %v detected:\n%v\n%v", ms[i].Version, ms[i].Source, ms[j].Source))
-	}
 	return ms[i].Version < ms[j].Version
 }
 
@@ -168,7 +165,21 @@ func collectMigrationsFS(
 	if len(migrations) == 0 {
 		return nil, ErrNoMigrationFiles
 	}
+	if err := checkDuplicateVersions(migrations); err != nil {
+		return nil, err
+	}
 	return sortAndConnectMigrations(migrations), nil
+}
+
+func checkDuplicateVersions(ms Migrations) error {
+	seen := make(map[int64]string, len(ms))
+	for _, m := range ms {
+		if existing, ok := seen[m.Version]; ok {
+			return fmt.Errorf("goose: duplicate version %v detected:\n%v\n%v", m.Version, existing, m.Source)
+		}
+		seen[m.Version] = m.Source
+	}
+	return nil
 }
 
 // CollectMigrations returns all the valid looking migration scripts in the
