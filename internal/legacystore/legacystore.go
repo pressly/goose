@@ -67,6 +67,12 @@ func NewStore(d database.Dialect) (Store, error) {
 		querier = dialects.NewTidb()
 	case database.DialectClickHouse:
 		querier = dialects.NewClickhouse()
+	case database.DialectClickHouseReplicated:
+		q, err := database.NewClickhouseReplicated()
+		if err != nil {
+			return nil, err
+		}
+		querier = q
 	case database.DialectVertica:
 		querier = dialects.NewVertica()
 	case database.DialectYdB:

@@ -37,6 +37,8 @@ func OpenDBWithDriver(driver string, dbstring string) (*sql.DB, error) {
 		driver = "pgx"
 	case "starrocks":
 		driver = "mysql"
+	case "clickhouse-replicated":
+		driver = "clickhouse"
 	}
 
 	switch driver {
