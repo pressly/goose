@@ -472,6 +472,10 @@ are available on `database.NewClickhouseReplicated(...)`):
 | `GOOSE_CLICKHOUSE_REPLICA_NAME`      | `WithClickhouseReplicaName`        | *(empty)* | Empty → rely on `default_replica_name` macro. |
 | `GOOSE_CLICKHOUSE_INSERT_QUORUM`     | `WithClickhouseInsertQuorum`       | `auto`  | Numeric values (e.g. `3`) or `auto`/`off`. Applied to both up and down writes. |
 
+The `TestClickhouseReplicated` integration test brings up a two-node cluster
+(see [`internal/testing/integration/clickhouse-replicated/`](./internal/testing/integration/clickhouse-replicated/README.md))
+via `ory/dockertest` and is exercised by the standard `test-integration` CI job.
+
 > [!IMPORTANT]
 > This dialect does **not** make it safe to run `goose` migrators concurrently against the same
 > cluster. `insert_quorum` and `select_sequential_consistency=1` only scope the visibility of

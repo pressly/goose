@@ -17,6 +17,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Excluded when building with the `no_mssql` or `no_azuresql` tags (#1109)
 - MySQL/MariaDB table-based `Locker` via `lock.NewMySQLTableLocker`, the MySQL counterpart to the
   Postgres table locker from #993, accepting the same `TableLockerOption` set (#1075)
+- New `TestClickhouseReplicated` integration test for the `clickhouse-replicated` dialect.
+  Brings up a two-node replicated ClickHouse cluster (`ch1`, `ch2`) with an embedded Keeper
+  on `ch1` via [`ory/dockertest`] on a private user network — matching the pattern of every
+  other `testdb.NewX` integration helper — runs the standard up/down/up migration cycle
+  against `ch1`, then verifies both the seeded rows and the `goose_db_version` bookkeeping
+  replicate to `ch2`. Runs under the existing `test-integration` CI job; no new job, no
+  `docker compose` dependency. Cluster XML fragments live under
+  `internal/testing/integration/clickhouse-replicated/config/`.
+
+[`ory/dockertest`]: https://github.com/ory/dockertest
 
 ### Changed
 
