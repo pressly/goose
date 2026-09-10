@@ -195,3 +195,16 @@ func (c *clickhouseReplicated) GetLatestVersion(tableName string) string {
 	q := `SELECT max(version_id) FROM (SELECT version_id, argMax(is_applied, %[2]s) AS is_applied FROM %[1]s GROUP BY version_id) WHERE is_applied = 1 SETTINGS select_sequential_consistency=1`
 	return fmt.Sprintf(q, tableName, tombstoneWinsExpr)
 }
+
+// TableExists returns a query that reports whether tableName exists, and raises a clear
+// ClickHouse exception if it exists with an engine other than ReplicatedReplacingMergeTree --
+// i.e. it was actually created by the sibling (stock) clickhouse dialect, which the two must
+// never share a table with.
+//
+// Only reachable via the Provider API ([database.NewStore]), which checks table existence before
+// creating it. The legacy goose.SetDialect API (and the CLI, which uses it) never checks
+// existence, so a mismatch there still goes undetected.
+func (c *clickhouseReplicated) TableExists(tableName string) string {
+	q := `SELECT count() > 0 AND %[2]s = 0 FROM system.tables WHERE database = currentDatabase() AND name = '%[1]s'`
+	return fmt.Sprintf(q, tableName, clickhouseEngineGuardSubquery(tableName, "clickhouse-replicated", "ReplicatedReplacingMergeTree", "the stock clickhouse dialect"))
+}

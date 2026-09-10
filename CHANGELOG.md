@@ -7,6 +7,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `clickhouse` and `clickhouse-replicated` dialects now implement `TableExists`, checking the
+  existing version table's engine and failing with a clear error if it was created by the other
+  (sibling) dialect instead — the two use incompatible schemas/engines and must never share a
+  table. Only checked through the `Provider` API (`goose.NewProvider`); the legacy global API
+  (`goose.SetDialect`, used by the CLI) does not check table existence and will not detect the
+  mismatch.
+
+### Changed
+
+- Documented that there is no automated migration from the stock `clickhouse` dialect to
+  `clickhouse-replicated` — switching requires manually rebuilding the version table.
+
 ## [v3.28.0] - 2026-09-02
 
 ### Added

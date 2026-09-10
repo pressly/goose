@@ -462,6 +462,15 @@ Users select the dialect explicitly (`goose clickhouse-replicated ...` on the CL
 upgrade of `clickhouse`. The column layout deliberately differs from stock `clickhouse` so an old
 CLI cannot silently mis-mutate a replicated table.
 
+There is no automated migration from the stock `clickhouse` dialect to `clickhouse-replicated`.
+The two use different column layouts and table engines, so switching an existing deployment means
+manually rebuilding the version table (e.g. create the new table under `clickhouse-replicated`,
+backfill it from the old one, then repoint goose at it) — this PR does not provide tooling for
+that.
+
+Because the two dialects are incompatible, they must never share a version table — pointing one
+at a table created by the other will result in SQL errors.
+
 Configuration comes from `GOOSE_CLICKHOUSE_*` environment variables (matching functional options
 are available on `database.NewClickhouseReplicated(...)`):
 

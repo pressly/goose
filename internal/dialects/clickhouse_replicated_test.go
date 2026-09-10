@@ -62,6 +62,32 @@ func TestClickhouseReplicated_AllOptionsSet(t *testing.T) {
 		`SELECT max(version_id) FROM (SELECT version_id, argMax(is_applied, tuple(tstamp, is_applied = 0)) AS is_applied FROM goose_db_version GROUP BY version_id) WHERE is_applied = 1 SETTINGS select_sequential_consistency=1`)
 }
 
+// TestClickhouseReplicated_TableExists_EngineGuard verifies the TableExists query embeds a
+// throwIf guard that raises a clear error if the table exists with an engine other than
+// ReplicatedReplacingMergeTree (i.e. it was created by the stock clickhouse dialect instead).
+func TestClickhouseReplicated_TableExists_EngineGuard(t *testing.T) {
+	q, err := NewClickhouseReplicated(WithClickhouseCluster("c"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	querier, ok := q.(interface{ TableExists(string) string })
+	if !ok {
+		t.Fatal("querier does not implement TableExists")
+	}
+	got := querier.TableExists(testTable)
+	for _, want := range []string{
+		"system.tables",
+		"throwIf(",
+		"ReplicatedReplacingMergeTree",
+		"the stock clickhouse dialect",
+		testTable,
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("TableExists SQL missing %q\ngot: %s", want, got)
+		}
+	}
+}
+
 func TestClickhouseReplicated_EnvDefaults(t *testing.T) {
 	// Only the required env var; everything else should hit defaults.
 	t.Setenv(EnvClickhouseCluster, "envcluster")

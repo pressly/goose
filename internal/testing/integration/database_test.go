@@ -274,6 +274,44 @@ func TestClickhouseReplicated(t *testing.T) {
 	}, 30*time.Second, 500*time.Millisecond, "expected 3 applied versions to replicate to ch2")
 }
 
+// TestClickhouseReplicated_EngineMismatch verifies that pointing one of the clickhouse /
+// clickhouse-replicated dialects at a version table actually created by the other -- via the
+// Provider API -- fails immediately with a clear error instead of silently reusing the
+// incompatible table. See the TableExists implementations in internal/dialects/clickhouse.go and
+// clickhouse_replicated.go.
+func TestClickhouseReplicated_EngineMismatch(t *testing.T) {
+	const cluster = "goose_cluster"
+	t.Setenv(database.EnvClickhouseCluster, cluster)
+
+	db, ch2, cleanup, err := testdb.NewClickHouseReplicated()
+	require.NoError(t, err)
+	t.Cleanup(cleanup)
+	require.NoError(t, db.Ping())
+	require.NoError(t, ch2.Ping())
+
+	ctx := context.Background()
+	const migrationsDir = "testdata/migrations/clickhouse-replicated"
+
+	// Create the version table via clickhouse-replicated first.
+	replicatedProvider, err := goose.NewProvider(
+		database.DialectClickHouseReplicated, db, os.DirFS(migrationsDir),
+		goose.WithIsolateDDL(true),
+	)
+	require.NoError(t, err)
+	_, err = replicatedProvider.Up(ctx)
+	require.NoError(t, err)
+
+	// Now point the stock clickhouse dialect at the same (already-created) table. The mismatch
+	// must be caught before any migration runs, so it doesn't matter that these migrations were
+	// written for the replicated dialect (e.g. ON CLUSTER DDL).
+	stockProvider, err := goose.NewProvider(database.DialectClickHouse, db, os.DirFS(migrationsDir))
+	require.NoError(t, err)
+	_, err = stockProvider.Up(ctx)
+	require.Error(t, err)
+	require.ErrorContains(t, err, "incompatible engine")
+	require.ErrorContains(t, err, "clickhouse-replicated")
+}
+
 func TestClickhouseRemote(t *testing.T) {
 	t.Parallel()
 
