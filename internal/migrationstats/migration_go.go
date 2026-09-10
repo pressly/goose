@@ -119,6 +119,7 @@ func parseInitFunc(fd *ast.FuncDecl) (*goMigration, error) {
 
 // isNilIdent reports whether the expression is the nil identifier.
 func isNilIdent(expr ast.Expr) bool {
-	ident, ok := expr.(*ast.Ident)
+	// (nil) is valid Go, so unwrap before asserting.
+	ident, ok := ast.Unparen(expr).(*ast.Ident)
 	return ok && ident.Name == "nil"
 }

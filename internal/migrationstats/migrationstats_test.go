@@ -61,6 +61,7 @@ func TestGoMigrationStatsInline(t *testing.T) {
 		{"upAndDownInline", upAndDownInline, 1, 1, true},
 		{"upInlineDownNil", upInlineDownNil, 1, 0, true},
 		{"upNilDownInline", upNilDownInline, 0, 1, true},
+		{"upParenNilDownInline", upParenNilDownInline, 0, 1, true},
 		{"upAndDownInlineNoTx", upAndDownInlineNoTx, 1, 1, false},
 	}
 	for _, tc := range tests {
@@ -312,6 +313,18 @@ import (
 
 func init() {
 	goose.AddMigration(nil, func(tx *sql.Tx) error { return nil })
+}`
+
+	upParenNilDownInline = `package testgo
+
+import (
+	"database/sql"
+
+	"github.com/pressly/goose/v3"
+)
+
+func init() {
+	goose.AddMigration((nil), func(tx *sql.Tx) error { return nil })
 }`
 
 	upAndDownInlineNoTx = `package testgo
