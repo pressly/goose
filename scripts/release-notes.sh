@@ -21,8 +21,10 @@ CAPTURE=0
 items=""
 # Read the changelog file line by line
 while IFS= read -r LINE; do
-  # Stop capturing when we reach the next version sections
-  if [[ "${LINE}" == "##"* ]] && [[ "${CAPTURE}" -eq 1 ]]; then
+  # Stop capturing when we reach the next version section heading "## [x.y.z]".
+  # Must match "## [" (not just "##") so Keep a Changelog subsection headers
+  # like "### Added" / "### Changed" are captured instead of ending the section.
+  if [[ "${LINE}" == "## ["* ]] && [[ "${CAPTURE}" -eq 1 ]]; then
     break
   fi
   # Stop capturing when we reach the Unreleased section

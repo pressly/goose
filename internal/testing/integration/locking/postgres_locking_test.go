@@ -8,7 +8,7 @@ import (
 	"hash/crc32"
 	"math/rand/v2"
 	"os"
-	"sort"
+	"slices"
 	"sync"
 	"testing"
 	"testing/fstest"
@@ -91,11 +91,8 @@ func TestPostgresSessionLocker(t *testing.T) {
 		)
 		ch := make(chan error)
 		var wg sync.WaitGroup
-		for i := 0; i < workers; i++ {
-			wg.Add(1)
-
-			go func() {
-				defer wg.Done()
+		for range workers {
+			wg.Go(func() {
 				ctx := context.Background()
 				conn, err := db.Conn(ctx)
 				require.NoError(t, err)
@@ -112,7 +109,7 @@ func TestPostgresSessionLocker(t *testing.T) {
 				// NOTE, we are not unlocking the lock, because we want to test that the lock is
 				// released when the connection is closed.
 				ch <- locker.SessionLock(ctx, conn)
-			}()
+			})
 		}
 		go func() {
 			wg.Wait()
@@ -295,11 +292,9 @@ func TestPostgresProviderLocking(t *testing.T) {
 		})
 		require.NoError(t, g.Wait())
 		require.Equal(t, len(applied), len(sources))
-		sort.Slice(applied, func(i, j int) bool {
-			return applied[i] < applied[j]
-		})
+		slices.Sort(applied)
 		// Each migration should have been applied up exactly once.
-		for i := 0; i < len(sources); i++ {
+		for i := range sources {
 			require.Equal(t, applied[i], sources[i].Version)
 		}
 	})
@@ -397,13 +392,11 @@ func TestPostgresProviderLocking(t *testing.T) {
 		})
 		require.NoError(t, g.Wait())
 		require.Equal(t, len(applied), len(sources))
-		sort.Slice(applied, func(i, j int) bool {
-			return applied[i] < applied[j]
-		})
+		slices.Sort(applied)
 		// Each migration should have been applied down exactly once. Since this is sequential the
 		// applied down migrations should be in reverse order.
-		for i := len(sources) - 1; i >= 0; i-- {
-			require.Equal(t, applied[i], sources[i].Version)
+		for i, source := range slices.Backward(sources) {
+			require.Equal(t, applied[i], source.Version)
 		}
 	})
 }
@@ -428,7 +421,7 @@ func TestPostgresPending(t *testing.T) {
 		t.Helper()
 		var g errgroup.Group
 		boolCh := make(chan bool, workers)
-		for i := 0; i < workers; i++ {
+		for range workers {
 			g.Go(func() error {
 				p, err := goose.NewProvider(goose.DialectPostgres, db, os.DirFS(testDir))
 				require.NoError(t, err)

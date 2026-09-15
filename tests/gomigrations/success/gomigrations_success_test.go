@@ -3,6 +3,7 @@ package gomigrations_test
 import (
 	"database/sql"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/pressly/goose/v3"
@@ -66,7 +67,7 @@ func TestGoMigrationByOne(t *testing.T) {
 	)
 
 	// Migrate all files down-by-one.
-	for i := len(files) - 1; i >= 0; i-- {
+	for i := range slices.Backward(files) {
 		require.EqualValues(t, downByOne(t), i)
 	}
 	version, err = goose.GetDBVersion(db)

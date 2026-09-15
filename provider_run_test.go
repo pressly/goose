@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"sync"
 	"testing"
 	"testing/fstest"
@@ -240,8 +241,7 @@ func TestProviderRun(t *testing.T) {
 			assertResult(t, res, s, "up", empty)
 		}
 		// Apply all migrations in the down direction.
-		for i := len(sources) - 1; i >= 0; i-- {
-			s := sources[i]
+		for _, s := range slices.Backward(sources) {
 			res, err := p.ApplyVersion(ctx, s.Version, false)
 			require.NoError(t, err)
 			// Round-trip the migration result through the database to ensure it's valid.
