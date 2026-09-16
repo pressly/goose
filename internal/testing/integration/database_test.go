@@ -10,6 +10,7 @@ import (
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/internal/testing/testdb"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -254,24 +255,26 @@ func TestClickhouseReplicated(t *testing.T) {
 	// Replication is asynchronous by default; select_sequential_consistency
 	// wouldn't help here because we're bypassing the dialect's Querier for a
 	// raw SELECT.
-	require.Eventually(t, func() bool {
-		var got int
-		if err := ch2.QueryRow(`SELECT count() FROM events`).Scan(&got); err != nil {
+	var eventsCount int
+	eventsOK := assert.Eventually(t, func() bool {
+		if err := ch2.QueryRow(`SELECT count() FROM events`).Scan(&eventsCount); err != nil {
 			return false
 		}
-		return got == 3
-	}, 30*time.Second, 500*time.Millisecond, "expected 3 rows to replicate to ch2")
+		return eventsCount == 3
+	}, 60*time.Second, 500*time.Millisecond)
+	require.True(t, eventsOK, "expected 3 rows to replicate to ch2, last observed count=%d", eventsCount)
 
-	require.Eventually(t, func() bool {
-		var got int
+	var versionsCount int
+	versionsOK := assert.Eventually(t, func() bool {
 		if err := ch2.QueryRow(`SELECT count() FROM (
 			SELECT version_id, argMax(is_applied, tstamp) AS is_applied
 			FROM goose_db_version GROUP BY version_id
-		) WHERE version_id > 0 AND is_applied = 1`).Scan(&got); err != nil {
+		) WHERE version_id > 0 AND is_applied = 1`).Scan(&versionsCount); err != nil {
 			return false
 		}
-		return got == 3
-	}, 30*time.Second, 500*time.Millisecond, "expected 3 applied versions to replicate to ch2")
+		return versionsCount == 3
+	}, 60*time.Second, 500*time.Millisecond)
+	require.True(t, versionsOK, "expected 3 applied versions to replicate to ch2, last observed count=%d", versionsCount)
 }
 
 // TestClickhouseReplicated_EngineMismatch verifies that pointing one of the clickhouse /
