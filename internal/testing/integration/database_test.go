@@ -10,7 +10,6 @@ import (
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/database"
 	"github.com/pressly/goose/v3/internal/testing/testdb"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -252,29 +251,34 @@ func TestClickhouseReplicated(t *testing.T) {
 	// user tables via the migrations under testdata/) so the version state
 	// actually converges on ch2.
 	//
-	// Replication is asynchronous by default; select_sequential_consistency
-	// wouldn't help here because we're bypassing the dialect's Querier for a
-	// raw SELECT.
-	var eventsCount int
-	eventsOK := assert.Eventually(t, func() bool {
-		if err := ch2.QueryRow(`SELECT count() FROM events`).Scan(&eventsCount); err != nil {
-			return false
-		}
-		return eventsCount == 3
-	}, 60*time.Second, 500*time.Millisecond)
-	require.True(t, eventsOK, "expected 3 rows to replicate to ch2, last observed count=%d", eventsCount)
+	// Replication is asynchronous by default, and how long the background
+	// fetch takes depends on how loaded the host running the test is (this
+	// was observed to exceed a fixed poll budget on a busy CI runner). Rather
+	// than guess a large-enough timeout, force ch2 to pull the outstanding
+	// replication log entries before reading: SYSTEM SYNC REPLICA blocks
+	// until the replica has caught up (or the query times out for real, which
+	// indicates an actual replication failure rather than a slow poll).
+	_, err = ch2.ExecContext(ctx, `SYSTEM SYNC REPLICA events`)
+	require.NoError(t, err, "sync ch2 replica of events")
 
+	var eventsCount int
+	require.NoError(t, ch2.QueryRow(`SELECT count() FROM events`).Scan(&eventsCount))
+	require.Equal(t, 3, eventsCount, "expected 3 rows to replicate to ch2")
+
+	_, err = ch2.ExecContext(ctx, fmt.Sprintf(`SYSTEM SYNC REPLICA %s`, goose.DefaultTablename))
+	require.NoError(t, err, "sync ch2 replica of %s", goose.DefaultTablename)
+
+	// Tie-break must match the dialect's own collapse logic (tombstoneWinsExpr
+	// in internal/dialects/clickhouse_replicated.go): a plain
+	// argMax(is_applied, tstamp) is non-deterministic on the tstamp-tied rows
+	// inserted above (900001/900002) and can flip one of their tombstoned
+	// rows back to "applied", inflating this count.
 	var versionsCount int
-	versionsOK := assert.Eventually(t, func() bool {
-		if err := ch2.QueryRow(`SELECT count() FROM (
-			SELECT version_id, argMax(is_applied, tstamp) AS is_applied
-			FROM goose_db_version GROUP BY version_id
-		) WHERE version_id > 0 AND is_applied = 1`).Scan(&versionsCount); err != nil {
-			return false
-		}
-		return versionsCount == 3
-	}, 60*time.Second, 500*time.Millisecond)
-	require.True(t, versionsOK, "expected 3 applied versions to replicate to ch2, last observed count=%d", versionsCount)
+	require.NoError(t, ch2.QueryRow(`SELECT count() FROM (
+		SELECT version_id, argMax(is_applied, tuple(tstamp, is_applied = 0)) AS is_applied
+		FROM goose_db_version GROUP BY version_id
+	) WHERE version_id > 0 AND is_applied = 1`).Scan(&versionsCount))
+	require.Equal(t, 3, versionsCount, "expected 3 applied versions to replicate to ch2")
 }
 
 // TestClickhouseReplicated_EngineMismatch verifies that pointing one of the clickhouse /
