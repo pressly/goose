@@ -9,12 +9,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- `clickhouse` and `clickhouse-replicated` dialects now implement `TableExists`, checking the
-  existing version table's engine and failing with a clear error if it was created by the other
-  (sibling) dialect instead — the two use incompatible schemas/engines and must never share a
-  table. Only checked through the `Provider` API (`goose.NewProvider`); the legacy global API
-  (`goose.SetDialect`, used by the CLI) does not check table existence and will not detect the
-  mismatch.
+- New `clickhouse-replicated` dialect for use with replicated ClickHouse clusters.
 
 ### Changed
 
@@ -31,16 +26,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Excluded when building with the `no_mssql` or `no_azuresql` tags (#1109)
 - MySQL/MariaDB table-based `Locker` via `lock.NewMySQLTableLocker`, the MySQL counterpart to the
   Postgres table locker from #993, accepting the same `TableLockerOption` set (#1075)
-- New `TestClickhouseReplicated` integration test for the `clickhouse-replicated` dialect.
-  Brings up a two-node replicated ClickHouse cluster (`ch1`, `ch2`) with an embedded Keeper
-  on `ch1` via [`ory/dockertest`] on a private user network — matching the pattern of every
-  other `testdb.NewX` integration helper — runs the standard up/down/up migration cycle
-  against `ch1`, then verifies both the seeded rows and the `goose_db_version` bookkeeping
-  replicate to `ch2`. Runs under the existing `test-integration` CI job; no new job, no
-  `docker compose` dependency. Cluster XML fragments live under
-  `internal/testing/integration/clickhouse-replicated/config/`.
-
-[`ory/dockertest`]: https://github.com/ory/dockertest
 
 ### Changed
 
@@ -60,32 +45,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - `goose create` returns a clear "file exists" error, including the path, instead of `%!w(<nil>)`
   when the migration file already exists (#1104)
-
-### Changed
-
-- `clickhouse-replicated` dialect now uses an **insert-mostly** design per ClickHouse's
-  [avoid mutations](https://clickhouse.com/docs/concepts/best-practices/avoid-mutations) guidance.
-  Down-migrations insert a tombstone row (`is_applied = 0`) instead of issuing an
-  `ALTER … DELETE` mutation. The version table uses `ReplicatedReplacingMergeTree(tstamp)` so
-  background merges collapse duplicate rows per `version_id` automatically. Read queries use
-  `argMax` keyed on `(tstamp, is_applied = 0)` — so a tombstone wins any tie against an apply row
-  sharing the same `tstamp` — and set `select_sequential_consistency=1`, which — for writes that
-  actually went through a quorum (see `GOOSE_CLICKHOUSE_INSERT_QUORUM`) — makes a read landing on
-  a lagging replica wait until it has caught up to the last quorum-committed write to
-  `goose_db_version`. That scopes only bookkeeping-row *visibility*; it is not a compare-and-swap
-  on the bookkeeping insert, does not serialize concurrent readers, and does not coordinate the
-  migration DDL. Running multiple `goose` migrators concurrently against the same cluster is
-  therefore still unsafe — concurrent-run interlocking must be arranged outside of ClickHouse.
-  - Removed (unreleased) options `WithClickhouseMutationsSync` and `WithClickhouseDeleteOnCluster`
-    and their env vars `GOOSE_CLICKHOUSE_MUTATIONS_SYNC` and `GOOSE_CLICKHOUSE_DELETE_ON_CLUSTER`
-    — no longer needed since the dialect no longer issues mutations.
-  - `GOOSE_CLICKHOUSE_INSERT_QUORUM` / `WithClickhouseInsertQuorum` now applies to both up and
-    down writes.
-  - The internal dialect constructor now returns an error for a missing cluster name instead of
-    panicking on first query generation. `database.NewClickhouseReplicated` and `NewStore` already
-    returned this error; user-visible behavior is unchanged.
-  - Read queries break `argMax` ties on an identical `tstamp` in favor of the tombstone, rather
-    than relying on tstamp uniqueness alone.
 
 ## [v3.27.3] - 2026-07-22
 
