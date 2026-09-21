@@ -1,10 +1,12 @@
 package dialects
 
 import (
-	"errors"
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // normalizeSQL collapses whitespace so tests can compare SQL strings without
@@ -15,9 +17,7 @@ func normalizeSQL(s string) string {
 
 func assertSQL(t *testing.T, method, got, want string) {
 	t.Helper()
-	if normalizeSQL(got) != normalizeSQL(want) {
-		t.Errorf("%s SQL mismatch\n got: %s\nwant: %s", method, normalizeSQL(got), normalizeSQL(want))
-	}
+	assert.Equal(t, normalizeSQL(want), normalizeSQL(got), "%s SQL mismatch", method)
 }
 
 const testTable = "goose_db_version"
@@ -29,9 +29,7 @@ func TestClickhouseReplicated_AllOptionsSet(t *testing.T) {
 		WithClickhouseReplicaName("{replica}"),
 		WithClickhouseInsertQuorum("3"),
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	assertSQL(t, "CreateTable", q.CreateTable(testTable), `
 		CREATE TABLE IF NOT EXISTS goose_db_version ON CLUSTER goose_cluster (
@@ -67,13 +65,9 @@ func TestClickhouseReplicated_AllOptionsSet(t *testing.T) {
 // ReplicatedReplacingMergeTree (i.e. it was created by the stock clickhouse dialect instead).
 func TestClickhouseReplicated_TableExists_EngineGuard(t *testing.T) {
 	q, err := NewClickhouseReplicated(WithClickhouseCluster("c"))
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	querier, ok := q.(interface{ TableExists(string) string })
-	if !ok {
-		t.Fatal("querier does not implement TableExists")
-	}
+	require.True(t, ok, "querier does not implement TableExists")
 	got := querier.TableExists(testTable)
 	for _, want := range []string{
 		"system.tables",
@@ -82,9 +76,7 @@ func TestClickhouseReplicated_TableExists_EngineGuard(t *testing.T) {
 		"the stock clickhouse dialect",
 		testTable,
 	} {
-		if !strings.Contains(got, want) {
-			t.Errorf("TableExists SQL missing %q\ngot: %s", want, got)
-		}
+		assert.Contains(t, got, want, "TableExists SQL missing %q", want)
 	}
 }
 
@@ -96,9 +88,7 @@ func TestClickhouseReplicated_EnvDefaults(t *testing.T) {
 	t.Setenv(EnvClickhouseInsertQuorum, "")
 
 	q, err := NewClickhouseReplicated()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	assertSQL(t, "CreateTable", q.CreateTable(testTable), `
 		CREATE TABLE IF NOT EXISTS goose_db_version ON CLUSTER envcluster (
@@ -123,9 +113,7 @@ func TestClickhouseReplicated_EnvOverridesAllApplied(t *testing.T) {
 	t.Setenv(EnvClickhouseInsertQuorum, "2")
 
 	q, err := NewClickhouseReplicated()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	assertSQL(t, "CreateTable", q.CreateTable(testTable), `
 		CREATE TABLE IF NOT EXISTS goose_db_version ON CLUSTER envcluster (
@@ -151,38 +139,23 @@ func TestClickhouseReplicated_OptionsOverrideEnv(t *testing.T) {
 		WithClickhouseCluster("optcluster"),
 		WithClickhouseInsertQuorum("1"),
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
-	if got := q.CreateTable(testTable); !strings.Contains(got, "ON CLUSTER optcluster") {
-		t.Errorf("expected option to override env cluster; got: %s", got)
-	}
-	if got := q.InsertVersion(testTable); !strings.Contains(got, "insert_quorum=1") {
-		t.Errorf("expected option to override env insert_quorum on InsertVersion; got: %s", got)
-	}
-	if got := q.DeleteVersion(testTable); !strings.Contains(got, "insert_quorum=1") {
-		t.Errorf("expected option to override env insert_quorum on DeleteVersion; got: %s", got)
-	}
+	assert.Contains(t, q.CreateTable(testTable), "ON CLUSTER optcluster", "expected option to override env cluster")
+	assert.Contains(t, q.InsertVersion(testTable), "insert_quorum=1", "expected option to override env insert_quorum on InsertVersion")
+	assert.Contains(t, q.DeleteVersion(testTable), "insert_quorum=1", "expected option to override env insert_quorum on DeleteVersion")
 }
 
 func TestClickhouseReplicated_MissingClusterErrors(t *testing.T) {
 	t.Setenv(EnvClickhouseCluster, "")
 
 	q, err := NewClickhouseReplicated()
-	if q != nil {
-		t.Fatalf("expected nil querier on error, got: %v", q)
-	}
-	if !errors.Is(err, ErrClickhouseReplicatedNoCluster) {
-		t.Fatalf("expected ErrClickhouseReplicatedNoCluster, got: %v", err)
-	}
+	require.Nil(t, q, "expected nil querier on error")
+	require.ErrorIs(t, err, ErrClickhouseReplicatedNoCluster)
+
 	msg := err.Error()
-	if !strings.Contains(msg, EnvClickhouseCluster) {
-		t.Errorf("expected error to mention %q, got: %s", EnvClickhouseCluster, msg)
-	}
-	if !strings.Contains(msg, "WithClickhouseCluster") {
-		t.Errorf("expected error to mention WithClickhouseCluster, got: %s", msg)
-	}
+	assert.Contains(t, msg, EnvClickhouseCluster, "expected error to mention env var")
+	assert.Contains(t, msg, "WithClickhouseCluster", "expected error to mention WithClickhouseCluster")
 }
 
 // TestClickhouseReplicated_QuorumQuoting verifies quorum formatting on both
@@ -202,18 +175,14 @@ func TestClickhouseReplicated_QuorumQuoting(t *testing.T) {
 			WithClickhouseCluster("c"),
 			WithClickhouseInsertQuorum(tc.in),
 		)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		require.NoError(t, err)
 		for _, sql := range []struct {
 			name, got string
 		}{
 			{"InsertVersion", q.InsertVersion(testTable)},
 			{"DeleteVersion", q.DeleteVersion(testTable)},
 		} {
-			if !strings.Contains(sql.got, "insert_quorum="+tc.want) {
-				t.Errorf("%s quorum %q: expected insert_quorum=%s in SQL, got: %s", sql.name, tc.in, tc.want, sql.got)
-			}
+			assert.Contains(t, sql.got, "insert_quorum="+tc.want, "%s quorum %q", sql.name, tc.in)
 		}
 	}
 }
