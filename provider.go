@@ -204,6 +204,11 @@ func (p *Provider) ListSources() []*Source {
 	return sources
 }
 
+// ListDBMigrations return a list of all migrations listed in the provider database.
+func (p *Provider) ListDBMigrations(ctx context.Context) (_ []*database.ListMigrationsResult, retErr error) {
+	return p.listDBMigrations(ctx, nil)
+}
+
 // Ping attempts to ping the database to verify a connection is available.
 func (p *Provider) Ping(ctx context.Context) error {
 	return p.db.PingContext(ctx)
@@ -666,4 +671,26 @@ func (p *Provider) getDBMaxVersion(ctx context.Context, conn *sql.Conn) (_ int64
 		return -1, err
 	}
 	return latest, nil
+}
+
+func (p *Provider) listDBMigrations(ctx context.Context, conn *sql.Conn) (_ []*database.ListMigrationsResult, retErr error) {
+
+	if conn == nil {
+		var cleanup func() error
+		var err error
+		conn, cleanup, err = p.initialize(ctx, true)
+		if err != nil {
+			return []*database.ListMigrationsResult{}, err
+		}
+		defer func() {
+			retErr = multierr.Append(retErr, cleanup())
+		}()
+	}
+
+	dbMigrations, err := p.store.ListMigrations(ctx, conn)
+	if err != nil {
+		return []*database.ListMigrationsResult{}, err
+	}
+
+	return dbMigrations, nil
 }
