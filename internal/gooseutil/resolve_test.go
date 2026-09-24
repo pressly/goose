@@ -12,21 +12,21 @@ func TestResolveVersions(t *testing.T) {
 	t.Parallel()
 	t.Run("not_allow_missing", func(t *testing.T) {
 		// Nothing to apply nil
-		got, err := UpVersions(nil, nil, math.MaxInt64, false)
+		got, err := UpVersions(nil, nil, math.MaxInt64, false, 0)
 		require.NoError(t, err)
 		require.Empty(t, got)
 		// Nothing to apply empty
-		got, err = UpVersions([]int64{}, []int64{}, math.MaxInt64, false)
+		got, err = UpVersions([]int64{}, []int64{}, math.MaxInt64, false, 0)
 		require.NoError(t, err)
 		require.Empty(t, got)
 
 		// Nothing new
-		got, err = UpVersions([]int64{1, 2, 3}, []int64{1, 2, 3}, math.MaxInt64, false)
+		got, err = UpVersions([]int64{1, 2, 3}, []int64{1, 2, 3}, math.MaxInt64, false, 0)
 		require.NoError(t, err)
 		require.Empty(t, got)
 
 		// All new
-		got, err = UpVersions([]int64{1, 2, 3}, []int64{}, math.MaxInt64, false)
+		got, err = UpVersions([]int64{1, 2, 3}, []int64{}, math.MaxInt64, false, 0)
 		require.NoError(t, err)
 		require.Len(t, got, 3)
 		require.Equal(t, int64(1), got[0])
@@ -34,28 +34,28 @@ func TestResolveVersions(t *testing.T) {
 		require.Equal(t, int64(3), got[2])
 
 		// Squashed, no new
-		got, err = UpVersions([]int64{3}, []int64{3}, math.MaxInt64, false)
+		got, err = UpVersions([]int64{3}, []int64{3}, math.MaxInt64, false, 0)
 		require.NoError(t, err)
 		require.Empty(t, got)
 		// Squashed, 1 new
-		got, err = UpVersions([]int64{3, 4}, []int64{3}, math.MaxInt64, false)
+		got, err = UpVersions([]int64{3, 4}, []int64{3}, math.MaxInt64, false, 0)
 		require.NoError(t, err)
 		require.Len(t, got, 1)
 		require.Equal(t, int64(4), got[0])
 
 		// Some new with target
-		got, err = UpVersions([]int64{1, 2, 3, 4, 5}, []int64{1, 2}, 4, false)
+		got, err = UpVersions([]int64{1, 2, 3, 4, 5}, []int64{1, 2}, 4, false, 0)
 		require.NoError(t, err)
 		require.Len(t, got, 2)
 		require.Equal(t, int64(3), got[0])
 		require.Equal(t, int64(4), got[1]) // up to and including target
 		// Some new with zero target
-		got, err = UpVersions([]int64{1, 2, 3, 4, 5}, []int64{1, 2}, 0, false)
+		got, err = UpVersions([]int64{1, 2, 3, 4, 5}, []int64{1, 2}, 0, false, 0)
 		require.NoError(t, err)
 		require.Empty(t, got)
 
 		// Error: one missing migrations with max target
-		_, err = UpVersions([]int64{1, 2, 3, 4}, []int64{1 /* 2*/, 3}, math.MaxInt64, false)
+		_, err = UpVersions([]int64{1, 2, 3, 4}, []int64{1 /* 2*/, 3}, math.MaxInt64, false, 0)
 		require.Error(t, err)
 		require.Equal(t,
 			"detected 1 missing (out-of-order) migration lower than database version (3): version 2",
@@ -63,7 +63,7 @@ func TestResolveVersions(t *testing.T) {
 		)
 
 		// Error: multiple missing migrations with max target
-		_, err = UpVersions([]int64{1, 2, 3, 4, 5}, []int64{ /* 1 */ 2 /* 3 */, 4, 5}, math.MaxInt64, false)
+		_, err = UpVersions([]int64{1, 2, 3, 4, 5}, []int64{ /* 1 */ 2 /* 3 */, 4, 5}, math.MaxInt64, false, 0)
 		require.Error(t, err)
 		require.Equal(t,
 			"detected 2 missing (out-of-order) migrations lower than database version (5): versions 1,3",
@@ -84,29 +84,29 @@ func TestResolveVersions(t *testing.T) {
 			// error if there are missing migrations below the target version. This is because the
 			// user has explicitly requested a target version and we should respect that.
 
-			got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2 */, 3}, 1, false)
+			got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2 */, 3}, 1, false, 0)
 			require.NoError(t, err)
 			require.Empty(t, got)
-			got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2 */, 3}, 2, false)
+			got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2 */, 3}, 2, false, 0)
 			require.Error(t, err)
 			require.Equal(t,
 				"detected 1 missing (out-of-order) migration lower than database version (3), with target version (2): version 2",
 				err.Error(),
 			)
-			got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2 */, 3}, 3, false)
+			got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2 */, 3}, 3, false, 0)
 			require.Error(t, err)
 			require.Equal(t,
 				"detected 1 missing (out-of-order) migration lower than database version (3), with target version (3): version 2",
 				err.Error(),
 			)
 
-			_, err = UpVersions([]int64{1, 2, 3, 4, 5, 6}, []int64{1 /* 2 */, 3, 4 /* 5*/, 6}, 4, false)
+			_, err = UpVersions([]int64{1, 2, 3, 4, 5, 6}, []int64{1 /* 2 */, 3, 4 /* 5*/, 6}, 4, false, 0)
 			require.Error(t, err)
 			require.Equal(t,
 				"detected 1 missing (out-of-order) migration lower than database version (6), with target version (4): version 2",
 				err.Error(),
 			)
-			_, err = UpVersions([]int64{1, 2, 3, 4, 5, 6}, []int64{1 /* 2 */, 3, 4 /* 5*/, 6}, 6, false)
+			_, err = UpVersions([]int64{1, 2, 3, 4, 5, 6}, []int64{1 /* 2 */, 3, 4 /* 5*/, 6}, 6, false, 0)
 			require.Error(t, err)
 			require.Equal(t,
 				"detected 2 missing (out-of-order) migrations lower than database version (6), with target version (6): versions 2,5",
@@ -117,21 +117,21 @@ func TestResolveVersions(t *testing.T) {
 
 	t.Run("allow_missing", func(t *testing.T) {
 		// Nothing to apply nil
-		got, err := UpVersions(nil, nil, math.MaxInt64, true)
+		got, err := UpVersions(nil, nil, math.MaxInt64, true, 0)
 		require.NoError(t, err)
 		require.Empty(t, got)
 		// Nothing to apply empty
-		got, err = UpVersions([]int64{}, []int64{}, math.MaxInt64, true)
+		got, err = UpVersions([]int64{}, []int64{}, math.MaxInt64, true, 0)
 		require.NoError(t, err)
 		require.Empty(t, got)
 
 		// Nothing new
-		got, err = UpVersions([]int64{1, 2, 3}, []int64{1, 2, 3}, math.MaxInt64, true)
+		got, err = UpVersions([]int64{1, 2, 3}, []int64{1, 2, 3}, math.MaxInt64, true, 0)
 		require.NoError(t, err)
 		require.Empty(t, got)
 
 		// All new
-		got, err = UpVersions([]int64{1, 2, 3}, []int64{}, math.MaxInt64, true)
+		got, err = UpVersions([]int64{1, 2, 3}, []int64{}, math.MaxInt64, true, 0)
 		require.NoError(t, err)
 		require.Len(t, got, 3)
 		require.Equal(t, int64(1), got[0])
@@ -139,34 +139,34 @@ func TestResolveVersions(t *testing.T) {
 		require.Equal(t, int64(3), got[2])
 
 		// Squashed, no new
-		got, err = UpVersions([]int64{3}, []int64{3}, math.MaxInt64, true)
+		got, err = UpVersions([]int64{3}, []int64{3}, math.MaxInt64, true, 0)
 		require.NoError(t, err)
 		require.Empty(t, got)
 		// Squashed, 1 new
-		got, err = UpVersions([]int64{3, 4}, []int64{3}, math.MaxInt64, true)
+		got, err = UpVersions([]int64{3, 4}, []int64{3}, math.MaxInt64, true, 0)
 		require.NoError(t, err)
 		require.Len(t, got, 1)
 		require.Equal(t, int64(4), got[0])
 
 		// Some new with target
-		got, err = UpVersions([]int64{1, 2, 3, 4, 5}, []int64{1, 2}, 4, true)
+		got, err = UpVersions([]int64{1, 2, 3, 4, 5}, []int64{1, 2}, 4, true, 0)
 		require.NoError(t, err)
 		require.Len(t, got, 2)
 		require.Equal(t, int64(3), got[0])
 		require.Equal(t, int64(4), got[1]) // up to and including target
 		// Some new with zero target
-		got, err = UpVersions([]int64{1, 2, 3, 4, 5}, []int64{1, 2}, 0, true)
+		got, err = UpVersions([]int64{1, 2, 3, 4, 5}, []int64{1, 2}, 0, true, 0)
 		require.NoError(t, err)
 		require.Empty(t, got)
 
 		// No error: one missing
-		got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2*/, 3}, math.MaxInt64, true)
+		got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2*/, 3}, math.MaxInt64, true, 0)
 		require.NoError(t, err)
 		require.Len(t, got, 1)
 		require.Equal(t, int64(2), got[0]) // missing
 
 		// No error: multiple missing and new with max target
-		got, err = UpVersions([]int64{1, 2, 3, 4, 5}, []int64{ /* 1 */ 2 /* 3 */, 4}, math.MaxInt64, true)
+		got, err = UpVersions([]int64{1, 2, 3, 4, 5}, []int64{ /* 1 */ 2 /* 3 */, 4}, math.MaxInt64, true, 0)
 		require.NoError(t, err)
 		require.Len(t, got, 3)
 		require.Equal(t, int64(1), got[0]) // missing
@@ -174,23 +174,23 @@ func TestResolveVersions(t *testing.T) {
 		require.Equal(t, int64(5), got[2])
 
 		t.Run("target_lower_than_max", func(t *testing.T) {
-			got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2 */, 3}, 1, true)
+			got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2 */, 3}, 1, true, 0)
 			require.NoError(t, err)
 			require.Empty(t, got)
-			got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2 */, 3}, 2, true)
+			got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2 */, 3}, 2, true, 0)
 			require.NoError(t, err)
 			require.Len(t, got, 1)
 			require.Equal(t, int64(2), got[0]) // missing
-			got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2 */, 3}, 3, true)
+			got, err = UpVersions([]int64{1, 2, 3}, []int64{1 /* 2 */, 3}, 3, true, 0)
 			require.NoError(t, err)
 			require.Len(t, got, 1)
 			require.Equal(t, int64(2), got[0]) // missing
 
-			got, err = UpVersions([]int64{1, 2, 3, 4, 5, 6}, []int64{1 /* 2 */, 3, 4 /* 5*/, 6}, 4, true)
+			got, err = UpVersions([]int64{1, 2, 3, 4, 5, 6}, []int64{1 /* 2 */, 3, 4 /* 5*/, 6}, 4, true, 0)
 			require.NoError(t, err)
 			require.Len(t, got, 1)
 			require.Equal(t, int64(2), got[0]) // missing
-			got, err = UpVersions([]int64{1, 2, 3, 4, 5, 6}, []int64{1 /* 2 */, 3, 4 /* 5*/, 6}, 6, true)
+			got, err = UpVersions([]int64{1, 2, 3, 4, 5, 6}, []int64{1 /* 2 */, 3, 4 /* 5*/, 6}, 6, true, 0)
 			require.NoError(t, err)
 			require.Len(t, got, 2)
 			require.Equal(t, int64(2), got[0]) // missing

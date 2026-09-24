@@ -20,7 +20,7 @@ func VersionContext(ctx context.Context, db *sql.DB, dir string, opts ...Options
 	}
 	if option.noVersioning {
 		var current int64
-		migrations, err := CollectMigrations(dir, minVersion, maxVersion)
+		migrations, err := CollectMigrations(dir, sentinelVersion(), maxVersion)
 		if err != nil {
 			return fmt.Errorf("failed to collect migrations: %w", err)
 		}
