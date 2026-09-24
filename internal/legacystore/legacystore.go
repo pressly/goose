@@ -24,6 +24,9 @@ type Store interface {
 	// CreateVersionTable creates the version table within a transaction.
 	// This table is used to store goose migrations.
 	CreateVersionTable(ctx context.Context, tx *sql.Tx, tableName string) error
+	// CreateVersionTableNoTx creates the version table without a transaction.
+	// Use this for databases that don't support DDL in transactions (e.g. StarRocks).
+	CreateVersionTableNoTx(ctx context.Context, db *sql.DB, tableName string) error
 
 	// InsertVersion inserts a version id into the version table within a transaction.
 	InsertVersion(ctx context.Context, tx *sql.Tx, tableName string, version int64) error
@@ -100,6 +103,12 @@ var _ Store = (*store)(nil)
 func (s *store) CreateVersionTable(ctx context.Context, tx *sql.Tx, tableName string) error {
 	q := s.querier.CreateTable(tableName)
 	_, err := tx.ExecContext(ctx, q)
+	return err
+}
+
+func (s *store) CreateVersionTableNoTx(ctx context.Context, db *sql.DB, tableName string) error {
+	q := s.querier.CreateTable(tableName)
+	_, err := db.ExecContext(ctx, q)
 	return err
 }
 
