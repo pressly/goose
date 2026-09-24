@@ -25,7 +25,7 @@ func SetSequential(s bool) {
 }
 
 // Create writes a new blank migration file.
-func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, migrationType string) error {
+func CreateWithTemplate(_ *sql.DB, dir string, tmpl *template.Template, name, migrationType string) error {
 	version := time.Now().UTC().Format(timestampFormat)
 
 	if sequential {
