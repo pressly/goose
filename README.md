@@ -307,6 +307,28 @@ however, cannot be run within a transaction. You may optionally add `-- +goose N
 the top of your migration file in order to skip transactions within that specific migration file.
 Both Up and Down migrations within this file will be run without transactions.
 
+In PostgreSQL the most common reason to reach for this is `CREATE INDEX CONCURRENTLY`, which builds
+an index without taking the lock that blocks writes to the table, and which PostgreSQL will not run
+inside a transaction block:
+
+```sql
+-- +goose NO TRANSACTION
+-- +goose Up
+CREATE INDEX CONCURRENTLY idx_users_email ON users (email);
+
+-- +goose Down
+DROP INDEX CONCURRENTLY IF EXISTS idx_users_email;
+```
+
+Without a transaction there is nothing to roll back, so a migration that fails partway leaves the
+statements before the failure applied. Prefer one statement per `NO TRANSACTION` migration.
+
+For Go migrations the equivalent is `AddMigrationNoTx`, which is handed a `*sql.DB` rather than a
+`*sql.Tx`. Send one statement per `Exec` there. PostgreSQL runs a multi-statement query string in a
+single implicit transaction, so two statements in one `Exec` fail with SQLSTATE 25001,
+"CREATE INDEX CONCURRENTLY cannot run inside a transaction block", even though goose opened no
+transaction of its own.
+
 By default, SQL statements are delimited by semicolons - in fact, query statements must end with a
 semicolon to be properly recognized by goose.
 
