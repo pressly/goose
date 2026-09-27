@@ -1,6 +1,7 @@
 package goose_test
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"errors"
@@ -1269,3 +1270,33 @@ DROP VIEW posts_view;
 -- +goose Down
 `
 )
+
+func TestProviderSummaryLogWithoutVerbose(t *testing.T) {
+	t.Parallel()
+
+	db := newDB(t)
+	t.Cleanup(func() { _ = db.Close() })
+
+	var buf bytes.Buffer
+	p, err := goose.NewProvider(goose.DialectSQLite3, db, newFsys(),
+		goose.WithLogger(&bufLogger{buf: &buf}),
+	)
+	require.NoError(t, err)
+
+	_, err = p.Up(context.Background())
+	require.NoError(t, err)
+
+	out := buf.String()
+	require.Contains(t, out, "successfully migrated database")
+	require.NotContains(t, out, "Executing statement")
+}
+
+type bufLogger struct{ buf *bytes.Buffer }
+
+func (l *bufLogger) Fatalf(format string, v ...any) {
+	fmt.Fprintf(l.buf, format, v...)
+}
+
+func (l *bufLogger) Printf(format string, v ...any) {
+	fmt.Fprintf(l.buf, format, v...)
+}
