@@ -59,7 +59,9 @@ func WithTableName(name string) ProviderOption {
 	})
 }
 
-// WithVerbose enables verbose logging.
+// WithVerbose enables detail-level logging (per-migration status and SQL statements).
+// Summary messages such as "successfully migrated database" are logged whenever a
+// logger is configured, even when verbose is false.
 func WithVerbose(b bool) ProviderOption {
 	return configFunc(func(c *config) error {
 		c.verbose = b

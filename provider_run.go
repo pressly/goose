@@ -69,10 +69,9 @@ func (p *Provider) prepareMigration(fsys fs.FS, m *Migration, direction bool) er
 	return fmt.Errorf("invalid migration type: %+v", m)
 }
 
+// logf writes a summary-level message when a logger is configured.
+// Unlike logVerbosef, it is not gated on WithVerbose.
 func (p *Provider) logf(ctx context.Context, legacyMsg string, slogMsg string, attrs ...slog.Attr) {
-	if !p.cfg.verbose {
-		return
-	}
 	if p.cfg.slogger != nil {
 		// Sort attributes by key for consistent ordering
 		slices.SortFunc(attrs, func(a, b slog.Attr) int {
@@ -89,6 +88,15 @@ func (p *Provider) logf(ctx context.Context, legacyMsg string, slogMsg string, a
 	} else if p.cfg.logger != nil {
 		p.cfg.logger.Printf("goose: %s", legacyMsg)
 	}
+}
+
+// logVerbosef writes detail-level messages (per-migration status, SQL statements)
+// only when WithVerbose(true) is set.
+func (p *Provider) logVerbosef(ctx context.Context, legacyMsg string, slogMsg string, attrs ...slog.Attr) {
+	if !p.cfg.verbose {
+		return
+	}
+	p.logf(ctx, legacyMsg, slogMsg, attrs...)
 }
 
 // runMigrations runs migrations sequentially in the given direction. If the migrations list is
@@ -175,7 +183,7 @@ func (p *Provider) runMigrations(
 		} else {
 			state = "applied"
 		}
-		p.logf(ctx,
+		p.logVerbosef(ctx,
 			result.String(),
 			"migration completed",
 			slog.String("source", filepath.Base(result.Source.Path)),
@@ -518,7 +526,7 @@ func (p *Provider) runSQL(ctx context.Context, db database.DBTxConn, m *Migratio
 		statements = m.sql.Down
 	}
 	for _, stmt := range statements {
-		p.logf(ctx,
+		p.logVerbosef(ctx,
 			fmt.Sprintf("Executing statement: %s", stmt),
 			"executing statement",
 			slog.String("statement", stmt),
