@@ -154,6 +154,8 @@ Commands:
 
 </details>
 
+See [drivers](#drivers) for driver-specific details.
+
 Commonly used commands:
 
 [create](#create)<span>&nbsp;•&nbsp;</span> [up](#up)<span>&nbsp;•&nbsp;</span> [up-to](#up-to)<span>&nbsp;•&nbsp;</span> [down](#down)<span>&nbsp;•&nbsp;</span> [down-to](#down-to)<span>&nbsp;•&nbsp;</span> [status](#status)<span>&nbsp;•&nbsp;</span> [version](#version)
@@ -493,6 +495,15 @@ When you're ready to deploy your migrations in a production environment, we also
 `fix` command to convert your migrations into sequential order, while preserving the timestamp
 ordering. We recommend running `fix` in the CI pipeline, and only when the migrations are ready for
 production.
+
+# Drivers
+
+Some drivers have specific requirements or special behaviour. Make sure to read the documentation
+for your database's driver before adopting and deploying Goose.
+
+* [ClickHouse](doc/dialect-clickhouse.md) only fully supports some clickhouse
+  deployment modes and requires careful configuration or work-arounds for
+  others.
 
 ## Credit
 
