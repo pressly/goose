@@ -210,7 +210,7 @@ func (p *Provider) runIndividually(
 	if err != nil {
 		return err
 	}
-	if useTx && !p.cfg.isolateDDL {
+	if useTx && !p.cfg.isolateDDL && !p.cfg.disableTransactions {
 		return beginTx(ctx, conn, func(tx *sql.Tx) error {
 			if err := p.runMigration(ctx, tx, m, direction); err != nil {
 				return err
@@ -382,7 +382,7 @@ func (p *Provider) tryEnsureVersionTable(ctx context.Context, conn *sql.Conn) er
 			return fmt.Errorf("check if version table exists: %w", err)
 		}
 
-		if p.cfg.isolateDDL {
+		if p.cfg.isolateDDL || p.cfg.disableTransactions {
 			// If isolation is enabled, we create the version table separately to ensure subsequent
 			// DML operations are not mixed with DDL.
 			if err := p.store.CreateVersionTable(ctx, conn); err != nil {
