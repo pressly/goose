@@ -3,6 +3,22 @@
 package main
 
 import (
+	"strings"
+
+	"github.com/ydb-platform/ydb-go-sdk/v3"
+	"github.com/ydb-platform/ydb-go-sdk/v3/config"
 	_ "github.com/ydb-platform/ydb-go-sdk-auth-environ"
-	_ "github.com/ydb-platform/ydb-go-sdk/v3"
 )
+
+func init() {
+	ydb.RegisterDsnParser(func(dsn string) (opts []ydb.Option, _ error) {
+		var v = version
+		if v == "" {
+			v = versionFromBuildInfo()
+		}
+
+		return []ydb.Option{
+			ydb.With(config.WithBuildInfo("goose", strings.TrimSpace(v))),
+		}, nil
+	})
+}
