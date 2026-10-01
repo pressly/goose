@@ -126,6 +126,22 @@ func run(ctx context.Context, command string, db *sql.DB, dir string, args []str
 		if err := ResetContext(ctx, db, dir, options...); err != nil {
 			return err
 		}
+	case "stamp":
+		if err := StampContext(ctx, db, dir, options...); err != nil {
+			return err
+		}
+	case "stamp-to":
+		if len(args) == 0 {
+			return fmt.Errorf("stamp-to must be of form: goose [OPTIONS] DRIVER DBSTRING stamp-to VERSION")
+		}
+
+		version, err := strconv.ParseInt(args[0], 10, 64)
+		if err != nil {
+			return fmt.Errorf("version must be a number (got '%s')", args[0])
+		}
+		if err := StampToContext(ctx, db, dir, version, options...); err != nil {
+			return err
+		}
 	case "status":
 		if err := StatusContext(ctx, db, dir, options...); err != nil {
 			return err
