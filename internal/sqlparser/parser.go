@@ -370,25 +370,70 @@ func cleanupStatement(input string) string {
 	return strings.TrimSpace(input)
 }
 
-// Checks the line to see if the line has a statement-ending semicolon
-// or if the line contains a double-dash comment.
+// endsWithSemicolon reports whether line contains a statement-ending semicolon
+// that is not inside a quoted string and is not after a "--" SQL comment.
+//
+// "--" inside single quotes, double quotes, or backticks is treated as data, not
+// a comment (https://github.com/pressly/goose/issues/699).
 func endsWithSemicolon(line string) bool {
-	scanBufPtr := bufferPool.Get().(*[]byte)
-	scanBuf := *scanBufPtr
-	defer bufferPool.Put(scanBufPtr)
+	s := strings.TrimSpace(stripLineComment(line))
+	return strings.HasSuffix(s, ";")
+}
 
-	prev := ""
-	scanner := bufio.NewScanner(strings.NewReader(line))
-	scanner.Buffer(scanBuf, scanBufSize)
-	scanner.Split(bufio.ScanWords)
-
-	for scanner.Scan() {
-		word := scanner.Text()
-		if strings.HasPrefix(word, "--") {
-			break
+func stripLineComment(line string) string {
+	inSingle, inDouble, inBacktick := false, false, false
+	for i := 0; i < len(line); i++ {
+		c := line[i]
+		switch {
+		case inSingle:
+			if c == '\'' {
+				if i+1 < len(line) && line[i+1] == '\'' {
+					i++
+					continue
+				}
+				inSingle = false
+			}
+		case inDouble:
+			if c == '"' {
+				if i+1 < len(line) && line[i+1] == '"' {
+					i++
+					continue
+				}
+				inDouble = false
+			}
+		case inBacktick:
+			if c == '`' {
+				if i+1 < len(line) && line[i+1] == '`' {
+					i++
+					continue
+				}
+				inBacktick = false
+			}
+		default:
+			switch c {
+			case '\'':
+				inSingle = true
+			case '"':
+				inDouble = true
+			case '`':
+				inBacktick = true
+			case '-':
+				// Match the previous ScanWords behavior: "--" starts a comment only
+				// at the beginning of a line or after whitespace.
+				if i+1 < len(line) && line[i+1] == '-' && (i == 0 || isSQLSpace(line[i-1])) {
+					return line[:i]
+				}
+			}
 		}
-		prev = word
 	}
+	return line
+}
 
-	return strings.HasSuffix(prev, ";")
+func isSQLSpace(c byte) bool {
+	switch c {
+	case ' ', '\t', '\n', '\r', '\f', '\v':
+		return true
+	default:
+		return false
+	}
 }
