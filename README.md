@@ -148,6 +148,7 @@ Commands:
     status               Dump the migration status for the current DB
     version              Print the current version of the database
     create NAME [sql|go] Creates new migration file with the current timestamp
+    env                  Print the current Goose environment configuration
     fix                  Apply sequential ordering to migrations
     validate             Check migration files without running them
 ```
