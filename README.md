@@ -55,6 +55,44 @@ brew install goose
 
 See [installation documentation](https://pressly.github.io/goose/installation/) for more details.
 
+## Go tool dependency (optional)
+
+Go 1.24 introduced [tool dependencies](https://go.dev/doc/go1.24#tools). In an
+existing Go module, you can also track Goose this way, using a
+[Go version supported by Goose](go.mod):
+
+```shell
+go get -tool github.com/pressly/goose/v3/cmd/goose@latest
+go tool goose -version
+```
+
+This adds Goose and its transitive dependencies to the application's `go.mod`
+and `go.sum`. Commit those files to share the selected tool version. This is an
+alternative to the standalone installation methods above, not a replacement.
+
+To keep tool dependencies separate, create `tools.go.mod` alongside the existing
+`go.mod`:
+
+```text
+module example.com/tools
+
+go 1.26.0
+```
+
+Then use the alternate module file when adding and running the tool:
+
+```shell
+go get -modfile=tools.go.mod -tool github.com/pressly/goose/v3/cmd/goose@latest
+go tool -modfile=tools.go.mod goose -version
+```
+
+Commit `tools.go.mod` and `tools.go.sum`, and keep `-modfile=tools.go.mod` on
+subsequent `go tool` invocations. The application's `go.mod` must still exist,
+but this workflow leaves its dependency files unchanged. In a `go.work`
+workspace, run the alternate-file `go tool` command with `GOWORK=off`.
+
+The `go tool goose` command accepts the same Goose arguments shown below.
+
 # Usage
 
 <details>
