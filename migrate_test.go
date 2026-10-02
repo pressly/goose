@@ -220,6 +220,18 @@ func TestCollectMigrations(t *testing.T) {
 		require.EqualValues(t, 1002, all[0].Version)
 		require.EqualValues(t, 1003, all[1].Version)
 	})
+	t.Run("duplicate_versions_return_error", func(t *testing.T) {
+		tmp := t.TempDir()
+		dir := filepath.Join(tmp, "migrations")
+		err := os.MkdirAll(dir, 0755)
+		require.NoError(t, err)
+		createEmptyFile(t, dir, "00001_a.sql")
+		createEmptyFile(t, dir, "00001_b.sql")
+		_, err = collectMigrationsFS(os.DirFS(tmp), "migrations", 0, math.MaxInt64, nil)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "duplicate version")
+		require.NotContains(t, err.Error(), "panic")
+	})
 }
 
 func TestVersionFilter(t *testing.T) {
