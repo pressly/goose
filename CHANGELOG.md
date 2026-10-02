@@ -7,6 +7,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Provider: SQL-only migrations with unpadded versions (`1_`, `2_`, `10_`) were sorted by
+  filename instead of version. This affected `ListSources` and `GetVersions`, as well as `Up`
+  when versioning was disabled (#1124)
+
 ## [v3.28.0] - 2026-09-02
 
 ### Added
