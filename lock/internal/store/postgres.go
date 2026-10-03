@@ -37,7 +37,8 @@ func (s *postgresStore) TableExists(
 		q := `SELECT EXISTS ( SELECT 1 FROM pg_tables WHERE schemaname = '%s' AND tablename = '%s' )`
 		query = fmt.Sprintf(q, schemaName, tableName)
 	} else {
-		q := `SELECT EXISTS ( SELECT 1 FROM pg_tables WHERE (current_schema() IS NULL OR schemaname = current_schema()) AND tablename = '%s' )`
+		// Resolve the unqualified name through the search_path, like the lock queries do.
+		q := `SELECT to_regclass('%s') IS NOT NULL`
 		query = fmt.Sprintf(q, tableName)
 	}
 
