@@ -12,6 +12,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Support [environ credentials](https://github.com/ydb-platform/ydb-go-sdk-auth-environ#auth-environment-variables)
   for YDB using connection string parameter `use_env_credentials`.
 
+### Changed
+
+- Various dependency upgrades
+
 ## [v3.28.0] - 2026-09-02
 
 ### Added
