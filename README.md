@@ -442,7 +442,7 @@ structure.
 5. Run goose command, ie. `goose.Up(db *sql.DB, dir string)`
 
 **For MySQL-specific setup**, see the [MySQL Go migrations example](./examples/mysql-go-migrations) which includes:
-- Required connection string parameters (`parseTime=true`, `multiStatements=true`)
+- Common connection string parameters (`parseTime=true`, `multiStatements=true`)
 - MySQL-specific SQL syntax (utf8mb4, ENGINE=InnoDB)
 - Go migrations using `ON DUPLICATE KEY UPDATE`
 

@@ -32,12 +32,12 @@ This creates a `goose-mysql` binary with MySQL driver and your Go migrations com
 
 ### Connection String
 
-For MySQL, the following DSN parameters are recommended:
+For MySQL, the following DSN parameters are commonly used with Goose:
 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
-| `parseTime=true` | **Yes** | Required for proper `TIMESTAMP`/`DATETIME` handling in Go. Without this, time values are returned as `[]byte` instead of `time.Time`. |
-| `multiStatements=true` | **Yes** | Required when SQL migrations contain multiple statements separated by semicolons. Also allows Goose to execute batch statements. |
+| `parseTime=true` | Recommended | Parses `TIMESTAMP`/`DATETIME` columns as `time.Time` instead of `[]byte`. Required if your schema uses these types. |
+| `multiStatements=true` | Recommended | Allows multiple SQL statements in a single query. Required if SQL migrations contain multiple statements separated by semicolons, or for Goose's internal batch operations. |
 | `charset=utf8mb4` | Recommended | Ensures full Unicode support (including emojis). |
 | `collation=utf8mb4_unicode_ci` | Recommended | Sets default collation for new tables. |
 
@@ -92,11 +92,9 @@ $ ./goose-mysql mysql "$DBSTRING" status
 
 ## Key Points for MySQL
 
-1. **parseTime=true** (Required) - Enables proper `TIMESTAMP`/`DATETIME` handling. Without this, Go's `database/sql` returns time values as `[]byte` instead of `time.Time`.
+1. **parseTime=true** (Recommended) - Parses `TIMESTAMP`/`DATETIME` columns as `time.Time` instead of `[]byte`. Required if your schema uses these types.
 
-2. **multiStatements=true** (Required) - Allows multiple SQL statements in a single query. Required for:
-   - SQL migrations with multiple statements separated by semicolons
-   - Goose's internal batch operations
+2. **multiStatements=true** (Recommended) - Allows multiple SQL statements in a single query. Required if SQL migrations contain multiple statements separated by semicolons, or for Goose's internal batch operations.
 
 3. **utf8mb4** (Recommended) - Use `utf8mb4` character set for full Unicode support (including emojis). Set via DSN or table definition.
 
@@ -143,7 +141,7 @@ import (
 )
 ```
 
-In migration files, change package from `main` to `migrations`:
+In migration files, change package from `main` to `migrations` and use the function names from your migration files:
 
 ```go
 package migrations
@@ -156,7 +154,8 @@ import (
 
 func init() {
     // Use AddMigrationNoTxContext for DDL (CREATE/ALTER/DROP TABLE)
-    goose.AddMigrationNoTxContext(Up, Down)
+    // Function names must match your migration file (e.g., Up00002, Down00002)
+    goose.AddMigrationNoTxContext(Up00002, Down00002)
     
     // Use AddMigrationContext for DML (INSERT/UPDATE/DELETE)
     // goose.AddMigrationContext(Up, Down)

@@ -6,8 +6,9 @@
 //
 // Then run migrations against a MySQL database:
 //
-//	./goose-mysql mysql "user:password@tcp(localhost:3306)/dbname?parseTime=true&multiStatements=true" status
-//	./goose-mysql mysql "user:password@tcp(localhost:3306)/dbname?parseTime=true&multiStatements=true" up
+//	DBSTRING="goose:password@tcp(localhost:3306)/goose_test?parseTime=true&multiStatements=true&charset=utf8mb4&collation=utf8mb4_unicode_ci"
+//	./goose-mysql mysql "$DBSTRING" status
+//	./goose-mysql mysql "$DBSTRING" up
 
 package main
 
