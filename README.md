@@ -441,6 +441,11 @@ structure.
 4. Include your `migrations` package into Go build: in `main.go`, `import _ "github.com/me/myapp/migrations"`
 5. Run goose command, ie. `goose.Up(db *sql.DB, dir string)`
 
+**For MySQL-specific setup**, see the [MySQL Go migrations example](./examples/mysql-go-migrations) which includes:
+- Common connection string parameters (`parseTime=true`, `multiStatements=true`)
+- MySQL-specific SQL syntax (utf8mb4, ENGINE=InnoDB)
+- Go migrations using `ON DUPLICATE KEY UPDATE`
+
 A [sample Go migration 00002_users_add_email.go file](./examples/go-migrations/00002_rename_root.go)
 looks like:
 
