@@ -32,13 +32,19 @@ This creates a `goose-mysql` binary with MySQL driver and your Go migrations com
 
 ### Connection String
 
-For MySQL, you **must** include these parameters:
+For MySQL, the following DSN parameters are recommended:
 
-- `parseTime=true` - Required for TIMESTAMP/DATETIME handling
-- `multiStatements=true` - Required for multiple statements in a single migration
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `parseTime=true` | **Yes** | Required for proper `TIMESTAMP`/`DATETIME` handling in Go. Without this, time values are returned as `[]byte` instead of `time.Time`. |
+| `multiStatements=true` | **Yes** | Required when SQL migrations contain multiple statements separated by semicolons. Also allows Goose to execute batch statements. |
+| `charset=utf8mb4` | Recommended | Ensures full Unicode support (including emojis). |
+| `collation=utf8mb4_unicode_ci` | Recommended | Sets default collation for new tables. |
+
+Example DSN using the test database created above:
 
 ```bash
-DBSTRING="user:password@tcp(localhost:3306)/dbname?parseTime=true&multiStatements=true"
+DBSTRING="goose:password@tcp(localhost:3306)/goose_test?parseTime=true&multiStatements=true&charset=utf8mb4&collation=utf8mb4_unicode_ci"
 ```
 
 ### Run Migrations
@@ -63,20 +69,20 @@ DBSTRING="user:password@tcp(localhost:3306)/dbname?parseTime=true&multiStatement
 ### Expected Output
 
 ```bash
-$ ./goose-mysql mysql "user:password@tcp(localhost:3306)/goose_test?parseTime=true&multiStatements=true" status
+$ ./goose-mysql mysql "$DBSTRING" status
     Applied At                  Migration
     =======================================
     Pending                  -- 00001_create_users_table.sql
     Pending                  -- 00002_add_full_name.go
     Pending                  -- 00003_seed_users.go
 
-$ ./goose-mysql mysql "user:password@tcp(localhost:3306)/goose_test?parseTime=true&multiStatements=true" up
+$ ./goose-mysql mysql "$DBSTRING" up
     OK   00001_create_users_table.sql (2.45ms)
     OK   00002_add_full_name.go (1.12ms)
     OK   00003_seed_users.go (0.89ms)
     goose: no migrations to run. current version: 3
 
-$ ./goose-mysql mysql "user:password@tcp(localhost:3306)/goose_test?parseTime=true&multiStatements=true" status
+$ ./goose-mysql mysql "$DBSTRING" status
     Applied At                  Migration
     =======================================
     2024-01-15 10:30:45        -- 00001_create_users_table.sql
@@ -86,18 +92,29 @@ $ ./goose-mysql mysql "user:password@tcp(localhost:3306)/goose_test?parseTime=tr
 
 ## Key Points for MySQL
 
-1. **parseTime=true** - Required for proper TIMESTAMP/DATETIME handling in Go
-2. **multiStatements=true** - Required when you have multiple SQL statements separated by semicolons
-3. **utf8mb4** - Use utf8mb4 character set for full Unicode support (including emojis)
-4. **Go migrations** - Must be compiled into the custom binary (blank import pattern)
+1. **parseTime=true** (Required) - Enables proper `TIMESTAMP`/`DATETIME` handling. Without this, Go's `database/sql` returns time values as `[]byte` instead of `time.Time`.
+
+2. **multiStatements=true** (Required) - Allows multiple SQL statements in a single query. Required for:
+   - SQL migrations with multiple statements separated by semicolons
+   - Goose's internal batch operations
+
+3. **utf8mb4** (Recommended) - Use `utf8mb4` character set for full Unicode support (including emojis). Set via DSN or table definition.
+
+4. **DDL and Transactions** - MySQL DDL statements (`CREATE TABLE`, `ALTER TABLE`, `DROP TABLE`, etc.) cause **implicit commits** and cannot be rolled back inside a transaction. Use:
+   - `-- +goose NO TRANSACTION` annotation for SQL migrations
+   - `goose.AddMigrationNoTxContext` for Go migrations (receives `*sql.DB` instead of `*sql.Tx`)
+
+5. **Go migrations** - Must be compiled into the custom binary (blank import pattern).
 
 ## Migration Files
 
-| File | Type | Description |
-|------|------|-------------|
-| `00001_create_users_table.sql` | SQL | Creates the users table with MySQL-specific syntax |
-| `00002_add_full_name.go` | Go | Adds a full_name column using ALTER TABLE |
-| `00003_seed_users.go` | Go | Seeds initial users with MySQL's ON DUPLICATE KEY UPDATE |
+| File | Type | Transaction | Description |
+|------|------|-------------|-------------|
+| `00001_create_users_table.sql` | SQL | No (`NO TRANSACTION`) | Creates the users table with MySQL-specific syntax |
+| `00002_add_full_name.go` | Go | No (`AddMigrationNoTxContext`) | Adds a full_name column using ALTER TABLE (DDL) |
+| `00003_seed_users.go` | Go | Yes (`AddMigrationContext`) | Seeds initial users with INSERT/DELETE (DML) |
+
+Note: Migration 00003 uses `AddMigrationContext` (with transaction) because `INSERT` and `DELETE` are DML operations that support rollback. Migrations 00001 and 00002 use no-transaction mode because they contain DDL.
 
 ## Best Practice: Separate Migrations Package
 
@@ -138,7 +155,11 @@ import (
 )
 
 func init() {
-    goose.AddMigrationContext(Up, Down)
+    // Use AddMigrationNoTxContext for DDL (CREATE/ALTER/DROP TABLE)
+    goose.AddMigrationNoTxContext(Up, Down)
+    
+    // Use AddMigrationContext for DML (INSERT/UPDATE/DELETE)
+    // goose.AddMigrationContext(Up, Down)
 }
 ```
 
@@ -164,3 +185,10 @@ Check:
 - User has correct privileges
 - Host in connection string matches (localhost vs 127.0.0.1 vs %)
 - Firewall allows connections on port 3306
+
+### "Error 1118: Row size too large"
+
+If using `utf8mb4` with many `VARCHAR` columns, you may hit MySQL's row size limit. Consider:
+- Using `TEXT`/`BLOB` for large columns
+- Reducing `VARCHAR` lengths
+- Using `ROW_FORMAT=DYNAMIC` or `COMPRESSED`

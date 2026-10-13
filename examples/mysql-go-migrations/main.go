@@ -17,8 +17,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/pressly/goose/v3"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/pressly/goose/v3"
 )
 
 var (

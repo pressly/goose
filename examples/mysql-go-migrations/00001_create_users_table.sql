@@ -1,3 +1,4 @@
+-- +goose NO TRANSACTION
 -- +goose Up
 CREATE TABLE users (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
