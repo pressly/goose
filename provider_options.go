@@ -67,6 +67,14 @@ func WithVerbose(b bool) ProviderOption {
 	})
 }
 
+// WithDebug enables debug logging.
+func WithDebug(b bool) ProviderOption {
+	return configFunc(func(c *config) error {
+		c.debugMode = b
+		return nil
+	})
+}
+
 // WithSessionLocker enables locking using the provided SessionLocker.
 //
 // If WithSessionLocker is not called, locking is disabled. Must not be used together with
@@ -249,6 +257,7 @@ type config struct {
 	store     database.Store
 
 	verbose         bool
+	debugMode       bool
 	excludePaths    map[string]bool
 	excludeVersions map[int64]bool
 

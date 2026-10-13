@@ -51,7 +51,7 @@ func parse(fsys fs.FS, filename string, direction Direction, debug bool) (_ []st
 	defer func() {
 		retErr = multierr.Append(retErr, r.Close())
 	}()
-	stmts, useTx, err := ParseSQLMigration(r, direction, debug)
+	stmts, useTx, err := ParseSQLMigration(r, direction, debug, nil)
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to parse %s: %w", filename, err)
 	}

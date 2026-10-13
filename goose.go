@@ -16,6 +16,7 @@ var (
 	maxVersion      = int64((1 << 63) - 1)
 	timestampFormat = "20060102150405"
 	verbose         = false
+	internalDebug   = false
 	noColor         = false
 
 	// base fs to lookup migrations
@@ -25,6 +26,11 @@ var (
 // SetVerbose set the goose verbosity mode
 func SetVerbose(v bool) {
 	verbose = v
+}
+
+// SetDebug set the goose debug mode
+func SetDebug(v bool) {
+	internalDebug = v
 }
 
 // SetBaseFS sets a base FS to discover migrations. It can be used with 'embed' package.

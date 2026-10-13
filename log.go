@@ -10,6 +10,7 @@ var log Logger = &stdLogger{}
 type Logger interface {
 	Fatalf(format string, v ...any)
 	Printf(format string, v ...any)
+	Println(v ...any)
 }
 
 // SetLogger sets the logger for package output
@@ -22,6 +23,7 @@ type stdLogger struct{}
 
 func (*stdLogger) Fatalf(format string, v ...any) { std.Fatalf(format, v...) }
 func (*stdLogger) Printf(format string, v ...any) { std.Printf(format, v...) }
+func (*stdLogger) Println(v ...any)               { std.Println(v...) }
 
 // NopLogger returns a logger that discards all logged output.
 func NopLogger() Logger {
@@ -34,3 +36,4 @@ var _ Logger = (*nopLogger)(nil)
 
 func (*nopLogger) Fatalf(format string, v ...any) {}
 func (*nopLogger) Printf(format string, v ...any) {}
+func (*nopLogger) Println(v ...any)               {}
