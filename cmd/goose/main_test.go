@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -65,4 +66,20 @@ func TestFirstNonEmpty(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestUsageCommandsValidate ensures the validate command description makes clear
+// that it checks the structure of migration files and does not validate the SQL
+// queries themselves.
+func TestUsageCommandsValidate(t *testing.T) {
+	for _, line := range strings.Split(usageCommands, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) > 1 && fields[0] == "validate" {
+			if !strings.Contains(line, "not SQL queries") {
+				t.Errorf("validate description must state it does not validate SQL queries, got: %q", line)
+			}
+			return
+		}
+	}
+	t.Error("validate command not found in usageCommands")
 }
