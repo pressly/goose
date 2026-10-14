@@ -119,6 +119,8 @@ Options:
         file path to root CA's certificates in pem format (only support on mysql)
   -dir string
         directory with migration files (default ".", can be set via the GOOSE_MIGRATION_DIR env variable).
+  -env string
+        load environment variables from file (default .env)
   -h    print help
   -no-color
         disable color output (NO_COLOR env variable supported)
