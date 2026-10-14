@@ -104,6 +104,21 @@ func TestLiteBinary(t *testing.T) {
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "goose run: no migration files found")
 	})
+	t.Run("validate", func(t *testing.T) {
+		// https://github.com/pressly/goose/issues/807
+		t.Parallel()
+		dir := t.TempDir()
+		dbFile := filepath.Join(dir, "sql.db")
+		// The driver and connection string are ignored: the database file must
+		// not be created.
+		_, err := cli.run("-dir=testdata/migrations", "sqlite3", dbFile, "validate")
+		require.NoError(t, err)
+		require.NoFileExists(t, dbFile)
+		// Same behavior as running validate without a driver.
+		out, err := cli.run("-v", "-dir=testdata/migrations", "sqlite3", dbFile, "validate")
+		require.NoError(t, err)
+		require.Contains(t, out, "00001_users_table.sql")
+	})
 	t.Run("create_and_fix", func(t *testing.T) {
 		t.Parallel()
 		dir := t.TempDir()

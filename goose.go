@@ -134,6 +134,10 @@ func run(ctx context.Context, command string, db *sql.DB, dir string, args []str
 		if err := VersionContext(ctx, db, dir, options...); err != nil {
 			return err
 		}
+	case "validate":
+		if err := Validate(dir); err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("%q: no such command", command)
 	}
