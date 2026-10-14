@@ -15,30 +15,34 @@ func TestValidate(t *testing.T) {
 	t.Cleanup(goose.ResetGlobalMigrations)
 
 	t.Run("valid_migrations", func(t *testing.T) {
-		require.NoError(t, goose.Validate("testdata/migrations"))
+		goose.SetBaseFS(os.DirFS("testdata"))
+		t.Cleanup(func() { goose.SetBaseFS(nil) })
+		require.NoError(t, goose.RunContext(context.Background(), "validate", nil, "migrations"))
 	})
 	t.Run("run_command", func(t *testing.T) {
 		// The validate command must be available to custom binaries calling the
 		// goose.Run family of functions.
+		goose.AddNamedMigrationContext("00099_registered.go", nil, nil)
+		t.Cleanup(goose.ResetGlobalMigrations)
 		require.NoError(t, goose.RunContext(context.Background(), "validate", nil, "testdata/migrations"))
 	})
 	t.Run("invalid_sql_migration", func(t *testing.T) {
 		dir := t.TempDir()
 		// Missing the required '-- +goose Up' annotation.
 		writeFile(t, dir, "00001_no_annotation.sql", "SELECT 1;\n")
-		err := goose.Validate(dir)
+		err := goose.RunContext(context.Background(), "validate", nil, dir)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to parse file")
 	})
 	t.Run("unregistered_go_migration", func(t *testing.T) {
 		dir := t.TempDir()
 		writeFile(t, dir, "00001_users.go", "package migrations\n")
-		err := goose.Validate(dir)
+		err := goose.RunContext(context.Background(), "validate", nil, dir)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "must be registered")
 	})
 	t.Run("dir_does_not_exist", func(t *testing.T) {
-		err := goose.Validate(filepath.Join(t.TempDir(), "does-not-exist"))
+		err := goose.RunContext(context.Background(), "validate", nil, filepath.Join(t.TempDir(), "does-not-exist"))
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "directory does not exist")
 	})
