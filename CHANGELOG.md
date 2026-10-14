@@ -9,6 +9,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The `validate` command is now part of the stable API: custom binaries can run it via
+  `goose.Run`/`goose.RunContext` or call the new `goose.Validate` function, and
+  `goose DRIVER DBSTRING validate` no longer fails with "no such command" (the driver and
+  connection string are ignored) (#807)
 - Provider: SQL-only migrations with unpadded versions (`1_`, `2_`, `10_`) were sorted by
   filename instead of version. This affected `ListSources` and `GetVersions`, as well as `Up`
   when versioning was disabled (#1124)
