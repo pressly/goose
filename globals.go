@@ -8,6 +8,7 @@ import (
 
 var (
 	registeredGoMigrations = make(map[int64]*Migration)
+	globalAllowZeroVersion bool
 )
 
 // ResetGlobalMigrations resets the global Go migrations registry.
@@ -15,6 +16,24 @@ var (
 // Not safe for concurrent use.
 func ResetGlobalMigrations() {
 	registeredGoMigrations = make(map[int64]*Migration)
+}
+
+// SetAllowZeroVersion sets the global allow zero version flag. When enabled, version 0 is accepted
+// in migration filenames and Go migrations registered via [SetGlobalMigrations]. This is useful for
+// tools like Drizzle ORM that generate zero-prefixed migrations such as 0000_sticky_sunset_bain.sql.
+//
+// Not safe for concurrent use.
+func SetAllowZeroVersion(b bool) {
+	globalAllowZeroVersion = b
+}
+
+// sentinelVersion returns the version used as the sentinel row in the version table. Normally 0,
+// but -1 when [SetAllowZeroVersion] is enabled.
+func sentinelVersion() int64 {
+	if globalAllowZeroVersion {
+		return -1
+	}
+	return 0
 }
 
 // SetGlobalMigrations registers Go migrations globally. It returns an error if a migration with the
@@ -45,7 +64,7 @@ func checkGoMigration(m *Migration) error {
 	if m.Type != TypeGo {
 		return fmt.Errorf("type must be %q", TypeGo)
 	}
-	if m.Version < 1 {
+	if m.Version < 1 && (!globalAllowZeroVersion || m.Version != 0) {
 		return errors.New("version must be greater than zero")
 	}
 	if m.Source != "" {

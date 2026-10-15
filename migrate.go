@@ -220,7 +220,7 @@ func EnsureDBVersionContext(ctx context.Context, db *sql.DB) (int64, error) {
 		if createErr != nil {
 			return 0, multierr.Append(err, createErr)
 		}
-		return 0, nil
+		return sentinelVersion(), nil
 	}
 	// The most recent record for each migration specifies
 	// whether it has been applied or rolled back.
@@ -252,7 +252,7 @@ func EnsureDBVersionContext(ctx context.Context, db *sql.DB) (int64, error) {
 }
 
 // createVersionTable creates the db version table and inserts the
-// initial 0 value into it.
+// initial sentinel value into it.
 func createVersionTable(ctx context.Context, db *sql.DB) error {
 	txn, err := db.BeginTx(ctx, nil)
 	if err != nil {
@@ -262,7 +262,7 @@ func createVersionTable(ctx context.Context, db *sql.DB) error {
 		_ = txn.Rollback()
 		return err
 	}
-	if err := store.InsertVersion(ctx, txn, TableName(), 0); err != nil {
+	if err := store.InsertVersion(ctx, txn, TableName(), sentinelVersion()); err != nil {
 		_ = txn.Rollback()
 		return err
 	}

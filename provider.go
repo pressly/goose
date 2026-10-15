@@ -181,7 +181,8 @@ func (p *Provider) GetVersions(ctx context.Context) (current, target int64, err 
 
 // GetDBVersion returns the highest version recorded in the database, regardless of the order in
 // which migrations were applied. For example, if migrations were applied out of order (1,4,2,3),
-// this method returns 4. If no migrations have been applied, it returns 0.
+// this method returns 4. If no migrations have been applied, it returns 0 (or -1 when
+// [SetAllowZeroVersion] is enabled).
 func (p *Provider) GetDBVersion(ctx context.Context) (int64, error) {
 	if p.cfg.disableVersioning {
 		return -1, errors.New("getting database version not supported when versioning is disabled")
@@ -306,7 +307,7 @@ func (p *Provider) UpTo(ctx context.Context, version int64) ([]*MigrationResult,
 // the migration version. This only applies in scenarios where migrations are allowed to be applied
 // out of order.
 func (p *Provider) Down(ctx context.Context) (*MigrationResult, error) {
-	res, err := p.down(ctx, true, 0)
+	res, err := p.down(ctx, true, sentinelVersion())
 	if err != nil {
 		return nil, err
 	}
@@ -349,7 +350,7 @@ func (p *Provider) up(
 	byOne bool,
 	version int64,
 ) (_ []*MigrationResult, retErr error) {
-	if version < 1 {
+	if version < 1 && (version != 0 || !globalAllowZeroVersion) {
 		return nil, errInvalidVersion
 	}
 	conn, cleanup, err := p.initialize(ctx, true)
@@ -394,6 +395,7 @@ func (p *Provider) up(
 			getVersionsFromListMigrations(dbMigrations), // db versions
 			version,
 			p.cfg.allowMissing,
+			sentinelVersion(),
 		)
 		if err != nil {
 			return nil, err
@@ -442,12 +444,12 @@ func (p *Provider) down(
 	if len(dbMigrations) == 0 {
 		return nil, errMissingZeroVersion
 	}
-	// We never migrate the zero version down.
-	if dbMigrations[0].Version == 0 {
+	// We never migrate the sentinel version down.
+	if p.isSentinelVersion(dbMigrations[0].Version) {
 		p.logf(ctx,
-			"no migrations to run, current version: 0",
+			fmt.Sprintf("no migrations to run, current version: %d", dbMigrations[0].Version),
 			"no migrations to run",
-			slog.Int64("version", 0),
+			slog.Int64("version", dbMigrations[0].Version),
 		)
 		return nil, nil
 	}
@@ -470,7 +472,7 @@ func (p *Provider) apply(
 	version int64,
 	direction bool,
 ) (_ []*MigrationResult, retErr error) {
-	if version < 1 {
+	if version < 1 && (version != 0 || !globalAllowZeroVersion) {
 		return nil, errInvalidVersion
 	}
 	m, err := p.getMigration(version)
@@ -581,6 +583,7 @@ func (p *Provider) hasPending(ctx context.Context) (_ bool, retErr error) {
 		getVersionsFromListMigrations(dbMigrations), // db versions
 		math.MaxInt64,
 		p.cfg.allowMissing,
+		sentinelVersion(),
 	)
 	if err != nil {
 		return false, err

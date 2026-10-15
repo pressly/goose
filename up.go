@@ -43,7 +43,7 @@ func UpToContext(ctx context.Context, db *sql.DB, dir string, version int64, opt
 	for _, f := range opts {
 		f(option)
 	}
-	foundMigrations, err := CollectMigrations(dir, minVersion, version)
+	foundMigrations, err := CollectMigrations(dir, sentinelVersion(), version)
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,10 @@ func UpToContext(ctx context.Context, db *sql.DB, dir string, version int64, opt
 	if err != nil {
 		return err
 	}
-	dbMaxVersion := dbMigrations[len(dbMigrations)-1].Version
+	dbMaxVersion := sentinelVersion()
+	if len(dbMigrations) > 0 {
+		dbMaxVersion = dbMigrations[len(dbMigrations)-1].Version
+	}
 	// lookupAppliedInDB is a map of all applied migrations in the database.
 	lookupAppliedInDB := make(map[int64]bool)
 	for _, m := range dbMigrations {
@@ -186,8 +189,12 @@ func listAllDBVersions(ctx context.Context, db *sql.DB) (Migrations, error) {
 	if err != nil {
 		return nil, err
 	}
+	sentinel := sentinelVersion()
 	all := make(Migrations, 0, len(dbMigrations))
 	for _, m := range dbMigrations {
+		if m.VersionID == sentinel {
+			continue
+		}
 		all = append(all, &Migration{
 			Version: m.VersionID,
 		})

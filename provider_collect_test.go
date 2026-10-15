@@ -35,15 +35,30 @@ func TestCollectFileSources(t *testing.T) {
 		mapFS := fstest.MapFS{
 			"00000_foo.sql": sqlMapFile,
 		}
-		// strict disable - should not error
+		// Default: non-strict skips, strict errors with original message
 		sources, err := collectFilesystemSources(mapFS, false, nil, nil)
 		require.NoError(t, err)
 		require.Empty(t, sources.goSources)
 		require.Empty(t, sources.sqlSources)
-		// strict enabled - should error
 		_, err = collectFilesystemSources(mapFS, true, nil, nil)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "migration version must be greater than zero")
+	})
+	t.Run("incorrect_fsys_allow_zero", func(t *testing.T) {
+		// Not parallel: mutates global state.
+		SetAllowZeroVersion(true)
+		t.Cleanup(func() { SetAllowZeroVersion(false) })
+
+		mapFS := fstest.MapFS{
+			"00000_foo.sql": sqlMapFile,
+		}
+		sources, err := collectFilesystemSources(mapFS, false, nil, nil)
+		require.NoError(t, err)
+		require.Len(t, sources.sqlSources, 1)
+		require.Equal(t, int64(0), sources.sqlSources[0].Version)
+		sources, err = collectFilesystemSources(mapFS, true, nil, nil)
+		require.NoError(t, err)
+		require.Len(t, sources.sqlSources, 1)
 	})
 	t.Run("collect", func(t *testing.T) {
 		fsys, err := fs.Sub(newSQLOnlyFS(), "migrations")
