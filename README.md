@@ -436,12 +436,12 @@ structure.
 ## Go Migrations
 
 1. Create your own goose binary, see [example](./examples/go-migrations)
-2. Import `github.com/pressly/goose`
+2. Import `github.com/pressly/goose/v3`
 3. Register your migration functions
 4. Include your `migrations` package into Go build: in `main.go`, `import _ "github.com/me/myapp/migrations"`
 5. Run goose command, ie. `goose.Up(db *sql.DB, dir string)`
 
-A [sample Go migration 00002_users_add_email.go file](./examples/go-migrations/00002_rename_root.go)
+A [sample Go migration 00002_rename_root.go file](./examples/go-migrations/00002_rename_root.go)
 looks like:
 
 ```go
