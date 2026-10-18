@@ -78,3 +78,39 @@ func TestMySQLTableLockerOptions(t *testing.T) {
 	_, err = NewMySQLTableLocker(WithTableUnlockTimeout(5*time.Second, 0))
 	require.Error(t, err)
 }
+
+func TestSQLiteTableLockerOptions(t *testing.T) {
+	// Test that options are applied correctly
+	locker, err := NewSQLiteTableLocker(
+		WithTableName("custom_locks"),
+		WithTableLockID(999),
+		WithTableLeaseDuration(10*time.Second),
+		WithTableHeartbeatInterval(3*time.Second),
+	)
+	require.NoError(t, err)
+	require.NotNil(t, locker)
+	// Test invalid lease duration
+	_, err = NewSQLiteTableLocker(WithTableLeaseDuration(-1 * time.Second))
+	require.Error(t, err)
+	// Test invalid heartbeat interval
+	_, err = NewSQLiteTableLocker(WithTableHeartbeatInterval(0))
+	require.Error(t, err)
+	// Test empty table name
+	_, err = NewSQLiteTableLocker(WithTableName(""))
+	require.Error(t, err)
+	// Test invalid lock ID
+	_, err = NewSQLiteTableLocker(WithTableLockID(0))
+	require.Error(t, err)
+	// Test invalid lock timeout interval duration
+	_, err = NewSQLiteTableLocker(WithTableLockTimeout(0, 10))
+	require.Error(t, err)
+	// Test invalid lock timeout failure threshold
+	_, err = NewSQLiteTableLocker(WithTableLockTimeout(5*time.Second, 0))
+	require.Error(t, err)
+	// Test invalid unlock timeout interval duration
+	_, err = NewSQLiteTableLocker(WithTableUnlockTimeout(0, 10))
+	require.Error(t, err)
+	// Test invalid unlock timeout failure threshold
+	_, err = NewSQLiteTableLocker(WithTableUnlockTimeout(5*time.Second, 0))
+	require.Error(t, err)
+}
