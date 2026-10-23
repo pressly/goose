@@ -113,8 +113,15 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 	useEnvsub := false
 
 	var buf bytes.Buffer
+	firstLine := true
 	for scanner.Scan() {
 		line := scanner.Text()
+		if firstLine {
+			// Some editors start UTF-8 files with a byte order mark. It is not part
+			// of the first line, and would hide an annotation on it.
+			line = strings.TrimPrefix(line, "\ufeff")
+			firstLine = false
+		}
 		if debug {
 			log.Println(line)
 		}
