@@ -4,10 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"path/filepath"
 	"testing"
 
 	"github.com/pressly/goose/v3/database"
+	"github.com/pressly/goose/v3/database/dialect"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/multierr"
 	"modernc.org/sqlite"
@@ -65,6 +67,151 @@ func TestDialectStore(t *testing.T) {
 		require.EqualValues(t, 3, res[1].Version)
 		require.EqualValues(t, 1, res[2].Version)
 	})
+}
+
+type customTableCreatorQuerier struct {
+	dialect.Querier
+	createTableContextCalled bool
+	receivedCtx              context.Context
+	receivedDB               dialect.DBTxConn
+	receivedTableName        string
+}
+
+func (c *customTableCreatorQuerier) CreateTableContext(ctx context.Context, db dialect.DBTxConn, tableName string) error {
+	c.createTableContextCalled = true
+	c.receivedCtx = ctx
+	c.receivedDB = db
+	c.receivedTableName = tableName
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	q := fmt.Sprintf(`CREATE TABLE %s (
+		id INTEGER PRIMARY KEY,
+		version_id INTEGER NOT NULL,
+		is_applied BOOLEAN NOT NULL,
+		tstamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);`, tableName)
+	_, err := db.ExecContext(ctx, q)
+	return err
+}
+
+var _ dialect.TableCreator = (*customTableCreatorQuerier)(nil)
+
+func TestTableCreator(t *testing.T) {
+	t.Parallel()
+
+	t.Run("CreateTableContext called with context and db handle", func(t *testing.T) {
+		db, err := sql.Open("sqlite", ":memory:")
+		require.NoError(t, err)
+		defer db.Close()
+
+		baseStore, err := database.NewStore(database.DialectSQLite3, "dummy")
+		require.NoError(t, err)
+		_ = baseStore
+
+		// Wrap standard sqlite3 querier with custom TableCreator
+		sqliteQuerier, err := database.NewStore(database.DialectSQLite3, "foo")
+		require.NoError(t, err)
+		_ = sqliteQuerier
+
+		// Construct querier using customTableCreatorQuerier
+		q := &customTableCreatorQuerier{
+			Querier: &mockQuerier{},
+		}
+		tableName := "custom_goose_table"
+		store, err := database.NewStoreFromQuerier(tableName, q)
+		require.NoError(t, err)
+
+		ctx := context.WithValue(context.Background(), struct{ key string }{"key"}, "value")
+		err = store.CreateVersionTable(ctx, db)
+		require.NoError(t, err)
+
+		require.True(t, q.createTableContextCalled)
+		require.Equal(t, ctx, q.receivedCtx)
+		require.Equal(t, db, q.receivedDB)
+		require.Equal(t, tableName, q.receivedTableName)
+
+		// Verify table actually exists by querying it
+		var count int
+		err = db.QueryRow("SELECT COUNT(*) FROM " + tableName).Scan(&count)
+		require.NoError(t, err)
+		require.Equal(t, 0, count)
+	})
+
+	t.Run("Context cancellation respected", func(t *testing.T) {
+		db, err := sql.Open("sqlite", ":memory:")
+		require.NoError(t, err)
+		defer db.Close()
+
+		q := &customTableCreatorQuerier{
+			Querier: &mockQuerier{},
+		}
+		tableName := "canceled_goose_table"
+		store, err := database.NewStoreFromQuerier(tableName, q)
+		require.NoError(t, err)
+
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		err = store.CreateVersionTable(ctx, db)
+		require.Error(t, err)
+		require.ErrorIs(t, err, context.Canceled)
+		require.True(t, q.createTableContextCalled)
+	})
+
+	t.Run("Transaction awareness", func(t *testing.T) {
+		db, err := sql.Open("sqlite", ":memory:")
+		require.NoError(t, err)
+		defer db.Close()
+
+		q := &customTableCreatorQuerier{
+			Querier: &mockQuerier{},
+		}
+		tableName := "tx_goose_table"
+		store, err := database.NewStoreFromQuerier(tableName, q)
+		require.NoError(t, err)
+
+		ctx := context.Background()
+		tx, err := db.BeginTx(ctx, nil)
+		require.NoError(t, err)
+
+		err = store.CreateVersionTable(ctx, tx)
+		require.NoError(t, err)
+		require.Equal(t, tx, q.receivedDB)
+
+		// Rollback transaction and verify table was not committed
+		require.NoError(t, tx.Rollback())
+
+		var count int
+		err = db.QueryRow("SELECT COUNT(*) FROM " + tableName).Scan(&count)
+		require.Error(t, err) // table does not exist
+	})
+}
+
+type mockQuerier struct{}
+
+func (m *mockQuerier) CreateTable(tableName string) string {
+	return fmt.Sprintf(`CREATE TABLE %s (
+		id INTEGER PRIMARY KEY,
+		version_id INTEGER NOT NULL,
+		is_applied BOOLEAN NOT NULL,
+		tstamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);`, tableName)
+}
+func (m *mockQuerier) InsertVersion(tableName string) string {
+	return fmt.Sprintf("INSERT INTO %s (version_id, is_applied) VALUES (?, ?);", tableName)
+}
+func (m *mockQuerier) DeleteVersion(tableName string) string {
+	return fmt.Sprintf("DELETE FROM %s WHERE version_id = ?;", tableName)
+}
+func (m *mockQuerier) GetMigrationByVersion(tableName string) string {
+	return fmt.Sprintf("SELECT tstamp, is_applied FROM %s WHERE version_id = ? ORDER BY tstamp DESC LIMIT 1;", tableName)
+}
+func (m *mockQuerier) ListMigrations(tableName string) string {
+	return fmt.Sprintf("SELECT version_id, is_applied FROM %s ORDER BY id DESC;", tableName)
+}
+func (m *mockQuerier) GetLatestVersion(tableName string) string {
+	return fmt.Sprintf("SELECT max(version_id) FROM %s;", tableName)
 }
 
 // testStore tests various store operations.

@@ -98,6 +98,9 @@ type store struct {
 var _ Store = (*store)(nil)
 
 func (s *store) CreateVersionTable(ctx context.Context, tx *sql.Tx, tableName string) error {
+	if tc, ok := s.querier.(dialect.TableCreator); ok {
+		return tc.CreateTableContext(ctx, tx, tableName)
+	}
 	q := s.querier.CreateTable(tableName)
 	_, err := tx.ExecContext(ctx, q)
 	return err

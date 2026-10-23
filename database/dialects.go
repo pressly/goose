@@ -89,11 +89,7 @@ func (s *store) Tablename() string {
 }
 
 func (s *store) CreateVersionTable(ctx context.Context, db DBTxConn) error {
-	q := s.querier.CreateTable(s.tableName)
-	if _, err := db.ExecContext(ctx, q); err != nil {
-		return fmt.Errorf("failed to create version table %q: %w", s.tableName, err)
-	}
-	return nil
+	return s.querier.CreateVersionTable(ctx, db, s.tableName)
 }
 
 func (s *store) Insert(ctx context.Context, db DBTxConn, req InsertRequest) error {
@@ -202,6 +198,20 @@ func newQueryController(querier dialect.Querier) *queryController {
 
 // Optional methods
 
+// CreateVersionTable creates the version table using the underlying Querier. If the Querier
+// implements [dialect.TableCreator], CreateTableContext is called with the context, database handle,
+// and table name. Otherwise, the SQL query from [dialect.Querier.CreateTable] is executed on the database handle.
+func (c *queryController) CreateVersionTable(ctx context.Context, db DBTxConn, tableName string) error {
+	if tc, ok := c.Querier.(dialect.TableCreator); ok {
+		return tc.CreateTableContext(ctx, db, tableName)
+	}
+	q := c.Querier.CreateTable(tableName)
+	if _, err := db.ExecContext(ctx, q); err != nil {
+		return fmt.Errorf("failed to create version table %q: %w", tableName, err)
+	}
+	return nil
+}
+
 // TableExists returns the SQL query string to check if the version table exists. If the Querier
 // does not implement this method, it will return an empty string.
 //
@@ -212,3 +222,4 @@ func (c *queryController) TableExists(tableName string) string {
 	}
 	return ""
 }
+
