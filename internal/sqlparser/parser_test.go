@@ -132,6 +132,20 @@ func TestUseTransactions(t *testing.T) {
 	}
 }
 
+func TestByteOrderMark(t *testing.T) {
+	t.Parallel()
+
+	const migration = "\ufeff-- +goose Up\nCREATE TABLE t (id int);\n-- +goose Down\nDROP TABLE t;\n"
+
+	up, _, err := ParseSQLMigration(strings.NewReader(migration), DirectionUp, debug)
+	require.NoError(t, err)
+	require.Equal(t, []string{"CREATE TABLE t (id int);"}, up)
+
+	down, _, err := ParseSQLMigration(strings.NewReader(migration), DirectionDown, debug)
+	require.NoError(t, err)
+	require.Equal(t, []string{"DROP TABLE t;"}, down)
+}
+
 func TestParsingErrors(t *testing.T) {
 	tt := []string{
 		statementBeginNoStatementEnd,
