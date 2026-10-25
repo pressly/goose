@@ -371,6 +371,82 @@ INSERT INTO owners (owner_name) VALUES ('seed-user-3');
 		require.NoError(t, err)
 		require.EqualValues(t, 7, currentVersion)
 	})
+	t.Run("disable_transactions", func(t *testing.T) {
+		ctx := context.Background()
+		p, _ := newProviderWithDB(t, goose.WithDisableTransactions(true))
+		// Apply all SQL migrations without transactions
+		res, err := p.Up(ctx)
+		require.NoError(t, err)
+		require.Len(t, res, 7)
+		currentVersion, err := p.GetDBVersion(ctx)
+		require.NoError(t, err)
+		require.EqualValues(t, 7, currentVersion)
+		// Rollback all migrations without transactions
+		res, err = p.DownTo(ctx, 0)
+		require.NoError(t, err)
+		require.Len(t, res, 7)
+	})
+	t.Run("disable_transactions_with_go_rundb", func(t *testing.T) {
+		ctx := context.Background()
+		db := newDB(t)
+		fsys := fstest.MapFS{
+			"00001_create_table.sql": newMapFile(`
+-- +goose Up
+CREATE TABLE test_users (id INTEGER PRIMARY KEY);
+-- +goose Down
+DROP TABLE test_users;
+`),
+		}
+		goMigration := goose.NewGoMigration(2,
+			&goose.GoFunc{RunDB: newDBFn("INSERT INTO test_users (id) VALUES (1), (2), (3)")},
+			&goose.GoFunc{RunDB: newDBFn("DELETE FROM test_users")},
+		)
+		p, err := goose.NewProvider(goose.DialectSQLite3, db, fsys,
+			goose.WithVerbose(testing.Verbose()),
+			goose.WithDisableTransactions(true),
+			goose.WithGoMigrations(goMigration),
+		)
+		require.NoError(t, err)
+		// Apply both migrations
+		res, err := p.Up(ctx)
+		require.NoError(t, err)
+		require.Len(t, res, 2)
+		currentVersion, err := p.GetDBVersion(ctx)
+		require.NoError(t, err)
+		require.EqualValues(t, 2, currentVersion)
+		// Verify the Go migration ran
+		var count int
+		err = db.QueryRow("SELECT count(*) FROM test_users").Scan(&count)
+		require.NoError(t, err)
+		require.Equal(t, 3, count)
+	})
+	t.Run("disable_transactions_nil_go_func", func(t *testing.T) {
+		ctx := context.Background()
+		db := newDB(t)
+		fsys := fstest.MapFS{
+			"00001_create_table.sql": newMapFile(`
+-- +goose Up
+CREATE TABLE test_nil (id INTEGER PRIMARY KEY);
+-- +goose Down
+DROP TABLE test_nil;
+`),
+		}
+		// Nil functions default to TransactionEnabled mode but have no RunTx set,
+		// so they should pass validation and execute as no-ops.
+		goMigration := goose.NewGoMigration(2, nil, nil)
+		p, err := goose.NewProvider(goose.DialectSQLite3, db, fsys,
+			goose.WithVerbose(testing.Verbose()),
+			goose.WithDisableTransactions(true),
+			goose.WithGoMigrations(goMigration),
+		)
+		require.NoError(t, err)
+		res, err := p.Up(ctx)
+		require.NoError(t, err)
+		require.Len(t, res, 2)
+		currentVersion, err := p.GetDBVersion(ctx)
+		require.NoError(t, err)
+		require.EqualValues(t, 2, currentVersion)
+	})
 }
 
 func TestConcurrentProvider(t *testing.T) {
