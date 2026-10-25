@@ -7,6 +7,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Parser: replace large pooled SQL scanner buffers with a growing buffer and reduce allocations
+  when running with the race detector (#1155, #1156)
+
 ### Fixed
 
 - Provider: SQL-only migrations with unpadded versions (`1_`, `2_`, `10_`) were sorted by
