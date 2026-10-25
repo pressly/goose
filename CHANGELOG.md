@@ -12,6 +12,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Provider: SQL-only migrations with unpadded versions (`1_`, `2_`, `10_`) were sorted by
   filename instead of version. This affected `ListSources` and `GetVersions`, as well as `Up`
   when versioning was disabled (#1124)
+- Pin `modernc.org/libc` to v1.77.1, the version `modernc.org/sqlite` v1.60.1 is built against.
+  v3.29.0 required libc v1.78.0 (#1150)
 
 ## [v3.29.0] - 2026-10-11
 
