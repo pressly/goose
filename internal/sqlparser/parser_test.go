@@ -594,7 +594,7 @@ func TestLongLine(t *testing.T) {
 	t.Parallel()
 	// A line longer than the initial scanner buffer still parses; one longer than
 	// scanBufSize still fails.
-	long := "SELECT '" + strings.Repeat("x", 2*initialScanBufSize) + "';\n"
+	long := "SELECT '" + strings.Repeat("x", 256*1024) + "';\n"
 	stmts, _, err := ParseSQLMigration(strings.NewReader("-- +goose Up\n"+long), DirectionUp, debug)
 	require.NoError(t, err)
 	require.Len(t, stmts, 1)

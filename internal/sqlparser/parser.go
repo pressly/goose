@@ -9,7 +9,7 @@ import (
 	"log"
 	"os"
 	"strings"
-	"sync"
+	"unicode"
 
 	"github.com/mfridman/interpolate"
 )
@@ -81,17 +81,8 @@ func (s *stateMachine) print(msg string, args ...any) {
 	}
 }
 
-const (
-	scanBufSize        = 4 * 1024 * 1024
-	initialScanBufSize = 64 * 1024
-)
-
-var bufferPool = sync.Pool{
-	New: func() any {
-		buf := make([]byte, scanBufSize)
-		return &buf
-	},
-}
+// scanBufSize is the maximum length of a single line in a migration file.
+const scanBufSize = 4 * 1024 * 1024
 
 // Split given SQL script into individual statements and return
 // SQL statements for given direction (up=true, down=false).
@@ -105,10 +96,9 @@ var bufferPool = sync.Pool{
 // tell us to ignore semicolons.
 func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []string, useTx bool, err error) {
 	scanner := bufio.NewScanner(r)
-	// Start small and let the scanner grow the buffer up to scanBufSize for long
-	// lines: most migration files are a few KB, and a pooled 4 MB buffer per call
-	// is allocated anew whenever the pool is empty (always under the race detector).
-	scanner.Buffer(make([]byte, 0, initialScanBufSize), scanBufSize)
+	// Start with the default (4 KiB) buffer and let the scanner grow it up to
+	// scanBufSize for long lines: most migration files are a few KiB.
+	scanner.Buffer(nil, scanBufSize)
 
 	stateMachine := newStateMachine(start, debug)
 	useTx = true
@@ -218,9 +208,8 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 				line = expanded
 			}
 			// Write SQL line to a buffer.
-			if _, err := buf.WriteString(line + "\n"); err != nil {
-				return nil, false, fmt.Errorf("failed to write to buf: %w", err)
-			}
+			buf.WriteString(line)
+			buf.WriteByte('\n')
 		}
 		// Read SQL body one by line, if we're in the right direction.
 		//
@@ -374,23 +363,16 @@ func cleanupStatement(input string) string {
 
 // Checks the line to see if the line has a statement-ending semicolon
 // or if the line contains a double-dash comment.
+//
+// The line is split into words on Unicode whitespace, the same way
+// bufio.ScanWords does, and the words before the first "--" are inspected.
 func endsWithSemicolon(line string) bool {
-	scanBufPtr := bufferPool.Get().(*[]byte)
-	scanBuf := *scanBufPtr
-	defer bufferPool.Put(scanBufPtr)
-
 	prev := ""
-	scanner := bufio.NewScanner(strings.NewReader(line))
-	scanner.Buffer(scanBuf, scanBufSize)
-	scanner.Split(bufio.ScanWords)
-
-	for scanner.Scan() {
-		word := scanner.Text()
+	for word := range strings.FieldsFuncSeq(line, unicode.IsSpace) {
 		if strings.HasPrefix(word, "--") {
 			break
 		}
 		prev = word
 	}
-
 	return strings.HasSuffix(prev, ";")
 }
