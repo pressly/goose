@@ -7,6 +7,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- SQLite table-based `Locker` via `lock.NewSQLiteTableLocker`, the SQLite counterpart to the
+  Postgres and MySQL table lockers, accepting the same `TableLockerOption` set. Requires SQLite
+  3.35.0+ (#1022)
+
 ### Fixed
 
 - Provider: SQL-only migrations with unpadded versions (`1_`, `2_`, `10_`) were sorted by
