@@ -95,8 +95,9 @@ const scanBufSize = 4 * 1024 * 1024 // 4 MiB
 // tell us to ignore semicolons.
 func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []string, useTx bool, err error) {
 	scanner := bufio.NewScanner(r)
-	// Start with the default (4 KiB) buffer and let the scanner grow it up to
-	// scanBufSize for long lines: most migration files are a few KiB.
+	// A nil buffer makes the scanner allocate its default 4 KiB buffer and grow
+	// it, up to scanBufSize, only when a line needs it. Most migration files are
+	// a few KiB, so a large fixed buffer per call would be mostly wasted.
 	scanner.Buffer(nil, scanBufSize)
 
 	stateMachine := newStateMachine(start, debug)
