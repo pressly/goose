@@ -9,9 +9,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
-- Parser: parse SQL migrations with far fewer allocations. Parsing 3,000 small migration files
-  allocates 30 MB instead of 740 MB, and 31 MB instead of 32 GB with the race detector (#1155,
-  #1156)
+- Parser: replace large pooled SQL scanner buffers with a growing buffer and reduce allocations
+  when running with the race detector (#1155, #1156)
 
 ### Fixed
 
