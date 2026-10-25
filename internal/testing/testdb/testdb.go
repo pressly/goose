@@ -31,3 +31,8 @@ func NewYdb(options ...OptionsFunc) (db *sql.DB, cleanup func(), err error) {
 func NewStarrocks(options ...OptionsFunc) (db *sql.DB, cleanup func(), err error) {
 	return newStarrocks(options...)
 }
+
+// NewSqlserver starts a SQL Server docker container. Returns db connection and a docker cleanup function.
+func NewSqlserver(options ...OptionsFunc) (db *sql.DB, cleanup func(), err error) {
+	return newSqlserver(options...)
+}
