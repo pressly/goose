@@ -81,7 +81,7 @@ func (s *stateMachine) print(msg string, args ...any) {
 }
 
 // scanBufSize is the maximum length of a single line in a migration file.
-const scanBufSize = 4 * 1024 * 1024
+const scanBufSize = 4 * 1024 * 1024 // 4 MiB
 
 // Split given SQL script into individual statements and return
 // SQL statements for given direction (up=true, down=false).

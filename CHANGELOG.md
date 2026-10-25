@@ -7,6 +7,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Parser: parse SQL migrations with far fewer allocations. Parsing 3,000 small migration files
+  allocates 30 MB instead of 740 MB, and 31 MB instead of 32 GB with the race detector (#1155,
+  #1156)
+
 ### Fixed
 
 - Provider: SQL-only migrations with unpadded versions (`1_`, `2_`, `10_`) were sorted by
