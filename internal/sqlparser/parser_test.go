@@ -35,6 +35,11 @@ func TestSemicolons(t *testing.T) {
 		{line: "END -- comment", result: false},
 		{line: "END -- comment ;", result: false},
 		{line: "END \" ; \" -- comment", result: false},
+		// Unicode whitespace separates words, the same as bufio.ScanWords.
+		{line: "END;\u00a0-- comment", result: true},
+		{line: "END\u3000; -- comment", result: true},
+		{line: "END\u2028--;", result: false},
+		{line: "END;\u0085", result: true},
 	}
 
 	for _, test := range tests {

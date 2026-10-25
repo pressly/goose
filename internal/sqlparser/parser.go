@@ -9,7 +9,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"unicode"
 
 	"github.com/mfridman/interpolate"
 )
@@ -368,7 +367,7 @@ func cleanupStatement(input string) string {
 // bufio.ScanWords does, and the words before the first "--" are inspected.
 func endsWithSemicolon(line string) bool {
 	prev := ""
-	for word := range strings.FieldsFuncSeq(line, unicode.IsSpace) {
+	for word := range strings.FieldsSeq(line) {
 		if strings.HasPrefix(word, "--") {
 			break
 		}
