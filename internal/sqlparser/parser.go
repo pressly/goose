@@ -81,7 +81,10 @@ func (s *stateMachine) print(msg string, args ...any) {
 	}
 }
 
-const scanBufSize = 4 * 1024 * 1024
+const (
+	scanBufSize        = 4 * 1024 * 1024
+	initialScanBufSize = 64 * 1024
+)
 
 var bufferPool = sync.Pool{
 	New: func() any {
@@ -101,12 +104,11 @@ var bufferPool = sync.Pool{
 // 'StatementBegin' and 'StatementEnd' to allow the script to
 // tell us to ignore semicolons.
 func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []string, useTx bool, err error) {
-	scanBufPtr := bufferPool.Get().(*[]byte)
-	scanBuf := *scanBufPtr
-	defer bufferPool.Put(scanBufPtr)
-
 	scanner := bufio.NewScanner(r)
-	scanner.Buffer(scanBuf, scanBufSize)
+	// Start small and let the scanner grow the buffer up to scanBufSize for long
+	// lines: most migration files are a few KB, and a pooled 4 MB buffer per call
+	// is allocated anew whenever the pool is empty (always under the race detector).
+	scanner.Buffer(make([]byte, 0, initialScanBufSize), scanBufSize)
 
 	stateMachine := newStateMachine(start, debug)
 	useTx = true

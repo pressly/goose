@@ -589,3 +589,18 @@ func Test_extractAnnotation(t *testing.T) {
 		})
 	}
 }
+
+func TestLongLine(t *testing.T) {
+	t.Parallel()
+	// A line longer than the initial scanner buffer still parses; one longer than
+	// scanBufSize still fails.
+	long := "SELECT '" + strings.Repeat("x", 2*initialScanBufSize) + "';\n"
+	stmts, _, err := ParseSQLMigration(strings.NewReader("-- +goose Up\n"+long), DirectionUp, debug)
+	require.NoError(t, err)
+	require.Len(t, stmts, 1)
+	require.Equal(t, strings.TrimSpace(long), strings.TrimSpace(stmts[0]))
+
+	tooLong := "SELECT '" + strings.Repeat("x", scanBufSize) + "';\n"
+	_, _, err = ParseSQLMigration(strings.NewReader("-- +goose Up\n"+tooLong), DirectionUp, debug)
+	require.Error(t, err)
+}
