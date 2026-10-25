@@ -299,6 +299,31 @@ func TestProviderRun(t *testing.T) {
 		assertStatus(t, status[5], goose.StateApplied, newSource(goose.TypeSQL, "00006_empty_up.sql", 6), false)
 		assertStatus(t, status[6], goose.StateApplied, newSource(goose.TypeSQL, "00007_empty_up_down.sql", 7), false)
 	})
+	t.Run("status_missing_source", func(t *testing.T) {
+		ctx := context.Background()
+		p, db := newProviderWithDB(t)
+		_, err := p.Up(ctx)
+		require.NoError(t, err)
+
+		fsys := fstest.MapFS{
+			"00001_users_table.sql": newMapFile(runMigration1),
+		}
+		p2, err := goose.NewProvider(goose.DialectSQLite3, db, fsys)
+		require.NoError(t, err)
+
+		status, err := p2.Status(ctx)
+		require.NoError(t, err)
+		require.Equal(t, goose.StateApplied, status[0].State)
+		require.Equal(t, int64(1), status[0].Source.Version)
+
+		var missing []int64
+		for _, s := range status {
+			if s.State == goose.StateMissing {
+				missing = append(missing, s.Source.Version)
+			}
+		}
+		require.Equal(t, []int64{2, 3, 4, 5, 6, 7}, missing)
+	})
 	t.Run("tx_partial_errors", func(t *testing.T) {
 		countOwners := func(db *sql.DB) (int, error) {
 			q := `SELECT count(*)FROM owners`
