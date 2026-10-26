@@ -86,6 +86,66 @@ func TestSplitStatements(t *testing.T) {
 	}
 }
 
+func TestCommentsMentioningAnnotations(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		sql  string
+		up   string
+		down string
+	}{
+		{
+			name: "before Up",
+			sql:  "-- See +goose Up below.\n-- +goose Up\nSELECT 1;\n-- +goose Down\nSELECT 2;",
+			up:   "SELECT 1;",
+			down: "SELECT 2;",
+		},
+		{
+			name: "before statements",
+			sql:  "-- +goose Up\n-- This uses +goose annotations.\nSELECT 1;\n-- +goose Down\n\t-- The +goose Down statement follows.\nSELECT 2;",
+			up:   "SELECT 1;",
+			down: "SELECT 2;",
+		},
+		{
+			name: "inside statements",
+			sql:  "-- +goose Up\nSELECT\n-- The +goose Up statement.\n1;\n-- +goose Down\nSELECT\n-- The +goose Down statement.\n2;",
+			up:   "SELECT\n-- The +goose Up statement.\n1;",
+			down: "SELECT\n-- The +goose Down statement.\n2;",
+		},
+		{
+			name: "inside StatementBegin",
+			sql:  "-- +goose Up\n-- +goose StatementBegin\nSELECT 1;\n-- This mentions +goose StatementEnd.\nSELECT 2;\n-- +goose StatementEnd\n-- +goose Down\nSELECT 3;",
+			up:   "SELECT 1;\n-- This mentions +goose StatementEnd.\nSELECT 2;",
+			down: "SELECT 3;",
+		},
+		{
+			name: "annotation whitespace",
+			sql:  "--+goose Up\nSELECT 1;\n--\t+goose Down\nSELECT 2;",
+			up:   "SELECT 1;",
+			down: "SELECT 2;",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			for _, direction := range []Direction{DirectionUp, DirectionDown} {
+				t.Run(direction.String(), func(t *testing.T) {
+					statements, useTx, err := ParseSQLMigration(strings.NewReader(tt.sql), direction, false)
+					require.NoError(t, err)
+					require.True(t, useTx)
+					want := tt.up
+					if direction == DirectionDown {
+						want = tt.down
+					}
+					require.Equal(t, []string{want}, statements)
+				})
+			}
+		})
+	}
+}
+
 func TestInvalidUp(t *testing.T) {
 	t.Parallel()
 

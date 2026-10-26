@@ -126,7 +126,7 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 
 		// Check for annotations.
 		// All annotations must be in format: "-- +goose [annotation]"
-		if strings.HasPrefix(strings.TrimSpace(line), "--") && strings.Contains(line, "+goose") {
+		if comment, ok := strings.CutPrefix(strings.TrimSpace(line), "--"); ok && strings.HasPrefix(strings.TrimSpace(comment), "+goose") {
 			var cmd annotation
 
 			cmd, err = extractAnnotation(line)
