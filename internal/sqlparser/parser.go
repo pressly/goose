@@ -115,8 +115,16 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 	useEnvsub := false
 
 	var buf bytes.Buffer
+	// A leading UTF-8 BOM is not whitespace, so TrimSpace would leave it in
+	// place and the opening "-- +goose Up" annotation would not match.
+	const utf8BOM = "\uFEFF"
+	strippedBOM := false
 	for scanner.Scan() {
 		line := scanner.Text()
+		if !strippedBOM {
+			line = strings.TrimPrefix(line, utf8BOM)
+			strippedBOM = true
+		}
 		if debug {
 			log.Println(line)
 		}

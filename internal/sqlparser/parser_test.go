@@ -604,3 +604,19 @@ func TestLongLine(t *testing.T) {
 	_, _, err = ParseSQLMigration(strings.NewReader("-- +goose Up\n"+tooLong), DirectionUp, debug)
 	require.Error(t, err)
 }
+
+func TestUTF8ByteOrderMark(t *testing.T) {
+	t.Parallel()
+
+	// Some Windows editors prefix the file with a UTF-8 BOM. That byte is not
+	// whitespace, so the opening annotation must still parse.
+	const sql = "\uFEFF-- +goose Up\ncreate table t (id int);\n-- +goose Down\ndrop table t;\n"
+
+	up, _, err := ParseSQLMigration(strings.NewReader(sql), DirectionUp, debug)
+	require.NoError(t, err)
+	require.Equal(t, []string{"create table t (id int);"}, up)
+
+	down, _, err := ParseSQLMigration(strings.NewReader(sql), DirectionDown, debug)
+	require.NoError(t, err)
+	require.Equal(t, []string{"drop table t;"}, down)
+}
