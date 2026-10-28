@@ -40,7 +40,7 @@ func (s *spanner) GetMigrationByVersion(tableName string) string {
 }
 
 func (s *spanner) ListMigrations(tableName string) string {
-	q := `SELECT version_id, is_applied from %s ORDER BY version_id DESC`
+	q := `SELECT tstamp, version_id, is_applied from %s ORDER BY version_id DESC`
 	return fmt.Sprintf(q, tableName)
 }
 
