@@ -370,11 +370,12 @@ func cleanupStatement(input string) string {
 	return strings.TrimSpace(input)
 }
 
-// endsWithSemicolon reports whether line contains a statement-ending semicolon
-// that is not inside a quoted string and is not after a "--" SQL comment.
+// endsWithSemicolon reports whether line ends with a semicolon after removing
+// a "--" comment at the beginning of the line or after ASCII whitespace.
 //
-// "--" inside single quotes, double quotes, or backticks is treated as data, not
-// a comment (https://github.com/pressly/goose/issues/699).
+// Comment stripping skips single-quoted, double-quoted, and backtick-delimited
+// text, with doubled delimiters as escapes. It does not handle backslash escapes,
+// dollar-quoted strings, or block comments.
 func endsWithSemicolon(line string) bool {
 	s := strings.TrimSpace(stripLineComment(line))
 	return strings.HasSuffix(s, ";")
