@@ -35,6 +35,12 @@ func TestSemicolons(t *testing.T) {
 		{line: "END -- comment", result: false},
 		{line: "END -- comment ;", result: false},
 		{line: "END \" ; \" -- comment", result: false},
+		// "--" inside a quoted string is not a comment (#699).
+		{line: "COMMENT='Look at this cool arrow -->';", result: true},
+		{line: "COMMENT='Look at this cool arrow -->'; -- trailing", result: true},
+		{line: "SELECT '-- not a comment';", result: true},
+		{line: "COMMENT=\"arrow -->\";", result: true},
+		{line: "COMMENT=`arrow -->`;", result: true},
 	}
 
 	for _, test := range tests {
@@ -63,6 +69,7 @@ func TestSplitStatements(t *testing.T) {
 		{sql: copyFromStdin, up: 1, down: 0},
 		{sql: plpgsqlSyntax, up: 2, down: 2},
 		{sql: plpgsqlSyntaxMixedStatements, up: 2, down: 2},
+		{sql: commentArrowSQL, up: 2, down: 2},
 	}
 
 	for i, test := range tt {
@@ -278,6 +285,26 @@ var emptySQL2 = `
 -- comment
 -- +goose Down
 
+`
+
+// commentArrowSQL is the reproduction from https://github.com/pressly/goose/issues/699:
+// a "--" sequence inside a quoted string must not be treated as a SQL comment, or the
+// parser merges the following statement into the previous one.
+var commentArrowSQL = `-- +goose Up
+CREATE TABLE t1 (
+    c1 INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    c2 VARCHAR(100))
+ENGINE=InnoDB
+COMMENT='Look at this cool arrow -->';
+
+CREATE TABLE t2 (
+    c1 INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    c2 VARCHAR(100))
+ENGINE=InnoDB;
+
+-- +goose Down
+DROP TABLE t2;
+DROP TABLE t1;
 `
 
 var noUpDownAnnotations = `
