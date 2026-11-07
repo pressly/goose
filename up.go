@@ -67,7 +67,7 @@ func UpToContext(ctx context.Context, db *sql.DB, dir string, version int64, opt
 	if err != nil {
 		return err
 	}
-	dbMaxVersion := dbMigrations[len(dbMigrations)-1].Version
+	dbMaxVersion := maxDBVersion(dbMigrations)
 	// lookupAppliedInDB is a map of all applied migrations in the database.
 	lookupAppliedInDB := make(map[int64]bool)
 	for _, m := range dbMigrations {
@@ -178,6 +178,15 @@ func UpByOne(db *sql.DB, dir string, opts ...OptionsFunc) error {
 func UpByOneContext(ctx context.Context, db *sql.DB, dir string, opts ...OptionsFunc) error {
 	opts = append(opts, withApplyUpByOne())
 	return UpToContext(ctx, db, dir, maxVersion, opts...)
+}
+
+// maxDBVersion returns the highest version in dbMigrations, or 0 if the list is empty. Callers must
+// not index into dbMigrations directly.
+func maxDBVersion(dbMigrations Migrations) int64 {
+	if len(dbMigrations) == 0 {
+		return 0
+	}
+	return dbMigrations[len(dbMigrations)-1].Version
 }
 
 // listAllDBVersions returns a list of all migrations, ordered ascending.

@@ -208,6 +208,10 @@ ORDER BY (version_id)
 
 Note the `ENGINE = ReplicatedMergeTree()`.
 
+Both the Provider (`goose.NewProvider`) and the legacy API/CLI handle an
+existing but empty version table gracefully — they log a warning and proceed
+without inserting any rows.
+
 Additionally, Goose should connect to ClickHouse only with a user that has the
 settings `select_sequential_consistency=1`, `insert_quorum='auto'`, and
 `insert_quorum_parallel=0` applied (directly or via a settings profile). It is

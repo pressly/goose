@@ -387,7 +387,7 @@ func (p *Provider) up(
 			return nil, err
 		}
 		if len(dbMigrations) == 0 {
-			return nil, errMissingZeroVersion
+			p.logf(ctx, "goose: version table is empty, assuming no migrations have been applied", "version table is empty, assuming no migrations have been applied")
 		}
 		versions, err := gooseutil.UpVersions(
 			getVersionsFromMigrations(p.migrations),     // fsys versions
@@ -440,7 +440,8 @@ func (p *Provider) down(
 		return nil, err
 	}
 	if len(dbMigrations) == 0 {
-		return nil, errMissingZeroVersion
+		p.logf(ctx, "goose: version table is empty, nothing to roll back", "version table is empty, nothing to roll back")
+		return nil, nil
 	}
 	// We never migrate the zero version down.
 	if dbMigrations[0].Version == 0 {

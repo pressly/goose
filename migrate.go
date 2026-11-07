@@ -222,6 +222,11 @@ func EnsureDBVersionContext(ctx context.Context, db *sql.DB) (int64, error) {
 		}
 		return 0, nil
 	}
+	if len(dbMigrations) == 0 {
+		// The version table exists but contains no rows — treat as version 0.
+		log.Printf("goose: version table is empty, treating current version as 0")
+		return 0, nil
+	}
 	// The most recent record for each migration specifies
 	// whether it has been applied or rolled back.
 	// The first version we find that has been applied is the current version.

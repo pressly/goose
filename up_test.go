@@ -2,7 +2,19 @@ package goose
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
+
+func TestMaxDBVersion(t *testing.T) {
+	t.Parallel()
+
+	// An empty list must not panic and is treated as version 0. This can happen when the
+	// version table row is not visible to the current connection.
+	require.EqualValues(t, 0, maxDBVersion(nil))
+	require.EqualValues(t, 0, maxDBVersion(Migrations{}))
+	require.EqualValues(t, 2, maxDBVersion(Migrations{{Version: 1}, {Version: 2}}))
+}
 
 func TestFindMissingMigrations(t *testing.T) {
 	known := Migrations{

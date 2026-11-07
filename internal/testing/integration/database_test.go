@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -82,6 +83,30 @@ func TestClickhouse(t *testing.T) {
 		}
 		require.Equal(t, result.sourceID, want[i].sourceID)
 	}
+}
+
+// TestClickhouseEmptyVersionTable is a regression test for an existing but empty version table. It
+// reproduces the state left behind when only the table definition is replicated, or when the table
+// was pre-created manually. Goose should proceed without error and log a ClickHouse-specific
+// diagnostic identifying the node and engine types.
+func TestClickhouseEmptyVersionTable(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	db, cleanup, err := testdb.NewClickHouse()
+	require.NoError(t, err)
+	t.Cleanup(cleanup)
+	require.NoError(t, db.Ping())
+
+	// Pre-create the version table without inserting any rows.
+	store, err := database.NewStore(database.DialectClickHouse, goose.DefaultTablename)
+	require.NoError(t, err)
+	require.NoError(t, store.CreateVersionTable(ctx, db))
+	var count int
+	require.NoError(t, db.QueryRow(`SELECT count() FROM goose_db_version`).Scan(&count))
+	require.Zero(t, count)
+
+	testDatabase(t, database.DialectClickHouse, db, "testdata/migrations/clickhouse")
 }
 
 func TestClickhouseRemote(t *testing.T) {

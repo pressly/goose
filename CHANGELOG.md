@@ -7,6 +7,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Legacy API and CLI: `EnsureDBVersion` returned `ErrNoNextVersion` (surfacing as
+  `goose run: no next version found`) when the version table existed but contained no rows.
+  It now returns version 0 without inserting any rows. `UpTo` no longer panics on an empty
+  version list.
+- Provider: an existing but empty version table caused `errMissingZeroVersion`. The Provider
+  now logs a warning and proceeds instead of returning an error.
+
 ## [v3.30.0] - 2026-11-10
 
 ### Added
