@@ -117,6 +117,7 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 	var buf bytes.Buffer
 	for scanner.Scan() {
 		line := scanner.Text()
+		isStatementEnd := false
 		if debug {
 			log.Println(line)
 		}
@@ -171,6 +172,7 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 				continue
 
 			case annotationStatementEnd:
+				isStatementEnd = true
 				switch stateMachine.get() {
 				case gooseStatementBeginUp:
 					stateMachine.set(gooseStatementEndUp)
@@ -199,7 +201,10 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 		// Once we've started parsing a statement the buffer is no longer empty,
 		// we keep all comments up until the end of the statement (the buffer will be reset).
 		// All other comments in the file are ignored.
-		if buf.Len() == 0 {
+		//
+		// The StatementEnd annotation is never ignored here, even when the block it closes held
+		// only comments: the parser must still leave the block, or the next line is dropped.
+		if buf.Len() == 0 && !isStatementEnd {
 			// This check ensures leading comments and empty lines prior to a statement are ignored.
 			if strings.HasPrefix(strings.TrimSpace(line), "--") || line == "" {
 				stateMachine.print("ignore comment")
@@ -258,12 +263,16 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 				stateMachine.print("store simple Down query")
 			}
 		case gooseStatementEndUp:
-			stmts = append(stmts, cleanupStatement(buf.String()))
+			if stmt := cleanupStatement(buf.String()); stmt != "" {
+				stmts = append(stmts, stmt)
+			}
 			buf.Reset()
 			stateMachine.print("store Up statement")
 			stateMachine.set(gooseUp)
 		case gooseStatementEndDown:
-			stmts = append(stmts, cleanupStatement(buf.String()))
+			if stmt := cleanupStatement(buf.String()); stmt != "" {
+				stmts = append(stmts, stmt)
+			}
 			buf.Reset()
 			stateMachine.print("store Down statement")
 			stateMachine.set(gooseDown)
