@@ -6,14 +6,14 @@ import (
 	"github.com/pressly/goose/v3/database/dialect"
 )
 
-// NewStarrocks returns a [dialect.Querier] for StarRocks dialect.
-func NewStarrocks() dialect.Querier {
+// NewStarrocks returns a [dialect.QuerierExtender] for StarRocks dialect.
+func NewStarrocks() dialect.QuerierExtender {
 	return &starrocks{}
 }
 
 type starrocks struct{}
 
-var _ dialect.Querier = (*starrocks)(nil)
+var _ dialect.QuerierExtender = (*starrocks)(nil)
 
 func (m *starrocks) CreateTable(tableName string) string {
 	q := `CREATE TABLE IF NOT EXISTS %s (
@@ -50,5 +50,15 @@ func (m *starrocks) ListMigrations(tableName string) string {
 
 func (m *starrocks) GetLatestVersion(tableName string) string {
 	q := `SELECT MAX(version_id) FROM %s`
+	return fmt.Sprintf(q, tableName)
+}
+
+func (m *starrocks) TableExists(tableName string) string {
+	schemaName, tableName := parseTableIdentifier(tableName)
+	if schemaName != "" {
+		q := `SELECT EXISTS ( SELECT 1 FROM information_schema.tables WHERE table_schema = '%s' AND table_name = '%s' )`
+		return fmt.Sprintf(q, schemaName, tableName)
+	}
+	q := `SELECT EXISTS ( SELECT 1 FROM information_schema.tables WHERE (database() IS NULL OR table_schema = database()) AND table_name = '%s' )`
 	return fmt.Sprintf(q, tableName)
 }

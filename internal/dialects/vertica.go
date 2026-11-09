@@ -6,16 +6,16 @@ import (
 	"github.com/pressly/goose/v3/database/dialect"
 )
 
-// NewVertica returns a new [dialect.Querier] for Vertica dialect.
+// NewVertica returns a new [dialect.QuerierExtender] for Vertica dialect.
 //
 // DEPRECATED: Vertica support is deprecated and will be removed in a future release.
-func NewVertica() dialect.Querier {
+func NewVertica() dialect.QuerierExtender {
 	return &vertica{}
 }
 
 type vertica struct{}
 
-var _ dialect.Querier = (*vertica)(nil)
+var _ dialect.QuerierExtender = (*vertica)(nil)
 
 func (v *vertica) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (
@@ -50,5 +50,15 @@ func (v *vertica) ListMigrations(tableName string) string {
 
 func (v *vertica) GetLatestVersion(tableName string) string {
 	q := `SELECT MAX(version_id) FROM %s`
+	return fmt.Sprintf(q, tableName)
+}
+
+func (v *vertica) TableExists(tableName string) string {
+	schemaName, tableName := parseTableIdentifier(tableName)
+	if schemaName != "" {
+		q := `SELECT EXISTS ( SELECT 1 FROM v_catalog.tables WHERE table_schema = '%s' AND table_name = '%s' )`
+		return fmt.Sprintf(q, schemaName, tableName)
+	}
+	q := `SELECT EXISTS ( SELECT 1 FROM v_catalog.tables WHERE table_schema = current_schema() AND table_name = '%s' )`
 	return fmt.Sprintf(q, tableName)
 }

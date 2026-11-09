@@ -6,14 +6,14 @@ import (
 	"github.com/pressly/goose/v3/database/dialect"
 )
 
-// NewSpanner returns a [dialect.Querier] for Spanner dialect.
-func NewSpanner() dialect.Querier {
+// NewSpanner returns a [dialect.QuerierExtender] for Spanner dialect.
+func NewSpanner() dialect.QuerierExtender {
 	return &spanner{}
 }
 
 type spanner struct{}
 
-var _ dialect.Querier = (*spanner)(nil)
+var _ dialect.QuerierExtender = (*spanner)(nil)
 
 func (s *spanner) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (
@@ -47,4 +47,12 @@ func (s *spanner) ListMigrations(tableName string) string {
 func (s *spanner) GetLatestVersion(tableName string) string {
 	q := `SELECT MAX(version_id) FROM %s`
 	return fmt.Sprintf(q, tableName)
+}
+
+func (s *spanner) TableExists(tableName string) string {
+	// Spanner's default schema is an empty string, so parseTableIdentifier
+	// returns ("", tableName) for unqualified names, which is correct.
+	schemaName, tableName := parseTableIdentifier(tableName)
+	q := `SELECT EXISTS ( SELECT 1 FROM information_schema.tables WHERE table_schema = '%s' AND table_name = '%s' )`
+	return fmt.Sprintf(q, schemaName, tableName)
 }

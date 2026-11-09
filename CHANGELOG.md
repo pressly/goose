@@ -7,6 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Provider: added `TableExists` support to all remaining built-in dialects (sqlite3, turso,
+  sqlserver, redshift, tidb, clickhouse, starrocks, spanner, vertica), so the `NewProvider` path
+  avoids the spurious DB error log on first run for every supported database. YDB falls back to
+  the existing query-based check. Resolves #461.
+
 ## [v3.30.0] - 2026-11-10
 
 ### Added

@@ -6,14 +6,14 @@ import (
 	"github.com/pressly/goose/v3/database/dialect"
 )
 
-// Redshift returns a new [dialect.Querier] for Redshift dialect.
-func NewRedshift() dialect.Querier {
+// NewRedshift returns a new [dialect.QuerierExtender] for Redshift dialect.
+func NewRedshift() dialect.QuerierExtender {
 	return &redshift{}
 }
 
 type redshift struct{}
 
-var _ dialect.Querier = (*redshift)(nil)
+var _ dialect.QuerierExtender = (*redshift)(nil)
 
 func (r *redshift) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (
@@ -48,5 +48,15 @@ func (r *redshift) ListMigrations(tableName string) string {
 
 func (r *redshift) GetLatestVersion(tableName string) string {
 	q := `SELECT max(version_id) FROM %s`
+	return fmt.Sprintf(q, tableName)
+}
+
+func (r *redshift) TableExists(tableName string) string {
+	schemaName, tableName := parseTableIdentifier(tableName)
+	if schemaName != "" {
+		q := `SELECT EXISTS ( SELECT 1 FROM pg_tables WHERE schemaname = '%s' AND tablename = '%s' )`
+		return fmt.Sprintf(q, schemaName, tableName)
+	}
+	q := `SELECT EXISTS ( SELECT 1 FROM pg_tables WHERE (current_schema() IS NULL OR schemaname = current_schema()) AND tablename = '%s' )`
 	return fmt.Sprintf(q, tableName)
 }

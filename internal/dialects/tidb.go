@@ -6,14 +6,14 @@ import (
 	"github.com/pressly/goose/v3/database/dialect"
 )
 
-// NewTidb returns a [dialect.Querier] for TiDB dialect.
-func NewTidb() dialect.Querier {
+// NewTidb returns a [dialect.QuerierExtender] for TiDB dialect.
+func NewTidb() dialect.QuerierExtender {
 	return &Tidb{}
 }
 
 type Tidb struct{}
 
-var _ dialect.Querier = (*Tidb)(nil)
+var _ dialect.QuerierExtender = (*Tidb)(nil)
 
 func (t *Tidb) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (
@@ -48,5 +48,15 @@ func (t *Tidb) ListMigrations(tableName string) string {
 
 func (t *Tidb) GetLatestVersion(tableName string) string {
 	q := `SELECT MAX(version_id) FROM %s`
+	return fmt.Sprintf(q, tableName)
+}
+
+func (t *Tidb) TableExists(tableName string) string {
+	schemaName, tableName := parseTableIdentifier(tableName)
+	if schemaName != "" {
+		q := `SELECT EXISTS ( SELECT 1 FROM information_schema.tables WHERE table_schema = '%s' AND table_name = '%s' )`
+		return fmt.Sprintf(q, schemaName, tableName)
+	}
+	q := `SELECT EXISTS ( SELECT 1 FROM information_schema.tables WHERE (database() IS NULL OR table_schema = database()) AND table_name = '%s' )`
 	return fmt.Sprintf(q, tableName)
 }

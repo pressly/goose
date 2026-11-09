@@ -6,14 +6,14 @@ import (
 	"github.com/pressly/goose/v3/database/dialect"
 )
 
-// NewClickhouse returns a new [dialect.Querier] for Clickhouse dialect.
-func NewClickhouse() dialect.Querier {
+// NewClickhouse returns a new [dialect.QuerierExtender] for Clickhouse dialect.
+func NewClickhouse() dialect.QuerierExtender {
 	return &clickhouse{}
 }
 
 type clickhouse struct{}
 
-var _ dialect.Querier = (*clickhouse)(nil)
+var _ dialect.QuerierExtender = (*clickhouse)(nil)
 
 func (c *clickhouse) CreateTable(tableName string) string {
 	q := `CREATE TABLE IF NOT EXISTS %s (
@@ -49,5 +49,15 @@ func (c *clickhouse) ListMigrations(tableName string) string {
 
 func (c *clickhouse) GetLatestVersion(tableName string) string {
 	q := `SELECT max(version_id) FROM %s`
+	return fmt.Sprintf(q, tableName)
+}
+
+func (c *clickhouse) TableExists(tableName string) string {
+	schemaName, tableName := parseTableIdentifier(tableName)
+	if schemaName != "" {
+		q := `SELECT EXISTS ( SELECT 1 FROM system.tables WHERE database = '%s' AND name = '%s' )`
+		return fmt.Sprintf(q, schemaName, tableName)
+	}
+	q := `SELECT EXISTS ( SELECT 1 FROM system.tables WHERE database = currentDatabase() AND name = '%s' )`
 	return fmt.Sprintf(q, tableName)
 }
