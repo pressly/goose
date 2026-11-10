@@ -159,12 +159,51 @@ func TestLiteBinary(t *testing.T) {
 	})
 }
 
+// TestFullBinaryOmittedDBString checks that the postgres and redshift
+// drivers accept a command without a DBSTRING argument, falling back to the
+// standard libpq PG* environment variables
+// (https://github.com/pressly/goose/issues/1169).
+func TestFullBinaryOmittedDBString(t *testing.T) {
+	t.Parallel()
+	cli := buildGooseCLI(t, false)
+
+	// A guaranteed-unreachable endpoint: the commands below must fail at
+	// connect time, which proves argument parsing succeeded instead of
+	// printing usage.
+	env := append(os.Environ(),
+		"PGHOST=127.0.0.1",
+		"PGPORT=1",
+		"PGUSER=goose",
+		"PGPASSWORD=goose",
+		"PGDATABASE=goose",
+		"PGCONNECT_TIMEOUT=2",
+	)
+	for _, driver := range []string{"postgres", "redshift"} {
+		_, err := cli.runEnv(env, driver, "status")
+		require.Error(t, err)
+		require.NotContains(t, err.Error(), "Usage: goose")
+	}
+	// The GOOSE_DRIVER environment variable form works the same way.
+	_, err := cli.runEnv(append(env, "GOOSE_DRIVER=postgres"), "status")
+	require.Error(t, err)
+	require.NotContains(t, err.Error(), "Usage: goose")
+	// Other drivers still require a DBSTRING.
+	_, err = cli.runEnv(env, "sqlite3", "status")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "Usage: goose")
+}
+
 type gooseBinary struct {
 	binaryPath string
 }
 
 func (g gooseBinary) run(params ...string) (string, error) {
+	return g.runEnv(os.Environ(), params...)
+}
+
+func (g gooseBinary) runEnv(env []string, params ...string) (string, error) {
 	cmd := exec.Command(g.binaryPath, params...)
+	cmd.Env = env
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("failed to run goose command: %v\nout: %v", err, string(out))

@@ -152,7 +152,7 @@ func main() {
 		return
 	}
 
-	args = mergeArgs(envConfig, args)
+	args = insertOmittedDBString(mergeArgs(envConfig, args))
 	if len(args) < 3 {
 		flags.Usage()
 		os.Exit(1)
@@ -249,6 +249,21 @@ func mergeArgs(config *envConfig, args []string) []string {
 	return args
 }
 
+// insertOmittedDBString expands DRIVER COMMAND into the canonical
+// DRIVER DBSTRING COMMAND form when the DBSTRING is omitted. It only applies
+// to postgres and redshift: both are backed by pgx, which reads the standard
+// libpq environment variables (PGHOST, PGPORT, PGUSER, PGPASSWORD,
+// PGDATABASE, ...) when the connection string is empty.
+func insertOmittedDBString(args []string) []string {
+	if len(args) == 2 {
+		switch args[0] {
+		case "postgres", "redshift":
+			return []string{args[0], "", args[1]}
+		}
+	}
+	return args
+}
+
 func usage() {
 	fmt.Println(usagePrefix)
 	flags.PrintDefaults()
@@ -266,6 +281,10 @@ GOOSE_DBSTRING=DBSTRING
 GOOSE_MIGRATION_DIR=MIGRATION_DIR
 
 Usage: goose [OPTIONS] COMMAND
+
+For postgres and redshift, the DBSTRING may be omitted; pgx then reads the
+standard libpq environment variables, e.g., PGHOST, PGPORT, PGUSER,
+PGPASSWORD, PGDATABASE.
 
 Drivers:
     postgres
