@@ -7,6 +7,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Container image at `ghcr.io/pressly/goose` for `linux/amd64` and `linux/arm64`, published on
+  each release. The image is based on distroless static, runs as a nonroot user, and supports
+  `.sql` migrations only (#1093)
+
 ### Changed
 
 - Various dependency upgrades
