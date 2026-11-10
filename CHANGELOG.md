@@ -10,7 +10,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - Various dependency upgrades
-- SQL parser: reduce memory allocations when parsing many migration files (#1155)
+- SQL parser: reduce memory use when parsing migration files, and make parsing much faster when
+  the race detector is on (#1155, #1156)
 
 ### Fixed
 

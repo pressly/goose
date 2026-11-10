@@ -35,6 +35,11 @@ func TestSemicolons(t *testing.T) {
 		{line: "END -- comment", result: false},
 		{line: "END -- comment ;", result: false},
 		{line: "END \" ; \" -- comment", result: false},
+		// Unicode whitespace separates words, the same as bufio.ScanWords.
+		{line: "END;\u00a0-- comment", result: true},
+		{line: "END\u3000; -- comment", result: true},
+		{line: "END\u2028--;", result: false},
+		{line: "END;\u0085", result: true},
 	}
 
 	for _, test := range tests {
@@ -594,7 +599,7 @@ func TestLongLine(t *testing.T) {
 	t.Parallel()
 	// A line longer than the initial scanner buffer still parses; one longer than
 	// scanBufSize still fails.
-	long := "SELECT '" + strings.Repeat("x", 2*initialScanBufSize) + "';\n"
+	long := "SELECT '" + strings.Repeat("x", 256*1024) + "';\n" // 256 KiB
 	stmts, _, err := ParseSQLMigration(strings.NewReader("-- +goose Up\n"+long), DirectionUp, debug)
 	require.NoError(t, err)
 	require.Len(t, stmts, 1)
