@@ -51,6 +51,22 @@ Formulae](https://formulae.brew.sh/formula/goose#default):
 brew install goose
 ```
 
+A container image is available for `linux/amd64` and `linux/arm64`. It has no shell and supports `.sql` migrations only. The working directory is `/migrations`.
+
+```shell
+docker run --rm \
+  -v "$PWD/migrations:/migrations" \
+  -e GOOSE_DRIVER=postgres \
+  -e GOOSE_DBSTRING="postgres://user:password@host:5432/dbname" \
+  ghcr.io/pressly/goose:latest up
+```
+
+Tags: `vX.Y.Z`, `vX.Y`, `vX`, and `latest`. To copy the binary into your own image:
+
+```dockerfile
+COPY --from=ghcr.io/pressly/goose:v3.30.0 /usr/local/bin/goose /usr/local/bin/goose
+```
+
 See [installation documentation](https://pressly.github.io/goose/installation/) for more details.
 
 # Usage
