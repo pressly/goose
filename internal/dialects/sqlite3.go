@@ -6,14 +6,14 @@ import (
 	"github.com/pressly/goose/v3/database/dialect"
 )
 
-// NewSqlite3 returns a [dialect.Querier] for SQLite3 dialect.
-func NewSqlite3() dialect.Querier {
+// NewSqlite3 returns a [dialect.QuerierExtender] for SQLite3 dialect.
+func NewSqlite3() dialect.QuerierExtender {
 	return &sqlite3{}
 }
 
 type sqlite3 struct{}
 
-var _ dialect.Querier = (*sqlite3)(nil)
+var _ dialect.QuerierExtender = (*sqlite3)(nil)
 
 func (s *sqlite3) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (
@@ -47,5 +47,10 @@ func (s *sqlite3) ListMigrations(tableName string) string {
 
 func (s *sqlite3) GetLatestVersion(tableName string) string {
 	q := `SELECT MAX(version_id) FROM %s`
+	return fmt.Sprintf(q, tableName)
+}
+
+func (s *sqlite3) TableExists(tableName string) string {
+	q := `SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type='table' AND name='%s')`
 	return fmt.Sprintf(q, tableName)
 }

@@ -6,14 +6,14 @@ import (
 	"github.com/pressly/goose/v3/database/dialect"
 )
 
-// NewSqlserver returns a [dialect.Querier] for SQL Server dialect.
-func NewSqlserver() dialect.Querier {
+// NewSqlserver returns a [dialect.QuerierExtender] for SQL Server dialect.
+func NewSqlserver() dialect.QuerierExtender {
 	return &sqlserver{}
 }
 
 type sqlserver struct{}
 
-var _ dialect.Querier = (*sqlserver)(nil)
+var _ dialect.QuerierExtender = (*sqlserver)(nil)
 
 func (s *sqlserver) CreateTable(tableName string) string {
 	q := `CREATE TABLE %s (
@@ -47,5 +47,15 @@ func (s *sqlserver) ListMigrations(tableName string) string {
 
 func (s *sqlserver) GetLatestVersion(tableName string) string {
 	q := `SELECT MAX(version_id) FROM %s`
+	return fmt.Sprintf(q, tableName)
+}
+
+func (s *sqlserver) TableExists(tableName string) string {
+	schemaName, tableName := parseTableIdentifier(tableName)
+	if schemaName != "" {
+		q := `SELECT CASE WHEN EXISTS ( SELECT 1 FROM information_schema.tables WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s' ) THEN 1 ELSE 0 END`
+		return fmt.Sprintf(q, schemaName, tableName)
+	}
+	q := `SELECT CASE WHEN EXISTS ( SELECT 1 FROM information_schema.tables WHERE (SCHEMA_NAME() IS NULL OR TABLE_SCHEMA = SCHEMA_NAME()) AND TABLE_NAME = '%s' ) THEN 1 ELSE 0 END`
 	return fmt.Sprintf(q, tableName)
 }
