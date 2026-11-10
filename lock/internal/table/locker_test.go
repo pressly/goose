@@ -75,7 +75,6 @@ func newTestLocker(lockStore store.LockStore) *Locker {
 
 // Each call must get the full number of retries. Retries that an earlier call used must not
 // decrease the retries of a later call.
-
 func TestLockRetriesOnEveryCall(t *testing.T) {
 	t.Parallel()
 	lockStore := &fakeLockStore{acquireErr: errors.New("already held by another instance")}
