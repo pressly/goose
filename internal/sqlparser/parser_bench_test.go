@@ -40,11 +40,11 @@ DROP TABLE users;
 var benchLargeMigration = func() string {
 	var sb strings.Builder
 	sb.WriteString("-- +goose Up\n")
-	for i := 0; i < 1000; i++ {
+	for range 1000 {
 		sb.WriteString("INSERT INTO t (a, b, c) VALUES (1, 'hello world', 'xyz'); -- comment\n")
 	}
 	sb.WriteString("-- +goose Down\n")
-	for i := 0; i < 1000; i++ {
+	for range 1000 {
 		sb.WriteString("DELETE FROM t WHERE a = 1;\n")
 	}
 	return sb.String()
@@ -66,7 +66,7 @@ func BenchmarkParseSQLMigration(b *testing.B) {
 		b.Run(tc.name, func(b *testing.B) {
 			b.ReportAllocs()
 			b.SetBytes(int64(len(tc.input)))
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				if _, _, err := ParseSQLMigration(strings.NewReader(tc.input), DirectionUp, false); err != nil {
 					b.Fatal(err)
 				}
@@ -83,7 +83,7 @@ func BenchmarkParseAllFromFS(b *testing.B) {
 	for _, name := range []string{"00001_small.sql", "00002_large.sql"} {
 		b.Run(strings.TrimSuffix(strings.TrimPrefix(name, "0000"), ".sql"), func(b *testing.B) {
 			b.ReportAllocs()
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				if _, err := ParseAllFromFS(fsys, name, false); err != nil {
 					b.Fatal(err)
 				}
@@ -100,7 +100,7 @@ func BenchmarkEndsWithSemicolon(b *testing.B) {
 		"END \" ; \" -- comment",
 	}
 	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		for _, line := range lines {
 			_ = endsWithSemicolon(line)
 		}
