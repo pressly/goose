@@ -7,8 +7,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Various dependency upgrades
+- SQL parser: reduce memory allocations when parsing many migration files (#1155)
+
 ### Fixed
 
+- CLI: `goose validate` failed on Go migrations that register an inlined function (#1110)
 - Provider: SQL-only migrations with unpadded versions (`1_`, `2_`, `10_`) were sorted by
   filename instead of version. This affected `ListSources` and `GetVersions`, as well as `Up`
   when versioning was disabled (#1124)
