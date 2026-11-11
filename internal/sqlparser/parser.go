@@ -201,7 +201,7 @@ func ParseSQLMigration(r io.Reader, direction Direction, debug bool) (stmts []st
 			// Do not include the "+goose StatementEnd" annotation in the final statement.
 		default:
 			if useEnvsub {
-				expanded, err := interpolate.Interpolate(&envWrapper{}, line)
+				expanded, err := interpolate.Expand(line, interpolate.LookupFunc(os.LookupEnv))
 				if err != nil {
 					return nil, false, fmt.Errorf("variable substitution failed: %w:\n%s", err, line)
 				}
@@ -350,12 +350,6 @@ func missingSemicolonError(state parserState, direction Direction, s string) err
 }
 
 type envWrapper struct{}
-
-var _ interpolate.Env = (*envWrapper)(nil)
-
-func (e *envWrapper) Get(key string) (string, bool) {
-	return os.LookupEnv(key)
-}
 
 func cleanupStatement(input string) string {
 	return strings.TrimSpace(input)
