@@ -13,6 +13,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and `${#VAR}`. A `$` that does not start a variable name, such as `$1`, is now kept as-is
   instead of an error (#1174)
 
+### Fixed
+
+- Lock: fix an edge case where a long-lived locker could stop waiting for a held lock and fail
+  immediately. Programs that migrate once at startup were not affected (#1173)
+
 ## [v3.30.0] - 2026-11-10
 
 ### Added
