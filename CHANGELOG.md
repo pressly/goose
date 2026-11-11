@@ -7,6 +7,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- `+goose ENVSUB ON`: support more shell expansions, such as `${VAR:?message}`, `${VAR:+word}`,
+  and `${#VAR}`. A `$` that does not start a variable name, such as `$1`, is now kept as-is
+  instead of an error (#1174)
+
 ## [v3.30.0] - 2026-11-10
 
 ### Added

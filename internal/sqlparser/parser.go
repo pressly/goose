@@ -349,8 +349,6 @@ func missingSemicolonError(state parserState, direction Direction, s string) err
 	)
 }
 
-type envWrapper struct{}
-
 func cleanupStatement(input string) string {
 	return strings.TrimSpace(input)
 }
