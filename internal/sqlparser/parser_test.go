@@ -513,6 +513,24 @@ CREATE TABLE post (
 	require.Contains(t, err.Error(), "variable substitution failed: $SOME_UNSET_VAR: required env var not set:")
 }
 
+func TestEnvsubPositionalParameter(t *testing.T) {
+	t.Setenv("GOOSE_ENV_NAME", "foo")
+
+	s := `
+-- +goose ENVSUB ON
+-- +goose Up
+-- +goose StatementBegin
+CREATE FUNCTION add_one(integer) RETURNS integer AS $$
+	SELECT $1 + 1 AS ${GOOSE_ENV_NAME};
+$$ LANGUAGE sql;
+-- +goose StatementEnd
+`
+	stmts, _, err := ParseSQLMigration(strings.NewReader(s), DirectionUp, debug)
+	require.NoError(t, err)
+	require.Len(t, stmts, 1)
+	require.Contains(t, stmts[0], "SELECT $1 + 1 AS foo;")
+}
+
 func Test_extractAnnotation(t *testing.T) {
 	tests := []struct {
 		name    string

@@ -385,15 +385,18 @@ $$ LANGUAGE plpgsql;
 <details>
 <summary>Supported expansions (click here to expand):</summary>
 
-- `${VAR}` or $VAR - expands to the value of the environment variable `VAR`
-- `${VAR:-default}` - expands to the value of the environment variable `VAR`, or `default` if `VAR`
-  is unset or null
-- `${VAR-default}` - expands to the value of the environment variable `VAR`, or `default` if `VAR`
-  is unset
-- `${VAR?err_msg}` - expands to the value of the environment variable `VAR`, or prints `err_msg` and
-  error if `VAR` unset
-- ~~`${VAR:?err_msg}` - expands to the value of the environment variable `VAR`, or prints `err_msg`
-  and error if `VAR` unset or null.~~ **THIS IS NOT SUPPORTED**
+- `${VAR}` or `$VAR` - the value of `VAR`, or an empty string if `VAR` is unset
+- `${VAR:-default}` - `default` if `VAR` is unset or empty
+- `${VAR-default}` - `default` if `VAR` is unset
+- `${VAR:?err_msg}` - an error with `err_msg` if `VAR` is unset or empty
+- `${VAR?err_msg}` - an error with `err_msg` if `VAR` is unset
+- `${VAR:+word}` - `word` if `VAR` is set and not empty, otherwise an empty string
+- `${VAR+word}` - `word` if `VAR` is set, otherwise an empty string
+- `${#VAR}` - the length of the value in characters
+- `${VAR:offset}` or `${VAR:offset:length}` - a substring of the value
+
+Write `$$` or `\$` for a literal `$`. A `$` that does not start a variable name, such as `$1`, is
+kept as-is.
 
 See
 [mfridman/interpolate](https://github.com/mfridman/interpolate?tab=readme-ov-file#supported-expansions)
