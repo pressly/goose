@@ -8,7 +8,7 @@ require (
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/jackc/pgx/v5 v5.12.0
 	github.com/joho/godotenv v1.5.1
-	github.com/mfridman/interpolate v0.0.2
+	github.com/mfridman/interpolate v0.2.0
 	github.com/mfridman/xflag v0.1.0
 	github.com/microsoft/go-mssqldb v1.11.2
 	github.com/moby/moby/api v1.56.1
