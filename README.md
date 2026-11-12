@@ -64,7 +64,7 @@ docker run --rm \
 Tags: `vX.Y.Z`, `vX.Y`, `vX`, and `latest`. To copy the binary into your own image:
 
 ```dockerfile
-COPY --from=ghcr.io/pressly/goose:v3.30.0 /usr/local/bin/goose /usr/local/bin/goose
+COPY --from=ghcr.io/pressly/goose:v3.30.1 /usr/local/bin/goose /usr/local/bin/goose
 ```
 
 See [installation documentation](https://pressly.github.io/goose/installation/) for more details.

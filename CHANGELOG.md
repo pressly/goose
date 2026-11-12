@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [v3.30.1] - 2026-11-12
+
 ### Changed
 
 - `+goose ENVSUB ON`: support more shell expansions, such as `${VAR:?message}`, `${VAR:+word}`,
@@ -15,6 +17,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Build failure when `github.com/mfridman/interpolate` is upgraded to v0.2.0, for example with
+  `go get -u` (#1176)
 - Lock: fix an edge case where a long-lived locker could stop waiting for a held lock and fail
   immediately. Programs that migrate once at startup were not affected (#1173)
 
@@ -398,7 +402,8 @@ Here's a quick summary:
 - Add new `context.Context`-aware functions and methods, for both sql and go migrations.
 - Return error when no migration files found or dir is not a directory.
 
-[Unreleased]: https://github.com/pressly/goose/compare/v3.30.0...HEAD
+[Unreleased]: https://github.com/pressly/goose/compare/v3.30.1...HEAD
+[v3.30.1]: https://github.com/pressly/goose/compare/v3.30.0...v3.30.1
 [v3.30.0]: https://github.com/pressly/goose/compare/v3.29.0...v3.30.0
 [v3.29.0]: https://github.com/pressly/goose/compare/v3.28.0...v3.29.0
 [v3.28.0]: https://github.com/pressly/goose/compare/v3.27.3...v3.28.0
