@@ -35,12 +35,13 @@ func Fix(dir string) error {
 	// fix filenames by replacing timestamps with sequential versions
 	for _, tsm := range tsMigrations {
 		oldPath := tsm.Source
-		newPath := strings.Replace(
-			oldPath,
+		newName := strings.Replace(
+			filepath.Base(oldPath),
 			fmt.Sprintf("%d", tsm.Version),
 			fmt.Sprintf(seqVersionTemplate, version),
 			1,
 		)
+		newPath := filepath.Join(filepath.Dir(oldPath), newName)
 
 		if err := os.Rename(oldPath, newPath); err != nil {
 			return err
