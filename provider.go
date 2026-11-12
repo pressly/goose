@@ -27,9 +27,9 @@ type Provider struct {
 	// database.
 	mu sync.Mutex
 
-	db               *sql.DB
-	store            *controller.StoreController
-	versionTableOnce sync.Once
+	db                *sql.DB
+	store             *controller.StoreController
+	versionTableReady bool
 
 	fsys fs.FS
 	cfg  config
