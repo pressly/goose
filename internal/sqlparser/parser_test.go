@@ -68,6 +68,7 @@ func TestSplitStatements(t *testing.T) {
 		{sql: copyFromStdin, up: 1, down: 0},
 		{sql: plpgsqlSyntax, up: 2, down: 2},
 		{sql: plpgsqlSyntaxMixedStatements, up: 2, down: 2},
+		{sql: emptyStatementBlocks, up: 1, down: 1},
 	}
 
 	for i, test := range tt {
@@ -265,6 +266,20 @@ drop function histories_partition_creation(DATE, DATE);
 drop TABLE histories;
 `
 
+var emptyStatementBlocks = `-- +goose Up
+-- +goose StatementBegin
+-- +goose StatementEnd
+CREATE TABLE post (
+    id int NOT NULL
+);
+
+-- +goose Down
+-- +goose StatementBegin
+-- nothing to undo here
+-- +goose StatementEnd
+DROP TABLE post;
+`
+
 var unfinishedSQL = `
 -- +goose Up
 ALTER TABLE post
@@ -402,6 +417,7 @@ func TestValidUp(t *testing.T) {
 		{Name: "test07", StatementsCount: 1},
 		{Name: "test08", StatementsCount: 6},
 		{Name: "test09", StatementsCount: 1},
+		{Name: "test10", StatementsCount: 1},
 	}
 	for _, tc := range tests {
 		path := filepath.Join("testdata", "valid-up", tc.Name)
