@@ -532,6 +532,15 @@ func (p *Provider) getVersions(ctx context.Context) (current, target int64, retE
 		return -1, target, nil
 	}
 
+	// This path does not hold the lock and so never creates the version table. A missing table
+	// means no migrations have been applied yet.
+	exists, err := p.versionTableExists(ctx, conn)
+	if err != nil {
+		return -1, target, err
+	}
+	if !exists {
+		return 0, target, nil
+	}
 	current, err = p.store.GetLatestVersion(ctx, conn)
 	if err != nil {
 		if errors.Is(err, database.ErrVersionNotFound) {
@@ -572,6 +581,15 @@ func (p *Provider) hasPending(ctx context.Context) (_ bool, retErr error) {
 	//      allow silently ignoring missing migrations. This would be useful for users that have built
 	//      checks that prevent missing migrations from being introduced.
 
+	// This path does not hold the lock and so never creates the version table. A missing table
+	// means every migration is pending.
+	exists, err := p.versionTableExists(ctx, conn)
+	if err != nil {
+		return false, err
+	}
+	if !exists {
+		return true, nil
+	}
 	dbMigrations, err := p.store.ListMigrations(ctx, conn)
 	if err != nil {
 		return false, err
