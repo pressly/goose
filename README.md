@@ -6,8 +6,6 @@
 CI](https://github.com/pressly/goose/actions/workflows/ci.yaml/badge.svg)](https://github.com/pressly/goose/actions/workflows/ci.yaml)
 [![Go
 Reference](https://pkg.go.dev/badge/github.com/pressly/goose/v3.svg)](https://pkg.go.dev/github.com/pressly/goose/v3)
-[![Go Report
-Card](https://goreportcard.com/badge/github.com/pressly/goose/v3)](https://goreportcard.com/report/github.com/pressly/goose/v3)
 
 Goose is a database migration tool. Both a CLI and a library.
 
@@ -51,6 +49,22 @@ Formulae](https://formulae.brew.sh/formula/goose#default):
 
 ```shell
 brew install goose
+```
+
+A container image is available for `linux/amd64` and `linux/arm64`. It has no shell and supports `.sql` migrations only. The working directory is `/migrations`.
+
+```shell
+docker run --rm \
+  -v "$PWD/migrations:/migrations" \
+  -e GOOSE_DRIVER=postgres \
+  -e GOOSE_DBSTRING="postgres://user:password@host:5432/dbname" \
+  ghcr.io/pressly/goose:latest up
+```
+
+Tags: `vX.Y.Z`, `vX.Y`, `vX`, and `latest`. To copy the binary into your own image:
+
+```dockerfile
+COPY --from=ghcr.io/pressly/goose:v3.30.1 /usr/local/bin/goose /usr/local/bin/goose
 ```
 
 See [installation documentation](https://pressly.github.io/goose/installation/) for more details.
@@ -119,6 +133,8 @@ Options:
         file path to root CA's certificates in pem format (only support on mysql)
   -dir string
         directory with migration files (default ".", can be set via the GOOSE_MIGRATION_DIR env variable).
+  -env string
+        load environment variables from file (default .env)
   -h    print help
   -no-color
         disable color output (NO_COLOR env variable supported)
@@ -369,15 +385,18 @@ $$ LANGUAGE plpgsql;
 <details>
 <summary>Supported expansions (click here to expand):</summary>
 
-- `${VAR}` or $VAR - expands to the value of the environment variable `VAR`
-- `${VAR:-default}` - expands to the value of the environment variable `VAR`, or `default` if `VAR`
-  is unset or null
-- `${VAR-default}` - expands to the value of the environment variable `VAR`, or `default` if `VAR`
-  is unset
-- `${VAR?err_msg}` - expands to the value of the environment variable `VAR`, or prints `err_msg` and
-  error if `VAR` unset
-- ~~`${VAR:?err_msg}` - expands to the value of the environment variable `VAR`, or prints `err_msg`
-  and error if `VAR` unset or null.~~ **THIS IS NOT SUPPORTED**
+- `${VAR}` or `$VAR` - the value of `VAR`, or an empty string if `VAR` is unset
+- `${VAR:-default}` - `default` if `VAR` is unset or empty
+- `${VAR-default}` - `default` if `VAR` is unset
+- `${VAR:?err_msg}` - an error with `err_msg` if `VAR` is unset or empty
+- `${VAR?err_msg}` - an error with `err_msg` if `VAR` is unset
+- `${VAR:+word}` - `word` if `VAR` is set and not empty, otherwise an empty string
+- `${VAR+word}` - `word` if `VAR` is set, otherwise an empty string
+- `${#VAR}` - the length of the value in characters
+- `${VAR:offset}` or `${VAR:offset:length}` - a substring of the value
+
+Write `$$` or `\$` for a literal `$`. A `$` that does not start a variable name, such as `$1`, is
+kept as-is.
 
 See
 [mfridman/interpolate](https://github.com/mfridman/interpolate?tab=readme-ov-file#supported-expansions)

@@ -35,6 +35,11 @@ func TestSemicolons(t *testing.T) {
 		{line: "END -- comment", result: false},
 		{line: "END -- comment ;", result: false},
 		{line: "END \" ; \" -- comment", result: false},
+		// Unicode whitespace separates words, the same as bufio.ScanWords.
+		{line: "END;\u00a0-- comment", result: true},
+		{line: "END\u3000; -- comment", result: true},
+		{line: "END\u2028--;", result: false},
+		{line: "END;\u0085", result: true},
 	}
 
 	for _, test := range tests {
@@ -508,6 +513,24 @@ CREATE TABLE post (
 	require.Contains(t, err.Error(), "variable substitution failed: $SOME_UNSET_VAR: required env var not set:")
 }
 
+func TestEnvsubPositionalParameter(t *testing.T) {
+	t.Setenv("GOOSE_ENV_NAME", "foo")
+
+	s := `
+-- +goose ENVSUB ON
+-- +goose Up
+-- +goose StatementBegin
+CREATE FUNCTION add_one(integer) RETURNS integer AS $$
+	SELECT $1 + 1 AS ${GOOSE_ENV_NAME};
+$$ LANGUAGE sql;
+-- +goose StatementEnd
+`
+	stmts, _, err := ParseSQLMigration(strings.NewReader(s), DirectionUp, debug)
+	require.NoError(t, err)
+	require.Len(t, stmts, 1)
+	require.Contains(t, stmts[0], "SELECT $1 + 1 AS foo;")
+}
+
 func Test_extractAnnotation(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -588,4 +611,19 @@ func Test_extractAnnotation(t *testing.T) {
 			require.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestLongLine(t *testing.T) {
+	t.Parallel()
+	// A line longer than the initial scanner buffer still parses; one longer than
+	// scanBufSize still fails.
+	long := "SELECT '" + strings.Repeat("x", 256*1024) + "';\n" // 256 KiB
+	stmts, _, err := ParseSQLMigration(strings.NewReader("-- +goose Up\n"+long), DirectionUp, debug)
+	require.NoError(t, err)
+	require.Len(t, stmts, 1)
+	require.Equal(t, strings.TrimSpace(long), strings.TrimSpace(stmts[0]))
+
+	tooLong := "SELECT '" + strings.Repeat("x", scanBufSize) + "';\n"
+	_, _, err = ParseSQLMigration(strings.NewReader("-- +goose Up\n"+tooLong), DirectionUp, debug)
+	require.Error(t, err)
 }
