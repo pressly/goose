@@ -7,6 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- The `validate` command is now part of the stable API: custom binaries can run it via
+  `goose.Run`/`goose.RunContext` or call the new `goose.Validate` function, and
+  `goose DRIVER DBSTRING validate` no longer fails with "no such command" (the driver and
+  connection string are ignored) (#807)
+
 ## [v3.30.1] - 2026-11-12
 
 ### Changed
