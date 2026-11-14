@@ -16,7 +16,8 @@ type fileSources struct {
 }
 
 // collectFilesystemSources scans the file system for migration files that have a numeric prefix
-// (greater than one) followed by an underscore and a file extension of either .go or .sql. fsys may
+// (greater than zero, or zero when allowZeroVersion is true) followed by an underscore and a file
+// extension of either .go or .sql. fsys may
 // be nil, in which case an empty fileSources is returned.
 //
 // If strict is true, then any error parsing the numeric component of the filename will result in an

@@ -360,6 +360,8 @@ func insertOrDeleteVersionNoTx(ctx context.Context, db *sql.DB, version int64, d
 //
 // XXX_descriptivename.ext where XXX specifies the version number and ext specifies the type of
 // migration, either .sql or .go.
+//
+// By default, version must be greater than zero. Use [SetAllowZeroVersion] to accept version 0.
 func NumericComponent(filename string) (int64, error) {
 	base := filepath.Base(filename)
 	if ext := filepath.Ext(base); ext != ".go" && ext != ".sql" {
@@ -373,7 +375,10 @@ func NumericComponent(filename string) (int64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("failed to parse version from migration file: %s: %w", base, err)
 	}
-	if n < 1 {
+	if n < 0 {
+		return 0, errors.New("migration version must be a non-negative number")
+	}
+	if n == 0 && !globalAllowZeroVersion {
 		return 0, errors.New("migration version must be greater than zero")
 	}
 	return n, nil
