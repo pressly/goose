@@ -7,6 +7,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- SQLite: implement `TableExists`, so the provider checks for the version table in
+  `sqlite_master` instead of querying the table and logging an error when it is missing (#898)
+
 ## [v3.30.1] - 2026-11-12
 
 ### Changed

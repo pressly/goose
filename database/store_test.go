@@ -43,6 +43,23 @@ func TestDialectStore(t *testing.T) {
 			require.Contains(t, sqliteErr.Error(), "table test_goose_db_version already exists")
 		})
 	})
+	t.Run("sqlite3 TableExists", func(t *testing.T) {
+		db, err := sql.Open("sqlite", ":memory:")
+		require.NoError(t, err)
+		for _, tableName := range []string{"foo", "main.bar"} {
+			s, err := database.NewStore(database.DialectSQLite3, tableName)
+			require.NoError(t, err)
+			store, ok := s.(database.StoreExtender)
+			require.True(t, ok)
+			exists, err := store.TableExists(context.Background(), db)
+			require.NoError(t, err)
+			require.False(t, exists)
+			require.NoError(t, store.CreateVersionTable(context.Background(), db))
+			exists, err = store.TableExists(context.Background(), db)
+			require.NoError(t, err)
+			require.True(t, exists)
+		}
+	})
 	t.Run("ListMigrations", func(t *testing.T) {
 		dir := t.TempDir()
 		db, err := sql.Open("sqlite", filepath.Join(dir, "sql_embed.db"))
