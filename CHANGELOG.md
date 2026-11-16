@@ -7,6 +7,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Pin `modernc.org/libc` to v1.80.1, the version `modernc.org/sqlite` v1.62.0 is built against.
+  v3.30.0 and v3.30.1 required libc v1.80.2 (#1150)
+
 ## [v3.30.1] - 2026-11-12
 
 ### Changed
