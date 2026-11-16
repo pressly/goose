@@ -40,6 +40,12 @@ tools:
 	@go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
 	@go install github.com/mfridman/tparse@main
 
+# Drop libc so go mod tidy adds it back at the exact version modernc.org/sqlite requires.
+.PHONY: tidy
+tidy:
+	go mod edit -droprequire=modernc.org/libc
+	go mod tidy
+
 test-packages:
 	go test $(GO_TEST_FLAGS) $$(go list ./... | grep -v -e /bin -e /cmd -e /examples) |\
 		tparse --follow -sort=elapsed -trimpath=auto -all
