@@ -1,0 +1,37 @@
+name: Pin modernc.org/libc
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  pin:
+    name: Pin modernc.org/libc to modernc.org/sqlite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: stable
+      - name: Pin modernc.org/libc
+        run: make tidy
+      - name: Push the pin
+        run: |
+          if git diff --quiet go.mod go.sum; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: pin modernc.org/libc to the version modernc.org/sqlite requires" go.mod go.sum
+          git push
