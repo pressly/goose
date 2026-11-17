@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -68,5 +70,195 @@ func TestCreateDuplicateFile(t *testing.T) {
 	}
 	if !errors.Is(err, os.ErrExist) {
 		t.Fatalf("want os.ErrExist, got %v", err)
+	}
+}
+
+func TestCreateTimestampSameSecondCollision(t *testing.T) {
+	frozen := time.Date(2026, 9, 3, 21, 19, 32, 0, time.UTC)
+	prevNow := timeNow
+	timeNow = func() time.Time { return frozen }
+	t.Cleanup(func() { timeNow = prevNow })
+
+	dir := t.TempDir()
+	if err := Create(nil, dir, "alpha", "sql"); err != nil {
+		t.Fatalf("first create should succeed: %v", err)
+	}
+	if err := Create(nil, dir, "beta", "sql"); err != nil {
+		t.Fatalf("second create should bump version, got %v", err)
+	}
+
+	got := migrationFilenames(t, dir)
+	want := []string{
+		"20260903211932_alpha.sql",
+		"20260903211933_beta.sql",
+	}
+	if len(got) != len(want) {
+		t.Fatalf("got files %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("got files %v, want %v", got, want)
+		}
+	}
+
+	assertUniqueVersions(t, dir)
+}
+
+func TestCreateTimestampSameSecondCollisionLaterNameFirst(t *testing.T) {
+	// Creating the lexicographically later name first must still bump the
+	// second file. The later file already owns the version (it is non-empty).
+	frozen := time.Date(2026, 9, 3, 21, 19, 32, 0, time.UTC)
+	prevNow := timeNow
+	timeNow = func() time.Time { return frozen }
+	t.Cleanup(func() { timeNow = prevNow })
+
+	dir := t.TempDir()
+	if err := Create(nil, dir, "beta", "sql"); err != nil {
+		t.Fatalf("first create should succeed: %v", err)
+	}
+	if err := Create(nil, dir, "alpha", "sql"); err != nil {
+		t.Fatalf("second create should bump version, got %v", err)
+	}
+
+	got := migrationFilenames(t, dir)
+	want := []string{
+		"20260903211932_beta.sql",
+		"20260903211933_alpha.sql",
+	}
+	if len(got) != len(want) {
+		t.Fatalf("got files %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("got files %v, want %v", got, want)
+		}
+	}
+	assertUniqueVersions(t, dir)
+}
+
+func TestCreateSequentialCollisionRetry(t *testing.T) {
+	prev := sequential
+	SetSequential(true)
+	t.Cleanup(func() { SetSequential(prev) })
+
+	dir := t.TempDir()
+	seed := filepath.Join(dir, "00001_existing.sql")
+	if err := os.WriteFile(seed, []byte("-- seed\n"), 0o666); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := Create(nil, dir, "beta", "sql"); err != nil {
+		t.Fatalf("create should skip taken version, got %v", err)
+	}
+
+	got := migrationFilenames(t, dir)
+	want := []string{"00001_existing.sql", "00002_beta.sql"}
+	if len(got) != len(want) {
+		t.Fatalf("got files %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("got files %v, want %v", got, want)
+		}
+	}
+	assertUniqueVersions(t, dir)
+}
+
+func TestCreateSequentialExistingDuplicates(t *testing.T) {
+	prev := sequential
+	SetSequential(true)
+	t.Cleanup(func() { SetSequential(prev) })
+
+	dir := t.TempDir()
+	for _, name := range []string{"00001_a.sql", "00001_b.sql"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("-- seed\n"), 0o666); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := Create(nil, dir, "c", "sql"); err != nil {
+		t.Fatalf("create should not panic on existing duplicate versions, got %v", err)
+	}
+
+	found := false
+	for _, name := range migrationFilenames(t, dir) {
+		if name == "00002_c.sql" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected 00002_c.sql among %v", migrationFilenames(t, dir))
+	}
+
+	// The new file must not reuse version 1.
+	v, err := NumericComponent("00002_c.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v != 2 {
+		t.Fatalf("got version %d, want 2", v)
+	}
+}
+
+func TestCreateSequentialConcurrent(t *testing.T) {
+	prev := sequential
+	SetSequential(true)
+	t.Cleanup(func() { SetSequential(prev) })
+
+	dir := t.TempDir()
+	names := []string{"a", "b", "c", "d", "e", "f", "g", "h"}
+
+	errCh := make(chan error, len(names))
+	var wg sync.WaitGroup
+	for _, name := range names {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			errCh <- Create(nil, dir, name, "sql")
+		}()
+	}
+	wg.Wait()
+	close(errCh)
+	for err := range errCh {
+		if err != nil {
+			t.Fatalf("concurrent create failed: %v", err)
+		}
+	}
+
+	got := migrationFilenames(t, dir)
+	if len(got) != len(names) {
+		t.Fatalf("got %d files %v, want %d", len(got), got, len(names))
+	}
+	assertUniqueVersions(t, dir)
+}
+
+func migrationFilenames(t *testing.T, dir string) []string {
+	t.Helper()
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	names := make([]string, 0, len(entries))
+	for _, e := range entries {
+		if !e.IsDir() {
+			names = append(names, e.Name())
+		}
+	}
+	return names
+}
+
+func assertUniqueVersions(t *testing.T, dir string) {
+	t.Helper()
+	seen := make(map[int64]string)
+	for _, name := range migrationFilenames(t, dir) {
+		v, err := NumericComponent(name)
+		if err != nil {
+			t.Fatalf("parse %s: %v", name, err)
+		}
+		if existing, ok := seen[v]; ok {
+			t.Fatalf("duplicate version %d: %s and %s", v, existing, name)
+		}
+		seen[v] = name
 	}
 }
