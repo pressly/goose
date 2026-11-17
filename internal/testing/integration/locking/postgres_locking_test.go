@@ -163,6 +163,50 @@ func TestPostgresSessionLocker(t *testing.T) {
 		err = locker.SessionUnlock(ctx, conn2)
 		require.Error(t, err)
 	})
+	t.Run("retries_on_every_call", func(t *testing.T) {
+		// Each call must get the full timeout. Retries that an earlier call used must not decrease
+		// the timeout of a later call.
+		const timeout = 1 * time.Second
+		randomLockID := rand.Int64()
+		ctx := context.Background()
+
+		holder, err := lock.NewPostgresSessionLocker(lock.WithLockID(randomLockID))
+		require.NoError(t, err)
+		holderConn, err := db.Conn(ctx)
+		require.NoError(t, err)
+		require.NoError(t, holder.SessionLock(ctx, holderConn))
+		t.Cleanup(func() {
+			require.NoError(t, holder.SessionUnlock(ctx, holderConn))
+			require.NoError(t, holderConn.Close())
+		})
+
+		waiter, err := lock.NewPostgresSessionLocker(
+			lock.WithLockID(randomLockID),
+			lock.WithLockTimeout(1, 1),   // 1 second timeout
+			lock.WithUnlockTimeout(1, 1), // 1 second timeout
+		)
+		require.NoError(t, err)
+		waiterConn, err := db.Conn(ctx)
+		require.NoError(t, err)
+		t.Cleanup(func() {
+			require.NoError(t, waiterConn.Close())
+		})
+
+		for call := 1; call <= 2; call++ {
+			// Another session holds the lock, so the waiter cannot acquire it.
+			start := time.Now()
+			err := waiter.SessionLock(ctx, waiterConn)
+			require.Error(t, err)
+			require.GreaterOrEqual(t, time.Since(start), timeout, "lock call %d", call)
+		}
+		for call := 1; call <= 2; call++ {
+			// The waiter does not hold the lock, so it cannot release it.
+			start := time.Now()
+			err := waiter.SessionUnlock(ctx, waiterConn)
+			require.Error(t, err)
+			require.GreaterOrEqual(t, time.Since(start), timeout, "unlock call %d", call)
+		}
+	})
 }
 
 func TestPostgresProviderLocking(t *testing.T) {

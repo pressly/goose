@@ -5,6 +5,8 @@ on:
       - '*'
 permissions:
   contents: write
+  # Push the goose container image to ghcr.io.
+  packages: write
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
@@ -20,8 +22,16 @@ jobs:
         continue-on-error: true
         run: ./scripts/release-notes.sh ${{github.ref_name}} > ${{runner.temp}}/release_notes.txt
       - run: make add-gowork
+      # The image only copies prebuilt binaries (no RUN steps), so it does not
+      # need QEMU. Buildx is needed to push a multi-platform image.
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
+        uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
         with:
           distribution: goreleaser
           version: "~> v2"

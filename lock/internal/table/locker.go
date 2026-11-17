@@ -29,8 +29,8 @@ type Locker struct {
 	instanceID        string
 	leaseDuration     time.Duration
 	heartbeatInterval time.Duration
-	retryLock         retry.Backoff
-	retryUnlock       retry.Backoff
+	lockTimeout       ProbeConfig
+	unlockTimeout     ProbeConfig
 	logger            *slog.Logger
 	retryPolicy       RetryPolicyFunc
 
@@ -63,16 +63,8 @@ func New(lockStore store.LockStore, cfg Config) *Locker {
 		heartbeatInterval: cfg.HeartbeatInterval,
 		logger:            logger,
 		retryPolicy:       cfg.RetryPolicy,
-		retryLock: retry.WithMaxRetries(
-			cfg.LockTimeout.FailureThreshold,
-			// Add +/- 25% jitter to reduce thundering herd
-			retry.WithJitterPercent(25, retry.NewConstant(cfg.LockTimeout.IntervalDuration)),
-		),
-		retryUnlock: retry.WithMaxRetries(
-			cfg.UnlockTimeout.FailureThreshold,
-			// Add +/- 25% jitter to reduce thundering herd
-			retry.WithJitterPercent(25, retry.NewConstant(cfg.UnlockTimeout.IntervalDuration)),
-		),
+		lockTimeout:       cfg.LockTimeout,
+		unlockTimeout:     cfg.UnlockTimeout,
 	}
 }
 
@@ -89,7 +81,7 @@ func (l *Locker) Lock(ctx context.Context, db *sql.DB) error {
 		return fmt.Errorf("ensure lock table exists: %w", err)
 	}
 
-	err := retry.Do(ctx, l.retryLock, func(ctx context.Context) error {
+	err := retry.Do(ctx, l.lockTimeout.backoff(), func(ctx context.Context) error {
 		_, err := l.store.AcquireLock(ctx, db, l.lockID, l.instanceID, l.leaseDuration)
 		if err != nil {
 			// Clean up any stale locks before retrying
@@ -143,7 +135,7 @@ func (l *Locker) Unlock(ctx context.Context, db *sql.DB) error {
 	// Stop heartbeat first
 	l.stopHeartbeat()
 
-	err := retry.Do(ctx, l.retryUnlock, func(ctx context.Context) error {
+	err := retry.Do(ctx, l.unlockTimeout.backoff(), func(ctx context.Context) error {
 		_, err := l.store.ReleaseLock(ctx, db, l.lockID, l.instanceID)
 		if err != nil {
 			if l.shouldRetry(err) {

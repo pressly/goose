@@ -86,28 +86,22 @@ func NewPostgresSessionLocker(opts ...SessionLockerOption) (SessionLocker, error
 		}
 	}
 	return &postgresSessionLocker{
-		lockID: cfg.lockID,
-		retryLock: retry.WithMaxRetries(
-			cfg.lockProbe.failureThreshold,
-			retry.NewConstant(cfg.lockProbe.intervalDuration),
-		),
-		retryUnlock: retry.WithMaxRetries(
-			cfg.unlockProbe.failureThreshold,
-			retry.NewConstant(cfg.unlockProbe.intervalDuration),
-		),
+		lockID:      cfg.lockID,
+		lockProbe:   cfg.lockProbe,
+		unlockProbe: cfg.unlockProbe,
 	}, nil
 }
 
 type postgresSessionLocker struct {
 	lockID      int64
-	retryLock   retry.Backoff
-	retryUnlock retry.Backoff
+	lockProbe   probe
+	unlockProbe probe
 }
 
 var _ SessionLocker = (*postgresSessionLocker)(nil)
 
 func (l *postgresSessionLocker) SessionLock(ctx context.Context, conn *sql.Conn) error {
-	return retry.Do(ctx, l.retryLock, func(ctx context.Context) error {
+	return retry.Do(ctx, l.lockProbe.backoff(), func(ctx context.Context) error {
 		row := conn.QueryRowContext(ctx, "SELECT pg_try_advisory_lock($1)", l.lockID)
 		var locked bool
 		if err := row.Scan(&locked); err != nil {
@@ -125,7 +119,7 @@ func (l *postgresSessionLocker) SessionLock(ctx context.Context, conn *sql.Conn)
 }
 
 func (l *postgresSessionLocker) SessionUnlock(ctx context.Context, conn *sql.Conn) error {
-	return retry.Do(ctx, l.retryUnlock, func(ctx context.Context) error {
+	return retry.Do(ctx, l.unlockProbe.backoff(), func(ctx context.Context) error {
 		var unlocked bool
 		row := conn.QueryRowContext(ctx, "SELECT pg_advisory_unlock($1)", l.lockID)
 		if err := row.Scan(&unlocked); err != nil {

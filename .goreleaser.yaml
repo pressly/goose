@@ -35,3 +35,30 @@ snapshot:
   version_template: "{{ incpatch .Version }}-next"
 changelog:
   use: github-native
+dockers_v2:
+  - images:
+      - ghcr.io/pressly/goose
+    dockerfile: goreleaser.Dockerfile
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    # Prereleases only get the exact tag, for example v3.30.0-rc1.
+    tags:
+      - "{{ .Tag }}"
+      - "{{ if not .Prerelease }}v{{ .Major }}.{{ .Minor }}{{ end }}"
+      - "{{ if not .Prerelease }}v{{ .Major }}{{ end }}"
+      - "{{ if not .Prerelease }}latest{{ end }}"
+    labels:
+      org.opencontainers.image.title: goose
+      org.opencontainers.image.description: "Database migration tool"
+      org.opencontainers.image.source: https://github.com/pressly/goose
+      org.opencontainers.image.url: https://pressly.github.io/goose
+      org.opencontainers.image.licenses: MIT
+      org.opencontainers.image.version: "{{ .Tag }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.created: "{{ .Date }}"
+    # GHCR reads these from the image index of a multi-platform image.
+    annotations:
+      org.opencontainers.image.description: "Database migration tool"
+      org.opencontainers.image.source: https://github.com/pressly/goose
+      org.opencontainers.image.licenses: MIT
