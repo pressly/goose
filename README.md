@@ -290,6 +290,16 @@ If you want to load from a specific file, set the `-env` flag to the file path.
 For more details about environment variables, see the [official documentation on environment
 variables](https://pressly.github.io/goose/documentation/environment-variables/).
 
+For the `postgres` and `redshift` drivers, you can omit the positional DBSTRING and leave
+`GOOSE_DBSTRING` unset to use [standard PostgreSQL connection environment
+variables](https://www.postgresql.org/docs/current/libpq-envars.html) instead:
+
+```sh
+PGHOST=localhost PGUSER=postgres PGDATABASE=postgres goose postgres status
+# Or set the driver in the environment too:
+GOOSE_DRIVER=postgres PGHOST=localhost PGUSER=postgres PGDATABASE=postgres goose status
+```
+
 # Migrations
 
 goose supports migrations written in SQL or in Go.

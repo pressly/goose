@@ -245,8 +245,30 @@ func mergeArgs(config *envConfig, args []string) []string {
 	}
 	if s := config.dbstring; s != "" {
 		args = append([]string{args[0], s}, args[1:]...)
+	} else if hasImplicitPostgresDBString(args) {
+		// pgx reads the connection settings from the standard PG* environment variables.
+		args = append([]string{args[0], ""}, args[1:]...)
 	}
 	return args
+}
+
+func hasImplicitPostgresDBString(args []string) bool {
+	if len(args) < 2 || (args[0] != "postgres" && args[0] != "redshift") {
+		return false
+	}
+	switch args[1] {
+	case "up", "up-by-one", "down", "redo", "reset", "status", "version":
+		return len(args) == 2
+	case "up-to", "down-to":
+		if len(args) != 3 {
+			return false
+		}
+		// A numeric version distinguishes this form from DRIVER DBSTRING COMMAND.
+		_, err := strconv.ParseInt(args[2], 10, 64)
+		return err == nil
+	default:
+		return false
+	}
 }
 
 func usage() {
@@ -266,6 +288,8 @@ GOOSE_DBSTRING=DBSTRING
 GOOSE_MIGRATION_DIR=MIGRATION_DIR
 
 Usage: goose [OPTIONS] COMMAND
+
+For postgres and redshift, DBSTRING may be omitted to use PG* environment variables.
 
 Drivers:
     postgres
@@ -289,6 +313,7 @@ Examples:
     goose sqlite3 ./foo.db up
 
     goose postgres "user=postgres dbname=postgres sslmode=disable" status
+    PGHOST=localhost PGUSER=postgres PGDATABASE=postgres goose postgres status
     goose mysql "user:password@/dbname?parseTime=true" status
     goose redshift "postgres://user:password@qwerty.us-east-1.redshift.amazonaws.com:5439/db" status
     goose tidb "user:password@/dbname?parseTime=true" status
