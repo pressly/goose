@@ -29,13 +29,11 @@ type ProbeConfig struct {
 	FailureThreshold uint64
 }
 
-// backoff returns a new backoff for one Lock or Unlock call. The backoff counts the retries it has
-// used and never resets, so each call must get its own.
 func (p ProbeConfig) backoff() retry.Backoff {
 	// retry.NewConstant is not used here, because it panics on an interval that is not positive.
-	constant := retry.BackoffFunc(func() (time.Duration, bool) {
+	constant := func(uint64) (time.Duration, bool) {
 		return p.IntervalDuration, false
-	})
+	}
 	return retry.WithMaxRetries(
 		p.FailureThreshold,
 		// Add +/- 25% jitter to reduce thundering herd
