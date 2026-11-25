@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [v3.30.2] - 2026-11-25
+
 ### Changed
 
 - Remove the `github.com/sethvargo/go-retry` dependency
@@ -406,7 +408,8 @@ Here's a quick summary:
 - Add new `context.Context`-aware functions and methods, for both sql and go migrations.
 - Return error when no migration files found or dir is not a directory.
 
-[Unreleased]: https://github.com/pressly/goose/compare/v3.30.1...HEAD
+[Unreleased]: https://github.com/pressly/goose/compare/v3.30.2...HEAD
+[v3.30.2]: https://github.com/pressly/goose/compare/v3.30.1...v3.30.2
 [v3.30.1]: https://github.com/pressly/goose/compare/v3.30.0...v3.30.1
 [v3.30.0]: https://github.com/pressly/goose/compare/v3.29.0...v3.30.0
 [v3.29.0]: https://github.com/pressly/goose/compare/v3.28.0...v3.29.0
