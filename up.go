@@ -67,7 +67,11 @@ func UpToContext(ctx context.Context, db *sql.DB, dir string, version int64, opt
 	if err != nil {
 		return err
 	}
-	dbMaxVersion := dbMigrations[len(dbMigrations)-1].Version
+	// An empty version table means the database is at version zero.
+	var dbMaxVersion int64
+	if len(dbMigrations) > 0 {
+		dbMaxVersion = dbMigrations[len(dbMigrations)-1].Version
+	}
 	// lookupAppliedInDB is a map of all applied migrations in the database.
 	lookupAppliedInDB := make(map[int64]bool)
 	for _, m := range dbMigrations {

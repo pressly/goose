@@ -248,7 +248,9 @@ func EnsureDBVersionContext(ctx context.Context, db *sql.DB) (int64, error) {
 		// Latest version of migration has not been applied.
 		skipLookup[m.VersionID] = struct{}{}
 	}
-	return 0, ErrNoNextVersion
+	// Either the version table is empty or no migration is currently applied.
+	// In both cases the database is at version zero.
+	return 0, nil
 }
 
 // createVersionTable creates the db version table and inserts the
