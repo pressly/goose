@@ -6,18 +6,18 @@ require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.51.0
 	github.com/containerd/errdefs v1.0.0
 	github.com/go-sql-driver/mysql v1.10.1
-	github.com/jackc/pgx/v5 v5.12.0
+	github.com/jackc/pgx/v5 v5.13.0
 	github.com/joho/godotenv v1.5.1
 	github.com/mfridman/interpolate v0.2.0
 	github.com/mfridman/xflag v0.1.0
-	github.com/microsoft/go-mssqldb v1.11.2
-	github.com/moby/moby/api v1.56.1
+	github.com/microsoft/go-mssqldb v1.12.0
+	github.com/moby/moby/api v1.57.0
 	github.com/moby/moby/client v0.6.2
 	github.com/stretchr/testify v1.12.1
 	github.com/tursodatabase/libsql-client-go v0.0.0-20260528064733-9d5d30a29a60
 	github.com/vertica/vertica-sql-go v1.3.9
 	github.com/ydb-platform/ydb-go-sdk-auth-environ v0.5.3
-	github.com/ydb-platform/ydb-go-sdk/v3 v3.156.1
+	github.com/ydb-platform/ydb-go-sdk/v3 v3.157.1
 	github.com/ziutek/mymysql v1.5.4
 	go.uber.org/multierr v1.11.0
 	golang.org/x/sync v0.25.0
