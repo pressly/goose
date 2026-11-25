@@ -159,6 +159,16 @@ func main() {
 	}
 
 	driver, dbstring, command := args[0], args[1], args[2]
+
+	// The validate command does not need a database connection, so the driver
+	// and connection string are ignored when present.
+	if command == "validate" {
+		if err := printValidate(*dir, *verbose); err != nil {
+			log.Fatalf("goose validate: %v", err)
+		}
+		return
+	}
+
 	db, err := goose.OpenDBWithDriver(driver, normalizeDBString(driver, dbstring, *certfile, *sslcert, *sslkey))
 	if err != nil {
 		log.Fatalf("-dbstring=%q: %v", dbstring, err)
