@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/pressly/goose/v3/database"
+	"github.com/pressly/goose/v3/internal/retry"
 	"github.com/pressly/goose/v3/internal/sqlparser"
-	"github.com/sethvargo/go-retry"
 	"go.uber.org/multierr"
 )
 
@@ -356,9 +356,8 @@ func (p *Provider) ensureVersionTable(
 }
 
 func (p *Provider) tryEnsureVersionTable(ctx context.Context, conn *sql.Conn) error {
-	b := retry.NewConstant(1 * time.Second)
-	b = retry.WithMaxRetries(3, b)
-	return retry.Do(ctx, b, func(ctx context.Context) error {
+	policy := retry.Policy{Interval: time.Second, MaxRetries: 3}
+	return retry.Do(ctx, policy, func(ctx context.Context) error {
 		exists, err := p.store.TableExists(ctx, conn)
 		if err == nil && exists {
 			return nil

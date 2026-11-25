@@ -17,7 +17,7 @@ import (
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/api/types/network"
 	"github.com/moby/moby/client"
-	"github.com/sethvargo/go-retry"
+	"github.com/pressly/goose/v3/internal/retry"
 )
 
 const (
@@ -230,12 +230,15 @@ func (m *Manager) WaitReady(ctx context.Context, container *Container, readiness
 	if cfg.timeout <= 0 {
 		return fmt.Errorf("timeout must be positive: %v", cfg.timeout)
 	}
+	if cfg.delay <= 0 {
+		return fmt.Errorf("delay must be positive: %v", cfg.delay)
+	}
 
 	retryCtx, cancel := context.WithTimeout(ctx, cfg.timeout)
 	defer cancel()
 
-	backoff := retry.NewConstant(cfg.delay)
-	err := retry.Do(retryCtx, backoff, func(ctx context.Context) error {
+	policy := retry.Policy{Interval: cfg.delay, MaxRetries: retry.Unlimited}
+	err := retry.Do(retryCtx, policy, func(ctx context.Context) error {
 		if err := readiness(ctx, container); err != nil {
 			return retry.RetryableError(err)
 		}
