@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/pressly/goose/v3/internal/retry"
 	"github.com/pressly/goose/v3/lock/internal/store"
 	"github.com/pressly/goose/v3/lock/internal/table"
-	"github.com/sethvargo/go-retry"
 )
 
 // NewPostgresTableLocker returns a Locker that uses PostgreSQL table-based locking. It manages a
@@ -101,7 +101,7 @@ type postgresSessionLocker struct {
 var _ SessionLocker = (*postgresSessionLocker)(nil)
 
 func (l *postgresSessionLocker) SessionLock(ctx context.Context, conn *sql.Conn) error {
-	return retry.Do(ctx, l.lockProbe.backoff(), func(ctx context.Context) error {
+	return retry.Do(ctx, l.lockProbe.policy(), func(ctx context.Context) error {
 		row := conn.QueryRowContext(ctx, "SELECT pg_try_advisory_lock($1)", l.lockID)
 		var locked bool
 		if err := row.Scan(&locked); err != nil {
@@ -119,7 +119,7 @@ func (l *postgresSessionLocker) SessionLock(ctx context.Context, conn *sql.Conn)
 }
 
 func (l *postgresSessionLocker) SessionUnlock(ctx context.Context, conn *sql.Conn) error {
-	return retry.Do(ctx, l.unlockProbe.backoff(), func(ctx context.Context) error {
+	return retry.Do(ctx, l.unlockProbe.policy(), func(ctx context.Context) error {
 		var unlocked bool
 		row := conn.QueryRowContext(ctx, "SELECT pg_advisory_unlock($1)", l.lockID)
 		if err := row.Scan(&unlocked); err != nil {

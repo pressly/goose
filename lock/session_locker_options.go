@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/sethvargo/go-retry"
+	"github.com/pressly/goose/v3/internal/retry"
 )
 
 const (
@@ -91,12 +91,11 @@ type probe struct {
 	failureThreshold uint64
 }
 
-func (p probe) backoff() retry.Backoff {
-	// retry.NewConstant is not used here, because it panics on an interval that is not positive.
-	constant := func(uint64) (time.Duration, bool) {
-		return p.intervalDuration, false
+func (p probe) policy() retry.Policy {
+	return retry.Policy{
+		Interval:   p.intervalDuration,
+		MaxRetries: p.failureThreshold,
 	}
-	return retry.WithMaxRetries(p.failureThreshold, constant)
 }
 
 var _ SessionLockerOption = (sessionLockerConfigFunc)(nil)

@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pressly/goose/v3/internal/retry"
 	"github.com/pressly/goose/v3/lock/internal/store"
-	"github.com/sethvargo/go-retry"
 )
 
 // RetryPolicyFunc inspects an error and returns whether the caller should retry the operation. This
@@ -81,7 +81,7 @@ func (l *Locker) Lock(ctx context.Context, db *sql.DB) error {
 		return fmt.Errorf("ensure lock table exists: %w", err)
 	}
 
-	err := retry.Do(ctx, l.lockTimeout.backoff(), func(ctx context.Context) error {
+	err := retry.Do(ctx, l.lockTimeout.policy(), func(ctx context.Context) error {
 		_, err := l.store.AcquireLock(ctx, db, l.lockID, l.instanceID, l.leaseDuration)
 		if err != nil {
 			// Clean up any stale locks before retrying
@@ -135,7 +135,7 @@ func (l *Locker) Unlock(ctx context.Context, db *sql.DB) error {
 	// Stop heartbeat first
 	l.stopHeartbeat()
 
-	err := retry.Do(ctx, l.unlockTimeout.backoff(), func(ctx context.Context) error {
+	err := retry.Do(ctx, l.unlockTimeout.policy(), func(ctx context.Context) error {
 		_, err := l.store.ReleaseLock(ctx, db, l.lockID, l.instanceID)
 		if err != nil {
 			if l.shouldRetry(err) {

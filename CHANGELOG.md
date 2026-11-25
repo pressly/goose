@@ -7,6 +7,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Remove the `github.com/sethvargo/go-retry` dependency
+
 ## [v3.30.1] - 2026-11-12
 
 ### Changed

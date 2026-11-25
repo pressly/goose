@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/sethvargo/go-retry"
+	"github.com/pressly/goose/v3/internal/retry"
 )
 
 // Config holds configuration for table locker.
@@ -29,14 +29,11 @@ type ProbeConfig struct {
 	FailureThreshold uint64
 }
 
-func (p ProbeConfig) backoff() retry.Backoff {
-	// retry.NewConstant is not used here, because it panics on an interval that is not positive.
-	constant := func(uint64) (time.Duration, bool) {
-		return p.IntervalDuration, false
-	}
-	return retry.WithMaxRetries(
-		p.FailureThreshold,
+func (p ProbeConfig) policy() retry.Policy {
+	return retry.Policy{
+		Interval:   p.IntervalDuration,
+		MaxRetries: p.FailureThreshold,
 		// Add +/- 25% jitter to reduce thundering herd
-		retry.WithJitterPercent(25, constant),
-	)
+		JitterPercent: 25,
+	}
 }
