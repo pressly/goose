@@ -8,7 +8,6 @@ import (
 	"io"
 	"log/slog"
 	"maps"
-	"math"
 	"net/netip"
 	"os"
 	"strconv"
@@ -238,8 +237,7 @@ func (m *Manager) WaitReady(ctx context.Context, container *Container, readiness
 	retryCtx, cancel := context.WithTimeout(ctx, cfg.timeout)
 	defer cancel()
 
-	// The timeout on retryCtx limits the retries, not MaxRetries.
-	policy := retry.Policy{Interval: cfg.delay, MaxRetries: math.MaxUint64}
+	policy := retry.Policy{Interval: cfg.delay, MaxRetries: retry.Unlimited}
 	err := retry.Do(retryCtx, policy, func(ctx context.Context) error {
 		if err := readiness(ctx, container); err != nil {
 			return retry.RetryableError(err)

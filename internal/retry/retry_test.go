@@ -3,7 +3,6 @@ package retry
 import (
 	"context"
 	"errors"
-	"math"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -167,7 +166,7 @@ func TestDoNoRetryLimitEndsWithContext(t *testing.T) {
 		defer cancel()
 
 		var calls int
-		policy := Policy{Interval: 500 * time.Millisecond, MaxRetries: math.MaxUint64}
+		policy := Policy{Interval: 500 * time.Millisecond, MaxRetries: Unlimited}
 		err := Do(ctx, policy, func(context.Context) error {
 			calls++
 			return RetryableError(errTemporary)

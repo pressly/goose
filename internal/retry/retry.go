@@ -4,9 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"math/rand/v2"
 	"time"
 )
+
+const Unlimited = math.MaxUint64
 
 type Policy struct {
 	Interval      time.Duration
