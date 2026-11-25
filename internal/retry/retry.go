@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const Unlimited = math.MaxUint64
+const Unlimited uint64 = math.MaxUint64
 
 type Policy struct {
 	Interval      time.Duration
