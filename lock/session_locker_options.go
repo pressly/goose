@@ -45,9 +45,9 @@ func WithLockTimeout(period, failureThreshold uint64) SessionLockerOption {
 		if failureThreshold < 1 {
 			return errors.New("failure threshold must be greater than 0, minimum is 1")
 		}
-		c.lockProbe = probe{
-			intervalDuration: time.Duration(period) * time.Second,
-			failureThreshold: failureThreshold,
+		c.lockPolicy = retry.Policy{
+			Interval:   time.Duration(period) * time.Second,
+			MaxRetries: failureThreshold,
 		}
 		return nil
 	})
@@ -68,34 +68,18 @@ func WithUnlockTimeout(period, failureThreshold uint64) SessionLockerOption {
 		if failureThreshold < 1 {
 			return errors.New("failure threshold must be greater than 0, minimum is 1")
 		}
-		c.unlockProbe = probe{
-			intervalDuration: time.Duration(period) * time.Second,
-			failureThreshold: failureThreshold,
+		c.unlockPolicy = retry.Policy{
+			Interval:   time.Duration(period) * time.Second,
+			MaxRetries: failureThreshold,
 		}
 		return nil
 	})
 }
 
 type sessionLockerConfig struct {
-	lockID      int64
-	lockProbe   probe
-	unlockProbe probe
-}
-
-// probe is used to configure how often and how many times to retry a lock or unlock operation. The
-// total timeout will be the period times the failure threshold.
-type probe struct {
-	// How often (in seconds) to perform the probe.
-	intervalDuration time.Duration
-	// Number of times to retry the probe.
-	failureThreshold uint64
-}
-
-func (p probe) policy() retry.Policy {
-	return retry.Policy{
-		Interval:   p.intervalDuration,
-		MaxRetries: p.failureThreshold,
-	}
+	lockID       int64
+	lockPolicy   retry.Policy
+	unlockPolicy retry.Policy
 }
 
 var _ SessionLockerOption = (sessionLockerConfigFunc)(nil)

@@ -71,13 +71,13 @@ func NewPostgresTableLocker(options ...TableLockerOption) (Locker, error) {
 func NewPostgresSessionLocker(opts ...SessionLockerOption) (SessionLocker, error) {
 	cfg := sessionLockerConfig{
 		lockID: DefaultLockID,
-		lockProbe: probe{
-			intervalDuration: 5 * time.Second,
-			failureThreshold: 60,
+		lockPolicy: retry.Policy{
+			Interval:   5 * time.Second,
+			MaxRetries: 60,
 		},
-		unlockProbe: probe{
-			intervalDuration: 2 * time.Second,
-			failureThreshold: 30,
+		unlockPolicy: retry.Policy{
+			Interval:   2 * time.Second,
+			MaxRetries: 30,
 		},
 	}
 	for _, opt := range opts {
@@ -86,22 +86,22 @@ func NewPostgresSessionLocker(opts ...SessionLockerOption) (SessionLocker, error
 		}
 	}
 	return &postgresSessionLocker{
-		lockID:      cfg.lockID,
-		lockProbe:   cfg.lockProbe,
-		unlockProbe: cfg.unlockProbe,
+		lockID:       cfg.lockID,
+		lockPolicy:   cfg.lockPolicy,
+		unlockPolicy: cfg.unlockPolicy,
 	}, nil
 }
 
 type postgresSessionLocker struct {
-	lockID      int64
-	lockProbe   probe
-	unlockProbe probe
+	lockID       int64
+	lockPolicy   retry.Policy
+	unlockPolicy retry.Policy
 }
 
 var _ SessionLocker = (*postgresSessionLocker)(nil)
 
 func (l *postgresSessionLocker) SessionLock(ctx context.Context, conn *sql.Conn) error {
-	return retry.Do(ctx, l.lockProbe.policy(), func(ctx context.Context) error {
+	return retry.Do(ctx, l.lockPolicy, func(ctx context.Context) error {
 		row := conn.QueryRowContext(ctx, "SELECT pg_try_advisory_lock($1)", l.lockID)
 		var locked bool
 		if err := row.Scan(&locked); err != nil {
@@ -119,7 +119,7 @@ func (l *postgresSessionLocker) SessionLock(ctx context.Context, conn *sql.Conn)
 }
 
 func (l *postgresSessionLocker) SessionUnlock(ctx context.Context, conn *sql.Conn) error {
-	return retry.Do(ctx, l.unlockProbe.policy(), func(ctx context.Context) error {
+	return retry.Do(ctx, l.unlockPolicy, func(ctx context.Context) error {
 		var unlocked bool
 		row := conn.QueryRowContext(ctx, "SELECT pg_advisory_unlock($1)", l.lockID)
 		if err := row.Scan(&unlocked); err != nil {
