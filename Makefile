@@ -72,8 +72,14 @@ add-gowork:
 remove-gowork:
 	rm -rf go.work go.work.sum
 
-upgrade-integration-deps:
-	cd ./internal/testing && go get -u ./... && go mod tidy
+# Upgrade all Go deps to latest, keeping the pins in scripts/go-deps.sh.
+.PHONY: upgrade-deps
+upgrade-deps:
+	@./scripts/go-deps.sh upgrade
+
+.PHONY: check-deps
+check-deps:
+	@./scripts/go-deps.sh check
 
 test-postgres-long: add-gowork test-postgres
 	go test $(GO_TEST_FLAGS) ./internal/testing/integration -run='(TestPostgresProviderLocking|TestPostgresSessionLocker)' |\
