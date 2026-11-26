@@ -183,7 +183,7 @@ runs on the same database.
 > [!WARNING] Manual creation of the goose db version table is required.
 
 It is possible to run Goose against a ClickHouse cluster using the `Replicated`
-databas engine _only_ by manually pre-creating the Goose db version table
+database engine _only_ by manually pre-creating the Goose db version table
 _before_ running Goose for the first time.
 
 If Goose is allowed to create `goose_db_version` with the `MergeTree` engine,
