@@ -22,3 +22,8 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-patch"]
+      # Pinned to the versions modernc.org/sqlite requires. Updating sqlite
+      # moves them. See scripts/go-deps.sh.
+      - dependency-name: "modernc.org/libc"
+      - dependency-name: "modernc.org/mathutil"
+      - dependency-name: "modernc.org/memory"

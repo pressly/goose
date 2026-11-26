@@ -7,6 +7,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Update dependencies. `modernc.org/libc` now matches the version `modernc.org/sqlite` requires
+  (#1150)
+
 ## [v3.30.2] - 2026-11-25
 
 ### Changed
