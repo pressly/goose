@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"maps"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -426,12 +427,14 @@ func (p *Provider) down(
 		return nil, nil
 	}
 	if p.cfg.disableVersioning {
+		// Without versioning there is no database state, so roll back the migrations above the
+		// target version in reverse order, newest first.
 		var downMigrations []*Migration
-		if byOne {
-			last := p.migrations[len(p.migrations)-1]
-			downMigrations = []*Migration{last}
-		} else {
-			downMigrations = p.migrations
+		for _, m := range slices.Backward(p.migrations) {
+			if m.Version <= version {
+				break
+			}
+			downMigrations = append(downMigrations, m)
 		}
 		return p.runMigrations(ctx, conn, downMigrations, sqlparser.DirectionDown, byOne)
 	}

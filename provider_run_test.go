@@ -547,6 +547,32 @@ func TestNoVersioning(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, wantOwnerCount, ownerCount)
 	})
+	t.Run("down-to-in-reverse-order", func(t *testing.T) {
+		fsys := fstest.MapFS{
+			"00001_a.sql": newMapFile("-- +goose Up\nCREATE TABLE t (id INTEGER);\n-- +goose Down\nDROP TABLE t;\n"),
+			"00002_b.sql": newMapFile("-- +goose Up\nINSERT INTO t VALUES (2);\n-- +goose Down\nDELETE FROM t WHERE id = 2;\n"),
+			"00003_c.sql": newMapFile("-- +goose Up\nINSERT INTO t VALUES (3);\n-- +goose Down\nDELETE FROM t WHERE id = 3;\n"),
+		}
+		p, err := goose.NewProvider(goose.DialectSQLite3, newDB(t), fsys,
+			goose.WithVerbose(testing.Verbose()),
+			goose.WithDisableVersioning(true),
+		)
+		require.NoError(t, err)
+		_, err = p.Up(ctx)
+		require.NoError(t, err)
+		// Only migrations above the target version are rolled back, newest first.
+		res, err := p.DownTo(ctx, 1)
+		require.NoError(t, err)
+		require.Len(t, res, 2)
+		require.EqualValues(t, 3, res[0].Source.Version)
+		require.EqualValues(t, 2, res[1].Source.Version)
+		res, err = p.DownTo(ctx, 0)
+		require.NoError(t, err)
+		require.Len(t, res, 3)
+		require.EqualValues(t, 3, res[0].Source.Version)
+		require.EqualValues(t, 2, res[1].Source.Version)
+		require.EqualValues(t, 1, res[2].Source.Version)
+	})
 }
 
 func TestAllowMissing(t *testing.T) {
