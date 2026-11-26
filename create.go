@@ -1,6 +1,7 @@
 package goose
 
 import (
+	"bytes"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -57,6 +58,15 @@ func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, m
 		}
 	}
 
+	vars := tmplVars{
+		Version:   version,
+		CamelName: camelCase(name),
+	}
+	var content bytes.Buffer
+	if err := tmpl.Execute(&content, vars); err != nil {
+		return fmt.Errorf("failed to execute tmpl: %w", err)
+	}
+
 	path := filepath.Join(dir, filename)
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o666)
 	if err != nil {
@@ -64,12 +74,8 @@ func CreateWithTemplate(db *sql.DB, dir string, tmpl *template.Template, name, m
 	}
 	defer f.Close()
 
-	vars := tmplVars{
-		Version:   version,
-		CamelName: camelCase(name),
-	}
-	if err := tmpl.Execute(f, vars); err != nil {
-		return fmt.Errorf("failed to execute tmpl: %w", err)
+	if _, err := content.WriteTo(f); err != nil {
+		return fmt.Errorf("failed to write migration file: %w", err)
 	}
 
 	log.Printf("Created new file: %s", f.Name())

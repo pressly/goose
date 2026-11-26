@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+	"text/template"
 	"time"
 )
 
@@ -68,5 +69,28 @@ func TestCreateDuplicateFile(t *testing.T) {
 	}
 	if !errors.Is(err, os.ErrExist) {
 		t.Fatalf("want os.ErrExist, got %v", err)
+	}
+}
+
+func TestCreateWithTemplateExecutionError(t *testing.T) {
+	for _, migrationType := range []string{"sql", "go"} {
+		t.Run(migrationType, func(t *testing.T) {
+			dir := t.TempDir()
+			tmpl := template.Must(template.New("invalid").Parse("-- +goose Up\nDROP TABLE users;\n{{.MissingField}}"))
+			err := CreateWithTemplate(nil, dir, tmpl, "drop_users", migrationType)
+			if err == nil || !strings.Contains(err.Error(), "failed to execute tmpl") {
+				t.Fatalf("expected template execution error, got %v", err)
+			}
+			files, err := os.ReadDir(dir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(files) != 0 {
+				t.Fatalf("failed template left %d migration files", len(files))
+			}
+			if err := Create(nil, dir, "drop_users", migrationType); err != nil {
+				t.Fatalf("create after failed template: %v", err)
+			}
+		})
 	}
 }
