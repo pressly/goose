@@ -236,19 +236,69 @@ func mergeDrivers(drivers []string) []string {
 	return merged
 }
 
+// mergeArgs combines positional CLI arguments and environment defaults.
+// Explicit positional arguments take precedence over environment variables.
 func mergeArgs(config *envConfig, args []string) []string {
-	if len(args) < 1 {
+	if len(args) == 0 {
 		return args
 	}
-	if s := config.driver; s != "" {
-		args = append([]string{s}, args...)
+
+	// A command can be followed by its own arguments (e.g. up-to 42).
+	// Neither the command nor those arguments are driver/DBSTRING values.
+	if isMigrationCommand(args[0]) || len(args) == 1 {
+		result := make([]string, 0, len(args)+2)
+		if config.driver != "" {
+			result = append(result, config.driver)
+		}
+		if config.dbstring != "" {
+			result = append(result, config.dbstring)
+		}
+		return append(result, args...)
 	}
-	if s := config.dbstring; s != "" {
-		args = append([]string{args[0], s}, args[1:]...)
+
+	// If the second position is the command, one positional connection
+	// parameter is supplied. Prefer it over its corresponding env value.
+	if isMigrationCommand(args[1]) {
+		if isGooseDriver(args[0]) {
+			if config.dbstring != "" {
+				result := []string{args[0], config.dbstring}
+				return append(result, args[1:]...)
+			}
+		} else if config.driver != "" {
+			result := []string{config.driver}
+			return append(result, args...)
+		}
 	}
+
+	// Both positional connection parameters are already present.
 	return args
 }
 
+func isMigrationCommand(command string) bool {
+	switch command {
+	case "up", "up-by-one", "up-to", "down", "down-to", "redo", "reset", "status", "version":
+		return true
+	default:
+		return false
+	}
+}
+
+// A two-token CLI command (e.g. "goose postgres status") is otherwise
+// ambiguous with (e.g. "goose ./test.db status"). This recognizes all
+// documented CLI drivers; registered SQL drivers also work for custom builds.
+func isGooseDriver(name string) bool {
+	switch name {
+	case "postgres", "mysql", "sqlite3", "spanner", "mssql", "azuresql",
+		"redshift", "tidb", "clickhouse", "ydb", "starrocks", "turso":
+		return true
+	}
+	for _, registered := range sql.Drivers() {
+		if registered == name {
+			return true
+		}
+	}
+	return false
+}
 func usage() {
 	fmt.Println(usagePrefix)
 	flags.PrintDefaults()
