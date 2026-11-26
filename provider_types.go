@@ -77,10 +77,9 @@ const (
 	// StateApplied is a migration that has been applied to the database and exists on the
 	// filesystem.
 	StateApplied State = "applied"
-
-	// TODO(mf): we could also add a third state for untracked migrations. This would be useful for
-	// migrations that were manually applied to the database, but not versioned. Or the Source was
-	// deleted, but the migration still exists in the database. StateUntracked State = "untracked"
+	// StateMissing is a migration that has been applied to the database, but no longer exists
+	// on the filesystem.
+	StateMissing State = "missing"
 )
 
 // MigrationStatus represents the status of a single migration.
