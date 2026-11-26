@@ -147,6 +147,26 @@ func newProvider(
 	if len(migrations) == 0 {
 		return nil, ErrNoMigrations
 	}
+	// for RunTx along with disableTransactions = true
+	if cfg.disableTransactions {
+		for _, m := range migrations {
+			if m.Type != TypeGo {
+				continue
+			}
+			if m.goUp.RunTx != nil {
+				return nil, fmt.Errorf(
+					"go migration %d uses RunTx which is incompatible with disable transactions",
+					m.Version,
+				)
+			}
+			if m.goDown.RunTx != nil {
+				return nil, fmt.Errorf(
+					"go migration %d uses RunTx (down) which is incompatible with disable transactions",
+					m.Version,
+				)
+			}
+		}
+	}
 	return &Provider{
 		db:         db,
 		fsys:       fsys,

@@ -1,6 +1,7 @@
 package goose_test
 
 import (
+	"context"
 	"database/sql"
 	"path/filepath"
 	"testing"
@@ -55,6 +56,31 @@ func TestNewProvider(t *testing.T) {
 			goose.WithTableName("custom_table"),
 		)
 		require.Error(t, err)
+	})
+	t.Run("disable_transactions_with_run_tx", func(t *testing.T) {
+		// RunTx Go migrations are incompatible with WithDisableTransactions because
+		// RunTx requires a *sql.Tx which cannot be created when transactions are disabled.
+		m := goose.NewGoMigration(1,
+			&goose.GoFunc{RunTx: func(ctx context.Context, tx *sql.Tx) error { return nil }},
+			&goose.GoFunc{RunTx: func(ctx context.Context, tx *sql.Tx) error { return nil }},
+		)
+		_, err = goose.NewProvider(goose.DialectSQLite3, db, nil,
+			goose.WithDisableTransactions(true),
+			goose.WithGoMigrations(m),
+		)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "incompatible with disable transactions")
+		// Down-only RunTx should also fail
+		m2 := goose.NewGoMigration(2,
+			&goose.GoFunc{RunDB: func(ctx context.Context, db *sql.DB) error { return nil }},
+			&goose.GoFunc{RunTx: func(ctx context.Context, tx *sql.Tx) error { return nil }},
+		)
+		_, err = goose.NewProvider(goose.DialectSQLite3, db, nil,
+			goose.WithDisableTransactions(true),
+			goose.WithGoMigrations(m2),
+		)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "incompatible with disable transactions")
 	})
 	t.Run("valid", func(t *testing.T) {
 		// Valid dialect, db, and fsys allowed
