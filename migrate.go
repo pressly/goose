@@ -321,7 +321,7 @@ func collectGoMigrations(
 		fullpath string
 		version  int64
 	}
-	// Find all Go files that have a version prefix and are within the requested range.
+	// Identify directory migrations before filtering by the requested range.
 	var sources []source
 	for _, fullpath := range goFiles {
 		v, err := NumericComponent(fullpath)
@@ -331,18 +331,19 @@ func collectGoMigrations(
 		if strings.HasSuffix(fullpath, "_test.go") {
 			continue // Skip Go test files.
 		}
-		if versionFilter(v, current, target) {
-			sources = append(sources, source{
-				fullpath: fullpath,
-				version:  v,
-			})
-		}
+		sources = append(sources, source{
+			fullpath: fullpath,
+			version:  v,
+		})
 	}
 	var (
 		migrations Migrations
 	)
 	if len(sources) > 0 {
 		for _, s := range sources {
+			if !versionFilter(s.version, current, target) {
+				continue
+			}
 			migration, ok := registeredGoMigrations[s.version]
 			if ok {
 				migrations = append(migrations, migration)
