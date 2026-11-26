@@ -6,6 +6,8 @@
 CI](https://github.com/pressly/goose/actions/workflows/ci.yaml/badge.svg)](https://github.com/pressly/goose/actions/workflows/ci.yaml)
 [![Go
 Reference](https://pkg.go.dev/badge/github.com/pressly/goose/v3.svg)](https://pkg.go.dev/github.com/pressly/goose/v3)
+[![Best of
+Go](https://bestofgo.dev/badge/pressly/goose.svg)](https://bestofgo.dev/pressly/goose)
 
 Goose is a database migration tool. Both a CLI and a library.
 
