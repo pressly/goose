@@ -7,11 +7,9 @@ import (
 	"log"
 	"os"
 	"strings"
-	"time"
 
 	_ "github.com/googleapis/go-sql-spanner" // Spanner driver
-	"github.com/ory/dockertest/v3"
-	"github.com/ory/dockertest/v3/docker"
+	"github.com/pressly/dockermanage"
 
 	database "cloud.google.com/go/spanner/admin/database/apiv1"
 	dbpb "cloud.google.com/go/spanner/admin/database/apiv1/databasepb"
@@ -29,63 +27,36 @@ const (
 )
 
 func newSpanner(opts ...OptionsFunc) (*sql.DB, func(), error) {
-	option := &options{}
-	for _, f := range opts {
-		f(option)
-	}
-
-	pool, err := dockertest.NewPool("")
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to connect to docker: %v", err)
-	}
-
-	resource, err := pool.RunWithOptions(
-		&dockertest.RunOptions{
-			Repository: SPANNER_IMAGE,
-			Tag:        SPANNER_VERSION,
-			ExposedPorts: []string{
-				"9010/tcp", "9020/tcp",
-			},
-			Labels: map[string]string{"goose_test": "1"},
-		},
-		func(config *docker.HostConfig) {
-			config.AutoRemove = true
-			config.RestartPolicy = docker.RestartPolicy{Name: "no"}
-		},
-	)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to start spanner emulator container: %v", err)
-	}
-
-	hostPort := resource.GetPort("9010/tcp")
-	emulatorHost := fmt.Sprintf("localhost:%s", hostPort)
-	os.Setenv("SPANNER_EMULATOR_HOST", emulatorHost)
-
+	option := applyOptions(opts)
+	dsn := fmt.Sprintf("projects/%s/instances/%s/databases/%s", SPANNER_PROJECT, SPANNER_INSTANCE, SPANNER_DATABASE)
 	// Provision instance + database inside emulator
-	err = pool.Retry(func() error {
-		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-		defer cancel()
-
+	ready := func(ctx context.Context, container *dockermanage.Container) error {
+		emulatorHost, err := container.Addr(9010)
+		if err != nil {
+			return err
+		}
+		os.Setenv("SPANNER_EMULATOR_HOST", emulatorHost)
 		if err := createSpannerResources(ctx); err != nil {
 			return err
 		}
-
-		dsn := fmt.Sprintf("projects/%s/instances/%s/databases/%s", SPANNER_PROJECT, SPANNER_INSTANCE, SPANNER_DATABASE)
 		db, err := sql.Open("spanner", dsn)
 		if err != nil {
 			return err
 		}
 		defer db.Close()
 		return db.PingContext(ctx)
-	})
+	}
+	_, cleanupContainer, err := startContainer(option, SPANNER_IMAGE+":"+SPANNER_VERSION, readyTimeout, ready,
+		dockermanage.WithPort(9010),
+		dockermanage.WithPort(9020),
+	)
 	if err != nil {
-		_ = pool.Purge(resource)
-		return nil, nil, fmt.Errorf("could not initialize spanner emulator: %v", err)
+		return nil, nil, fmt.Errorf("could not initialize spanner emulator: %w", err)
 	}
 
-	dsn := fmt.Sprintf("projects/%s/instances/%s/databases/%s", SPANNER_PROJECT, SPANNER_INSTANCE, SPANNER_DATABASE)
 	db, err := sql.Open("spanner", dsn)
 	if err != nil {
+		cleanupContainer()
 		return nil, nil, fmt.Errorf("failed to open spanner DB: %v", err)
 	}
 
@@ -93,9 +64,7 @@ func newSpanner(opts ...OptionsFunc) (*sql.DB, func(), error) {
 		if err := db.Close(); err != nil {
 			log.Printf("failed to close spanner db: %v", err)
 		}
-		if err := pool.Purge(resource); err != nil {
-			log.Printf("failed to purge spanner emulator container: %v", err)
-		}
+		cleanupContainer()
 	}
 
 	return db, cleanup, nil

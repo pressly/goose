@@ -4,13 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"time"
 
-	"github.com/ory/dockertest/v3"
-	"github.com/ory/dockertest/v3/docker"
+	"github.com/pressly/dockermanage"
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/balancers"
 	ydblog "github.com/ydb-platform/ydb-go-sdk/v3/log"
@@ -20,82 +18,27 @@ import (
 const (
 	YDB_IMAGE    = "ghcr.io/ydb-platform/local-ydb"
 	YDB_VERSION  = "24.1"
-	YDB_PORT     = "2136"
-	YDB_UI_PORT  = "8765"
+	YDB_PORT     = 2136
+	YDB_UI_PORT  = 8765
 	YDB_DATABASE = "local"
 )
 
 func newYdb(opts ...OptionsFunc) (*sql.DB, func(), error) {
-	option := &options{}
-	for _, f := range opts {
-		f(option)
-	}
-	// Uses a sensible default on windows (tcp/http) and linux/osx (socket).
-	pool, err := dockertest.NewPool("")
-	if err != nil {
-		return nil, nil, err
-	}
-	runOptions := &dockertest.RunOptions{
-		Repository: YDB_IMAGE,
-		Tag:        YDB_VERSION,
-		Env: []string{
-			"YDB_USE_IN_MEMORY_PDISKS=true",
-			"YDB_LOCAL_SURVIVE_RESTART=true",
-			"GRPC_PORT=" + YDB_PORT,
-			"MON_PORT=" + YDB_UI_PORT,
-		},
-		Labels:       map[string]string{"goose_test": "1"},
-		PortBindings: map[docker.Port][]docker.PortBinding{},
-		Mounts:       []string{os.TempDir() + ":/ydb_certs"},
-		Hostname:     "localhost",
-	}
+	option := applyOptions(opts)
+	logLevel := "ERROR"
 	if option.debug {
-		runOptions.Env = append(runOptions.Env, "YDB_DEFAULT_LOG_LEVEL=NOTICE")
-	} else {
-		runOptions.Env = append(runOptions.Env, "YDB_DEFAULT_LOG_LEVEL=ERROR")
+		logLevel = "NOTICE"
 	}
-	if option.bindPort > 0 {
-		runOptions.PortBindings[YDB_PORT+"/tcp"] = []docker.PortBinding{
-			{HostPort: strconv.Itoa(option.bindPort)},
-		}
-	}
-	container, err := pool.RunWithOptions(
-		runOptions,
-		func(config *docker.HostConfig) {
-			// Set AutoRemove to true so that stopped container goes away by itself.
-			config.AutoRemove = true
-			config.RestartPolicy = docker.RestartPolicy{Name: "no"}
-			config.Init = true
-		},
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-	cleanup := func() {
-		if option.debug {
-			// User must manually delete the Docker container.
-			return
-		}
-		if err := pool.Purge(container); err != nil {
-			log.Printf("failed to purge resource: %v", err)
-		}
-	}
-	// Fetch port assigned to container
-	dsn := fmt.Sprintf("grpc://%s:%s/%s",
-		"localhost",
-		container.GetPort(YDB_PORT+"/tcp"),
-		YDB_DATABASE,
-	)
-
 	var db *sql.DB
-	// Exponential backoff-retry, because the application in the container
-	// might not be ready to accept connections yet.
-	if err := pool.Retry(func() (err error) {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-		defer cancel()
-		if err := containerWaitHealthy(ctx, pool, container.Container.ID); err != nil {
+	ready := func(ctx context.Context, container *dockermanage.Container) (err error) {
+		if err := dockermanage.Healthy(ctx, container); err != nil {
 			return err
 		}
+		addr, err := container.Addr(YDB_PORT)
+		if err != nil {
+			return err
+		}
+		dsn := fmt.Sprintf("grpc://%s/%s", addr, YDB_DATABASE)
 
 		opts := []ydb.Option{
 			ydb.WithBalancer(balancers.SingleConn()),
@@ -129,19 +72,26 @@ func newYdb(opts ...OptionsFunc) (*sql.DB, func(), error) {
 			}
 		}()
 
-		db = sql.OpenDB(connector)
-		db.SetMaxIdleConns(5)
-		db.SetMaxOpenConns(10)
-		db.SetConnMaxLifetime(time.Hour)
+		candidate := sql.OpenDB(connector)
+		candidate.SetMaxIdleConns(5)
+		candidate.SetMaxOpenConns(10)
+		candidate.SetConnMaxLifetime(time.Hour)
 
-		err = db.Ping()
-		if err != nil {
+		if err := candidate.PingContext(ctx); err != nil {
 			return err
 		}
-
+		db = candidate
 		return nil
-	}); err != nil {
-		cleanup()
+	}
+	_, cleanup, err := startContainer(option, YDB_IMAGE+":"+YDB_VERSION, readyTimeout, ready,
+		portOption(option, YDB_PORT),
+		dockermanage.WithEnv("YDB_USE_IN_MEMORY_PDISKS", "true"),
+		dockermanage.WithEnv("YDB_LOCAL_SURVIVE_RESTART", "true"),
+		dockermanage.WithEnv("GRPC_PORT", strconv.Itoa(YDB_PORT)),
+		dockermanage.WithEnv("MON_PORT", strconv.Itoa(YDB_UI_PORT)),
+		dockermanage.WithEnv("YDB_DEFAULT_LOG_LEVEL", logLevel),
+	)
+	if err != nil {
 		return nil, nil, fmt.Errorf("could not connect to docker database: %w", err)
 	}
 	return db, cleanup, nil
