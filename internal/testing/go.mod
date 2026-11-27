@@ -8,7 +8,7 @@ require (
 	github.com/go-sql-driver/mysql v1.10.2
 	github.com/googleapis/go-sql-spanner v1.28.0
 	github.com/jackc/pgx/v5 v5.13.0
-	github.com/pressly/dockermanage v0.1.1
+	github.com/pressly/dockermanage v0.2.0
 	github.com/pressly/goose/v3 v3.30.2
 	github.com/stretchr/testify v1.12.1
 	github.com/tursodatabase/libsql-client-go v0.0.0-20260528064733-9d5d30a29a60

@@ -31,13 +31,8 @@ func newYdb(opts ...OptionsFunc) (*sql.DB, func(), error) {
 	}
 	var db *sql.DB
 	ready := func(ctx context.Context, container *dockermanage.Container) (err error) {
-		// Run the health check of the image.
-		result, err := container.Exec(ctx, []string{"sh", "./health_check"})
-		if err != nil {
+		if err := dockermanage.Healthy(ctx, container); err != nil {
 			return err
-		}
-		if result.ExitCode != 0 {
-			return fmt.Errorf("health check exit code %d", result.ExitCode)
 		}
 		addr, err := container.Addr(YDB_PORT)
 		if err != nil {
