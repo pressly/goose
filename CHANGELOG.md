@@ -12,6 +12,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Update dependencies. `modernc.org/libc` now matches the version `modernc.org/sqlite` requires
   (#1150)
 
+### Removed
+
+- **Breaking:** remove `pkg/dockermanage`. Use
+  [`github.com/pressly/dockermanage`](https://github.com/pressly/dockermanage) instead (#1188)
+
 ## [v3.30.2] - 2026-11-25
 
 ### Changed
