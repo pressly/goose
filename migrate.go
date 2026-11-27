@@ -112,7 +112,7 @@ func (ms Migrations) timestamped() (Migrations, error) {
 			continue
 		}
 
-		if versionTime.After(time.Unix(0, 0)) {
+		if !versionTime.Before(time.Unix(0, 0)) {
 			migrations = append(migrations, m)
 		}
 	}
