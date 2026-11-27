@@ -1,16 +1,14 @@
 package testdb
 
 import (
+	"context"
 	"crypto/tls"
 	"database/sql"
-	"fmt"
-	"log"
-	"strconv"
+	"errors"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/ory/dockertest/v3"
-	"github.com/ory/dockertest/v3/docker"
+	"github.com/pressly/dockermanage"
 )
 
 const (
@@ -25,66 +23,32 @@ const (
 )
 
 func newClickHouse(opts ...OptionsFunc) (*sql.DB, func(), error) {
-	option := &options{}
-	for _, f := range opts {
-		f(option)
-	}
-	// Uses a sensible default on windows (tcp/http) and linux/osx (socket).
-	pool, err := dockertest.NewPool("")
-	if err != nil {
-		return nil, nil, err
-	}
-	runOptions := &dockertest.RunOptions{
-		Repository: CLICKHOUSE_IMAGE,
-		Tag:        CLICKHOUSE_VERSION,
-		Env: []string{
-			"CLICKHOUSE_DB=" + CLICKHOUSE_DB,
-			"CLICKHOUSE_USER=" + CLICKHOUSE_USER,
-			"CLICKHOUSE_PASSWORD=" + CLICKHOUSE_PASSWORD,
-			"CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=" + CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT,
-		},
-		Labels:       map[string]string{"goose_test": "1"},
-		PortBindings: make(map[docker.Port][]docker.PortBinding),
-	}
-	// Port 8123 is used for HTTP, but we're using the TCP protocol endpoint (port 9000).
-	// Ref: https://clickhouse.com/docs/en/interfaces/http/
-	// Ref: https://clickhouse.com/docs/en/interfaces/tcp/
-	if option.bindPort > 0 {
-		runOptions.PortBindings[docker.Port("9000/tcp")] = []docker.PortBinding{
-			{HostPort: strconv.Itoa(option.bindPort)},
+	option := applyOptions(opts)
+	var db *sql.DB
+	ready := func(ctx context.Context, container *dockermanage.Container) error {
+		// Port 8123 is used for HTTP, but we're using the TCP protocol endpoint (port 9000).
+		// Ref: https://clickhouse.com/docs/en/interfaces/http/
+		// Ref: https://clickhouse.com/docs/en/interfaces/tcp/
+		address, err := container.Addr(9000)
+		if err != nil {
+			return err
 		}
+		candidate := clickHouseOpenDB(address, nil, option.debug)
+		if err := candidate.PingContext(ctx); err != nil {
+			return errors.Join(err, candidate.Close())
+		}
+		db = candidate
+		return nil
 	}
-	container, err := pool.RunWithOptions(
-		runOptions,
-		func(config *docker.HostConfig) {
-			// Set AutoRemove to true so that stopped container goes away by itself.
-			config.AutoRemove = true
-			config.RestartPolicy = docker.RestartPolicy{Name: "no"}
-		},
+	_, cleanup, err := startContainer(option, CLICKHOUSE_IMAGE+":"+CLICKHOUSE_VERSION, readyTimeout, ready,
+		portOption(option, 9000),
+		dockermanage.WithEnv("CLICKHOUSE_DB", CLICKHOUSE_DB),
+		dockermanage.WithEnv("CLICKHOUSE_USER", CLICKHOUSE_USER),
+		dockermanage.WithEnv("CLICKHOUSE_PASSWORD", CLICKHOUSE_PASSWORD),
+		dockermanage.WithEnv("CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT", CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT),
 	)
 	if err != nil {
 		return nil, nil, err
-	}
-	cleanup := func() {
-		if option.debug {
-			// User must manually delete the Docker container.
-			return
-		}
-		if err := pool.Purge(container); err != nil {
-			log.Printf("failed to purge resource: %v", err)
-		}
-	}
-	// Fetch port assigned to container
-	address := fmt.Sprintf("%s:%s", "localhost", container.GetPort("9000/tcp"))
-
-	var db *sql.DB
-	// Exponential backoff-retry, because the application in the container
-	// might not be ready to accept connections yet.
-	if err := pool.Retry(func() error {
-		db = clickHouseOpenDB(address, nil, option.debug)
-		return db.Ping()
-	}); err != nil {
-		return nil, cleanup, fmt.Errorf("could not connect to docker database: %w", err)
 	}
 	return db, cleanup, nil
 }
